@@ -1,0 +1,18 @@
+[
+  {
+    "id": "boost-001",
+    "employerId": "employer-001",
+    "delta": 1,
+    "reason": "NoShowGrant",
+    "shiftId": "shift-009",
+    "createdAt": "2026-04-15T07:00:00.000Z"
+  },
+  {
+    "id": "boost-002",
+    "employerId": "employer-002",
+    "delta": -1,
+    "reason": "ShiftRepost",
+    "shiftId": "shift-004",
+    "createdAt": "2026-05-17T10:00:00.000Z"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "rating-001",
+    "shiftId": "shift-007",
+    "applicationId": "app-009",
+    "fromUserId": "employer-001",
+    "toUserId": "worker-002",
+    "stars": 5,
+    "feedback": "Bạn Hà rất chuyên nghiệp, lịch sự với khách. Sẽ thuê lại.",
+    "createdAt": "2026-04-26T22:30:00.000Z"
+  },
+  {
+    "id": "rating-002",
+    "shiftId": "shift-007",
+    "applicationId": "app-010",
+    "fromUserId": "employer-001",
+    "toUserId": "worker-005",
+    "stars": 4,
+    "feedback": "Bạn Duy làm tốt, cần cải thiện thêm tốc độ phục vụ.",
+    "createdAt": "2026-04-26T22:30:00.000Z"
+  },
+  {
+    "id": "rating-003",
+    "shiftId": "shift-007",
+    "applicationId": "app-009",
+    "fromUserId": "employer-002",
+    "toUserId": "worker-001",
+    "stars": 5,
+    "feedback": "Pha chế nhanh, sạch sẽ, đáng tin cậy.",
+    "createdAt": "2026-04-20T18:00:00.000Z"
+  },
+  {
+    "id": "rating-004",
+    "shiftId": "shift-007",
+    "applicationId": "app-010",
+    "fromUserId": "employer-002",
+    "toUserId": "worker-002",
+    "stars": 5,
+    "feedback": "Rất hài lòng.",
+    "createdAt": "2026-04-15T19:30:00.000Z"
+  }
+]

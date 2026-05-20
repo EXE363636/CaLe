@@ -1,0 +1,57 @@
+/* ============================================================================
+ * Tailwind CSS Configuration — CaLẻ / ShiftNow
+ * ----------------------------------------------------------------------------
+ * This project uses Tailwind CSS v4, which is configured in CSS (no
+ * `tailwind.config.ts`). Conventions for the MVP are documented here.
+ *
+ * Mobile-first responsive design (Tailwind defaults, Req 17.1)
+ *   sm  ≥ 640px    md  ≥ 768px    lg  ≥ 1024px    xl  ≥ 1280px
+ *   Always design the base (un-prefixed) styles for the smallest viewport
+ *   first, then layer larger breakpoints on top with `md:` / `lg:` / `xl:`.
+ *
+ * Touch target convention (Req 17.4)
+ *   All interactive elements (buttons, inputs, links acting as buttons,
+ *   icon buttons, nav items) MUST meet the 44 × 44 CSS-pixel minimum:
+ *     class="min-h-[44px] min-w-[44px]"
+ *
+ * Theme
+ *   The MVP is light-only — no dark mode is supported. The body uses a
+ *   slate-50 background and slate-900 foreground so cards and inputs (which
+ *   use white backgrounds) read with adequate contrast on every page.
+ *
+ * Content sources
+ *   Tailwind v4 auto-detects template files. The `@source` directives below
+ *   make the src TS / TSX globs explicit for clarity. (PostCSS does not
+ *   support brace expansion inside `@source`, so the pattern is split
+ *   into two directives.)
+ * ========================================================================== */
+
+@import "tailwindcss";
+
+@source "../**/*.ts";
+@source "../**/*.tsx";
+
+:root {
+  --background: #f8fafc;       /* slate-50 — page chrome */
+  --foreground: #0f172a;       /* slate-900 — body text */
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

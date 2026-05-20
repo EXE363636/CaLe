@@ -1,0 +1,119 @@
+[
+  {
+    "id": "app-001",
+    "shiftId": "shift-001",
+    "workerId": "worker-001",
+    "status": "Approved",
+    "appliedAt": "2026-05-16T10:00:00.000Z",
+    "approvedAt": "2026-05-16T14:30:00.000Z",
+    "payoutAmount": 135000
+  },
+  {
+    "id": "app-002",
+    "shiftId": "shift-001",
+    "workerId": "worker-003",
+    "status": "Pending",
+    "appliedAt": "2026-05-19T09:15:00.000Z"
+  },
+  {
+    "id": "app-003",
+    "shiftId": "shift-002",
+    "workerId": "worker-002",
+    "status": "Pending",
+    "appliedAt": "2026-05-18T20:00:00.000Z"
+  },
+  {
+    "id": "app-004",
+    "shiftId": "shift-003",
+    "workerId": "worker-002",
+    "status": "Approved",
+    "appliedAt": "2026-05-15T07:30:00.000Z",
+    "approvedAt": "2026-05-15T12:00:00.000Z",
+    "payoutAmount": 300000
+  },
+  {
+    "id": "app-005",
+    "shiftId": "shift-003",
+    "workerId": "worker-001",
+    "status": "Approved",
+    "appliedAt": "2026-05-15T10:45:00.000Z",
+    "approvedAt": "2026-05-18T15:30:00.000Z",
+    "payoutAmount": 300000
+  },
+  {
+    "id": "app-006",
+    "shiftId": "shift-003",
+    "workerId": "worker-006",
+    "status": "Rejected",
+    "appliedAt": "2026-05-16T08:00:00.000Z"
+  },
+  {
+    "id": "app-007",
+    "shiftId": "shift-004",
+    "workerId": "worker-001",
+    "status": "Approved",
+    "appliedAt": "2026-05-18T11:00:00.000Z",
+    "approvedAt": "2026-05-19T09:00:00.000Z",
+    "payoutAmount": 400000
+  },
+  {
+    "id": "app-008",
+    "shiftId": "shift-004",
+    "workerId": "worker-004",
+    "status": "Pending",
+    "appliedAt": "2026-05-19T18:30:00.000Z"
+  },
+  {
+    "id": "app-009",
+    "shiftId": "shift-007",
+    "workerId": "worker-002",
+    "status": "Confirmed",
+    "appliedAt": "2026-04-16T10:00:00.000Z",
+    "approvedAt": "2026-04-17T09:00:00.000Z",
+    "checkInAt": "2026-04-26T16:55:00.000Z",
+    "checkOutAt": "2026-04-26T22:05:00.000Z",
+    "confirmedAt": "2026-04-26T22:30:00.000Z",
+    "payoutAmount": 275000
+  },
+  {
+    "id": "app-010",
+    "shiftId": "shift-007",
+    "workerId": "worker-005",
+    "status": "Confirmed",
+    "appliedAt": "2026-04-16T14:00:00.000Z",
+    "approvedAt": "2026-04-17T09:30:00.000Z",
+    "checkInAt": "2026-04-26T16:50:00.000Z",
+    "checkOutAt": "2026-04-26T22:10:00.000Z",
+    "confirmedAt": "2026-04-26T22:30:00.000Z",
+    "payoutAmount": 275000
+  },
+  {
+    "id": "app-011",
+    "shiftId": "shift-008",
+    "workerId": "worker-003",
+    "status": "CheckedOut",
+    "appliedAt": "2026-05-12T09:00:00.000Z",
+    "approvedAt": "2026-05-13T10:00:00.000Z",
+    "checkInAt": "2026-05-19T07:55:00.000Z",
+    "checkOutAt": "2026-05-19T17:10:00.000Z",
+    "payoutAmount": 450000
+  },
+  {
+    "id": "app-012",
+    "shiftId": "shift-009",
+    "workerId": "worker-005",
+    "status": "CancelledByWorker",
+    "appliedAt": "2026-04-09T11:00:00.000Z",
+    "approvedAt": "2026-04-10T09:00:00.000Z",
+    "cancelledAt": "2026-04-10T20:00:00.000Z",
+    "cancelReason": "LateCancel"
+  },
+  {
+    "id": "app-013",
+    "shiftId": "shift-009",
+    "workerId": "worker-006",
+    "status": "NoShow",
+    "appliedAt": "2026-04-09T13:00:00.000Z",
+    "approvedAt": "2026-04-10T10:00:00.000Z"
+  }
+]
