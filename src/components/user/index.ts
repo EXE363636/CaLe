@@ -9,3 +9,6 @@ export type { VerificationBadgeProps } from './VerificationBadge';
 
 export { WorkerProfileCard } from './WorkerProfileCard';
 export type { WorkerProfileCardProps } from './WorkerProfileCard';
+
+export { WorkerSummaryRow } from './WorkerSummaryRow';
+export { WorkerProfileModal } from './WorkerProfileModal';

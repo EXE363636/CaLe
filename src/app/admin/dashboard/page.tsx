@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { RoleGuard } from '@/components/layout/RoleGuard';
+import { useAuthStore } from '@/stores/authStore';
 import { useUserStore } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
@@ -141,14 +142,39 @@ function UsersPanel() {
   const users = useUserStore((s) => s.users);
   const suspend = useAdminStore((s) => s.suspend);
   const reactivate = useAdminStore((s) => s.reactivate);
+  const currentAdminId = useAuthStore((s) => s.currentUserId);
 
   const [filter, setFilter] = useState<'all' | 'worker' | 'employer' | 'admin'>('all');
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return users;
     return users.filter((u) => u.role === filter);
   }, [users, filter]);
+
+  // Helpers that surface error messages on failure
+  function handleSuspend(userId: string) {
+    setActionError(null);
+    const result = suspend(userId);
+    if (!result.ok) {
+      setActionError(t(`admin.error.${result.error}`));
+    }
+  }
+  function handleReactivate(userId: string) {
+    setActionError(null);
+    const result = reactivate(userId);
+    if (!result.ok) {
+      setActionError(t(`admin.error.${result.error}`));
+    }
+  }
+
+  // Count of currently active admins — used to disable the suspend button
+  // for the last-active admin defensively in the UI.
+  const activeAdminCount = useMemo(
+    () => users.filter((u) => u.role === 'admin' && !u.suspended).length,
+    [users],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -166,16 +192,30 @@ function UsersPanel() {
         ))}
       </div>
 
+      {/* Action error toast */}
+      {actionError && (
+        <div
+          role="alert"
+          className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700"
+        >
+          {actionError}
+        </div>
+      )}
+
       <ul className="flex flex-col gap-2">
         {filtered.map((user) => (
           <UserRow
             key={user.id}
             user={user}
+            isSelf={user.id === currentAdminId}
+            isLastActiveAdmin={
+              user.role === 'admin' && !user.suspended && activeAdminCount <= 1
+            }
             adjusting={adjustingId === user.id}
             onAdjust={() => setAdjustingId(user.id)}
             onCancelAdjust={() => setAdjustingId(null)}
-            onSuspend={() => suspend(user.id)}
-            onReactivate={() => reactivate(user.id)}
+            onSuspend={() => handleSuspend(user.id)}
+            onReactivate={() => handleReactivate(user.id)}
           />
         ))}
       </ul>
@@ -185,6 +225,8 @@ function UsersPanel() {
 
 function UserRow({
   user,
+  isSelf,
+  isLastActiveAdmin,
   adjusting,
   onAdjust,
   onCancelAdjust,
@@ -192,6 +234,8 @@ function UserRow({
   onReactivate,
 }: {
   user: User;
+  isSelf: boolean;
+  isLastActiveAdmin: boolean;
   adjusting: boolean;
   onAdjust: () => void;
   onCancelAdjust: () => void;
@@ -217,6 +261,10 @@ function UserRow({
     onCancelAdjust();
   }
 
+  // Suspending myself or the last active admin is forbidden — hide the
+  // suspend button entirely so admins don't lock themselves out.
+  const canSuspend = !isSelf && !isLastActiveAdmin;
+
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-3">
@@ -226,6 +274,11 @@ function UserRow({
             <span className="ml-2 text-xs font-normal text-gray-400">
               ({t(`role.${user.role}`)})
             </span>
+            {isSelf && (
+              <Badge tone="info" className="ml-2">
+                {t('admin.user.currentAccount')}
+              </Badge>
+            )}
           </p>
           <p className="truncate text-xs text-gray-500">{user.email}</p>
         </div>
@@ -249,9 +302,11 @@ function UserRow({
               {t('btn.reactivate')}
             </Button>
           ) : (
-            <Button size="sm" variant="danger" onClick={onSuspend}>
-              {t('btn.suspend')}
-            </Button>
+            canSuspend && (
+              <Button size="sm" variant="danger" onClick={onSuspend}>
+                {t('btn.suspend')}
+              </Button>
+            )
           )}
         </div>
       </div>

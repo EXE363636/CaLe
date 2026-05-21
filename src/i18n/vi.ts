@@ -228,6 +228,20 @@ export const vi: Record<string, string> = {
   'auth.error.INVALID_INPUT': 'Thông tin đăng ký không hợp lệ. Vui lòng kiểm tra lại.',
 
   // -------------------------------------------------------------------------
+  // Admin errors
+  // -------------------------------------------------------------------------
+  'admin.error.USER_NOT_FOUND': 'Không tìm thấy người dùng.',
+  'admin.error.NOT_A_WORKER': 'Tài khoản này không phải là người làm.',
+  'admin.error.SHIFT_NOT_FOUND': 'Không tìm thấy ca làm.',
+  'admin.error.DISPUTE_NOT_FOUND': 'Không tìm thấy tranh chấp.',
+  'admin.error.INVALID_OUTCOME': 'Kết quả giải quyết không hợp lệ.',
+  'admin.error.CANNOT_SUSPEND_SELF':
+    'Bạn không thể tạm khoá chính tài khoản đang đăng nhập.',
+  'admin.error.CANNOT_SUSPEND_LAST_ADMIN':
+    'Không thể tạm khoá quản trị viên đang hoạt động cuối cùng.',
+  'admin.user.currentAccount': 'Tài khoản hiện tại',
+
+  // -------------------------------------------------------------------------
   // Shift / store action errors
   // -------------------------------------------------------------------------
   'shift.error.NOT_FOUND': 'Không tìm thấy ca làm.',
@@ -313,6 +327,18 @@ export const vi: Record<string, string> = {
   'employer.dashboard.upcomingShifts': 'Ca làm sắp tới',
   'employer.dashboard.noShifts': 'Bạn chưa đăng ca làm nào.',
   'employer.dashboard.applicants': 'Đơn ứng tuyển',
+  'employer.applicant.viewProfile': 'Xem hồ sơ',
+  'employer.applicant.fullProfile': 'Hồ sơ người làm',
+  'employer.applicant.completedShifts': 'Ca hoàn thành',
+  'employer.applicant.avgRating': 'Điểm đánh giá',
+  'employer.applicant.noShows': 'Vắng mặt',
+  'employer.applicant.cancellations': 'Lần huỷ',
+  'employer.applicant.skills': 'Kỹ năng',
+  'employer.applicant.preferredJobs': 'Loại công việc ưa thích',
+  'employer.applicant.preferredLocations': 'Khu vực ưa thích',
+  'employer.applicant.ratingHistory': 'Lịch sử đánh giá',
+  'employer.applicant.bio': 'Giới thiệu',
+  'employer.applicant.noBio': 'Người làm chưa thêm giới thiệu.',
 
   // -------------------------------------------------------------------------
   // Admin dashboard

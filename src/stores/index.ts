@@ -5,7 +5,7 @@
  * files so the wiring stays consistent and refactors are localized.
  */
 
-export { useAuthStore, useCurrentRole } from './authStore';
+export { useAuthStore, useCurrentRole, useCurrentUser } from './authStore';
 export type { LoginError, RegisterError, RegisterInput } from './authStore';
 
 export { useUserStore, asWorker, asEmployer } from './userStore';

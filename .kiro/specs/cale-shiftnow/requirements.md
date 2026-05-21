@@ -80,7 +80,7 @@ CaLẻ / ShiftNow is a responsive web platform that connects employers who need 
 **User Story:** As a worker, I want to apply for shifts, so that I can secure work opportunities.
 
 #### Acceptance Criteria
-
+ 
 1. WHEN a worker with phone verification views a shift detail page, THE Platform SHALL display an "Apply" button
 2. WHEN a worker without phone verification views a shift detail page, THE Platform SHALL display a message requiring verification
 3. WHEN a worker clicks "Apply", THE Platform SHALL create an Application with status "Pending"

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { t } from '@/i18n/vi';
@@ -29,6 +30,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
 
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const allNotifications = useNotificationStore((s) => s.notifications);
@@ -45,6 +47,11 @@ export function NotificationBell() {
   );
   const markRead = useNotificationStore((s) => s.markRead);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
+
+  // Close dropdown on logout (currentUserId becomes null) or any route change.
+  useEffect(() => {
+    setOpen(false);
+  }, [currentUserId, pathname]);
 
   // Close on outside click
   useEffect(() => {

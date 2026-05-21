@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { Input, Button } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired } from '@/lib/validate';
@@ -17,11 +17,22 @@ const DASHBOARD: Record<string, string> = {
 export default function LoginPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
+  const currentUser = useCurrentUser();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
   const [loading, setLoading] = useState(false);
+
+  // If already authenticated, redirect to role dashboard
+  useEffect(() => {
+    if (currentUser) {
+      router.replace(DASHBOARD[currentUser.role] ?? '/');
+    }
+  }, [currentUser, router]);
+
+  // Don't render the form while we're about to redirect
+  if (currentUser) return null;
 
   function validate() {
     const errs: typeof errors = {};

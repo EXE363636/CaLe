@@ -313,9 +313,9 @@ function ChipList({ items }: { items: string[] }) {
   if (items.length === 0) return <p className="text-sm text-gray-400 italic">Chưa có</p>;
   return (
     <div className="flex flex-wrap gap-1.5">
-      {items.map((it) => (
+      {items.map((it, idx) => (
         <span
-          key={it}
+          key={`${it}-${idx}`}
           className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700"
         >
           {it}
@@ -335,8 +335,15 @@ function StatRow({ label, value }: { label: string; value: string }) {
 }
 
 function parseList(text: string): string[] {
-  return text
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of text.split(',')) {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+  }
+  return out;
 }

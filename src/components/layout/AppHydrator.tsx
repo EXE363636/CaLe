@@ -43,6 +43,17 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useApplicationStore.getState().hydrateDisputes(snapshot.disputes);
     useNotificationStore.getState().hydrate(snapshot.notifications);
     useAuthStore.getState().hydrate(snapshot.auth);
+
+    // Validate persisted auth: if currentUserId points to a missing or
+    // suspended user, force a logout so navigation/role chrome doesn't
+    // render in an inconsistent state.
+    const auth = useAuthStore.getState();
+    if (auth.currentUserId) {
+      const user = useUserStore.getState().findById(auth.currentUserId);
+      if (!user || user.suspended) {
+        auth.logout();
+      }
+    }
   }, []);
 
   return children;

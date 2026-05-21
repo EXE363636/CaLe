@@ -26,6 +26,7 @@ import type {
 } from '@/types';
 
 import { useApplicationStore } from './applicationStore';
+import { useAuthStore } from './authStore';
 import { useShiftStore } from './shiftStore';
 import { useUserStore, asWorker } from './userStore';
 
@@ -38,7 +39,9 @@ export type AdminError =
   | 'NOT_A_WORKER'
   | 'SHIFT_NOT_FOUND'
   | 'DISPUTE_NOT_FOUND'
-  | 'INVALID_OUTCOME';
+  | 'INVALID_OUTCOME'
+  | 'CANNOT_SUSPEND_SELF'
+  | 'CANNOT_SUSPEND_LAST_ADMIN';
 
 interface AdminStore {
   suspend(userId: string): Result<true, AdminError>;
@@ -79,6 +82,23 @@ export const useAdminStore = create<AdminStore>(() => ({
     const userStore = useUserStore.getState();
     const user = userStore.findById(userId);
     if (!user) return { ok: false, error: 'USER_NOT_FOUND' };
+
+    // Can't suspend yourself
+    const currentAdminId = useAuthStore.getState().currentUserId;
+    if (currentAdminId && userId === currentAdminId) {
+      return { ok: false, error: 'CANNOT_SUSPEND_SELF' };
+    }
+
+    // Can't suspend the last active admin
+    if (user.role === 'admin') {
+      const otherActiveAdmins = userStore.users.filter(
+        (u) => u.role === 'admin' && u.id !== userId && !u.suspended,
+      );
+      if (otherActiveAdmins.length === 0) {
+        return { ok: false, error: 'CANNOT_SUSPEND_LAST_ADMIN' };
+      }
+    }
+
     userStore.setSuspended(userId, true);
     return { ok: true, value: true };
   },

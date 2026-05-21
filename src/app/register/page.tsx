@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { Input, Button } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired, isValidPassword, isValidVNPhone } from '@/lib/validate';
@@ -36,12 +36,19 @@ const DASHBOARD: Record<Role, string> = {
   employer: '/employer/dashboard',
 };
 
+const ALL_DASHBOARDS: Record<string, string> = {
+  worker: '/worker/dashboard',
+  employer: '/employer/dashboard',
+  admin: '/admin/dashboard',
+};
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialRole = (searchParams.get('role') === 'employer' ? 'employer' : 'worker') as Role;
 
   const register = useAuthStore((s) => s.register);
+  const currentUser = useCurrentUser();
 
   const [values, setValues] = useState<FormValues>({
     role: initialRole,
@@ -54,6 +61,15 @@ function RegisterForm() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+
+  // If already authenticated, redirect to role dashboard
+  useEffect(() => {
+    if (currentUser) {
+      router.replace(ALL_DASHBOARDS[currentUser.role] ?? '/');
+    }
+  }, [currentUser, router]);
+
+  if (currentUser) return null;
 
   function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((p) => ({ ...p, [key]: value }));

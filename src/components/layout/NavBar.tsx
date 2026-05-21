@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore, useCurrentRole } from '@/stores/authStore';
+import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
 import { t } from '@/i18n/vi';
@@ -42,15 +42,16 @@ function getNavItems(role: Role | null): NavItem[] {
 export function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
-  const role = useCurrentRole();
-  const currentUserId = useAuthStore((s) => s.currentUserId);
+  const currentUser = useCurrentUser();
   const logout = useAuthStore((s) => s.logout);
 
+  const role: Role | null = currentUser?.role ?? null;
   const items = getNavItems(role);
+  const isLoggedIn = currentUser !== null;
 
   function handleLogout() {
     logout();
-    router.push('/');
+    router.push('/login');
   }
 
   return (
@@ -85,10 +86,10 @@ export function NavBar() {
         {/* Right side: bell + logout (desktop) + hamburger (mobile) */}
         <div className="flex items-center gap-1">
           {/* Notification bell — only when logged in */}
-          {currentUserId && <NotificationBell />}
+          {isLoggedIn && <NotificationBell />}
 
           {/* Desktop logout */}
-          {currentUserId && (
+          {isLoggedIn && (
             <button
               onClick={handleLogout}
               className="hidden md:flex min-h-[44px] items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-red-600 transition-colors"

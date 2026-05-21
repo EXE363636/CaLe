@@ -236,3 +236,14 @@ export function useCurrentRole(): Role | null {
   const user = useUserStore((s) => (id ? s.findById(id) : null));
   return user?.role ?? null;
 }
+
+/**
+ * Resolves the currently authenticated user. Returns `null` when nobody is
+ * signed in *or* when the persisted `currentUserId` no longer matches a real
+ * user (stale localStorage). Components should prefer this over reading
+ * `currentUserId` directly when deciding whether to show logged-in chrome.
+ */
+export function useCurrentUser(): User | null {
+  const id = useAuthStore((s) => s.currentUserId);
+  return useUserStore((s) => (id ? (s.findById(id) ?? null) : null));
+}

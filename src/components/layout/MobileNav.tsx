@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
-import { useCurrentRole } from '@/stores/authStore';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { t } from '@/i18n/vi';
 import type { Role } from '@/types';
 
@@ -62,10 +61,12 @@ export function MobileNav() {
   const [open, setOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const role = useCurrentRole();
+  const router = useRouter();
+  const currentUser = useCurrentUser();
   const logout = useAuthStore((s) => s.logout);
-  const currentUserId = useAuthStore((s) => s.currentUserId);
 
+  const role: Role | null = currentUser?.role ?? null;
+  const isLoggedIn = currentUser !== null;
   const items = getNavItems(role);
 
   // Close drawer on route change
@@ -156,12 +157,13 @@ export function MobileNav() {
         </nav>
 
         {/* Logout */}
-        {currentUserId && (
+        {isLoggedIn && (
           <div className="border-t border-gray-100 px-4 py-4">
             <button
               onClick={() => {
                 logout();
                 setOpen(false);
+                router.push('/login');
               }}
               className="flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-medium text-red-600 hover:bg-red-50"
             >

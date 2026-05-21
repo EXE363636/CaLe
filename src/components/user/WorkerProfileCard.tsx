@@ -69,8 +69,8 @@ export function WorkerProfileCard({ worker, className = '' }: WorkerProfileCardP
       {/* Row 6: skill chips (optional) */}
       {worker.skills.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {worker.skills.map((skill) => (
-            <Badge key={skill} tone="neutral" className="text-xs">
+          {worker.skills.map((skill, idx) => (
+            <Badge key={`${skill}-${idx}`} tone="neutral" className="text-xs">
               {skill}
             </Badge>
           ))}
