@@ -9,13 +9,13 @@ A handoff document for the next developer (or new Kiro session) picking up this 
 - **CaLẻ / ShiftNow** is a student MVP — a responsive web app that connects employers in Vietnam with short-term workers (students, freelancers).
 - Built with **Next.js 16, TypeScript (strict), Tailwind v4, Zustand 5, localStorage / mock data**.
 - **Tasks 1–16 are complete** (tracked in `.kiro/specs/cale-shiftnow/tasks.md`). Tasks 17–19 are checkpoints / optional polish, intentionally skipped.
-- **Build passes:** `npx next build` → exit 0, 13 routes.
+- **Build passes:** `npx next build` → exit 0, 14 routes.
 - **Mock auth only.** Passwords stored as `mock-hash:<value>`. Any password works for seed accounts (the auth store accepts `"demo"` as a fallback).
 - **Simulated escrow / payment only.** No real money, no payment gateway, no OTP, no real ID verification.
 
 ---
 
-## 2. Implemented Routes (13)
+## 2. Implemented Routes (14)
 
 ```
 ○  /                          (landing)
@@ -25,6 +25,7 @@ A handoff document for the next developer (or new Kiro session) picking up this 
 ƒ  /shifts/[id]               (public detail; employer name should be clickable — see pending E)
 ○  /worker/dashboard
 ○  /worker/profile
+○  /worker/schedule
 ○  /employer/dashboard
 ○  /employer/shifts/new
 ƒ  /employer/shifts/[id]      (manage own shift; ownership-guarded)
@@ -132,11 +133,86 @@ These were caught during manual QA. Read the affected file's history before "sim
    - The worker's `cancellationHistory` gets an entry tagged `[Admin set {old} → {new}] {reason}` so the change is traceable on the worker profile timeline.
    - **Files changed:** `src/stores/adminStore.ts` (signature + validation + notification body), `src/app/admin/dashboard/page.tsx` (input label/min/max, current-score readout, inline error surface, submit button gating), `src/i18n/vi.ts` (`admin.user.newScore`, `admin.user.currentScore`, `admin.user.scoreOutOfRange`, `admin.error.INVALID_SCORE`, `admin.error.REASON_REQUIRED`).
 
+9. **Safer worker cancellation flow with employer approval window** *(2026-05-22, Phase 2)*. Replaces one-click worker cancel. Three branches now run inside `applicationStore.cancelByWorker(applicationId, reason, nowIso?)`:
+   - `Pending` → cancels immediately, no notification, no penalty.
+   - `Approved` + **>3h** before shift → cancels immediately, position freed, employer notified (`WorkerCancelled` or `LateCancel` if also within 24h), late-cancel reputation rule (−10) applied iff within 24h.
+   - `Approved` + **≤3h** before shift → status flips to new `'CancellationRequested'`, position **NOT** freed, no reputation hit yet, employer notified (`CancellationRequested`).
+   New employer-only actions on the manage page: `approveCancellationRequest` finalises the cancel, frees the position, and applies the late-cancel reputation hit if the *decision time* falls within 24h. `rejectCancellationRequest` restores the application to its pre-request `'Approved'` status and clears the request fields. Both notify the worker (`CancellationApproved` / `CancellationRejected`).
+   Cancellation reason is required everywhere — empty / whitespace returns `REASON_REQUIRED`. The reason is saved on `Application.cancellationReasonNote` and embedded in every notification body.
+   `cancelByWorker` return shape changed from `Result<Application, ...>` to `Result<{ application: Application; requiresApproval: boolean }, ...>`. Both callers (`app/shifts/[id]/page.tsx`, `app/worker/dashboard/page.tsx`) were updated; they only inspect `.ok` / `.error`, so the change is non-breaking for them.
+   `'CancellationRequested'` is in the `ACTIVE_STATUSES` set so the conflict detector and the `positionsFilled` invariant continue to count it as occupying a slot while the request is open.
+   No real notifications, no real auth, no real payment, no real OTP, no real ID verification — everything is localStorage / mock as before.
+   - **Files changed:** `src/types/index.ts`, `src/domain/timeGates.ts`, `src/stores/applicationStore.ts`, `src/components/forms/CancelApplicationDialog.tsx`, `src/components/forms/ApplicationActions.tsx`, `src/app/shifts/[id]/page.tsx`, `src/app/worker/dashboard/page.tsx`, `src/app/employer/shifts/[id]/page.tsx`, `src/i18n/vi.ts`.
+
+10. **Employer "Hủy ca" button now actually cancels and gives feedback** *(2026-05-22)*. The confirm step on `/employer/shifts/[id]` previously called `cancelShift(shift.id)` and unconditionally collapsed the confirm row, so when the store returned `{ ok: false, error: 'TOO_LATE' }` (the most common case — shift starts in <24h is blocked by the `canCancelShift` 24-hour gate) the UI silently did nothing and the employer thought the button was broken. Fix:
+   - `handleCancelShift` now reads the `Result` from `shiftStore.cancel` and surfaces `shift.error.TOO_LATE` / `shift.error.NOT_FOUND` inline (red `role="alert"`) when the store rejects.
+   - On success, the page pushes a `ShiftCancelled` notification to every affected worker (applications in `Pending | Approved | CancellationRequested | CheckedIn | CheckedOut`), then calls `router.push('/employer/dashboard')` so the employer sees the cancellation reflected in their dashboard list immediately. Workers in terminal states (`Confirmed | NoShow | Rejected | CancelledByWorker`) are skipped on purpose.
+   - The cancel button now exposes a `loading` state during the call, and the cancel UI block is hidden once the shift's status is `Cancelled | Completed | InProgress | AwaitingConfirmation | Expired`. A small "ca này đã bị huỷ" banner replaces the button when `status === 'Cancelled'` so the page is not blank where the button used to be.
+   - Ownership check (`shift.employerId !== currentUserId` → `notFound()`) is unchanged. The simulated escrow refund continues to flow through the existing `transitionEscrow(s.escrowStatus, 'CancelShift')` call inside `shiftStore.cancel` — no real payment refund is triggered.
+   - **Files changed:** `src/app/employer/shifts/[id]/page.tsx` (real Result handling, `useNotificationStore.push` for affected workers, `useRouter().push('/employer/dashboard')` on success, inline error surface, cancelled banner), `src/i18n/vi.ts` (new key `shift.cancelled.banner`; reused existing `shift.error.TOO_LATE` / `shift.error.NOT_FOUND`).
+
+11. **Worker cancellation quota with reputation-based bonus** *(2026-05-22, Phase 3)*. Workers can no longer cancel an unlimited number of applications. A rolling-window quota now gates every quota-countable cancellation branch.
+    - Default limits: **3 cancellations / 7-day window**, **10 cancellations / 30-day window**.
+    - Reputation tier bonuses (replacement, NOT cumulative on top of each other):
+      - reputation 50–79 → 3/week, 10/month
+      - reputation 80–94 → 4/week, 12/month (+1 weekly, +2 monthly)
+      - reputation 95–100 → 5/week, 14/month (+2 weekly, +4 monthly)
+    - Quota-countable events (each writes a `CancellationRecord` to `Worker.cancellationHistory`):
+      - Pending application cancelled immediately.
+      - Approved application cancelled immediately (`>3h` before start, with or without late-cancel reputation hit).
+      - Cancellation request approved by the employer.
+    - NOT counted:
+      - Pending cancellation requests (`CancellationRequested` state) — record is only written when the employer approves.
+      - Rejected cancellation requests — application reverts to `Approved`, no record.
+      - Admin reputation adjustments — those write a synthetic record with `shiftId: ''` which `isQuotaCountable` filters out.
+    - Block behavior: when both the weekly and monthly windows have remaining capacity the quota gate passes; otherwise `applicationStore.cancelByWorker` returns `{ ok: false, error: 'QUOTA_EXCEEDED' }` and **no state change is made and no notification is fired**. The dialog renders a clear red banner ("Đã hết hạn mức huỷ" + "Bạn đã vượt hạn mức huỷ trong tuần hoặc trong tháng này. Vui lòng thử lại sau.") and disables the submit button. Closing the dialog is the only path forward.
+    - The dialog also shows the current usage in informational form whenever quota is supplied, e.g. "Bạn còn 2/3 lượt huỷ trong 7 ngày gần đây." and the same line for 30 days. Both lines use `t('cancel.quota.weekly')` / `t('cancel.quota.monthly')` with `{remaining}` and `{limit}` placeholders.
+    - Quota math is a pure module (`src/domain/cancellationQuota.ts`) so it's framework-free and easy to property-test later. The store exposes `getCancellationQuota(workerId, nowIso?)` for diagnostics, but the UI computes its own snapshot via `useMemo` from `worker.cancellationHistory` + `worker.reputationScore` to follow the existing rule of avoiding unstable Zustand selectors that return new arrays.
+    - Mock / localStorage only — the existing `Worker.cancellationHistory` array is the source of truth. No new types or storage keys.
+    - **Files changed:** `src/domain/cancellationQuota.ts` (new), `src/stores/applicationStore.ts` (quota gate in `cancelByWorker`, always-write record on immediate + approved-request branches, new `getCancellationQuota` selector, new `QUOTA_EXCEEDED` error code), `src/components/forms/CancelApplicationDialog.tsx` (new optional `quota` prop, indicator block, blocker banner, submit gating), `src/app/worker/dashboard/page.tsx` (memoize quota usage, pass to dialog), `src/app/shifts/[id]/page.tsx` (memoize quota usage, pass to dialog, map `QUOTA_EXCEEDED` to a localized error), `src/i18n/vi.ts` (`cancel.confirm.quotaBlocked`, `cancel.quota.title`, `cancel.quota.blockedTitle`, `cancel.quota.blockedHint`, `cancel.quota.weekly`, `cancel.quota.monthly`).
+
+12. **Clickable user/employer profile preview modals** *(2026-05-22, Phase 4)*. Both the worker-facing `/shifts/[id]` page and the admin Users tab now expose a one-click profile preview, so identity and trust signals are visible without leaving the current screen.
+    - **Employer modal on `/shifts/[id]`** (existing component widened): the employer name was already a button that opens `EmployerProfileModal`. The modal now shows **four** counts in a single grid — posted, active, completed, cancelled — instead of the previous posted/completed pair. "Active" includes `Published | FullyBooked | InProgress | AwaitingConfirmation`; "Cancelled" is `status === 'Cancelled'` only; "Completed" is `status === 'Completed'`. All counts are derived in a single `useMemo` over `useShiftStore.shifts` (stable selector, no fresh-array selector hazard).
+    - **Admin user-profile modal on `/admin/dashboard` Users tab** (new): every user name in the row is now a clickable orange button. Clicking opens `AdminUserProfileModal` (shared instance hoisted into `UsersPanel` — one mount per panel, not per row) which adapts to role:
+      - **Worker**: identity (avatar, name, email, phone), reputation badge, suspension badge, lifetime stat strip (completed shifts, average rating, no-show count, lifetime cancellations), the **rolling 7-/30-day cancellation quota** with `used / limit / remaining` for both windows so the admin can see the same Phase 3 numbers the worker sees, verification badges, bio, skills, preferred job types, preferred locations, and the most recent 5 ratings with star + feedback + date.
+      - **Employer**: identity (logo, company name, business type, email, phone), `verifiedBusiness` badge, suspension badge, four-count stat grid (posted / active / completed / cancelled), a red disputed-payment callout when at least one shift has `escrowStatus === 'Disputed'`, and the description.
+      - **Admin**: identity, role badge, suspension badge, "Tài khoản hiện tại" badge when the modal subject is the logged-in admin, and a short note that admin actions are mock/localStorage-only.
+    - Modal subject re-resolves from the live `users` array on every render via `useMemo([users, profileUserId])`, so an admin can suspend / reactivate / adjust reputation from the row and watch the open modal update without closing.
+    - Lifetime cancellation count for workers excludes admin-adjust ledger entries (those use `shiftId: ''`) — same filter as the Phase 3 quota math.
+    - Modals close via X / ESC / backdrop (the existing `Modal` primitive handles all three). Mobile-friendly because the layout is a single vertical column inside the existing responsive `Modal`.
+    - Reuses existing primitives: `Modal`, `Card`, `Badge`, `ReputationBadge`, `VerificationBadge`, `StarRating`, `UserAvatar`. No new dependencies. No real auth / payment / OTP / ID verification.
+    - Avoids unstable Zustand selectors — `EmployerProfileModal` and the employer branch of `AdminUserProfileModal` both pull `useShiftStore((s) => s.shifts)` (stable ref) and derive counts in a `useMemo`. The worker branch derives the quota the same way over `worker.cancellationHistory` + `worker.reputationScore`.
+    - **Files changed:** `src/components/user/AdminUserProfileModal.tsx` (new), `src/components/user/EmployerProfileModal.tsx` (added `active` and `cancelled` to the stat grid), `src/components/user/index.ts` (export new modal), `src/app/admin/dashboard/page.tsx` (clickable user-name button, hoisted `profileUserId` state, `AdminUserProfileModal` mount in `UsersPanel`, `onOpenProfile` prop wired to `UserRow`), `src/i18n/vi.ts` (new keys: `employer.profile.activeShifts`, `employer.profile.cancelledShifts`, `admin.profile.title`, `admin.profile.quota.title`, `admin.profile.quota.weekly`, `admin.profile.quota.monthly`, `admin.profile.employer.disputedPayments`, `admin.profile.admin.note`, `admin.profile.admin.description`).
+
+13. **Worker personal schedule and conflict blocking** *(2026-05-22, Phase 5)*. Workers now manage one-time personal busy blocks at `/worker/schedule`, and the apply flow refuses any shift that overlaps with either an approved shift (existing Phase 1 rule) or a personal busy block on the same date (new).
+    - **New type** `ScheduleBlock` in `src/types/index.ts`: `{ id, userId, title, date (YYYY-MM-DD), startTime (HH:mm), endTime (HH:mm), note?, createdAt, updatedAt }`. One-time only — recurring weekly schedules are explicitly out of scope for the MVP.
+    - **New Zustand store** `src/stores/scheduleStore.ts` (`useScheduleStore`): `forUser(userId)`, `getById(id)`, `add(input)`, `update(id, userId, patch)`, `remove(id, userId)`, `hydrate(blocks)`. Owner mismatch returns `OWNER_MISMATCH`; missing fields return `TITLE_REQUIRED | DATE_REQUIRED | TIME_REQUIRED`; `endTime <= startTime` returns `TIME_RANGE_INVALID`. Persistence uses the new `STORAGE_KEYS.scheduleBlocks` key. Schema version bumped from 1 → 2 so existing browsers reseed cleanly.
+    - **AppHydrator** updated to seed the schedule slice from `loadAll().scheduleBlocks`.
+    - **New page** `src/app/worker/schedule/page.tsx` wrapped in `<RoleGuard role="worker">`. Lists the worker's blocks sorted by `(date, startTime)` ascending. "Thêm lịch bận" button opens a modal form with title / date / start time / end time / optional note. Each row has Edit and Delete (Delete uses an inline confirm). An orange info banner reminds the worker that **approved shifts also count as busy time when applying** so they don't try to add their own shifts here. Empty state is rendered when no blocks exist.
+    - **Navigation:** "Lịch cá nhân" added to both `NavBar` and `MobileNav` worker arrays only — employers, admins, and guests do not see the link.
+    - **New pure helper** `src/domain/scheduleConflict.ts` exposing `hasScheduleConflict(target, blocks)` and `findScheduleConflicts(target, blocks)`. Same-date overlap rule, **no buffer** (the buffer only applies to inter-shift conflicts in `domain/conflict.ts`). Malformed inputs yield `false` so the UI never reports a false positive.
+    - **Apply flow:** `applicationStore.apply` now runs the schedule-conflict gate immediately after the existing approved-shift conflict gate, returning the new `ApplyError = 'SCHEDULE_CONFLICT'`. No state change, no employer notification when blocked. The error is mapped to `apply.error.SCHEDULE_CONFLICT` ("Ca này trùng với lịch cá nhân của bạn.") in the existing `t('apply.error.${result.error}')` site on `/shifts/[id]`. All earlier gates remain — phone verification → reputation ≥ 50 → already-applied → fully-booked → conflict with approved shifts → schedule conflict — in that order.
+    - **Position-counter invariant** untouched: `CancellationRequested` is still in `ACTIVE_STATUSES` and the schedule check is purely informational on the apply path.
+    - **Limitations to advertise:** one-time blocks only (no recurring weekly), no calendar widget, no Google Calendar, no server sync. localStorage / mock only. No real auth / payment / OTP / ID verification.
+    - **Files changed:** `src/types/index.ts` (new `ScheduleBlock` type), `src/data/persistence.ts` (new `STORAGE_KEYS.scheduleBlocks`, `Snapshot.scheduleBlocks`, `seedSnapshot` defaults to `[]`, schema version bumped to 2), `src/stores/scheduleStore.ts` (new), `src/stores/index.ts` (re-export), `src/components/layout/AppHydrator.tsx` (hydrate the new slice), `src/components/layout/NavBar.tsx` and `src/components/layout/MobileNav.tsx` (worker-only "Lịch cá nhân" link), `src/domain/scheduleConflict.ts` (new), `src/stores/applicationStore.ts` (new `SCHEDULE_CONFLICT` apply error + gate), `src/app/worker/schedule/page.tsx` (new page), `src/i18n/vi.ts` (`nav.schedule`, `apply.error.SCHEDULE_CONFLICT`, the `schedule.*` block of strings + form-error keys).
+
+14. **Worker schedule promoted to a weekly timetable view** *(2026-05-22, Phase 5B)*. The `/worker/schedule` page kept its Phase 5 store + apply-time conflict gate but the UI was rebuilt as a Monday→Sunday timetable so workers can manage busy time the way a school timetable looks.
+    - **Timetable grid:** seven columns (Thứ Hai → Chủ Nhật) with the date under each weekday. Today's column is highlighted with the orange-50 / orange-700 accent already used elsewhere in the app. Time slots run as rows with a sticky leftmost column.
+    - **Configurable slots** (UI-local state, NOT persisted): the page exposes `Giờ bắt đầu ngày` / `Giờ kết thúc ngày` / `Độ dài mỗi slot (phút)` inputs. Defaults: `07:00`, `21:00`, 120 minutes — yielding the same 7 slots described in the task spec (07–09, 09–11, 11–13, 13–15, 15–17, 17–19, 19–21). The new pure module `src/domain/week.ts` validates the config (`INVALID_TIME_RANGE`, `INVALID_SLOT_DURATION`, `TOO_MANY_SLOTS`) and generates the rows; an invalid config surfaces a localized error and keeps the previous render rather than blanking out.
+    - **Cell click → create:** clicking an empty cell opens the existing add/edit dialog with the date and the slot's start / end pre-filled. Clicking an existing block in a cell opens edit mode for that block. Both flows use the same `ScheduleBlockDialog` so validation is identical.
+    - **Week navigation:** `← Tuần trước` / `Tuần này` / `Tuần sau →` buttons + a date-range readout `DD/MM/YYYY – DD/MM/YYYY`. Week math is ISO Monday-first (Sunday belongs to the previous week's last day) and lives in `domain/week.ts` (`startOfWeek`, `weekDates`, `shiftWeek`, `todayIso`).
+    - **Block placement:** blocks for the visible week are indexed once in a `useMemo`-derived `Map<date, ScheduleBlock[]>`, so each cell does an `O(1)` lookup + an `O(n)` overlap filter against its own slot using `rangesOverlap` from `domain/week.ts`. Blocks longer than one slot render in every slot they cover.
+    - **Mobile:** the table is wrapped in `overflow-x-auto` with a `min-w-[720px]` so it horizontally scrolls below `md`. The leftmost time column is `sticky` so the labels stay visible while scrolling.
+    - **List view preserved** as a "Tất cả lịch bận" section below the timetable so workers can still scan/edit/delete their full set without finding each block on the grid.
+    - **No store, type, or persistence changes.** The Phase 5 apply gate continues to fire as-is; quota, conflict, verification, reputation gates all unchanged.
+    - **Limitations stated again:** one-time blocks only, no recurring weekly schedule, no Google Calendar, no server sync. Slot configuration is UI-local — closing the page resets it to defaults. localStorage / mock only.
+    - **Files changed:** `src/domain/week.ts` (new pure module — `SlotConfig`, `validateSlotConfig`, `generateSlots`, `weekDates`, `startOfWeek`, `shiftWeek`, `todayIso`, `timeToMinutes`, `rangesOverlap`), `src/app/worker/schedule/page.tsx` (rewritten — week nav, slot config form, timetable grid component, cell-click prefill, click-to-edit on cells, list view preserved), `src/i18n/vi.ts` (added `schedule.week.{prev,current,next}`, `schedule.slotCfg.*` including the three error codes, `schedule.timetable.{timeColumn,addInSlot}`, `schedule.list.title`, `schedule.empty.weekHint`).
+
 ---
 
-## 5b. Phase 2 In Progress — Safer Worker Cancellation Flow
+## 5b. Phase 2 ✅ Completed — Safer Worker Cancellation Flow
 
-**Status: NOT confirmed complete. A previous Kiro session began Phase 2 and stopped mid-implementation. Inspect the code before continuing.**
+*(Completed 2026-05-22. Earlier in this same session a "Phase 2 In Progress" section described the partial state. That state has now been finished and merged into the bug-fixes list as item #9 in section 5. The detailed reference below is preserved for the next maintainer.)*
 
 ### 1. Goal of Phase 2
 
@@ -149,77 +225,74 @@ These were caught during manual QA. Read the affected file's history before "sim
 - Existing late-cancel rule (within 24h) **remains** for the reputation penalty logic (−10 points). The 3h gate is a separate gate that decides whether the cancel is immediate vs. needs approval.
 - New employer-approval threshold is **within 3 hours** of shift start.
 
-### 2. Work already started in this Kiro session
+### 2. What was shipped
 
-Implementation was started but **may be incomplete**. The following pieces were planned and partially written:
+All items below are now in the codebase and verified by `npm run build` + `npm run test:run` (both exit 0):
 
-- Added new `ApplicationStatus`: `CancellationRequested` — applied while waiting for employer approval; the position is **not** freed during this state.
-- Extended `Application` with optional cancellation-request fields:
-  - `cancellationRequestedAt`, `cancellationReasonNote`, `preCancellationStatus`
-- Added pure time-gate helper in `src/domain/timeGates.ts`:
-  - `requiresEmployerApprovalToCancel(now, shift)` — true when shift starts in <3h
-  - constant `WORKER_CANCEL_APPROVAL_HOURS = 3`
-- Modified `applicationStore.cancelByWorker(applicationId, reason, nowIso?)` so it branches:
-  - `Pending` → immediate cancellation, no notification
-  - `Approved` + **>3h** before shift → immediate cancellation, employer notified, late-cancel reputation rule (−10) applied iff within 24h
-  - `Approved` + **≤3h** before shift → status flips to `CancellationRequested`, position **not** freed, no reputation change yet, employer notified to approve/reject
-  - Return type changed to `Result<{ application, requiresApproval: boolean }, ...>` — callers must read `result.value.application` and/or `result.value.requiresApproval`.
-- Added store actions:
-  - `approveCancellationRequest(applicationId)` — finalises cancellation, frees position, applies reputation hit if late-cancel window applies at decision time, notifies worker
-  - `rejectCancellationRequest(applicationId)` — restores `preCancellationStatus` (always `Approved` in practice), clears request fields, notifies worker
-- Kept `CancellationRequested` in the `ACTIVE_STATUSES` set inside `applicationStore.ts` so the conflict detector and the `positionsFilled` invariant continue to count it as occupying a slot.
-- Added new `NotificationKind` values: `CancellationRequested`, `CancellationApproved`, `CancellationRejected`. (Kept the existing `WorkerCancelled` and `LateCancel` kinds.)
-- Updated callers:
-  - `src/app/shifts/[id]/page.tsx` — destructured new return shape from `cancelByWorker`.
-  - `src/app/worker/dashboard/page.tsx` — destructured new return shape.
-  - `src/components/forms/CancelApplicationDialog.tsx` — added the "approval required" notice when within 3h, swapped the submit button label to a "request" variant.
-- Planned but **not necessarily wired up yet**:
-  - Employer manage shift page (`src/app/employer/shifts/[id]/page.tsx`) showing pending cancellation requests with approve / reject buttons.
-  - i18n keys for: `cancel.confirm.approvalRequired`, `cancel.confirm.requestSubmit`, `application.status.CancellationRequested`, `notification.kind.CancellationRequested`, `notification.kind.CancellationApproved`, `notification.kind.CancellationRejected`, employer-side approve/reject button labels, error code `application.error.SHIFT_NOT_FOUND`. **These keys may be missing from `src/i18n/vi.ts`** — `t()` will fall back to the key string in that case (and `console.warn` in dev), so missing keys do not cause build errors but they do show raw keys in the UI.
-  - Status badge tone for `CancellationRequested` in `app/employer/shifts/[id]/page.tsx` (`badgeToneForApp`) and `app/worker/dashboard/page.tsx` (`badgeToneFor`).
-  - `ApplicationActions.tsx` rendering of the `CancellationRequested` state on `/shifts/[id]` (currently it falls through to the "not applied yet" Apply button — that's a real UI bug to fix).
+- **Types** (`src/types/index.ts`):
+  - New `ApplicationStatus` value `'CancellationRequested'`.
+  - New `Application` fields: `cancellationRequestedAt`, `cancellationReasonNote`, `preCancellationStatus`.
+  - Three new `NotificationKind` values: `'CancellationRequested'`, `'CancellationApproved'`, `'CancellationRejected'`.
+- **Pure domain helper** (`src/domain/timeGates.ts`):
+  - `requiresEmployerApprovalToCancel(nowIso, shift)` returns `true` when shift starts within `WORKER_CANCEL_APPROVAL_HOURS = 3`.
+- **Application store** (`src/stores/applicationStore.ts`):
+  - `cancelByWorker(applicationId, reason, nowIso?)` — three-branch logic:
+    - `Pending` → immediate cancellation, no notification, no penalty.
+    - `Approved` + **>3h** before shift → immediate cancellation, position freed, employer notified, late-cancel reputation rule (−10) applied iff within 24h.
+    - `Approved` + **≤3h** before shift → status flips to `'CancellationRequested'`, position **NOT** freed, no reputation hit yet, employer notified.
+    - Returns `Result<{ application, requiresApproval }, ApplicationActionError | 'REASON_REQUIRED' | 'SHIFT_NOT_FOUND'>`. (Return shape changed — every caller updated.)
+  - `approveCancellationRequest(applicationId)` — finalises cancellation, frees position, applies late-cancel reputation hit if the *decision time* falls within 24h, notifies worker.
+  - `rejectCancellationRequest(applicationId)` — restores `preCancellationStatus` (always `'Approved'` in practice), clears the request fields, notifies worker.
+  - `'CancellationRequested'` is in `ACTIVE_STATUSES`, so it counts toward `positionsFilled` and the time-conflict detector while the request is pending.
+- **UI**:
+  - `src/components/forms/CancelApplicationDialog.tsx` — shows a separate "needs employer approval" notice when within 3h; submit button label flips to "Gửi yêu cầu huỷ" in that case.
+  - `src/components/forms/ApplicationActions.tsx` — new `CancellationRequested` branch shows a warning badge and an info line explaining the application is awaiting the employer's decision (no actionable buttons).
+  - `src/app/employer/shifts/[id]/page.tsx` — when an applicant is in `CancellationRequested`, the row shows the worker's reason in an orange callout and the action buttons are **Chấp nhận huỷ** / **Từ chối huỷ** (calls `approveCancellationRequest` / `rejectCancellationRequest`). The cancellation-request branch sits above the existing branches in `ApplicationActionButtons` so it always wins.
+  - `src/app/worker/dashboard/page.tsx` — `upcoming` now includes `CancellationRequested` so the worker doesn't lose sight of a pending request.
+  - Both `badgeToneForApp` (employer page) and `badgeToneFor` (worker dashboard) map `CancellationRequested` → `'warning'`.
+- **i18n** (`src/i18n/vi.ts`): added `application.status.CancellationRequested`, `notification.kind.CancellationRequested`, `notification.kind.CancellationApproved`, `notification.kind.CancellationRejected`, `cancel.confirm.approvalRequired`, `cancel.confirm.requestSubmit`, `cancel.requested.awaitingDecision`, `cancel.request.employerHeading`, `cancel.request.employerHint`, `btn.approveCancellation`, `btn.rejectCancellation`.
 
-### 3. Important warning
+### 3. Files changed in Phase 2
 
-- **Phase 2 is NOT confirmed complete yet.**
-- A new Kiro session **must** inspect the actual code before continuing.
-- Do **not** assume all listed changes are finished.
-- Run `npm run build` and `npm run test:run` first to see the current state.
-- Search the codebase for these symbols to determine what is already written:
-  - `CancellationRequested`
-  - `requiresEmployerApprovalToCancel`
-  - `approveCancellationRequest`
-  - `rejectCancellationRequest`
-  - `cancelByWorker`
-  - `cancellationRequestedAt`
-  - `preCancellationStatus`
+- `src/types/index.ts`
+- `src/domain/timeGates.ts`
+- `src/stores/applicationStore.ts`
+- `src/components/forms/CancelApplicationDialog.tsx`
+- `src/components/forms/ApplicationActions.tsx`
+- `src/app/shifts/[id]/page.tsx`
+- `src/app/worker/dashboard/page.tsx`
+- `src/app/employer/shifts/[id]/page.tsx`
+- `src/i18n/vi.ts`
 
-### 4. Required next steps for new Kiro session
+### 4. Manual test steps
 
-1. Read this HANDOFF.md first.
-2. Inspect these files for partial / inconsistent state:
-   - `src/types/index.ts`
-   - `src/domain/timeGates.ts`
-   - `src/stores/applicationStore.ts`
-   - `src/stores/notificationStore.ts`
-   - `src/components/forms/ApplicationActions.tsx`
-   - `src/components/forms/CancelApplicationDialog.tsx`
-   - `src/app/shifts/[id]/page.tsx`
-   - `src/app/worker/dashboard/page.tsx`
-   - `src/app/employer/shifts/[id]/page.tsx`
-   - `src/i18n/vi.ts`
-3. Run `npm run build` and `npm run test:run`.
-4. Fix any TypeScript / build errors caused by the incomplete Phase 2 implementation. See "Known Current Build Errors" below if populated.
-5. Complete Phase 2 before starting Phase 3.
-6. Do **not** start the cancellation quota system (Phase 3) or the worker schedule feature (Phase 6) yet.
+Run `npm run dev` and use the seed accounts.
 
-### 5. Exact continuation prompt for next Kiro account
+**Branch A — `Pending` cancel (should be silent):**
+1. Log in as a verified worker. Apply to any future-published shift to create a `Pending` application.
+2. From `/shifts/[id]` (or the worker dashboard), click **Huỷ đơn ứng tuyển**.
+3. Expect the modal — type a reason (e.g. "Thay đổi kế hoạch"), submit.
+4. Application becomes `Người làm đã huỷ`. Employer dashboard shows **no** new notification (Pending cancels are noise by design). Worker reputation unchanged.
 
-Paste this verbatim:
+**Branch B — `Approved` + >3h immediate cancel:**
+1. As a worker with an `Approved` application whose shift starts more than 24h from now, click cancel.
+2. Modal shows the green "Bạn huỷ trước giờ bắt đầu hơn 24h…" note. Submit button label is **"Xác nhận huỷ"**.
+3. After submit: application is `CancelledByWorker`, `positionsFilled` decremented, employer receives a `WorkerCancelled` notification including the worker name, shift title, and reason. Worker reputation unchanged.
+4. Repeat with a shift between 3h and 24h: modal shows the red late-cancel warning, employer receives a `LateCancel` notification, worker reputation drops by 10.
 
-> "Continue Phase 2 from the existing partial implementation. First inspect the codebase and determine which cancellation-flow changes are already present. Do not duplicate types/actions. Complete the safer worker cancellation flow: reason modal, >3h immediate cancellation, ≤3h employer approval request, employer approve/reject actions, notifications to both sides, i18n labels, and UI states. Run `npm run build` and `npm run test:run`. Update HANDOFF.md when complete."
+**Branch C — `Approved` + ≤3h needs employer approval:**
+1. As a worker with an `Approved` application whose shift starts within 3 hours, click cancel.
+2. Modal shows the orange "Vì ca bắt đầu trong vòng 3 giờ…" notice. Submit button label is **"Gửi yêu cầu huỷ"**.
+3. Submit. Application status flips to `Yêu cầu huỷ`. Position is **not** freed; the shift's `positionsFilled` is unchanged. Employer receives a `CancellationRequested` notification linking to `/employer/shifts/[id]`.
+4. Worker dashboard still shows the shift in "Ca làm sắp tới" with the new badge. Worker has no buttons (correct).
+5. **Approve path:** log in as the employer, open the manage page, see the orange callout with the worker's reason and **Chấp nhận huỷ** / **Từ chối huỷ** buttons. Click **Chấp nhận huỷ**. Application becomes `Người làm đã huỷ`, position is freed, the worker gets a `CancellationApproved` notification. If the decision happens within 24h of shift start, the worker also takes the −10 reputation hit.
+6. **Reject path:** start over with another `CancellationRequested` and click **Từ chối huỷ**. Application goes back to `Đã duyệt`, position remains held, worker gets a `CancellationRejected` notification.
 
-### 6. Existing warnings still apply
+**Build and tests:**
+- `npm run build` → exit 0.
+- `npm run test:run` → exit 0.
+
+### 5. Existing warnings still apply
 
 - Do not rebuild from scratch.
 - Do not add real payment.
@@ -227,33 +300,7 @@ Paste this verbatim:
 - Do not add real ID verification.
 - Do not add production auth.
 - Keep mock / localStorage only.
-- Avoid unstable Zustand selectors that return new arrays / objects directly. Pattern that breaks: `useStore((s) => s.list.filter(...))`. Pattern that works: select `s.list`, then `useMemo`.
-
-### 7. Known Current Build Errors
-
-*(Populated below by the same session right after writing this HANDOFF section. If empty, the build was clean at the time of the handoff but Phase 2 may still have UI gaps — read sections 2 and 4 above.)*
-
-<!-- BEGIN: build-errors -->
-**Last checked: 2026-05-22, this Kiro session.**
-
-- `npm run build` → exit 0, 13 routes, no TypeScript errors.
-- `npm run test:run` → exit 0, 1 file / 1 test passed.
-
-**TypeScript compiles cleanly, but Phase 2 still has UI/UX gaps that must be addressed before declaring Phase 2 done.** The build being green only means there are no type errors — it does NOT mean the flow works end-to-end. Specifically, in addition to anything you find on inspection:
-
-1. `src/components/forms/ApplicationActions.tsx` does **not** render a branch for `applicationStatus === 'CancellationRequested'`. As-is, an application in that state will fall through every status check and the UI will render the "Apply" button, which is wrong. Add a branch that shows a `CancellationRequested` badge with the existing reason and **no** action button (the worker cannot cancel-the-cancel; the employer must decide).
-2. `src/app/employer/shifts/[id]/page.tsx` `ApplicationActionButtons` has **no** branch for `application.status === 'CancellationRequested'`. The employer needs Approve / Reject buttons here that call `applicationStore.approveCancellationRequest(id)` / `rejectCancellationRequest(id)` plus a small UI showing the worker's `cancellationReasonNote`.
-3. `badgeToneForApp` (in `app/employer/shifts/[id]/page.tsx`) and `badgeToneFor` (in `app/worker/dashboard/page.tsx`) do not map `'CancellationRequested'` to a tone — it falls back to `'neutral'`. Map it to `'warning'` so the row visually stands out.
-4. The i18n dictionary in `src/i18n/vi.ts` is missing several keys referenced by the partial implementation. With the current code they will render as the raw key string and emit a `console.warn` in dev. Add at least:
-   - `application.status.CancellationRequested` (e.g. "Yêu cầu huỷ")
-   - `notification.kind.CancellationRequested`, `notification.kind.CancellationApproved`, `notification.kind.CancellationRejected`
-   - `cancel.confirm.approvalRequired` (e.g. "Vì ca bắt đầu trong vòng 3 giờ, yêu cầu huỷ sẽ cần nhà tuyển dụng duyệt.")
-   - `cancel.confirm.requestSubmit` (e.g. "Gửi yêu cầu huỷ")
-   - `application.error.SHIFT_NOT_FOUND` (e.g. "Không tìm thấy ca làm.")
-   - employer-side button labels: e.g. `btn.approveCancellation` / `btn.rejectCancellation`
-5. `applicationStore.cancelByWorker` now returns `Result<{ application, requiresApproval }, ...>`. The previous shape was `Result<Application, ...>`. Verify every caller has been updated; the callers in `app/shifts/[id]/page.tsx` and `app/worker/dashboard/page.tsx` were updated, but greppping for `cancelByWorker` is recommended.
-6. The Phase 2 changes have **no automated tests yet**. The single Vitest sanity test still passes only because all the new logic lives in the store and the UI; no Phase 2 path is exercised. Property tests for `requiresEmployerApprovalToCancel` and a unit test for the three `cancelByWorker` branches would be sensible but optional for the MVP.
-<!-- END: build-errors -->
+- Avoid unstable Zustand selectors that return new arrays / objects directly.
 
 ---
 
@@ -263,91 +310,13 @@ These are the **next things to fix**. Implement them in the order listed in sect
 
 ### A. Admin reputation adjustment ✅ *Done 2026-05-22 — see Section 5, item 8.*
 
-### B. Worker application cancellation needs a safer flow
+### B. Worker application cancellation ✅ *Done 2026-05-22 — see Section 5, item 9 and Section 5b.*
 
-**Current issue:** Worker can click "Hủy đơn ứng tuyển" too easily — one-click cancel.
+### C. Cancellation quota system ✅ *Done 2026-05-22 (Phase 3) — see Section 5, item 11.*
 
-**Desired behavior:**
-- Cancel opens a confirmation modal.
-- Cancellation reason is **required**.
-- **If shift start time is more than 3 hours away:**
-  - Allow immediate cancellation.
-  - Save reason on the cancellation record.
-  - Notify employer with worker name, shift title, reason.
-- **If shift start time is within 3 hours:**
-  - Worker **cannot** cancel immediately.
-  - Create a `CancellationRequest` that the employer must approve or reject.
-  - Notify employer.
-- **Employer manage shift page** must show cancellation requests and allow:
-  - **Approve cancellation** → application becomes `CancelledByWorker`, notify worker.
-  - **Reject cancellation** → application remains in its prior state (Approved / Pending), notify worker.
-- Late-cancel rule remains: **under 24h** of shift start = reputation penalty (−10).
-- New employer-approval threshold is **within 3 hours** of shift start (separate gate from the reputation penalty).
-- Every state change must notify the relevant other party.
+### D. Worker personal schedule feature ✅ *Done 2026-05-22 (Phase 5) — see Section 5, item 13. Implemented as one-time blocks only; recurring weekly schedules are deferred.*
 
-### C. Cancellation quota system
-
-**Default max cancellations:**
-- 3 per rolling 7-day window
-- 10 per rolling 30-day window
-
-**High-reputation bonus:**
-- `reputationScore >= 80` → +1 weekly, +2 monthly
-- `reputationScore >= 95` → +2 weekly, +4 monthly
-
-**Implementation notes:**
-- Use the existing `Worker.cancellationHistory` array if possible — count entries within the 7-day / 30-day window.
-- Keep it mock/localStorage, no backend.
-- If quota exceeded, **block cancellation** and show a clear message ("Bạn đã vượt hạn mức huỷ trong tuần này…").
-
-### D. Worker personal schedule feature
-
-**New feature:** worker schedule page, likely `/worker/schedule`.
-
-**Worker can add busy blocks** like class time, work shifts at other places, personal commitments.
-
-**`ScheduleBlock` shape:**
-```ts
-interface ScheduleBlock {
-  id: string;
-  userId: string;        // owning worker
-  title: string;
-  date?: string;         // YYYY-MM-DD for one-off blocks
-  dayOfWeek?: 0|1|2|3|4|5|6;  // for recurring weekly blocks (Sun=0)
-  startTime: string;     // HH:mm
-  endTime: string;       // HH:mm
-  note?: string;
-}
-```
-
-**UI:** keep it simple — list + form. **No calendar library.**
-
-**Navigation:** add "Lịch cá nhân" link to worker nav (`NavBar` + `MobileNav` worker arrays).
-
-**Application gating:** when applying to a shift, block if it overlaps:
-- any busy schedule block, OR
-- any existing approved shift
-
-Show a clear conflict message identifying the conflicting block / shift.
-
-**Constraints:** no Google Calendar integration, no server sync, no recurrence beyond simple `dayOfWeek`.
-
-### E. Employer profile modal from shift detail
-
-This was requested in an earlier QA pass and remains pending.
-
-**On `/shifts/[id]`:** the employer name should be a clickable button that opens `EmployerProfileModal`.
-
-**Modal contents:**
-- Company / employer name
-- Email (if available)
-- Business type
-- Description / bio (with empty state if missing)
-- Number of posted shifts
-- Number of completed shifts (computable from `shiftStore.shifts` filtered by `employerId` and `status === 'Completed'`)
-- Verification / status badge (`verifiedBusiness` flag)
-
-**Behavior:** must work on desktop and mobile, close via X / ESC / backdrop (the existing `Modal` primitive handles all three).
+### E. Employer profile modal from shift detail ✅ *Done 2026-05-22 (Phase 4) — see Section 5, item 12.*
 
 ---
 
@@ -356,11 +325,11 @@ This was requested in an earlier QA pass and remains pending.
 Do **NOT** implement everything in one giant change. One PR per item, build + manual test between each:
 
 1. ~~**Fix admin reputation input** to a 0–100 final score + worker notification with old/new/reason + immediate sorting.~~ ✅ *Done 2026-05-22.*
-2. **Fix cancellation modal** with required reason + employer notification.
-3. **Add within-3-hours cancellation approval flow** (CancellationRequest entity + employer approve/reject UI + notifications both ways).
-4. **Add cancellation quota system** (compute from `cancellationHistory`, gate with clear message).
-5. **Add `EmployerProfileModal`** from `/shifts/[id]`.
-6. **Add worker schedule page** (`/worker/schedule`) + extend application conflict check to include busy blocks.
+2. ~~**Fix cancellation modal** with required reason + employer notification.~~ ✅ *Done 2026-05-22 (Phase 2).*
+3. ~~**Add within-3-hours cancellation approval flow** (CancellationRequest entity + employer approve/reject UI + notifications both ways).~~ ✅ *Done 2026-05-22 (Phase 2 — implemented as new `'CancellationRequested'` `ApplicationStatus` rather than a separate entity).*
+4. ~~**Add cancellation quota system** (compute from `cancellationHistory`, gate with clear message).~~ ✅ *Done 2026-05-22 (Phase 3).*
+5. ~~**Add `EmployerProfileModal`** from `/shifts/[id]`.~~ ✅ *Done 2026-05-22 (Phase 4 — clickable employer name + admin user-profile modal).*
+6. ~~**Add worker schedule page** (`/worker/schedule`) + extend application conflict check to include busy blocks.~~ ✅ *Done 2026-05-22 (Phase 5).*
 7. **Run full manual QA** for worker / employer / admin flows.
 
 After each step: `npx next build` must pass.

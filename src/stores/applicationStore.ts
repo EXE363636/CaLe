@@ -17,6 +17,11 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import {
+  canCancelByQuota,
+  quotaUsage,
+  type QuotaUsage,
+} from '@/domain/cancellationQuota';
 import { hasConflict, type TimeRange } from '@/domain/conflict';
 import { calculateDeposit, hoursBetween } from '@/domain/deposit';
 import { transitionEscrow } from '@/domain/escrow';
@@ -25,6 +30,7 @@ import {
   canApplyToShifts,
   classifyCancellation,
 } from '@/domain/reputation';
+import { hasScheduleConflict } from '@/domain/scheduleConflict';
 import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
 import type {
@@ -38,6 +44,7 @@ import type {
 } from '@/types';
 
 import { useNotificationStore } from './notificationStore';
+import { useScheduleStore } from './scheduleStore';
 import { useShiftStore } from './shiftStore';
 import { asWorker, useUserStore } from './userStore';
 
@@ -49,6 +56,7 @@ export type ApplyError =
   | 'VERIFICATION_REQUIRED'
   | 'REPUTATION_TOO_LOW'
   | 'CONFLICT'
+  | 'SCHEDULE_CONFLICT'
   | 'FULLY_BOOKED'
   | 'ALREADY_APPLIED'
   | 'SHIFT_NOT_FOUND'
@@ -78,7 +86,7 @@ interface ApplicationStore {
   // Worker actions
   apply(shiftId: string, workerId: string): Result<Application, ApplyError>;
   /**
-   * Worker-initiated cancellation flow (Phase 2):
+   * Worker-initiated cancellation flow (Phase 2 + Phase 3):
    *
    *  - `Pending` applications cancel immediately, no employer involvement.
    *  - `Approved` applications more than 3h before start cancel immediately
@@ -91,6 +99,11 @@ interface ApplicationStore {
    * The `reason` is required and stored on the application
    * (`cancellationReasonNote`) and forwarded to every notification.
    *
+   * Phase 3 quota gate: every quota-countable branch (Pending immediate,
+   * Approved immediate, Approved-needs-approval) is rejected with
+   * `QUOTA_EXCEEDED` when the worker is out of weekly or monthly capacity.
+   * No state change is made and no notification is fired in that case.
+   *
    * Returns `value.requiresApproval = true` when a request was created.
    */
   cancelByWorker(
@@ -99,8 +112,17 @@ interface ApplicationStore {
     nowIso?: string,
   ): Result<
     { application: Application; requiresApproval: boolean },
-    ApplicationActionError | 'REASON_REQUIRED' | 'SHIFT_NOT_FOUND'
+    | ApplicationActionError
+    | 'REASON_REQUIRED'
+    | 'SHIFT_NOT_FOUND'
+    | 'QUOTA_EXCEEDED'
   >;
+  /**
+   * Read-only snapshot of a worker's current cancellation quota usage so
+   * the UI can render "Bạn còn X/Y lượt huỷ" indicators. Pure derivation
+   * over `Worker.cancellationHistory` — does not mutate any store.
+   */
+  getCancellationQuota(workerId: string, nowIso?: string): QuotaUsage | undefined;
   checkIn(applicationId: string): Result<Application, ApplicationActionError>;
   checkOut(applicationId: string): Result<Application, ApplicationActionError>;
 
@@ -243,6 +265,17 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       return { ok: false, error: 'CONFLICT' };
     }
 
+    // Phase 5: also block when the shift overlaps any of the worker's
+    // personal busy blocks on the same date. The schedule store hosts the
+    // raw blocks; the pure helper does the math. No buffer is applied —
+    // the worker controls their own calendar exactly.
+    if (target) {
+      const blocks = useScheduleStore.getState().forUser(workerId);
+      if (hasScheduleConflict(target, blocks)) {
+        return { ok: false, error: 'SCHEDULE_CONFLICT' };
+      }
+    }
+
     const application: Application = {
       id: newPrefixedId('app'),
       shiftId,
@@ -283,6 +316,22 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
 
     const worker = asWorker(useUserStore.getState().findById(app.workerId));
     const workerName = worker?.fullName ?? 'Người làm';
+
+    // Phase 3: quota gate. Block before any state change so a quota miss
+    // does not produce a partial cancellation. The same gate applies to
+    // every branch below — Pending immediate, Approved immediate, and
+    // Approved-needs-approval — because a successful approval will spend
+    // quota whether the worker takes the immediate or the request path.
+    if (worker) {
+      const usage = quotaUsage(
+        worker.cancellationHistory,
+        worker.reputationScore,
+        cancelledAt,
+      );
+      if (!canCancelByQuota(usage)) {
+        return { ok: false, error: 'QUOTA_EXCEEDED' };
+      }
+    }
 
     // ---------------------------------------------------------------------
     // Branch 1: shift starts within 3h AND application is Approved.
@@ -349,22 +398,30 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       useShiftStore.getState().incrementFilled(app.shiftId, -1);
     }
 
-    if (cls === 'LateCancel') {
-      patchWorkerScore(app.workerId, (w) => {
-        const newScore = applyReputationEvent(w.reputationScore, { kind: 'LateCancel' });
-        const record: CancellationRecord = {
-          id: newPrefixedId('cancel'),
-          shiftId: app.shiftId,
-          cancelledAt,
-          type: 'LateCancel',
-          reasonNote: trimmedReason,
-        };
-        return {
-          reputationScore: newScore,
-          cancellationHistory: [...w.cancellationHistory, record],
-        };
-      });
-    }
+    // Phase 3: every immediate cancel produces a `CancellationRecord` so
+    // the rolling 7-/30-day quota math has something to count. The record
+    // type carries the late-cancel/on-time semantics so the worker profile
+    // timeline still distinguishes them. Reputation is only docked for
+    // late cancels.
+    const recordType: CancellationRecord['type'] =
+      cls === 'LateCancel' ? 'LateCancel' : 'OnTime';
+    patchWorkerScore(app.workerId, (w) => {
+      const newScore =
+        cls === 'LateCancel'
+          ? applyReputationEvent(w.reputationScore, { kind: 'LateCancel' })
+          : w.reputationScore;
+      const record: CancellationRecord = {
+        id: newPrefixedId('cancel'),
+        shiftId: app.shiftId,
+        cancelledAt,
+        type: recordType,
+        reasonNote: trimmedReason,
+      };
+      return {
+        reputationScore: newScore,
+        cancellationHistory: [...w.cancellationHistory, record],
+      };
+    });
 
     if (app.status === 'Approved') {
       const isLate = cls === 'LateCancel';
@@ -381,6 +438,16 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     }
 
     return { ok: true, value: { application: updated, requiresApproval: false } };
+  },
+
+  getCancellationQuota(workerId, when) {
+    const worker = asWorker(useUserStore.getState().findById(workerId));
+    if (!worker) return undefined;
+    return quotaUsage(
+      worker.cancellationHistory,
+      worker.reputationScore,
+      when ?? nowIso(),
+    );
   },
 
   checkIn(applicationId) {
@@ -547,23 +614,29 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Free the position now that the cancellation is final.
     useShiftStore.getState().incrementFilled(shift.id, -1);
 
-    // Apply late-cancel reputation hit if applicable.
-    if (cls === 'LateCancel') {
-      patchWorkerScore(app.workerId, (w) => {
-        const newScore = applyReputationEvent(w.reputationScore, { kind: 'LateCancel' });
-        const record: CancellationRecord = {
-          id: newPrefixedId('cancel'),
-          shiftId: shift.id,
-          cancelledAt: decidedAt,
-          type: 'LateCancel',
-          reasonNote,
-        };
-        return {
-          reputationScore: newScore,
-          cancellationHistory: [...w.cancellationHistory, record],
-        };
-      });
-    }
+    // Phase 3: every approved cancellation request consumes quota and is
+    // recorded on the worker's history. Reputation is only docked on late
+    // cancels — the on-time / late distinction is preserved by the record
+    // `type` so the worker profile still tells the story correctly.
+    const recordType: CancellationRecord['type'] =
+      cls === 'LateCancel' ? 'LateCancel' : 'OnTime';
+    patchWorkerScore(app.workerId, (w) => {
+      const newScore =
+        cls === 'LateCancel'
+          ? applyReputationEvent(w.reputationScore, { kind: 'LateCancel' })
+          : w.reputationScore;
+      const record: CancellationRecord = {
+        id: newPrefixedId('cancel'),
+        shiftId: shift.id,
+        cancelledAt: decidedAt,
+        type: recordType,
+        reasonNote,
+      };
+      return {
+        reputationScore: newScore,
+        cancellationHistory: [...w.cancellationHistory, record],
+      };
+    });
 
     useNotificationStore.getState().push({
       userId: app.workerId,

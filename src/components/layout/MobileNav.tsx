@@ -17,6 +17,7 @@ function getNavItems(role: Role | null): NavItem[] {
     return [
       { href: '/shifts', label: t('nav.shifts') },
       { href: '/worker/dashboard', label: t('nav.dashboard') },
+      { href: '/worker/schedule', label: t('nav.schedule') },
       { href: '/worker/profile', label: t('nav.profile') },
     ];
   }

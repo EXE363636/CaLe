@@ -13,6 +13,7 @@ import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
+import { quotaUsage } from '@/domain/cancellationQuota';
 import { averageRating } from '@/domain/rating';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
@@ -66,11 +67,26 @@ function WorkerDashboardContent() {
   const avgRating = averageRating(worker.ratingsReceived);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Upcoming approved/checked-in shifts (date in future or today)
+  // Phase 3: derive the worker's current cancellation quota whenever the
+  // cancel dialog is open. We pull the raw history + reputation off the
+  // worker selector (both stable references) and call the pure helper in
+  // a `useMemo` so we never feed Zustand a fresh array selector.
+  const cancelQuota = useMemo(() => {
+    if (!cancelTarget) return undefined;
+    return quotaUsage(
+      worker.cancellationHistory,
+      worker.reputationScore,
+      new Date().toISOString(),
+    );
+  }, [cancelTarget, worker.cancellationHistory, worker.reputationScore]);
+
+  // Upcoming approved/checked-in shifts (date in future or today).
+  // Includes `CancellationRequested` so the worker still sees the shift
+  // while waiting for the employer's decision.
   const todayStr = new Date().toISOString().slice(0, 10);
   const upcoming = myApps
     .filter((a) =>
-      ['Approved', 'CheckedIn', 'CheckedOut'].includes(a.status) &&
+      ['Approved', 'CancellationRequested', 'CheckedIn', 'CheckedOut'].includes(a.status) &&
       getShift(a.shiftId) !== undefined &&
       getShift(a.shiftId)!.date >= todayStr,
     )
@@ -112,6 +128,9 @@ function WorkerDashboardContent() {
       // CancellationRequested) reflecting whichever path was taken.
       setCancelTarget(null);
     }
+    // On QUOTA_EXCEEDED / WRONG_STATUS / etc. the dialog stays open. The
+    // dialog itself renders the quota message and the user-facing error;
+    // we keep the modal mounted so they can see the explanation.
   }
 
   return (
@@ -238,6 +257,7 @@ function WorkerDashboardContent() {
               shift={shift}
               onConfirm={handleCancelConfirm}
               loading={actionLoading === cancelTarget.id}
+              quota={cancelQuota}
             />
           );
         })()}
@@ -381,6 +401,7 @@ function badgeToneFor(status: Application['status']): 'success' | 'warning' | 'd
     case 'CheckedOut': return 'warning';
     case 'Confirmed': return 'success';
     case 'Pending': return 'warning';
+    case 'CancellationRequested': return 'warning';
     case 'Rejected': return 'danger';
     case 'NoShow': return 'danger';
     case 'CancelledByWorker': return 'neutral';

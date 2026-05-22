@@ -29,3 +29,10 @@ export { useNotificationStore } from './notificationStore';
 
 export { useAdminStore } from './adminStore';
 export type { AdminError } from './adminStore';
+
+export { useScheduleStore } from './scheduleStore';
+export type {
+  NewScheduleBlockInput,
+  ScheduleBlockEditablePatch,
+  ScheduleError,
+} from './scheduleStore';

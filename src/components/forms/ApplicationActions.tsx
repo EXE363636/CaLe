@@ -102,6 +102,18 @@ export function ApplicationActions({
     );
   }
 
+  if (applicationStatus === 'CancellationRequested') {
+    return (
+      <div className={['flex flex-col gap-2', className].join(' ')}>
+        <Badge tone="warning">{t('application.status.CancellationRequested')}</Badge>
+        <p className="text-xs text-gray-600">
+          {t('cancel.requested.awaitingDecision')}
+        </p>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </div>
+    );
+  }
+
   if (applicationStatus === 'CancelledByWorker') {
     return (
       <div className={['flex flex-col gap-2', className].join(' ')}>

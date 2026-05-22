@@ -11,6 +11,7 @@ import { Card, Button, Badge, Input, Textarea } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
+import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { formatVND, formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Dispute, EscrowStatus, Shift, User } from '@/types';
@@ -147,6 +148,7 @@ function UsersPanel() {
   const [filter, setFilter] = useState<'all' | 'worker' | 'employer' | 'admin'>('all');
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const base = filter === 'all' ? users : users.filter((u) => u.role === filter);
@@ -166,6 +168,14 @@ function UsersPanel() {
       return a.id.localeCompare(b.id);
     });
   }, [users, filter]);
+
+  // Profile modal subject — resolved from the live user list so suspend /
+  // reactivate / reputation-adjust actions taken from the row are
+  // immediately reflected in the open modal.
+  const profileUser = useMemo(
+    () => (profileUserId ? users.find((u) => u.id === profileUserId) ?? null : null),
+    [users, profileUserId],
+  );
 
   // Helpers that surface error messages on failure
   function handleSuspend(userId: string) {
@@ -233,9 +243,18 @@ function UsersPanel() {
             onCancelAdjust={() => setAdjustingId(null)}
             onSuspend={() => handleSuspend(user.id)}
             onReactivate={() => handleReactivate(user.id)}
+            onOpenProfile={() => setProfileUserId(user.id)}
           />
         ))}
       </ul>
+
+      {/* Shared profile modal — opens for any user the admin clicks. */}
+      <AdminUserProfileModal
+        open={profileUser !== null}
+        onClose={() => setProfileUserId(null)}
+        user={profileUser}
+        isSelf={profileUser?.id === currentAdminId}
+      />
     </div>
   );
 }
@@ -249,6 +268,7 @@ function UserRow({
   onCancelAdjust,
   onSuspend,
   onReactivate,
+  onOpenProfile,
 }: {
   user: User;
   isSelf: boolean;
@@ -258,6 +278,7 @@ function UserRow({
   onCancelAdjust: () => void;
   onSuspend: () => void;
   onReactivate: () => void;
+  onOpenProfile: () => void;
 }) {
   const adjustReputation = useAdminStore((s) => s.adjustReputation);
   // Worker-only row state. For non-workers `currentScore` is always 0; the
@@ -323,7 +344,13 @@ function UserRow({
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-gray-900">
-            {displayName}
+            <button
+              type="button"
+              onClick={onOpenProfile}
+              className="text-left text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
+            >
+              {displayName}
+            </button>
             <span className="ml-2 text-xs font-normal text-gray-400">
               ({t(`role.${user.role}`)})
             </span>

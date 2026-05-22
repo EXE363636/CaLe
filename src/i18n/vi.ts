@@ -44,6 +44,7 @@ export const vi: Record<string, string> = {
   'nav.postShift': 'Đăng ca tuyển',
   'nav.notifications': 'Thông báo',
   'nav.admin': 'Quản trị',
+  'nav.schedule': 'Lịch cá nhân',
 
   // -------------------------------------------------------------------------
   // Buttons
@@ -76,6 +77,8 @@ export const vi: Record<string, string> = {
   'btn.suspend': 'Tạm khoá tài khoản',
   'btn.reactivate': 'Mở khoá tài khoản',
   'btn.adjustReputation': 'Điều chỉnh điểm uy tín',
+  'btn.approveCancellation': 'Chấp nhận huỷ',
+  'btn.rejectCancellation': 'Từ chối huỷ',
   'btn.markAllRead': 'Đánh dấu tất cả đã đọc',
   'btn.verifyPhone': 'Xác minh số điện thoại',
   'btn.uploadId': 'Tải lên CMND/CCCD',
@@ -117,6 +120,7 @@ export const vi: Record<string, string> = {
   'application.status.Approved': 'Đã duyệt',
   'application.status.Rejected': 'Bị từ chối',
   'application.status.CancelledByWorker': 'Người làm đã huỷ',
+  'application.status.CancellationRequested': 'Yêu cầu huỷ',
   'application.status.NoShow': 'Vắng mặt',
   'application.status.CheckedIn': 'Đã check-in',
   'application.status.CheckedOut': 'Đã check-out',
@@ -141,6 +145,9 @@ export const vi: Record<string, string> = {
   'notification.kind.ShiftCancelled': 'Ca làm đã huỷ',
   'notification.kind.LateCancel': 'Huỷ muộn',
   'notification.kind.WorkerCancelled': 'Người làm đã huỷ',
+  'notification.kind.CancellationRequested': 'Yêu cầu huỷ',
+  'notification.kind.CancellationApproved': 'Yêu cầu huỷ được chấp nhận',
+  'notification.kind.CancellationRejected': 'Yêu cầu huỷ bị từ chối',
   'notification.kind.ReputationAdjusted': 'Điều chỉnh điểm uy tín',
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
 
@@ -213,6 +220,8 @@ export const vi: Record<string, string> = {
     'Điểm uy tín của bạn quá thấp (dưới 50). Vui lòng hoàn thành các ca làm để tăng điểm.',
   'apply.error.CONFLICT':
     'Bạn đã có ca làm trùng giờ. Vui lòng kiểm tra lịch của bạn.',
+  'apply.error.SCHEDULE_CONFLICT':
+    'Ca này trùng với lịch cá nhân của bạn.',
   'apply.error.FULLY_BOOKED': 'Ca làm này đã đủ người.',
   'apply.error.ALREADY_APPLIED': 'Bạn đã ứng tuyển ca làm này rồi.',
   'apply.error.SHIFT_NOT_FOUND': 'Không tìm thấy ca làm.',
@@ -250,6 +259,21 @@ export const vi: Record<string, string> = {
   'admin.user.scoreOutOfRange': 'Điểm uy tín phải là số nguyên từ 0 đến 100.',
 
   // -------------------------------------------------------------------------
+  // Admin user-profile modal (Phase 4)
+  // -------------------------------------------------------------------------
+  'admin.profile.title': 'Hồ sơ người dùng',
+  'admin.profile.quota.title': 'Hạn mức huỷ ca',
+  'admin.profile.quota.weekly':
+    '7 ngày: đã dùng {used}/{limit} (còn {remaining}).',
+  'admin.profile.quota.monthly':
+    '30 ngày: đã dùng {used}/{limit} (còn {remaining}).',
+  'admin.profile.employer.disputedPayments':
+    'Hiện có {count} thanh toán đang tranh chấp.',
+  'admin.profile.admin.note': 'Quyền quản trị',
+  'admin.profile.admin.description':
+    'Tài khoản này có quyền quản trị toàn hệ thống. Mọi thao tác đều mock/localStorage.',
+
+  // -------------------------------------------------------------------------
   // Worker cancellation flow
   // -------------------------------------------------------------------------
   'cancel.confirm.title': 'Xác nhận huỷ đơn ứng tuyển',
@@ -257,11 +281,77 @@ export const vi: Record<string, string> = {
     'Đây là huỷ muộn (trong vòng 24 giờ trước giờ bắt đầu). Điểm uy tín của bạn sẽ giảm 10 điểm.',
   'cancel.confirm.onTimeNote':
     'Bạn huỷ trước giờ bắt đầu hơn 24h nên không bị trừ điểm uy tín.',
+  'cancel.confirm.approvalRequired':
+    'Vì ca bắt đầu trong vòng 3 giờ, yêu cầu huỷ của bạn cần được nhà tuyển dụng duyệt trước khi có hiệu lực.',
   'cancel.confirm.reasonLabel': 'Lý do huỷ',
   'cancel.confirm.reasonPlaceholder': 'Vui lòng cho biết lý do bạn không thể tham gia...',
   'cancel.confirm.reasonRequired': 'Vui lòng nhập lý do huỷ.',
   'cancel.confirm.submit': 'Xác nhận huỷ',
+  'cancel.confirm.requestSubmit': 'Gửi yêu cầu huỷ',
   'cancel.confirm.keep': 'Giữ đơn ứng tuyển',
+  'cancel.confirm.quotaBlocked':
+    'Bạn đã vượt hạn mức huỷ trong tuần hoặc trong tháng này. Vui lòng thử lại sau.',
+  'cancel.quota.title': 'Hạn mức huỷ của bạn',
+  'cancel.quota.blockedTitle': 'Đã hết hạn mức huỷ',
+  'cancel.quota.blockedHint':
+    'Bạn không thể huỷ thêm đơn ứng tuyển cho đến khi cửa sổ 7 ngày hoặc 30 ngày trống thêm chỗ.',
+  'cancel.quota.weekly':
+    'Bạn còn {remaining}/{limit} lượt huỷ trong 7 ngày gần đây.',
+  'cancel.quota.monthly':
+    'Bạn còn {remaining}/{limit} lượt huỷ trong 30 ngày gần đây.',
+  'cancel.requested.awaitingDecision':
+    'Yêu cầu huỷ đã được gửi tới nhà tuyển dụng. Đơn của bạn vẫn giữ chỗ cho tới khi có quyết định.',
+  'cancel.request.employerHeading': 'Người làm yêu cầu huỷ ca',
+  'cancel.request.employerHint':
+    'Vì ca bắt đầu trong vòng 3 giờ, người làm cần bạn duyệt trước khi huỷ có hiệu lực.',
+
+  // -------------------------------------------------------------------------
+  // Worker personal schedule (Phase 5)
+  // -------------------------------------------------------------------------
+  'schedule.page.title': 'Lịch cá nhân',
+  'schedule.page.subtitle':
+    'Đánh dấu thời gian bận như giờ học, ca làm khác, việc cá nhân để tránh ứng tuyển trùng giờ.',
+  'schedule.page.approvedShiftsNote':
+    'Ca làm đã được duyệt cũng được tính là thời gian bận khi ứng tuyển.',
+  'schedule.empty.title': 'Bạn chưa có lịch cá nhân.',
+  'schedule.empty.description':
+    'Thêm các khung giờ bạn không thể nhận ca để hệ thống chặn ứng tuyển trùng giờ.',
+  'schedule.btn.add': 'Thêm lịch bận',
+  'schedule.btn.confirmDelete': 'Xác nhận xoá',
+  'schedule.dialog.addTitle': 'Thêm khung giờ bận',
+  'schedule.dialog.editTitle': 'Cập nhật khung giờ bận',
+  'schedule.form.title': 'Tên',
+  'schedule.form.date': 'Ngày',
+  'schedule.form.startTime': 'Giờ bắt đầu',
+  'schedule.form.endTime': 'Giờ kết thúc',
+  'schedule.form.note': 'Ghi chú (tuỳ chọn)',
+  'schedule.error.NOT_FOUND': 'Không tìm thấy lịch.',
+  'schedule.error.OWNER_MISMATCH': 'Bạn không có quyền chỉnh sửa lịch này.',
+  'schedule.error.TITLE_REQUIRED': 'Vui lòng nhập tên cho khung giờ bận.',
+  'schedule.error.DATE_REQUIRED': 'Vui lòng chọn ngày.',
+  'schedule.error.TIME_REQUIRED': 'Vui lòng chọn giờ bắt đầu và giờ kết thúc.',
+  'schedule.error.TIME_RANGE_INVALID':
+    'Giờ kết thúc phải sau giờ bắt đầu.',
+
+  // Phase 5B — weekly timetable view
+  'schedule.week.prev': 'Tuần trước',
+  'schedule.week.current': 'Tuần này',
+  'schedule.week.next': 'Tuần sau',
+  'schedule.slotCfg.title': 'Cấu hình khung giờ',
+  'schedule.slotCfg.dayStart': 'Giờ bắt đầu ngày',
+  'schedule.slotCfg.dayEnd': 'Giờ kết thúc ngày',
+  'schedule.slotCfg.slotMinutes': 'Độ dài mỗi slot (phút)',
+  'schedule.slotCfg.error.INVALID_TIME_RANGE':
+    'Giờ kết thúc ngày phải sau giờ bắt đầu ngày.',
+  'schedule.slotCfg.error.INVALID_SLOT_DURATION':
+    'Độ dài mỗi slot phải từ 15 phút trở lên.',
+  'schedule.slotCfg.error.TOO_MANY_SLOTS':
+    'Số slot quá nhiều. Hãy tăng độ dài mỗi slot hoặc thu hẹp khung giờ trong ngày.',
+  'schedule.timetable.timeColumn': 'Giờ',
+  'schedule.timetable.addInSlot': 'Thêm lịch vào khung giờ này',
+  'schedule.list.title': 'Tất cả lịch bận',
+  'schedule.empty.weekHint':
+    'Không có lịch bận trong tuần này. Bấm vào ô trống để thêm.',
 
   // -------------------------------------------------------------------------
   // Employer profile (worker view)
@@ -271,7 +361,9 @@ export const vi: Record<string, string> = {
   'employer.profile.description': 'Giới thiệu',
   'employer.profile.email': 'Email',
   'employer.profile.postedShifts': 'Ca đã đăng',
+  'employer.profile.activeShifts': 'Đang hoạt động',
   'employer.profile.completedShifts': 'Ca đã hoàn thành',
+  'employer.profile.cancelledShifts': 'Đã huỷ',
   'employer.profile.verifiedBusiness': 'Doanh nghiệp đã xác minh',
   'employer.profile.notVerified': 'Cá nhân / chưa xác minh',
   'employer.profile.noDescription': 'Nhà tuyển dụng chưa thêm giới thiệu.',
@@ -282,6 +374,8 @@ export const vi: Record<string, string> = {
   'shift.error.NOT_FOUND': 'Không tìm thấy ca làm.',
   'shift.error.TOO_LATE':
     'Không thể thực hiện thao tác này trong vòng 24 giờ trước khi ca bắt đầu.',
+  'shift.cancelled.banner':
+    'Ca làm này đã bị huỷ. Người làm có liên quan đã được thông báo.',
   'application.error.APPLICATION_NOT_FOUND': 'Không tìm thấy đơn ứng tuyển.',
   'application.error.WRONG_STATUS': 'Trạng thái đơn ứng tuyển không phù hợp.',
 

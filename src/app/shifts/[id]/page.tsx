@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
@@ -13,6 +13,7 @@ import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { Button } from '@/components/ui';
+import { quotaUsage } from '@/domain/cancellationQuota';
 import { t } from '@/i18n/vi';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import type { Shift } from '@/types';
@@ -59,6 +60,19 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       )
     : undefined;
 
+  // Phase 3: derive cancellation quota for the current worker only when
+  // the cancel dialog is open. Selectors above already return stable
+  // references, so this useMemo recomputes only when the inputs actually
+  // change.
+  const cancelQuota = useMemo(() => {
+    if (!worker || !cancelDialogOpen) return undefined;
+    return quotaUsage(
+      worker.cancellationHistory,
+      worker.reputationScore,
+      new Date().toISOString(),
+    );
+  }, [worker, cancelDialogOpen]);
+
   function handleApply() {
     if (!worker) return;
     setLoading(true);
@@ -78,14 +92,20 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     setLoading(false);
     if (!result.ok) {
       // REASON_REQUIRED is prevented by the dialog's button gating; surface
-      // anything else (WRONG_STATUS, APPLICATION_NOT_FOUND, SHIFT_NOT_FOUND) inline.
-      setApplyError(
-        result.error === 'REASON_REQUIRED'
-          ? t('cancel.confirm.reasonRequired')
-          : result.error === 'SHIFT_NOT_FOUND'
-            ? t('shift.error.NOT_FOUND')
-            : t(`application.error.${result.error}`),
-      );
+      // anything else (WRONG_STATUS, APPLICATION_NOT_FOUND, SHIFT_NOT_FOUND,
+      // QUOTA_EXCEEDED) inline.
+      const code = result.error;
+      let message: string;
+      if (code === 'REASON_REQUIRED') {
+        message = t('cancel.confirm.reasonRequired');
+      } else if (code === 'SHIFT_NOT_FOUND') {
+        message = t('shift.error.NOT_FOUND');
+      } else if (code === 'QUOTA_EXCEEDED') {
+        message = t('cancel.confirm.quotaBlocked');
+      } else {
+        message = t(`application.error.${code}`);
+      }
+      setApplyError(message);
       return;
     }
     // On success, close the dialog. If approval is required the application
@@ -235,6 +255,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           shift={shift}
           onConfirm={handleConfirmCancel}
           loading={loading}
+          quota={cancelQuota}
         />
       )}
 

@@ -28,16 +28,27 @@ export function EmployerProfileModal({
   // the per-employer counts so the selector itself never returns a fresh
   // array (Zustand snapshot stability).
   const allShifts = useShiftStore((s) => s.shifts);
-  const { posted, completed } = useMemo(() => {
-    if (!employer) return { posted: 0, completed: 0 };
+  const { posted, active, completed, cancelled } = useMemo(() => {
+    if (!employer) return { posted: 0, active: 0, completed: 0, cancelled: 0 };
     let posted = 0;
+    let active = 0;
     let completed = 0;
+    let cancelled = 0;
     for (const s of allShifts) {
       if (s.employerId !== employer.id) continue;
       posted += 1;
       if (s.status === 'Completed') completed += 1;
+      else if (s.status === 'Cancelled') cancelled += 1;
+      else if (
+        s.status === 'Published' ||
+        s.status === 'FullyBooked' ||
+        s.status === 'InProgress' ||
+        s.status === 'AwaitingConfirmation'
+      ) {
+        active += 1;
+      }
     }
-    return { posted, completed };
+    return { posted, active, completed, cancelled };
   }, [allShifts, employer]);
 
   if (!employer) return null;
@@ -68,11 +79,16 @@ export function EmployerProfileModal({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:grid-cols-4">
           <Stat value={String(posted)} label={t('employer.profile.postedShifts')} />
+          <Stat value={String(active)} label={t('employer.profile.activeShifts')} />
           <Stat
             value={String(completed)}
             label={t('employer.profile.completedShifts')}
+          />
+          <Stat
+            value={String(cancelled)}
+            label={t('employer.profile.cancelledShifts')}
           />
         </div>
 

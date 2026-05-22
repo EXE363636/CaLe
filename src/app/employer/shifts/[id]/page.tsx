@@ -2,12 +2,13 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useNotificationStore } from '@/stores/notificationStore';
 import { Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
@@ -17,7 +18,7 @@ import { RatingForm } from '@/components/forms/RatingForm';
 import { shouldMarkNoShow } from '@/domain/timeGates';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
-import type { Application, Shift, Worker } from '@/types';
+import type { Application, ApplicationStatus, Shift, Worker } from '@/types';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -43,6 +44,7 @@ function EmployerShiftDetailInner({ params }: Props) {
 }
 
 function ManageShiftContent({ shift }: { shift: Shift }) {
+  const router = useRouter();
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
   const approve = useApplicationStore((s) => s.approve);
@@ -50,10 +52,19 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const markNoShow = useApplicationStore((s) => s.markNoShow);
   const reportIssue = useApplicationStore((s) => s.reportIssue);
   const confirmCompletion = useApplicationStore((s) => s.confirmCompletion);
+  const approveCancellationRequest = useApplicationStore(
+    (s) => s.approveCancellationRequest,
+  );
+  const rejectCancellationRequest = useApplicationStore(
+    (s) => s.rejectCancellationRequest,
+  );
   const cancelShift = useShiftStore((s) => s.cancel);
+  const pushNotification = useNotificationStore((s) => s.push);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [profileWorker, setProfileWorker] = useState<Worker | null>(null);
   const [ratingForAppId, setRatingForAppId] = useState<string | null>(null);
 
@@ -82,9 +93,65 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     reportIssue(appId, 'Người làm không hoàn thành đúng yêu cầu.');
   }
 
+  function handleApproveCancellation(appId: string) {
+    setActionLoading(appId);
+    approveCancellationRequest(appId);
+    setActionLoading(null);
+  }
+
+  function handleRejectCancellation(appId: string) {
+    setActionLoading(appId);
+    rejectCancellationRequest(appId);
+    setActionLoading(null);
+  }
+
   function handleCancelShift() {
-    cancelShift(shift.id);
+    if (cancelLoading) return;
+    setCancelLoading(true);
+    setCancelError(null);
+
+    const result = cancelShift(shift.id);
+    if (!result.ok) {
+      // Map the two possible store errors to localized messages. The store
+      // never deletes a shift, so we just keep the confirm bar open and let
+      // the employer dismiss it explicitly.
+      setCancelError(
+        result.error === 'TOO_LATE'
+          ? t('shift.error.TOO_LATE')
+          : t('shift.error.NOT_FOUND'),
+      );
+      setCancelLoading(false);
+      return;
+    }
+
+    // Success: notify every worker who currently has an active stake in
+    // this shift (Pending / Approved / CancellationRequested / CheckedIn /
+    // CheckedOut). Cancelled / Confirmed / NoShow / Rejected applications
+    // are intentionally skipped — those workers are already done with the
+    // shift one way or another.
+    const affectedStatuses: ReadonlySet<ApplicationStatus> = new Set([
+      'Pending',
+      'Approved',
+      'CancellationRequested',
+      'CheckedIn',
+      'CheckedOut',
+    ]);
+    for (const app of shiftApps) {
+      if (!affectedStatuses.has(app.status)) continue;
+      pushNotification({
+        userId: app.workerId,
+        kind: 'ShiftCancelled',
+        title: 'Ca làm đã bị huỷ',
+        body: `Nhà tuyển dụng đã huỷ ca "${shift.title}" (${formatDateVN(shift.date)}).`,
+        link: '/worker/dashboard',
+      });
+    }
+
+    setCancelLoading(false);
     setCancelConfirm(false);
+    // Redirect back to the employer dashboard so the employer sees the
+    // cancellation reflected in their shift list immediately.
+    router.push('/employer/dashboard');
   }
 
   return (
@@ -120,24 +187,64 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         <span>{positionsLeft} vị trí còn trống</span>
       </div>
 
-      {/* Cancel shift */}
+      {/* Cancel shift — only available while the shift is in a state that
+          can still be cancelled. Completed / InProgress / AwaitingConfirmation
+          / Cancelled / Expired states should never expose this control. */}
       {['Draft', 'Published', 'FullyBooked'].includes(shift.status) && (
-        <div className="mt-4">
+        <div className="mt-4 flex flex-col gap-2">
           {!cancelConfirm ? (
-            <Button size="sm" variant="danger" onClick={() => setCancelConfirm(true)}>
-              {t('btn.cancelShift')}
-            </Button>
+            <div>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => {
+                  setCancelError(null);
+                  setCancelConfirm(true);
+                }}
+              >
+                {t('btn.cancelShift')}
+              </Button>
+            </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm text-red-700">Xác nhận huỷ ca?</span>
-              <Button size="sm" variant="danger" onClick={handleCancelShift}>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={handleCancelShift}
+                loading={cancelLoading}
+              >
                 Huỷ ca
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setCancelConfirm(false)}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setCancelConfirm(false);
+                  setCancelError(null);
+                }}
+                disabled={cancelLoading}
+              >
                 Không
               </Button>
             </div>
           )}
+          {cancelError && (
+            <p role="alert" className="text-sm text-red-600">
+              {cancelError}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Already cancelled — informational banner so the page is not blank
+          where the cancel button used to be. */}
+      {shift.status === 'Cancelled' && (
+        <div
+          role="status"
+          className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700"
+        >
+          {t('shift.cancelled.banner')}
         </div>
       )}
 
@@ -181,9 +288,28 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         onMarkNoShow={() => handleMarkNoShow(app.id)}
                         onConfirm={() => setRatingForAppId(app.id)}
                         onReport={() => handleReportIssue(app.id)}
+                        onApproveCancellation={() => handleApproveCancellation(app.id)}
+                        onRejectCancellation={() => handleRejectCancellation(app.id)}
                       />
                     }
                   />
+
+                  {/* Cancellation request panel — shows the worker's reason
+                      below the row so the employer can decide in context. */}
+                  {app.status === 'CancellationRequested' && (
+                    <div className="ml-2 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-900">
+                      <p className="font-medium">
+                        {t('cancel.request.employerHeading')}
+                      </p>
+                      <p className="mt-1 text-orange-900/80">
+                        <span className="font-medium">{t('form.reasonNote')}:</span>{' '}
+                        {app.cancellationReasonNote || '—'}
+                      </p>
+                      <p className="mt-1 text-xs text-orange-900/70">
+                        {t('cancel.request.employerHint')}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Rating panel — opens below the summary row */}
                   {showRating && app.status === 'CheckedOut' && (
@@ -225,6 +351,8 @@ function ApplicationActionButtons({
   onMarkNoShow,
   onConfirm,
   onReport,
+  onApproveCancellation,
+  onRejectCancellation,
 }: {
   application: Application;
   loading: boolean;
@@ -235,7 +363,36 @@ function ApplicationActionButtons({
   onMarkNoShow: () => void;
   onConfirm: () => void;
   onReport: () => void;
+  onApproveCancellation: () => void;
+  onRejectCancellation: () => void;
 }) {
+  // Cancellation-request decision — always takes precedence over other
+  // states because the application is currently held in
+  // `CancellationRequested` and nothing else can happen until the employer
+  // approves or rejects.
+  if (application.status === 'CancellationRequested') {
+    return (
+      <>
+        <Button
+          size="sm"
+          variant="primary"
+          onClick={onApproveCancellation}
+          loading={loading}
+        >
+          {t('btn.approveCancellation')}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onRejectCancellation}
+          loading={loading}
+        >
+          {t('btn.rejectCancellation')}
+        </Button>
+      </>
+    );
+  }
+
   if (application.status === 'Pending') {
     return (
       <>
@@ -296,6 +453,8 @@ function badgeToneForApp(
     case 'Confirmed':
       return 'success';
     case 'Pending':
+      return 'warning';
+    case 'CancellationRequested':
       return 'warning';
     case 'Rejected':
       return 'danger';

@@ -19,6 +19,7 @@ import type {
   Dispute,
   Notification,
   Rating,
+  ScheduleBlock,
   Shift,
   User,
 } from '@/types';
@@ -36,7 +37,7 @@ import usersSeed from './seed/users.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -49,6 +50,7 @@ export const STORAGE_KEYS = {
   notifications: 'cale.notifications',
   disputes: 'cale.disputes',
   boostLedger: 'cale.boostLedger',
+  scheduleBlocks: 'cale.scheduleBlocks',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -73,6 +75,8 @@ export interface Snapshot {
   notifications: Notification[];
   disputes: Dispute[];
   boostLedger: BoostCreditLedgerEntry[];
+  /** Phase 5: worker-owned personal busy blocks. */
+  scheduleBlocks: ScheduleBlock[];
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +102,8 @@ export function seedSnapshot(): Snapshot {
     notifications: notificationsSeed as unknown as Notification[],
     disputes: disputesSeed as unknown as Dispute[],
     boostLedger: boostLedgerSeed as unknown as BoostCreditLedgerEntry[],
+    // Phase 5: schedule blocks start empty — workers add their own.
+    scheduleBlocks: [],
   };
 }
 
@@ -177,6 +183,10 @@ export function loadAll(): Snapshot {
     notifications: read<Notification[]>(STORAGE_KEYS.notifications, seed.notifications),
     disputes: read<Dispute[]>(STORAGE_KEYS.disputes, seed.disputes),
     boostLedger: read<BoostCreditLedgerEntry[]>(STORAGE_KEYS.boostLedger, seed.boostLedger),
+    scheduleBlocks: read<ScheduleBlock[]>(
+      STORAGE_KEYS.scheduleBlocks,
+      seed.scheduleBlocks,
+    ),
   };
 }
 
@@ -198,4 +208,5 @@ export function persistAll(snapshot: Snapshot): void {
   write(STORAGE_KEYS.notifications, snapshot.notifications);
   write(STORAGE_KEYS.disputes, snapshot.disputes);
   write(STORAGE_KEYS.boostLedger, snapshot.boostLedger);
+  write(STORAGE_KEYS.scheduleBlocks, snapshot.scheduleBlocks);
 }

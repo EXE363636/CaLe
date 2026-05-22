@@ -20,6 +20,7 @@ import {
   useApplicationStore,
   useAuthStore,
   useNotificationStore,
+  useScheduleStore,
   useShiftStore,
   useUserStore,
 } from '@/stores';
@@ -43,6 +44,7 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useApplicationStore.getState().hydrateDisputes(snapshot.disputes);
     useNotificationStore.getState().hydrate(snapshot.notifications);
     useAuthStore.getState().hydrate(snapshot.auth);
+    useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
 
     // Validate persisted auth: if currentUserId points to a missing or
     // suspended user, force a logout so navigation/role chrome doesn't

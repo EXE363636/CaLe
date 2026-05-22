@@ -257,6 +257,30 @@ export interface BoostCreditLedgerEntry {
   createdAt: string;
 }
 
+/**
+ * Worker-owned personal busy block (Phase 5).
+ *
+ * One-time, date-based entries only — recurring weekly schedules are
+ * intentionally out of scope for the MVP. Each block contributes to the
+ * "is this shift in conflict?" check when the worker tries to apply.
+ */
+export interface ScheduleBlock {
+  id: string;
+  /** Owning worker. */
+  userId: string;
+  title: string;
+  /** YYYY-MM-DD. */
+  date: string;
+  /** HH:mm. */
+  startTime: string;
+  /** HH:mm. */
+  endTime: string;
+  /** Optional free-text note. */
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Generic Result type
 // ---------------------------------------------------------------------------
