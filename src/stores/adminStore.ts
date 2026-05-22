@@ -16,7 +16,7 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
-import { applyReputationEvent } from '@/domain/reputation';
+import { MAX_SCORE, MIN_SCORE } from '@/domain/reputation';
 import type {
   Dispute,
   DisputeStatus,
@@ -27,6 +27,7 @@ import type {
 
 import { useApplicationStore } from './applicationStore';
 import { useAuthStore } from './authStore';
+import { useNotificationStore } from './notificationStore';
 import { useShiftStore } from './shiftStore';
 import { useUserStore, asWorker } from './userStore';
 
@@ -40,16 +41,26 @@ export type AdminError =
   | 'SHIFT_NOT_FOUND'
   | 'DISPUTE_NOT_FOUND'
   | 'INVALID_OUTCOME'
+  | 'INVALID_SCORE'
+  | 'REASON_REQUIRED'
   | 'CANNOT_SUSPEND_SELF'
   | 'CANNOT_SUSPEND_LAST_ADMIN';
 
 interface AdminStore {
   suspend(userId: string): Result<true, AdminError>;
   reactivate(userId: string): Result<true, AdminError>;
+  /**
+   * Set a worker's reputation to an exact final score in [0, 100].
+   *
+   * `newScore` is the absolute target value, **not** a delta. The caller
+   * also provides a non-empty `reason` which is appended to the worker's
+   * cancellation/admin timeline and embedded in the in-app notification
+   * fired to the affected worker.
+   */
   adjustReputation(
     workerId: string,
-    delta: number,
-    note: string,
+    newScore: number,
+    reason: string,
   ): Result<Worker, AdminError>;
   overrideEscrow(
     shiftId: string,
@@ -111,21 +122,34 @@ export const useAdminStore = create<AdminStore>(() => ({
     return { ok: true, value: true };
   },
 
-  adjustReputation(workerId, delta, note) {
+  adjustReputation(workerId, newScore, reason) {
     const userStore = useUserStore.getState();
     const worker = asWorker(userStore.findById(workerId));
     if (!worker) return { ok: false, error: 'NOT_A_WORKER' };
 
-    const newScore = applyReputationEvent(worker.reputationScore, {
-      kind: 'AdminAdjust',
-      delta,
-    });
+    // Validate inputs — reason must be present, score must be a valid
+    // integer in [0, 100]. Anything else is rejected so callers can surface
+    // a precise error in the UI.
+    const trimmedReason = reason.trim();
+    if (trimmedReason === '') return { ok: false, error: 'REASON_REQUIRED' };
+    if (
+      typeof newScore !== 'number' ||
+      Number.isNaN(newScore) ||
+      !Number.isFinite(newScore) ||
+      newScore < MIN_SCORE ||
+      newScore > MAX_SCORE
+    ) {
+      return { ok: false, error: 'INVALID_SCORE' };
+    }
+
+    const finalScore = Math.round(newScore);
+    const oldScore = worker.reputationScore;
 
     // Append a synthetic cancellation-history-like note so the admin
     // adjustment is visible on the worker profile timeline. We piggy-back on
     // `cancellationHistory` rather than introducing a new ledger for the MVP.
     const updated: Partial<Worker> = {
-      reputationScore: newScore,
+      reputationScore: finalScore,
       cancellationHistory: [
         ...worker.cancellationHistory,
         {
@@ -133,7 +157,7 @@ export const useAdminStore = create<AdminStore>(() => ({
           shiftId: '',
           cancelledAt: nowIso(),
           type: 'OnTime',
-          reasonNote: `[Admin adjust ${delta >= 0 ? '+' : ''}${delta}] ${note}`,
+          reasonNote: `[Admin set ${oldScore} → ${finalScore}] ${trimmedReason}`,
         },
       ],
     };
@@ -141,6 +165,19 @@ export const useAdminStore = create<AdminStore>(() => ({
 
     const refreshed = asWorker(userStore.findById(worker.id));
     if (!refreshed) return { ok: false, error: 'NOT_A_WORKER' };
+
+    // Notify the worker that their reputation has been adjusted (mock,
+    // localStorage-only — no real push). Body includes old/new score + reason.
+    useNotificationStore.getState().push({
+      userId: worker.id,
+      kind: 'ReputationAdjusted',
+      title: 'Điểm uy tín đã được cập nhật',
+      body:
+        `Điểm uy tín của bạn đã được điều chỉnh từ ${oldScore} thành ${finalScore}. ` +
+        `Lý do: ${trimmedReason}`,
+      link: '/worker/profile',
+    });
+
     return { ok: true, value: refreshed };
   },
 

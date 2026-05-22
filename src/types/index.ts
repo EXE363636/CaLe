@@ -44,6 +44,7 @@ export type ApplicationStatus =
   | 'Approved'
   | 'Rejected'
   | 'CancelledByWorker'
+  | 'CancellationRequested'
   | 'NoShow'
   | 'CheckedIn'
   | 'CheckedOut'
@@ -60,6 +61,11 @@ export type NotificationKind =
   | 'ShiftEdited'
   | 'ShiftCancelled'
   | 'LateCancel'
+  | 'WorkerCancelled'
+  | 'CancellationRequested'
+  | 'CancellationApproved'
+  | 'CancellationRejected'
+  | 'ReputationAdjusted'
   | 'DisputeResolved';
 
 // ---------------------------------------------------------------------------
@@ -171,6 +177,24 @@ export interface Application {
   cancelReason?: 'OnTime' | 'LateCancel';
   /** hourlyWage * hours, snapshotted at approval. */
   payoutAmount?: number;
+
+  // -------------------------------------------------------------------------
+  // Worker cancellation request (Phase 2)
+  // -------------------------------------------------------------------------
+  /**
+   * When the worker filed a `CancellationRequested` (within 3h of start).
+   * Cleared on `cancelledAt` once the employer approves the request.
+   */
+  cancellationRequestedAt?: string;
+  /** Free-text reason supplied by the worker on every cancellation flow. */
+  cancellationReasonNote?: string;
+  /**
+   * The application's status immediately before it became
+   * `CancellationRequested`. Used to restore state when the employer
+   * rejects the request (the application was always `Approved` in practice
+   * because Pending applications cancel immediately).
+   */
+  preCancellationStatus?: 'Approved';
 }
 
 export interface Rating {

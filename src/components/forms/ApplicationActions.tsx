@@ -13,7 +13,8 @@ interface ApplicationActionsProps {
   workerReputationScore: number;
   shiftStatus: ShiftStatus;
   onApply: () => void;
-  onCancel: () => void;
+  /** Worker requests cancellation — parent should open the confirmation dialog. */
+  onRequestCancel: () => void;
   loading?: boolean;
   error?: string | null;
   className?: string;
@@ -25,7 +26,7 @@ export function ApplicationActions({
   workerReputationScore,
   shiftStatus,
   onApply,
-  onCancel,
+  onRequestCancel,
   loading = false,
   error = null,
   className = '',
@@ -72,7 +73,7 @@ export function ApplicationActions({
     return (
       <div className={['flex flex-col gap-2', className].join(' ')}>
         <Badge tone="warning">{t('application.status.Pending')}</Badge>
-        <Button variant="secondary" size="sm" onClick={onCancel} loading={loading}>
+        <Button variant="secondary" size="sm" onClick={onRequestCancel} loading={loading}>
           {t('btn.cancelApplication')}
         </Button>
         {error && <p className="text-xs text-red-600">{error}</p>}
@@ -84,6 +85,9 @@ export function ApplicationActions({
     return (
       <div className={['flex flex-col gap-2', className].join(' ')}>
         <Badge tone="success">{t('application.status.Approved')}</Badge>
+        <Button variant="secondary" size="sm" onClick={onRequestCancel} loading={loading}>
+          {t('btn.cancelApplication')}
+        </Button>
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     );

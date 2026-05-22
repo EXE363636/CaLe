@@ -4,16 +4,17 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
-import { useUserStore } from '@/stores/userStore';
+import { useUserStore, asEmployer, asWorker } from '@/stores/userStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
+import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
+import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { Button } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
-import { asWorker } from '@/stores/userStore';
 import type { Shift } from '@/types';
 
 interface Props {
@@ -38,9 +39,12 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
   const [applyError, setApplyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [employerModalOpen, setEmployerModalOpen] = useState(false);
 
-  const employer = users.find((u) => u.id === shift.employerId);
-  const employerName = employer?.role === 'employer' ? employer.companyName : 'Nhà tuyển dụng';
+  const employerUser = users.find((u) => u.id === shift.employerId);
+  const employer = asEmployer(employerUser);
+  const employerName = employer?.companyName ?? 'Nhà tuyển dụng';
 
   const currentUser = currentUserId ? users.find((u) => u.id === currentUserId) : null;
   const worker = asWorker(currentUser ?? undefined);
@@ -66,12 +70,28 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     }
   }
 
-  function handleCancel() {
+  function handleConfirmCancel(reason: string) {
     if (!myApp) return;
     setLoading(true);
     setApplyError(null);
-    cancelByWorker(myApp.id);
+    const result = cancelByWorker(myApp.id, reason);
     setLoading(false);
+    if (!result.ok) {
+      // REASON_REQUIRED is prevented by the dialog's button gating; surface
+      // anything else (WRONG_STATUS, APPLICATION_NOT_FOUND, SHIFT_NOT_FOUND) inline.
+      setApplyError(
+        result.error === 'REASON_REQUIRED'
+          ? t('cancel.confirm.reasonRequired')
+          : result.error === 'SHIFT_NOT_FOUND'
+            ? t('shift.error.NOT_FOUND')
+            : t(`application.error.${result.error}`),
+      );
+      return;
+    }
+    // On success, close the dialog. If approval is required the application
+    // status flips to `CancellationRequested` and the page re-renders with
+    // the new badge — no toast needed.
+    setCancelDialogOpen(false);
   }
 
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
@@ -79,7 +99,10 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back */}
-      <Link href="/shifts" className="mb-4 inline-flex items-center gap-1 text-sm text-orange-600 hover:underline">
+      <Link
+        href="/shifts"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-orange-600 hover:underline"
+      >
         ← {t('btn.back')}
       </Link>
 
@@ -89,16 +112,34 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         <ShiftStatusBadge status={shift.status} />
       </div>
 
-      {/* Employer */}
+      {/* Employer — clickable when we can resolve to an Employer record */}
       <p className="mt-1 text-sm text-gray-500">
-        {t('shifts.detail.employer')}: <span className="font-medium text-gray-700">{employerName}</span>
+        {t('shifts.detail.employer')}:{' '}
+        {employer ? (
+          <button
+            type="button"
+            onClick={() => setEmployerModalOpen(true)}
+            className="font-medium text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
+          >
+            {employerName}
+          </button>
+        ) : (
+          <span className="font-medium text-gray-700">{employerName}</span>
+        )}
       </p>
 
       {/* Key info grid */}
       <div className="mt-5 grid grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-4">
         <InfoItem label="Ngày làm" value={formatDateVN(shift.date)} />
-        <InfoItem label="Giờ làm" value={`${formatTimeVN(shift.startTime)} – ${formatTimeVN(shift.endTime)}`} />
-        <InfoItem label={t('shifts.detail.wage')} value={`${formatVND(shift.hourlyWage)}/giờ`} highlight />
+        <InfoItem
+          label="Giờ làm"
+          value={`${formatTimeVN(shift.startTime)} – ${formatTimeVN(shift.endTime)}`}
+        />
+        <InfoItem
+          label={t('shifts.detail.wage')}
+          value={`${formatVND(shift.hourlyWage)}/giờ`}
+          highlight
+        />
         <InfoItem
           label={t('shifts.detail.positionsLeft')}
           value={`${positionsLeft} / ${shift.positionsTotal}`}
@@ -108,8 +149,17 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
       {/* Location */}
       <div className="mt-4 flex items-start gap-2 text-sm text-gray-700">
-        <svg className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.079 3.218-4.402 3.218-7.327a7.5 7.5 0 10-15 0c0 2.925 1.274 5.248 3.218 7.327a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+        <svg
+          className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-2.079 3.218-4.402 3.218-7.327a7.5 7.5 0 10-15 0c0 2.925 1.274 5.248 3.218 7.327a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.144.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
+            clipRule="evenodd"
+          />
         </svg>
         <span>{shift.location}</span>
       </div>
@@ -136,7 +186,6 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
       {/* Apply section */}
       <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        {/* Guest */}
         {!currentUserId && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-gray-600">Đăng nhập để ứng tuyển ca làm này.</p>
@@ -152,7 +201,9 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         )}
 
         {currentUser?.role === 'employer' && (
-          <p className="text-sm text-gray-500">Bạn là nhà tuyển dụng. Quản lý ca tại bảng điều khiển.</p>
+          <p className="text-sm text-gray-500">
+            Bạn là nhà tuyển dụng. Quản lý ca tại bảng điều khiển.
+          </p>
         )}
 
         {currentUser?.role === 'admin' && (
@@ -168,21 +219,53 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             workerReputationScore={worker.reputationScore}
             shiftStatus={shift.status}
             onApply={handleApply}
-            onCancel={handleCancel}
+            onRequestCancel={() => setCancelDialogOpen(true)}
             loading={loading}
             error={applyError}
           />
         )}
       </div>
+
+      {/* Cancel confirmation dialog */}
+      {myApp && (
+        <CancelApplicationDialog
+          open={cancelDialogOpen}
+          onClose={() => setCancelDialogOpen(false)}
+          application={myApp}
+          shift={shift}
+          onConfirm={handleConfirmCancel}
+          loading={loading}
+        />
+      )}
+
+      {/* Employer profile modal */}
+      <EmployerProfileModal
+        open={employerModalOpen}
+        onClose={() => setEmployerModalOpen(false)}
+        employer={employer ?? null}
+      />
     </div>
   );
 }
 
-function InfoItem({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function InfoItem({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
     <div>
       <p className="text-xs text-gray-500">{label}</p>
-      <p className={['mt-0.5 text-sm font-semibold', highlight ? 'text-orange-600' : 'text-gray-900'].join(' ')}>
+      <p
+        className={[
+          'mt-0.5 text-sm font-semibold',
+          highlight ? 'text-orange-600' : 'text-gray-900',
+        ].join(' ')}
+      >
         {value}
       </p>
     </div>

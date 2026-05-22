@@ -25,6 +25,7 @@ import {
   canApplyToShifts,
   classifyCancellation,
 } from '@/domain/reputation';
+import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
 import type {
   Application,
@@ -76,13 +77,53 @@ interface ApplicationStore {
 
   // Worker actions
   apply(shiftId: string, workerId: string): Result<Application, ApplyError>;
-  cancelByWorker(applicationId: string, nowIso?: string): Result<Application, ApplicationActionError>;
+  /**
+   * Worker-initiated cancellation flow (Phase 2):
+   *
+   *  - `Pending` applications cancel immediately, no employer involvement.
+   *  - `Approved` applications more than 3h before start cancel immediately
+   *    and the employer is notified. Late-cancel reputation rule still
+   *    applies if the cancel happens within 24h.
+   *  - `Approved` applications within 3h of start enter
+   *    `CancellationRequested` instead and notify the employer to approve
+   *    or reject. The position remains held until the employer decides.
+   *
+   * The `reason` is required and stored on the application
+   * (`cancellationReasonNote`) and forwarded to every notification.
+   *
+   * Returns `value.requiresApproval = true` when a request was created.
+   */
+  cancelByWorker(
+    applicationId: string,
+    reason: string,
+    nowIso?: string,
+  ): Result<
+    { application: Application; requiresApproval: boolean },
+    ApplicationActionError | 'REASON_REQUIRED' | 'SHIFT_NOT_FOUND'
+  >;
   checkIn(applicationId: string): Result<Application, ApplicationActionError>;
   checkOut(applicationId: string): Result<Application, ApplicationActionError>;
 
   // Employer actions
   approve(applicationId: string): Result<Application, ApplicationActionError>;
   reject(applicationId: string): Result<Application, ApplicationActionError>;
+  /**
+   * Approve a worker's cancellation request (status `CancellationRequested`).
+   * Application becomes `CancelledByWorker`, position is freed, the worker
+   * is notified, and the late-cancel reputation rule is applied if the
+   * decision falls within 24h of shift start.
+   */
+  approveCancellationRequest(
+    applicationId: string,
+  ): Result<Application, ApplicationActionError>;
+  /**
+   * Reject a worker's cancellation request. The application reverts to its
+   * pre-request status (currently always `Approved`) and the worker is
+   * notified.
+   */
+  rejectCancellationRequest(
+    applicationId: string,
+  ): Result<Application, ApplicationActionError>;
   confirmCompletion(
     applicationId: string,
     rating: NewRating,
@@ -125,6 +166,7 @@ function shiftToTimeRange(shiftId: string): TimeRange | undefined {
 
 const ACTIVE_STATUSES: ReadonlySet<ApplicationStatus> = new Set([
   'Approved',
+  'CancellationRequested',
   'CheckedIn',
   'CheckedOut',
   'Confirmed',
@@ -225,7 +267,10 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     return { ok: true, value: application };
   },
 
-  cancelByWorker(applicationId, when) {
+  cancelByWorker(applicationId, reason, when) {
+    const trimmedReason = (reason ?? '').trim();
+    if (trimmedReason === '') return { ok: false, error: 'REASON_REQUIRED' };
+
     const app = get().getById(applicationId);
     if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
     if (app.status !== 'Pending' && app.status !== 'Approved') {
@@ -234,9 +279,56 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
 
     const cancelledAt = when ?? nowIso();
     const shift = useShiftStore.getState().getById(app.shiftId);
-    const cls = shift
-      ? classifyCancellation(app.status, `${shift.date}T${shift.startTime}:00`, cancelledAt)
-      : 'NoPenalty';
+    if (!shift) return { ok: false, error: 'SHIFT_NOT_FOUND' };
+
+    const worker = asWorker(useUserStore.getState().findById(app.workerId));
+    const workerName = worker?.fullName ?? 'Người làm';
+
+    // ---------------------------------------------------------------------
+    // Branch 1: shift starts within 3h AND application is Approved.
+    // The cancellation needs employer approval — do NOT release the
+    // position, do NOT apply the reputation hit yet, just notify.
+    // ---------------------------------------------------------------------
+    const needsApproval =
+      app.status === 'Approved' && requiresEmployerApprovalToCancel(cancelledAt, shift);
+
+    if (needsApproval) {
+      const requested: Application = {
+        ...app,
+        status: 'CancellationRequested',
+        cancellationRequestedAt: cancelledAt,
+        cancellationReasonNote: trimmedReason,
+        preCancellationStatus: 'Approved',
+      };
+      const next = get().applications.map((a) =>
+        a.id === applicationId ? requested : a,
+      );
+      set({ applications: next });
+      persistApplications(next);
+
+      useNotificationStore.getState().push({
+        userId: shift.employerId,
+        kind: 'CancellationRequested',
+        title: 'Người làm yêu cầu huỷ ca',
+        body:
+          `${workerName} yêu cầu huỷ đơn ứng tuyển ca "${shift.title}" ` +
+          `(ca bắt đầu trong vòng 3 giờ, cần bạn duyệt). Lý do: ${trimmedReason}`,
+        link: `/employer/shifts/${shift.id}`,
+      });
+
+      return { ok: true, value: { application: requested, requiresApproval: true } };
+    }
+
+    // ---------------------------------------------------------------------
+    // Branch 2: immediate cancellation. Pending → no penalty, no employer
+    // notification. Approved + >3h → cancel now, free position, fire
+    // late-cancel reputation hit if within 24h, notify employer.
+    // ---------------------------------------------------------------------
+    const cls = classifyCancellation(
+      app.status,
+      `${shift.date}T${shift.startTime}:00`,
+      cancelledAt,
+    );
 
     const cancelReason: CancellationRecord['type'] | undefined =
       cls === 'NoPenalty' ? undefined : (cls as CancellationRecord['type']);
@@ -246,45 +338,49 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       status: 'CancelledByWorker',
       cancelledAt,
       cancelReason,
+      cancellationReasonNote: trimmedReason,
     };
 
     const next = get().applications.map((a) => (a.id === applicationId ? updated : a));
     set({ applications: next });
     persistApplications(next);
 
-    // Free the position if it was approved.
     if (app.status === 'Approved') {
       useShiftStore.getState().incrementFilled(app.shiftId, -1);
     }
 
-    // Apply reputation penalty for late cancels.
     if (cls === 'LateCancel') {
-      patchWorkerScore(app.workerId, (worker) => {
-        const newScore = applyReputationEvent(worker.reputationScore, { kind: 'LateCancel' });
+      patchWorkerScore(app.workerId, (w) => {
+        const newScore = applyReputationEvent(w.reputationScore, { kind: 'LateCancel' });
         const record: CancellationRecord = {
           id: newPrefixedId('cancel'),
           shiftId: app.shiftId,
           cancelledAt,
           type: 'LateCancel',
+          reasonNote: trimmedReason,
         };
         return {
           reputationScore: newScore,
-          cancellationHistory: [...worker.cancellationHistory, record],
+          cancellationHistory: [...w.cancellationHistory, record],
         };
       });
-
-      if (shift) {
-        useNotificationStore.getState().push({
-          userId: shift.employerId,
-          kind: 'LateCancel',
-          title: 'Người làm huỷ muộn',
-          body: `Một người làm vừa huỷ ca "${shift.title}" trong vòng 24h trước giờ bắt đầu.`,
-          link: `/employer/shifts/${shift.id}`,
-        });
-      }
     }
 
-    return { ok: true, value: updated };
+    if (app.status === 'Approved') {
+      const isLate = cls === 'LateCancel';
+      useNotificationStore.getState().push({
+        userId: shift.employerId,
+        kind: isLate ? 'LateCancel' : 'WorkerCancelled',
+        title: isLate ? 'Người làm huỷ muộn' : 'Người làm đã huỷ',
+        body:
+          `${workerName} đã huỷ đơn ứng tuyển ca "${shift.title}".` +
+          (isLate ? ' (Trong vòng 24h trước giờ bắt đầu.)' : '') +
+          ` Lý do: ${trimmedReason}`,
+        link: `/employer/shifts/${shift.id}`,
+      });
+    }
+
+    return { ok: true, value: { application: updated, requiresApproval: false } };
   },
 
   checkIn(applicationId) {
@@ -407,6 +503,116 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       body: shift
         ? `Đơn ứng tuyển ca "${shift.title}" của bạn đã bị từ chối.`
         : 'Đơn ứng tuyển của bạn đã bị từ chối.',
+      link: '/worker/dashboard',
+    });
+
+    return { ok: true, value: updated };
+  },
+
+  approveCancellationRequest(applicationId) {
+    const app = get().getById(applicationId);
+    if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+    if (app.status !== 'CancellationRequested') {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    const shift = useShiftStore.getState().getById(app.shiftId);
+    if (!shift) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+
+    const decidedAt = nowIso();
+    const reasonNote = app.cancellationReasonNote ?? '';
+
+    // Run the late-cancel classifier against the shift's start time, not
+    // the moment of the original request — this matches the existing rule
+    // that the penalty depends on time-to-start at decision time.
+    const cls = classifyCancellation(
+      'Approved',
+      `${shift.date}T${shift.startTime}:00`,
+      decidedAt,
+    );
+
+    const updated: Application = {
+      ...app,
+      status: 'CancelledByWorker',
+      cancelledAt: decidedAt,
+      cancelReason: cls === 'NoPenalty' ? undefined : (cls as CancellationRecord['type']),
+    };
+
+    const next = get().applications.map((a) =>
+      a.id === applicationId ? updated : a,
+    );
+    set({ applications: next });
+    persistApplications(next);
+
+    // Free the position now that the cancellation is final.
+    useShiftStore.getState().incrementFilled(shift.id, -1);
+
+    // Apply late-cancel reputation hit if applicable.
+    if (cls === 'LateCancel') {
+      patchWorkerScore(app.workerId, (w) => {
+        const newScore = applyReputationEvent(w.reputationScore, { kind: 'LateCancel' });
+        const record: CancellationRecord = {
+          id: newPrefixedId('cancel'),
+          shiftId: shift.id,
+          cancelledAt: decidedAt,
+          type: 'LateCancel',
+          reasonNote,
+        };
+        return {
+          reputationScore: newScore,
+          cancellationHistory: [...w.cancellationHistory, record],
+        };
+      });
+    }
+
+    useNotificationStore.getState().push({
+      userId: app.workerId,
+      kind: 'CancellationApproved',
+      title: 'Yêu cầu huỷ đã được chấp nhận',
+      body:
+        `Nhà tuyển dụng đã chấp nhận yêu cầu huỷ ca "${shift.title}" của bạn.` +
+        (cls === 'LateCancel' ? ' Điểm uy tín giảm 10.' : ''),
+      link: '/worker/dashboard',
+    });
+
+    return { ok: true, value: updated };
+  },
+
+  rejectCancellationRequest(applicationId) {
+    const app = get().getById(applicationId);
+    if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+    if (app.status !== 'CancellationRequested') {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    const shift = useShiftStore.getState().getById(app.shiftId);
+
+    // Restore the application to its pre-request status. In practice this
+    // is always `Approved` because Pending applications cancel immediately
+    // without producing a request — fall back to `Approved` defensively.
+    const restoredStatus = app.preCancellationStatus ?? 'Approved';
+
+    const updated: Application = {
+      ...app,
+      status: restoredStatus,
+      cancellationRequestedAt: undefined,
+      cancellationReasonNote: undefined,
+      preCancellationStatus: undefined,
+    };
+
+    const next = get().applications.map((a) =>
+      a.id === applicationId ? updated : a,
+    );
+    set({ applications: next });
+    persistApplications(next);
+
+    useNotificationStore.getState().push({
+      userId: app.workerId,
+      kind: 'CancellationRejected',
+      title: 'Yêu cầu huỷ bị từ chối',
+      body: shift
+        ? `Nhà tuyển dụng đã từ chối yêu cầu huỷ ca "${shift.title}". Đơn của bạn vẫn còn hiệu lực.`
+        : 'Nhà tuyển dụng đã từ chối yêu cầu huỷ. Đơn của bạn vẫn còn hiệu lực.',
       link: '/worker/dashboard',
     });
 

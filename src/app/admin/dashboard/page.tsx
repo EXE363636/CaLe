@@ -149,8 +149,22 @@ function UsersPanel() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return users;
-    return users.filter((u) => u.role === filter);
+    const base = filter === 'all' ? users : users.filter((u) => u.role === filter);
+    // Sort: workers by reputation score desc so reputation adjustments
+    // visibly re-order the list. Non-workers fall back to role + name order.
+    return [...base].sort((a, b) => {
+      const ra = a.role === 'worker' ? a.reputationScore : -1;
+      const rb = b.role === 'worker' ? b.reputationScore : -1;
+      if (ra !== rb) return rb - ra;
+      // Tie-break by role weight (worker first, then employer, then admin)
+      const weight = (role: typeof a.role) =>
+        role === 'worker' ? 0 : role === 'employer' ? 1 : 2;
+      const wa = weight(a.role);
+      const wb = weight(b.role);
+      if (wa !== wb) return wa - wb;
+      // Final tie-break by id for stability
+      return a.id.localeCompare(b.id);
+    });
   }, [users, filter]);
 
   // Helpers that surface error messages on failure
@@ -202,6 +216,9 @@ function UsersPanel() {
         </div>
       )}
 
+      {/* Sort hint */}
+      <p className="text-xs text-gray-500">{t('admin.user.sortBy.reputation')}</p>
+
       <ul className="flex flex-col gap-2">
         {filtered.map((user) => (
           <UserRow
@@ -243,8 +260,12 @@ function UserRow({
   onReactivate: () => void;
 }) {
   const adjustReputation = useAdminStore((s) => s.adjustReputation);
-  const [delta, setDelta] = useState(0);
-  const [note, setNote] = useState('');
+  // Worker-only row state. For non-workers `currentScore` is always 0; the
+  // adjust UI is hidden anyway so the value is unused.
+  const currentScore = user.role === 'worker' ? user.reputationScore : 0;
+  const [newScore, setNewScore] = useState<number>(currentScore);
+  const [reason, setReason] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const displayName =
     user.role === 'worker'
@@ -253,12 +274,44 @@ function UserRow({
         ? user.companyName
         : user.fullName;
 
-  function handleSubmitAdjust() {
-    if (note.trim() === '') return;
-    adjustReputation(user.id, delta, note.trim());
-    setDelta(0);
-    setNote('');
+  function handleStartAdjust() {
+    setNewScore(currentScore);
+    setReason('');
+    setFormError(null);
+    onAdjust();
+  }
+
+  function handleCancelAdjust() {
+    setReason('');
+    setFormError(null);
     onCancelAdjust();
+  }
+
+  function handleSubmitAdjust() {
+    setFormError(null);
+    const trimmed = reason.trim();
+    if (trimmed === '') {
+      setFormError(t('admin.error.REASON_REQUIRED'));
+      return;
+    }
+    if (
+      Number.isNaN(newScore) ||
+      !Number.isFinite(newScore) ||
+      newScore < 0 ||
+      newScore > 100
+    ) {
+      setFormError(t('admin.user.scoreOutOfRange'));
+      return;
+    }
+    const result = adjustReputation(user.id, newScore, trimmed);
+    if (!result.ok) {
+      // Map admin store errors to localized messages; fall back to generic.
+      const key = `admin.error.${result.error}`;
+      setFormError(t(key));
+      return;
+    }
+    setReason('');
+    handleCancelAdjust();
   }
 
   // Suspending myself or the last active admin is forbidden — hide the
@@ -293,7 +346,7 @@ function UserRow({
 
         <div className="flex gap-2">
           {user.role === 'worker' && !adjusting && (
-            <Button size="sm" variant="ghost" onClick={onAdjust}>
+            <Button size="sm" variant="ghost" onClick={handleStartAdjust}>
               {t('btn.adjustReputation')}
             </Button>
           )}
@@ -311,36 +364,61 @@ function UserRow({
         </div>
       </div>
 
-      {/* Reputation adjust form */}
+      {/* Reputation adjust form — admin sets the FINAL score in [0, 100],
+          not a delta. Reason is required. */}
       {adjusting && user.role === 'worker' && (
         <div className="mt-4 flex flex-col gap-2 rounded-lg border border-gray-100 p-3">
+          <p className="text-xs text-gray-500">
+            {t('admin.user.currentScore')}: <strong>{currentScore}</strong>
+          </p>
           <div className="flex flex-wrap items-end gap-2">
             <Input
-              label="Điều chỉnh điểm (-100 → +100)"
+              label={t('admin.user.newScore')}
               type="number"
-              min={-100}
+              min={0}
               max={100}
-              value={delta}
-              onChange={(e) => setDelta(Number(e.target.value))}
+              step={1}
+              value={Number.isFinite(newScore) ? newScore : ''}
+              onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === '') {
+                  setNewScore(NaN);
+                  return;
+                }
+                const parsed = Number(raw);
+                setNewScore(parsed);
+              }}
               className="w-32"
+              required
             />
             <Input
               label={t('form.reasonNote')}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
               className="flex-1 min-w-[200px]"
               required
             />
           </div>
+          {formError && (
+            <p role="alert" className="text-xs text-red-600">
+              {formError}
+            </p>
+          )}
           <div className="flex justify-end gap-2">
-            <Button size="sm" variant="ghost" onClick={onCancelAdjust}>
+            <Button size="sm" variant="ghost" onClick={handleCancelAdjust}>
               {t('btn.cancel')}
             </Button>
             <Button
               size="sm"
               variant="primary"
               onClick={handleSubmitAdjust}
-              disabled={note.trim() === ''}
+              disabled={
+                reason.trim() === '' ||
+                Number.isNaN(newScore) ||
+                !Number.isFinite(newScore) ||
+                newScore < 0 ||
+                newScore > 100
+              }
             >
               {t('btn.save')}
             </Button>

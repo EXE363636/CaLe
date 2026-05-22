@@ -28,12 +28,23 @@ export const CHECK_IN_LATE_MINUTES = 15;
 /** Employers can edit or cancel a shift only this many hours before start. */
 export const EDIT_CANCEL_DEADLINE_HOURS = 24;
 
+/**
+ * Worker cancellation auto-approval threshold (Phase 2).
+ *
+ * If the shift starts in **more than** this many hours, a worker's cancel
+ * is processed immediately. Within this window, the cancellation has to be
+ * approved by the employer. Independent from the 24-hour late-cancel
+ * reputation rule (Req 12.3) — that one still triggers separately.
+ */
+export const WORKER_CANCEL_APPROVAL_HOURS = 3;
+
 const MS_PER_MINUTE = 60 * 1000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 
 const CHECK_IN_EARLY_MS = CHECK_IN_EARLY_MINUTES * MS_PER_MINUTE;
 const CHECK_IN_LATE_MS = CHECK_IN_LATE_MINUTES * MS_PER_MINUTE;
 const EDIT_CANCEL_DEADLINE_MS = EDIT_CANCEL_DEADLINE_HOURS * MS_PER_HOUR;
+const WORKER_CANCEL_APPROVAL_MS = WORKER_CANCEL_APPROVAL_HOURS * MS_PER_HOUR;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -162,4 +173,31 @@ export function canEditShift(nowIso: string, shift: Shift): boolean {
  */
 export function canCancelShift(nowIso: string, shift: Shift): boolean {
   return withinEditCancelWindow(nowIso, shift);
+}
+
+// ---------------------------------------------------------------------------
+// Worker cancellation gate (Phase 2)
+// ---------------------------------------------------------------------------
+
+/**
+ * Predicate: does an `Approved` worker need employer approval to cancel
+ * right now?
+ *
+ * Returns `true` when the shift starts within `WORKER_CANCEL_APPROVAL_HOURS`
+ * (3h) of `now` *or* has already started. In that window the worker may
+ * only file a `CancellationRequested`; the employer approves or rejects.
+ *
+ * Outside the window (>3h until start) the worker may cancel immediately.
+ *
+ * Independent from the 24-hour late-cancel reputation rule
+ * ({@link classifyCancellation}) — both apply in their own right.
+ */
+export function requiresEmployerApprovalToCancel(
+  nowIso: string,
+  shift: Shift,
+): boolean {
+  const now = toEpochMs(nowIso);
+  const start = shiftStartMs(shift);
+  if (Number.isNaN(now) || Number.isNaN(start)) return false;
+  return start - now < WORKER_CANCEL_APPROVAL_MS;
 }

@@ -11,6 +11,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { Card, Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
+import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { averageRating } from '@/domain/rating';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
@@ -45,6 +46,7 @@ function WorkerDashboardContent() {
 
   const worker = asWorker(users.find((u) => u.id === currentUserId));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Application | null>(null);
 
   // Memo: applications grouped by status
   const myApps = useMemo(
@@ -93,10 +95,23 @@ function WorkerDashboardContent() {
     setActionLoading(null);
   }
 
-  function handleCancel(appId: string) {
-    setActionLoading(appId);
-    cancelByWorker(appId);
+  function handleCancelRequest(appId: string) {
+    const app = myApps.find((a) => a.id === appId);
+    if (!app) return;
+    setCancelTarget(app);
+  }
+
+  function handleCancelConfirm(reason: string) {
+    if (!cancelTarget) return;
+    setActionLoading(cancelTarget.id);
+    const result = cancelByWorker(cancelTarget.id, reason);
     setActionLoading(null);
+    if (result.ok) {
+      // Close on success regardless of branch — the dashboard re-renders
+      // with the new application status (CancelledByWorker or
+      // CancellationRequested) reflecting whichever path was taken.
+      setCancelTarget(null);
+    }
   }
 
   return (
@@ -150,7 +165,7 @@ function WorkerDashboardContent() {
                       loading={actionLoading === a.id}
                       onCheckIn={() => handleCheckIn(a.id)}
                       onCheckOut={() => handleCheckOut(a.id)}
-                      onCancel={() => handleCancel(a.id)}
+                      onCancel={() => handleCancelRequest(a.id)}
                     />
                   );
                 })}
@@ -209,6 +224,23 @@ function WorkerDashboardContent() {
           </Card>
         </aside>
       </div>
+
+      {/* Cancel confirmation dialog */}
+      {cancelTarget &&
+        (() => {
+          const shift = getShift(cancelTarget.shiftId);
+          if (!shift) return null;
+          return (
+            <CancelApplicationDialog
+              open={true}
+              onClose={() => setCancelTarget(null)}
+              application={cancelTarget}
+              shift={shift}
+              onConfirm={handleCancelConfirm}
+              loading={actionLoading === cancelTarget.id}
+            />
+          );
+        })()}
     </div>
   );
 }

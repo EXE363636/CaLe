@@ -140,6 +140,8 @@ export const vi: Record<string, string> = {
   'notification.kind.ShiftEdited': 'Ca làm đã chỉnh sửa',
   'notification.kind.ShiftCancelled': 'Ca làm đã huỷ',
   'notification.kind.LateCancel': 'Huỷ muộn',
+  'notification.kind.WorkerCancelled': 'Người làm đã huỷ',
+  'notification.kind.ReputationAdjusted': 'Điều chỉnh điểm uy tín',
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
 
   // -------------------------------------------------------------------------
@@ -235,11 +237,44 @@ export const vi: Record<string, string> = {
   'admin.error.SHIFT_NOT_FOUND': 'Không tìm thấy ca làm.',
   'admin.error.DISPUTE_NOT_FOUND': 'Không tìm thấy tranh chấp.',
   'admin.error.INVALID_OUTCOME': 'Kết quả giải quyết không hợp lệ.',
+  'admin.error.INVALID_SCORE': 'Điểm uy tín phải là số nguyên từ 0 đến 100.',
+  'admin.error.REASON_REQUIRED': 'Vui lòng nhập lý do điều chỉnh.',
   'admin.error.CANNOT_SUSPEND_SELF':
     'Bạn không thể tạm khoá chính tài khoản đang đăng nhập.',
   'admin.error.CANNOT_SUSPEND_LAST_ADMIN':
     'Không thể tạm khoá quản trị viên đang hoạt động cuối cùng.',
   'admin.user.currentAccount': 'Tài khoản hiện tại',
+  'admin.user.sortBy.reputation': 'Sắp xếp theo điểm uy tín ↓',
+  'admin.user.currentScore': 'Điểm hiện tại',
+  'admin.user.newScore': 'Điểm uy tín mới',
+  'admin.user.scoreOutOfRange': 'Điểm uy tín phải là số nguyên từ 0 đến 100.',
+
+  // -------------------------------------------------------------------------
+  // Worker cancellation flow
+  // -------------------------------------------------------------------------
+  'cancel.confirm.title': 'Xác nhận huỷ đơn ứng tuyển',
+  'cancel.confirm.lateWarning':
+    'Đây là huỷ muộn (trong vòng 24 giờ trước giờ bắt đầu). Điểm uy tín của bạn sẽ giảm 10 điểm.',
+  'cancel.confirm.onTimeNote':
+    'Bạn huỷ trước giờ bắt đầu hơn 24h nên không bị trừ điểm uy tín.',
+  'cancel.confirm.reasonLabel': 'Lý do huỷ',
+  'cancel.confirm.reasonPlaceholder': 'Vui lòng cho biết lý do bạn không thể tham gia...',
+  'cancel.confirm.reasonRequired': 'Vui lòng nhập lý do huỷ.',
+  'cancel.confirm.submit': 'Xác nhận huỷ',
+  'cancel.confirm.keep': 'Giữ đơn ứng tuyển',
+
+  // -------------------------------------------------------------------------
+  // Employer profile (worker view)
+  // -------------------------------------------------------------------------
+  'employer.profile.title': 'Hồ sơ nhà tuyển dụng',
+  'employer.profile.businessType': 'Loại hình kinh doanh',
+  'employer.profile.description': 'Giới thiệu',
+  'employer.profile.email': 'Email',
+  'employer.profile.postedShifts': 'Ca đã đăng',
+  'employer.profile.completedShifts': 'Ca đã hoàn thành',
+  'employer.profile.verifiedBusiness': 'Doanh nghiệp đã xác minh',
+  'employer.profile.notVerified': 'Cá nhân / chưa xác minh',
+  'employer.profile.noDescription': 'Nhà tuyển dụng chưa thêm giới thiệu.',
 
   // -------------------------------------------------------------------------
   // Shift / store action errors
