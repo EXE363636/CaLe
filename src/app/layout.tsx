@@ -27,10 +27,10 @@ export default function RootLayout({
       lang="vi"
       className={`${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans bg-slate-50 text-slate-900">
+      <body className="min-h-full flex flex-col font-sans text-slate-900">
         <AppHydrator>
           <NavBar />
-          <main className="flex-1 bg-slate-50">
+          <main className="flex-1">
             {children}
           </main>
           <Footer />

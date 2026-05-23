@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { Input, Button } from '@/components/ui';
+import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired, isValidPassword, isValidVNPhone } from '@/lib/validate';
 
@@ -125,9 +126,12 @@ function RegisterForm() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_minmax(0,28rem)] lg:items-center">
+        <AuthSidePanel mode="register" />
+
+        <div className="w-full">
+          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-md ring-1 ring-black/5 sm:p-8">
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-bold text-gray-900">{t('auth.register.title')}</h1>
             <p className="mt-1 text-sm text-gray-500">{t('auth.register.subtitle')}</p>
@@ -269,6 +273,7 @@ function RegisterForm() {
             </Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

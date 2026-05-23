@@ -424,10 +424,11 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - File: `src/__tests__/integration/exceptions.test.ts`
     - _Requirements: 7.5, 8.3, 8.4, 11.1, 11.2, 11.4, 12.3, 12.4, 9.5, 15.5_
 
-  - [ ] 18.3 Implement responsive verification utility pass
+  - [x] 18.3 Implement responsive verification utility pass
     - Audit every page for `min-h-[44px]` on interactive elements, single-column mobile layout, hamburger nav under `md`
     - Add a stylelint or eslint comment-based audit checklist in `RESPONSIVE.md`
     - _Requirements: 17.1, 17.2, 17.3, 17.4_
+    - **Done 2026-05-23 (Phase 9 visual polish pass)** — `RESPONSIVE.md` shipped at workspace root with a manual-audit checklist for every route at 375 / 768 / 1280 px, plus a touch-target matrix for UI primitives.
 
   - [ ] 18.4 Implement Vietnamese localization audit
     - Grep for any bare Vietnamese or English UI strings outside `vi.ts`; move them to keys

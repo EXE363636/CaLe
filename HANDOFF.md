@@ -273,6 +273,149 @@ These were caught during manual QA. Read the affected file's history before "sim
     - **Route count unchanged at 15** — Phase 8 is a redesign of two existing routes, not a new route. No persistence schema bump.
     - **Files changed:** `src/domain/week.ts` (added `monthGrid`, `formatMonthYearVN`, `dayViewLayout` and the `MonthGridCell` type — additive only), `src/components/calendar/CalendarShell.tsx` (new), `src/components/calendar/MiniMonthCalendar.tsx` (new), `src/components/calendar/CalendarToolbar.tsx` (new), `src/components/calendar/WeekView.tsx` (new), `src/components/calendar/DayView.tsx` (new), `src/components/calendar/AgendaView.tsx` (new), `src/components/calendar/CalendarEventCard.tsx` (new) + `CalendarEventCard.test.tsx` (new), `src/components/calendar/CalendarLegend.tsx` (new), `src/app/worker/schedule/page.tsx` (rewritten), `src/app/employer/schedule/page.tsx` (rewritten), `src/i18n/vi.ts` (calendar.* block).
 
+18. **UI/UX visual polish pass** *(2026-05-23, Phase 9)*. Pure presentation-layer pass — no business logic, store, type, or persistence changes. Goal was to lift the MVP out of "plain dashboard" territory into something that looks presentation-ready and Vietnamese-student-friendly without adding new features.
+    - **Global foundations** (`src/app/globals.css`):
+      - Soft warm gradient body backdrop (`radial-gradient` blobs in orange-100 / orange-200 / amber-100 over a slate-50 base) with `background-attachment: fixed`. Body's hardcoded `bg-slate-50` removed from `layout.tsx` so the gradient is visible everywhere.
+      - Three reusable utility classes added: `.motion-lift` (hover lift + shadow), `.motion-press` (subtle press affordance), `.modal-panel-anim` + `.modal-backdrop-anim` (low-duration mount animations). All four wrapped in `@media (prefers-reduced-motion: reduce)` so users with motion sensitivity get the unanimated experience.
+      - `.hero-decor` class for the landing hero radial blob, scoped to the hero markup so it doesn't leak.
+    - **UI primitives polished**:
+      - `Button` — primary/danger now use `bg-gradient-to-b` for a subtle two-stop fill, hover lifts the shadow, `motion-press` adds a 1 px translate on `:active`.
+      - `Card` — added `tone: 'default' | 'warm' | 'subtle'` and a `flush` prop. Clickable cards now `motion-lift` instead of just shadow-on-hover.
+      - `Modal` — panel uses `shadow-2xl ring-1 ring-black/5` plus `modal-panel-anim`; backdrop uses `modal-backdrop-anim`. Close icon button refined with focus ring.
+      - `EmptyState` — calendar-with-spark default icon (was a generic clipboard), new `tone: 'subtle' | 'warm'` prop, friendlier max-width on description.
+      - `Input` — already had focus rings; no behavioral change, but hover state slightly tightened. (Already had `min-h-[44px]`.)
+    - **Landing page** (`src/app/page.tsx`) — full visual redesign:
+      - Two-column hero at `lg+` — copy on the left with a hero badge ("Sinh viên · Linh hoạt · Tin cậy"), gradient-text accent on the headline, dual CTAs, trust hint copy. Right column shows a tasteful product mockup (sample shift card + reputation chip + calendar slot card) with backdrop blur blob.
+      - New trust strip below the hero with four icon-led benefits (escrow, no-deposit, reputation, schedule).
+      - Benefits sections gained icon-on-tinted-bg, lead copy, hover-lift cards.
+      - "How it works" steps placed inside soft orange-50 cards with gradient-fill step numbers.
+      - Final CTA section now uses an orange→amber gradient with decorative blur blobs.
+    - **Worker dashboard** (`src/app/worker/dashboard/page.tsx`):
+      - New gradient welcome strip with avatar fallback (first letter on an orange-amber gradient tile), greeting copy that adapts to whether the worker is a newcomer (`completedShiftCount === 0`) or veteran, plus quick "Tìm ca làm" + "Lịch cá nhân" CTAs.
+      - Stat tiles replaced with a `StatTile` primitive that has a colored top accent strip (`tone: 'brand' | 'neutral' | 'good' | 'warn' | 'bad'`) and an inline glyph icon. The new fourth tile shows the worker's **live weekly cancellation quota** (`quotaUsage(...)` from `domain/cancellationQuota.ts`) — UI-only change, no store mutations.
+      - Empty states for "Ca làm sắp tới" and "Đơn đã ứng tuyển" got descriptive hints + a "Tìm ca làm" CTA on the upcoming-shifts empty state.
+    - **Employer dashboard** (`src/app/employer/dashboard/page.tsx`):
+      - Same welcome-strip pattern with the company name.
+      - Six `StatTile`s (active shifts / pending applicants / posted / completed / deposited / paid out) — applicants tile flips to amber when there are pending apps to demand attention without color regressions.
+      - Empty state for "Ca làm sắp tới" surfaces a primary "Đăng ca mới" CTA inside a warm-toned `EmptyState`.
+      - "Xem lịch tuyển dụng →" deep link added next to the section heading.
+    - **Auth pages** (`src/app/login/page.tsx`, `src/app/register/page.tsx`, new `src/components/layout/AuthSidePanel.tsx`):
+      - New shared `AuthSidePanel` component renders next to the form on `lg+`. Orange→amber gradient panel with the brand name, mode-specific welcome copy, three trust benefits (escrow, no-fees, two-way reputation), and an explicit MVP disclaimer.
+      - Login demo accounts moved into a `<details>` disclosure so the form is the dominant element on narrow screens.
+      - Form cards lifted to `shadow-md ring-1 ring-black/5` for depth.
+    - **Employer create-shift page** (`src/app/employer/shifts/new/page.tsx`):
+      - Hero-style header with eyebrow label.
+      - Trust explainer card now a gradient warm panel with shield icon + tier-coded top-accent strip (`amber` low / `orange` medium / `emerald` high).
+      - Deposit confirm card lifted to a richer warm card with a wallet glyph and a `ring-1 ring-orange-100` breakdown table.
+    - **Calendar event chip** (`src/components/calendar/CalendarEventCard.tsx`) — added `hover:-translate-y-0.5 hover:shadow-md` lift on clickable variants, `shadow-sm` baseline; honors `motion-reduce`.
+    - **Calendar toolbar** (`src/components/calendar/CalendarToolbar.tsx`) — wrapped in a soft rounded card (`rounded-2xl border bg-white shadow-sm`) instead of a flat bottom-bordered row.
+    - **i18n** (`src/i18n/vi.ts`) — additive only:
+      - Landing: `landing.hero.badge`, `landing.hero.titleAccent`, `landing.hero.trustHint`, `landing.trust.{escrow,noDeposit,reputation,schedule}`, `landing.employer.lead`, `landing.worker.lead`, `landing.howItWorks.lead`, `landing.finalCta.{title,subtitle}`. Existing `landing.hero.title` / `landing.hero.subtitle` were updated for stronger copy.
+      - Auth: `auth.side.welcome`, `auth.side.welcome.desc`, `auth.side.join`, `auth.side.join.desc`, `auth.side.benefit{1,2,3}` + `.desc`, `auth.side.disclaimer`.
+      - Worker dashboard: `worker.dashboard.welcome.{veteran,newcomer}`, `worker.dashboard.cancelQuota` + `.weekHint`, `worker.dashboard.noUpcomingShifts.hint`, `worker.dashboard.noApplications.hint`.
+      - Employer dashboard: `employer.dashboard.welcome.{active,idle}`, `employer.dashboard.stats.activeShifts`, `employer.dashboard.noShifts.hint`, `employer.dashboard.pendingApps`. Old `employer.dashboard.applicants` repurposed for the pending-apps tile.
+      - Shifts/new: `shifts.new.subtitle`.
+    - **Responsive audit** — new file `RESPONSIVE.md` at the workspace root. Manual checklist for every route at 375 / 768 / 1280 px, plus a touch-target matrix for primitives. This closes original-spec **Task 18.3**.
+    - **Constraints honored** — no new dependencies, no new external UI library, no new business logic, no store/type/persistence changes, no Google Calendar / Outlook / Zoom / payment / OTP / ID-verification integrations. localStorage / mock only. Schema unchanged at version 3. Route count unchanged at 15. All Zustand selectors remain stable raw-array reads with `useMemo` derivations.
+    - **Files changed:** `src/app/globals.css`, `src/app/layout.tsx`, `src/components/ui/Button.tsx`, `src/components/ui/Card.tsx`, `src/components/ui/Modal.tsx`, `src/components/ui/EmptyState.tsx`, `src/components/calendar/CalendarEventCard.tsx`, `src/components/calendar/CalendarToolbar.tsx`, `src/app/page.tsx`, `src/app/login/page.tsx`, `src/app/register/page.tsx`, `src/components/layout/AuthSidePanel.tsx` (new), `src/app/worker/dashboard/page.tsx`, `src/app/employer/dashboard/page.tsx`, `src/app/employer/shifts/new/page.tsx`, `src/i18n/vi.ts`, `RESPONSIVE.md` (new).
+
+19. **Calendar UX, Vietnamese date/time inputs, and visible polish** *(2026-05-23, Phase 9B)*. UI-only follow-up to Phase 9 — pure presentation + light page-level validation. No business logic, store, type, or persistence changes. The apply-time conflict gate (`domain/scheduleConflict.findScheduleConflicts` in `applicationStore.apply`) is untouched.
+    - **Calendar visual redesign** (`/worker/schedule`, `/employer/schedule`):
+      - Both pages now lead with a soft warm gradient hero header (eyebrow label + bold title + subtitle) so they read as polished product surfaces, not bare grids.
+      - Sidebar items wrapped in their own translucent rounded cards (`bg-white/90 backdrop-blur-sm`) — mini-month, legend, and the worker info note all share the same visual language.
+      - Calendar body wraps in a single white panel with a 2xl rounded corner so the grid no longer reads as a raw table.
+      - Calendar event chips already gained hover-lift in Phase 9; this pass tightens them and adds a Phase 9B "lock chip" on confirmed work shifts (see below).
+      - All decorative motion still honors `prefers-reduced-motion`.
+    - **Worker schedule conflict — block vs. confirmed shift**:
+      - New pure helper `findShiftOverlap(target, applications, shiftIndex)` in `src/domain/scheduleConflict.ts`. Takes a candidate `{date, startTime, endTime}` and returns the first overlapping work shift whose application status is in `Approved | CheckedIn | CheckedOut | CancellationRequested`. `Pending` is intentionally excluded — pending applications don't yet occupy confirmed schedule space.
+      - `ScheduleBlockDialog.handleSubmit` now calls this helper before the schedule store's `add` / `update`. On overlap the dialog returns `error.shiftOverlap` ("Khung giờ này trùng với ca làm đã được duyệt của bạn.") and **does not** mutate the store.
+      - End-time-after-start sanity also surfaces locally as `error.endBeforeStart` for friendlier messaging than the store's `TIME_RANGE_INVALID` code.
+      - All apply-time logic, store APIs, types, and persistence remain unchanged.
+    - **Vietnamese-friendly date and time inputs**:
+      - New `DateFieldVN` (`src/components/ui/DateFieldVN.tsx`) — text input with `dd/mm/yyyy` placeholder, auto-inserts slashes, validates on blur, returns canonical `YYYY-MM-DD` via `onChange`. Accepts a `value` in `YYYY-MM-DD` form. Uses `lib/format.formatDateVN` and `lib/parse.parseDateVN`.
+      - New `TimeFieldVN` (`src/components/ui/TimeFieldVN.tsx`) — text input with `HH:mm` placeholder, auto-inserts colon, validates 24-hour format on blur, returns canonical `HH:mm` via `onChange`.
+      - Wired into: `ScheduleBlockDialog` (worker schedule), worker schedule slot-config, employer schedule slot-config, `ShiftForm` (date + start + end), and `ShiftFilters` (date from / to).
+      - Native `<input type="date">` and `<input type="time">` removed from those surfaces. Storage format unchanged (`YYYY-MM-DD`, `HH:mm`).
+      - New i18n keys: `error.dateInvalid`, `error.timeInvalid`, `error.endBeforeStart`, `error.shiftOverlap`.
+    - **Slot-config collapsible**:
+      - Both `/worker/schedule` and `/employer/schedule` now wrap "Cấu hình khung giờ" in a `<details>` summary labeled `t('schedule.slotCfg.toggle')` ("Tuỳ chỉnh khung giờ"). Collapsed by default — the calendar gets full vertical space on first paint, especially on mobile. New i18n key: `schedule.slotCfg.toggle`.
+    - **Approved-shift visibility on worker calendar**:
+      - Confirmed work shifts (`Approved` / `CheckedIn` / `CheckedOut` / `CancellationRequested`) now render a small inline "lock chip" inside the event card — orange-toned pill with a 🔒 glyph and the localized text "Ca đã duyệt". Pure cosmetic indicator; the click handler still routes to `/shifts/[id]` (read-only). Personal busy blocks fall back to "Lịch cá nhân" when no note is set.
+      - New i18n keys: `schedule.event.lockedLabel`, `schedule.event.personalLabel`.
+    - **Responsive audit**:
+      - `RESPONSIVE.md` updated with Phase 9B notes — slot-config no longer pushes calendar grid down on mobile (resolved), VN inputs replace OS-locale-dependent native pickers, all motion stays reduced-motion safe.
+    - **Constraints honored** — no new dependencies, no external UI library, no business logic / store / type / persistence changes, no Google Calendar / Outlook / Zoom / server sync. Mock / localStorage only. Schema still v3. Route count still 15.
+    - **Files changed:** `src/components/ui/DateFieldVN.tsx` (new), `src/components/ui/TimeFieldVN.tsx` (new), `src/components/ui/index.ts` (re-exports), `src/domain/scheduleConflict.ts` (additive `findShiftOverlap` + `ShiftOverlap` + `CONFIRMED_WORK_STATUSES`), `src/app/worker/schedule/page.tsx` (rewritten — gradient header, polished sidebar/body, collapsible slot config, locked chip, shift-overlap guard, VN inputs), `src/app/employer/schedule/page.tsx` (rewritten — gradient header, polished sidebar/body, collapsible slot config, VN time inputs), `src/components/forms/ShiftForm.tsx` (date + start + end now use VN fields), `src/components/shift/ShiftFilters.tsx` (date from / to use VN fields), `src/i18n/vi.ts` (new error / schedule keys), `RESPONSIVE.md` (Phase 9B notes).
+
+20. **Smart Vietnamese date/time inputs and visual acceptance pass** *(2026-05-23, Phase 9C)*. Tightens the typing model behind `DateFieldVN` / `TimeFieldVN` so users get the same hand-held feel as a mobile calendar widget, and closes the visual gaps that were still leaking on a hard refresh (admin dashboard, shifts listing, weak background gradient). UI-only — no business logic, store, type, or persistence changes.
+    - **Smart `DateFieldVN`** (`src/components/ui/DateFieldVN.tsx`):
+      - Strips non-digits silently (slashes are reinserted by the formatter).
+      - Day digit `4..9` auto-pads to `0X/` immediately. Day digit `1..3` waits for a possible second digit (10–19, 20–29, 30–31). Day pair `32..99` rejected with `error.dateInvalid`.
+      - Month digit `2..9` auto-pads to `0X/`. Month digit `1` waits (10–12). Month pair `13..99` rejected.
+      - Year accepts up to 4 digits.
+      - On blur, single-digit day / month is padded where safe; otherwise the localized error fires. Canonical `onChange(YYYY-MM-DD)` only fires when the input is a real calendar date (round-trip check via `formatDateVN` ∘ `parseDateVN`).
+      - Examples: `"4"` → `"04/"`, `"12"` → `"12/"`, `"31"` → `"31/"`, `"3112"` → `"31/12/"`, `"31122026"` → `"31/12/2026"` and emits `"2026-12-31"`. `"50/62/026"` is rejected and emits nothing.
+    - **Smart `TimeFieldVN`** (`src/components/ui/TimeFieldVN.tsx`):
+      - Strips non-digits silently.
+      - Hour digit `3..9` auto-pads to `0X:` immediately. Hour digit `0..2` waits (00–23). Hour pair `24..29` rejected with `error.timeInvalid`.
+      - Minute first digit `6..9` rejected (minutes max 59).
+      - On blur, single-digit hour is padded to `0X:00`; `03:` → `03:00`; otherwise the localized error fires. Canonical `onChange(HH:mm)` only fires when the regex `^([01]\d|2[0-3]):([0-5]\d)$` matches.
+      - Examples: `"3"` → `"03:"`, `"930"` → `"09:30"`, `"1330"` → `"13:30"` and emits `"13:30"`. `"2400"` and `"60:00"` are rejected.
+    - **Validation messages** (`src/i18n/vi.ts`) — already added in Phase 9B, kept as-is for 9C: `error.dateInvalid`, `error.timeInvalid`, `error.endBeforeStart`, `error.shiftOverlap`.
+    - **Smart fields applied consistently** — all five surfaces from Phase 9B (`ScheduleBlockDialog`, worker/employer slot-config, `ShiftForm`, `ShiftFilters`) now consume the smart versions automatically. No call-site changes were needed because the prop contracts (`value: canonical`, `onChange: (canonical) => void`) are unchanged.
+    - **Visual acceptance pass**:
+      - Stronger global gradient — `globals.css` linear-gradient top stop bumped from `#fff7ed` to `#ffedd5` (orange-100), and the radial blob alphas raised from `0.10` / `0.10` / `0.12` to `0.18` / `0.16` / `0.18`. After a hard refresh on any route, the upper third of the viewport now reads as warmly tinted, not slate-on-slate.
+      - `/admin/dashboard` gained a gradient hero header matching the worker/employer dashboards (eyebrow + bold title + subtitle), with a "Chế độ admin" shield badge on the right edge to keep the tone serious. Tab nav rehoused in a white card with shadow + border.
+      - `/shifts` gained a gradient hero header (eyebrow + title + subtitle + match-count chip on the right). Search bar + filters wrapped in a single white panel so they read as a unified control surface. Empty state flipped to `tone='warm'`.
+    - **Visual QA documentation** — new file `VISUAL_QA.md` at the workspace root. Per-route visual treatment matrix + standardized patterns + remaining limitations + when-to-re-run guidance. Complements `RESPONSIVE.md` (which captures layout / breakpoint / touch-target issues).
+    - **i18n** — additive only: `shifts.listing.eyebrow`, `shifts.listing.subtitle`, `shifts.listing.matchSuffix`, `admin.dashboard.eyebrow`, `admin.dashboard.subtitle`, `admin.dashboard.badge`. No existing keys renamed or removed.
+    - **Constraints honored** — no new dependencies, no external UI library, no business logic / store / type / persistence changes, no Google Calendar / Outlook / Zoom / server sync, no date-picker library. Mock / localStorage only. Schema still v3. Route count still 15.
+    - **Files changed:** `src/components/ui/DateFieldVN.tsx` (rewritten — smart formatter + finalizer), `src/components/ui/TimeFieldVN.tsx` (rewritten — smart formatter + finalizer), `src/app/admin/dashboard/page.tsx` (gradient hero + admin badge), `src/app/shifts/page.tsx` (gradient hero + unified search/filter panel + warm empty state), `src/app/globals.css` (stronger background gradient), `src/i18n/vi.ts` (new shifts/admin hero keys), `VISUAL_QA.md` (new).
+
+21. **Motion system, scroll reveal, and hero interaction polish** *(2026-05-23, Phase 9D)*. Pure presentation pass — no business logic, store, type, or persistence changes. Goal was to lift the app from "designed but static" into "designed and alive" without crossing into distracting animation or adding new dependencies.
+    - **CSS motion utilities added to `globals.css`**:
+      - `entrance-up` + `entrance-right` keyframes for first-paint fade-and-slide. Each consumes a `--entrance-delay` custom property so callers can stagger across multiple elements.
+      - `.reveal` + `.reveal.is-revealed` for scroll-into-view fade-and-slide, also with `--reveal-delay` for stagger.
+      - `float-soft` keyframe (4 px vertical drift, 8 s ease-in-out infinite) and `.float-soft-slow` modifier (11 s) for ambient warmth on decorative shapes.
+      - `.bg-dot-grid` utility — CSS-only orange dot pattern at low alpha for paper-texture decoration.
+      - All four families short-circuited under `prefers-reduced-motion: reduce`: animations cancel, transforms reset to identity, the reveal transition becomes instant.
+    - **`Reveal` component** (`src/components/ui/Reveal.tsx`):
+      - `'use client'` wrapper that uses `IntersectionObserver` to add `is-revealed` once the element scrolls into the viewport. One-shot: the observer disconnects after revealing, so scrolling back up doesn't replay the fade.
+      - SSR / no-`IntersectionObserver` / reduced-motion users see the revealed state immediately — no content is hidden behind the observer.
+      - Props: `as` (element tag, defaults to `div`), `delayMs` (stagger), `threshold` (intersection ratio, defaults to 0.15). No animation variants — a single reveal direction kept the API tight.
+      - Re-exported from `src/components/ui/index.ts` alongside the rest of the primitives.
+    - **Landing hero motion** (`src/app/page.tsx`):
+      - On first paint, the hero copy column staggers in via `entrance-up` at 0 / 80 / 160 / 240 / 320 ms (badge → headline → subtitle → CTA pair → trust hint).
+      - The hero mockup column uses `entrance-right` at 320 ms so it slides in from the right after the copy lands.
+      - Subsequent sections (trust strip, employer benefits, worker benefits, employer how-it-works, worker how-it-works, final CTA) each wrap in `Reveal` with appropriate stagger. The trust strip stagger is 80 ms × index; benefit and how-it-works pairs use 0 / 120 ms.
+    - **Hero mockup clarity decision (Option 1)**:
+      - The whole mockup column is now `pointer-events-none` and `aria-hidden="true"`. The cards still look like polished UI but cannot trap clicks or keyboard focus.
+      - A small "Bản xem trước" pill at the top of the mockup stack tells sighted users this is preview imagery.
+      - The mockup is wrapped in three soft-floating animations (`float-soft` on the main shift card and the calendar-slot card; `float-soft-slow` on the reputation chip and the backdrop blob) so the cards drift by 4 px on slightly different cadences. Total visual motion: a few pixels per second per card. Reduced-motion users see them static.
+      - A faint dot-grid layer (`.bg-dot-grid`, masked to a radial fade) sits behind the mockup so the column reads as a designed product surface, not floating cards on white.
+    - **Dashboard welcome strips** got `entrance-up` on the hero strip itself so worker / employer dashboards fade in on load. Below-the-fold dashboard sections (StatTiles, sections list) were intentionally NOT reveal-wrapped — these are utility surfaces and reveal motion would slow down user-facing data.
+    - **Calendar pages** got a soft floating decorative-blob layer behind the page chrome (two orange / amber blurred circles at `-z-10`, `pointer-events-none`, `aria-hidden`, on the `.float-soft` loop). The blobs sit above the grid only visually — the calendar content remains instantly interactive. The grid itself was deliberately not reveal-wrapped: rendering speed beats entrance polish for a calendar surface.
+    - **VISUAL_QA.md updated** — new "Phase 9D — motion + reveal additions" section captures the entrance sequence, mockup interaction decision, scroll-reveal map, calendar treatment, and reduced-motion guarantees.
+    - **Constraints honored** — no new dependencies, no external animation library, no Framer Motion, no business logic / store / type / persistence changes. Mock / localStorage only. Schema unchanged at v3. Route count unchanged at 15. All Zustand selectors remain stable raw-array reads.
+    - **Files changed:** `src/app/globals.css` (4 new keyframes + reveal + float + dot-grid utilities, reduced-motion fallback expanded), `src/components/ui/Reveal.tsx` (new), `src/components/ui/index.ts` (re-export), `src/app/page.tsx` (entrance staggers + Reveal wrappers + decorative mockup with "Bản xem trước" pill + pointer-events-none + aria-hidden + float-soft + bg-dot-grid), `src/app/worker/dashboard/page.tsx` (entrance-up on welcome strip), `src/app/employer/dashboard/page.tsx` (entrance-up on welcome strip), `src/app/worker/schedule/page.tsx` (decorative blob layer + entrance-up on hero), `src/app/employer/schedule/page.tsx` (decorative blob layer + entrance-up on hero), `VISUAL_QA.md` (Phase 9D section).
+
+22. **Hero featured-job interactivity and background depth** *(2026-05-23, Phase 9E)*. Pure presentation pass — no business logic, store, type, or persistence changes. Goal was to retire the Phase 9D decorative `HeroMockup` (which read as "fake preview") and ship a real, clickable featured-job card backed by live store data, plus deepen the hero background visual.
+    - **`FeaturedJobMockup` client island** (new file `src/components/landing/FeaturedJobMockup.tsx`):
+      - `'use client'` component that reads `useShiftStore((s) => s.shifts)` (stable raw selector). Filters via the same publication invariant the discovery page enforces — `status === 'Published'`, `escrowStatus === 'Deposited'`, `positionsFilled < positionsTotal`, start datetime in the future. Sorts ascending by `${date}T${startTime}` and picks the soonest-eligible shift.
+      - When a featured shift exists → main card renders as a `<Link href={\`/shifts/${shift.id}\`}>` with `aria-label` referencing the real title (e.g. `"Xem chi tiết ca Phục vụ quán phở giờ trưa"`), `motion-lift` hover, `focus-visible:ring-2 focus-visible:ring-orange-400`, and a stronger `ring-1 ring-orange-100` accent so it reads as "featured", not "preview".
+      - When no eligible shift exists (empty store, all expired) → main card links to `/shifts` instead and renders a friendly fallback body (`"Khám phá ca làm phù hợp"`). No fake detail URLs are ever produced.
+      - Two supporting stat cards (reputation chip, sample calendar slot) stay decorative inside an `aria-hidden="true"` wrapper and use muted `bg-white/80` with slightly desaturated borders. No hover lift, no focus ring, no pointer cursor — they clearly read as "supporting stats", not interactive controls.
+      - The mockup column slides in from the right via `entrance-right` at 320 ms (same delay the Phase 9D mockup used). Soft `float-soft` and dot-grid backdrops preserved from Phase 9D.
+    - **Featured-job pill copy.** Phase 9D's "Bản xem trước" badge replaced with `t('landing.hero.featured.badge')` → `"Việc đang nổi bật"`. The accompanying glyph is a spark icon so the pill reads as "highlighted opportunity", not "preview/loading".
+    - **Hero background depth** (`HeroBackgroundDecor` in `src/app/page.tsx`):
+      - Curved bottom gradient wash (`borderTopLeftRadius: '50% 100%'`) that bleeds the hero into the next section so the boundary feels designed, not stamped.
+      - Four floating motif glyphs on `lg+` only — phone, calendar, shield-with-check, location pin — each at low alpha (`text-orange-300/60..70`) and drifting on the existing `.float-soft` loop. Hidden on mobile via `hidden lg:block` so the small viewport stays clean.
+      - Wrapper has `pointer-events-none` + `aria-hidden="true"` and sits at `-z-0` so the decoration never traps input.
+    - **Featured-job click target.** Soonest currently-listable shift via the live `useShiftStore`. When seed data is loaded that's `shift-001` (Phục vụ quán phở giờ trưa, 25/05/2026) until it expires; thereafter it advances to the next eligible shift automatically. Empty-store fallback `/shifts`.
+    - **i18n** — additive: `landing.hero.featured.badge`, `landing.hero.featured.statusBadge`, `landing.hero.featured.viewCta`, `landing.hero.featured.exploreCta`, `landing.hero.featured.exploreAria`, `landing.hero.featured.fallbackTitle`, `landing.hero.featured.fallbackHint`, `landing.hero.featured.repLabel`, `landing.hero.featured.repHint`, `landing.hero.featured.upcomingLabel`, `landing.hero.featured.upcomingDay`, `landing.hero.featured.upcomingTime`. No existing keys renamed or removed.
+    - **Constraints honored** — no new dependencies, no external image assets, no new animation library, no business logic / store / type / persistence changes, no new seed data, no server fetching. All routes existed before this phase. Mock / localStorage only. Schema unchanged at v3. Route count unchanged at 15.
+    - **Files changed:** `src/components/landing/FeaturedJobMockup.tsx` (new), `src/app/page.tsx` (removed dead `HeroMockup` function, imported `FeaturedJobMockup`, added `HeroBackgroundDecor` with curved wash + motif icons, swapped mockup column source), `src/i18n/vi.ts` (new `landing.hero.featured.*` keys), `VISUAL_QA.md` (Phase 9E section + updated remaining-limitations note).
+
 ---
 
 ## 5b. Phase 2 ✅ Completed — Safer Worker Cancellation Flow

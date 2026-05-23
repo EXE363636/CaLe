@@ -1,20 +1,30 @@
 'use client';
 
 /**
- * Worker personal schedule page (Phase 8 calendar shell).
+ * Worker personal schedule page (Phase 8 calendar shell + Phase 9B polish).
  *
  * Phase 5 introduced one-time `ScheduleBlock` records and the apply-time
  * conflict gate. Phase 5B reshaped the page into a Mon→Sun timetable.
- * Phase 8 swaps that single grid for the new `CalendarShell` (mini-month
- * + legend sidebar, top toolbar, Day / Week / Agenda body) and folds the
- * worker's approved / pending / cancellation-requested shifts onto the
- * same canvas as their personal busy blocks.
+ * Phase 8 swapped that grid for the new `CalendarShell` (sidebar + toolbar
+ * + Day/Week/Agenda body). Phase 9B layers visual polish on top, plus:
+ *
+ *   - Personal busy blocks may not overlap **confirmed work shifts**
+ *     (Approved / CheckedIn / CheckedOut / CancellationRequested) — gate
+ *     enforced on add and on edit. Pure UI validation; the apply-time
+ *     gate (`applicationStore.apply`) remains untouched.
+ *   - All native date / time inputs replaced with `DateFieldVN` and
+ *     `TimeFieldVN` so Vietnamese users always see `dd/mm/yyyy` and
+ *     `HH:mm` regardless of OS locale.
+ *   - Slot-config form collapsed into a `<details>` to give the
+ *     calendar more room on mobile.
+ *   - Approved shifts on the calendar render a small lock glyph + the
+ *     localized label "Ca đã duyệt" so they read as read-only.
  *
  * Hard rules (per HANDOFF.md Section 11):
  *  - Zustand selectors return only stable raw arrays. All `.filter` /
  *    `.map` derivations live in `useMemo` over those arrays.
- *  - The schedule store API, `ScheduleBlockDialog` form, and the apply
- *    conflict gate (`domain/scheduleConflict.ts`) are NOT touched here.
+ *  - The schedule store API and `domain/scheduleConflict.ts.findScheduleConflicts`
+ *    apply-time gate are NOT touched here.
  *  - localStorage / mock only — no server, no calendar sync.
  */
 
@@ -35,11 +45,14 @@ import { RoleGuard } from '@/components/layout/RoleGuard';
 import {
   Button,
   Card,
+  DateFieldVN,
   EmptyState,
   Input,
   Modal,
   Textarea,
+  TimeFieldVN,
 } from '@/components/ui';
+import { findShiftOverlap } from '@/domain/scheduleConflict';
 import {
   formatMonthYearVN,
   shiftWeek,
@@ -138,15 +151,11 @@ function SchedulePageContent() {
   // Derived data
   // -------------------------------------------------------------------------
 
-  // Personal busy blocks for the current user.
   const myBlocks = useMemo<ScheduleBlock[]>(() => {
     if (!currentUserId) return [];
     return blocks.filter((b) => b.userId === currentUserId);
   }, [blocks, currentUserId]);
 
-  // Applications that should appear on the calendar: this worker's
-  // Approved / Pending / CancellationRequested rows. Rejected and
-  // CancelledByWorker rows are intentionally hidden.
   const myCalendarApplications = useMemo<Application[]>(() => {
     if (!currentUserId) return [];
     return applications.filter(
@@ -154,21 +163,20 @@ function SchedulePageContent() {
         a.workerId === currentUserId &&
         (a.status === 'Approved' ||
           a.status === 'Pending' ||
-          a.status === 'CancellationRequested'),
+          a.status === 'CancellationRequested' ||
+          a.status === 'CheckedIn' ||
+          a.status === 'CheckedOut'),
     );
   }, [applications, currentUserId]);
 
-  // O(1) shift lookup keyed by id — saves a linear scan per application.
   const shiftIndex = useMemo<Map<string, Shift>>(() => {
     const map = new Map<string, Shift>();
     for (const s of shifts) map.set(s.id, s);
     return map;
   }, [shifts]);
 
-  // Single calendar-event array fed to every body view. Personal blocks
-  // and approved/pending shifts share one array so the views can
-  // stack/sort them uniformly. IDs are prefixed so the click handler can
-  // dispatch by source.
+  // Single calendar-event array fed to every body view. IDs are prefixed
+  // so `handleEventClick` can dispatch to edit-dialog vs `/shifts/[id]`.
   const calendarEvents = useMemo<CalendarEvent[]>(() => {
     const out: CalendarEvent[] = [];
 
@@ -180,24 +188,36 @@ function SchedulePageContent() {
         startTime: block.startTime,
         endTime: block.endTime,
         variant: 'personalBusy',
-        subtitle: block.note,
+        subtitle: block.note ? block.note : t('schedule.event.personalLabel'),
       });
     }
 
     for (const app of myCalendarApplications) {
       const shift = shiftIndex.get(app.shiftId);
       if (!shift) continue;
-      // Hide shifts that are no longer relevant (cancelled / completed /
-      // expired) — they shouldn't clutter the worker's planner even if
-      // their application row still exists.
       if (TERMINAL_SHIFT_STATUSES.has(shift.status)) continue;
 
       const variant: CalendarEvent['variant'] =
-        app.status === 'Approved'
+        app.status === 'Approved' ||
+        app.status === 'CheckedIn' ||
+        app.status === 'CheckedOut'
           ? 'approvedShift'
           : app.status === 'Pending'
-          ? 'pendingShift'
-          : 'cancelledShift';
+            ? 'pendingShift'
+            : 'cancelledShift';
+
+      // Phase 9B — confirmed work shifts get the orange "Ca đã duyệt"
+      // lock chip so they read as read-only. `CancellationRequested`
+      // already renders with the red `cancelledShift` variant + line-
+      // through, which carries its own meaning ("đang chờ huỷ"); adding
+      // an orange "approved" lock on top would say two different things
+      // at once. The shift-overlap guard in the dialog still treats
+      // `CancellationRequested` as a confirmed slot, so the worker can't
+      // book over it — we just don't double-label the chip.
+      const isLocked =
+        app.status === 'Approved' ||
+        app.status === 'CheckedIn' ||
+        app.status === 'CheckedOut';
 
       out.push({
         id: `app-${app.id}`,
@@ -207,15 +227,13 @@ function SchedulePageContent() {
         endTime: shift.endTime,
         variant,
         subtitle: shift.location,
+        statusChip: isLocked ? <LockedChip /> : undefined,
       });
     }
 
     return out;
   }, [myBlocks, myCalendarApplications, shiftIndex]);
 
-  // Sorted version for the fallback flat list at the bottom of the page.
-  // Workers may have busy blocks outside the visible calendar window, and
-  // delete affordance still lives there.
   const flatList = useMemo(() => {
     return [...myBlocks].sort((a, b) =>
       `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
@@ -227,15 +245,12 @@ function SchedulePageContent() {
   // -------------------------------------------------------------------------
 
   const toolbarTitle = useMemo(() => {
-    if (view === 'day') {
-      return formatDateVN(selectedDateIso);
-    }
+    if (view === 'day') return formatDateVN(selectedDateIso);
     if (view === 'week') {
       const ws = startOfWeek(selectedDateIso);
       const we = stepDate(ws, 6);
       return `${formatDateVN(ws)} – ${formatDateVN(we)}`;
     }
-    // agenda
     const year = Number(selectedDateIso.slice(0, 4));
     const month = Number(selectedDateIso.slice(5, 7));
     if (Number.isFinite(year) && Number.isFinite(month)) {
@@ -248,18 +263,16 @@ function SchedulePageContent() {
     setSelectedDateIso((iso) => {
       if (view === 'week') return shiftWeek(startOfWeek(iso), -1);
       if (view === 'day') return stepDate(iso, -1);
-      return stepDate(iso, -7); // agenda
+      return stepDate(iso, -7);
     });
   }
-
   function handleNext() {
     setSelectedDateIso((iso) => {
       if (view === 'week') return shiftWeek(startOfWeek(iso), 1);
       if (view === 'day') return stepDate(iso, 1);
-      return stepDate(iso, 7); // agenda
+      return stepDate(iso, 7);
     });
   }
-
   function handleToday() {
     setSelectedDateIso(todayIso());
   }
@@ -270,22 +283,16 @@ function SchedulePageContent() {
 
   function openCreateForSlot(date: string, startTime: string, endTime: string) {
     setActionError(null);
-    setModalSeed({
-      block: null,
-      prefill: { date, startTime, endTime },
-    });
+    setModalSeed({ block: null, prefill: { date, startTime, endTime } });
   }
-
   function openEdit(block: ScheduleBlock) {
     setActionError(null);
     setModalSeed({ block, prefill: null });
   }
-
   function openCreateBlank() {
     setActionError(null);
     setModalSeed({ block: null, prefill: null });
   }
-
   function closeModal() {
     setModalSeed(null);
   }
@@ -299,7 +306,8 @@ function SchedulePageContent() {
     }
   }
 
-  // Calendar event click — dispatch by id prefix.
+  // Calendar event click — dispatch by id prefix. Approved-shift events
+  // navigate to `/shifts/[id]` (read-only, no edit dialog) per Phase 9B.
   function handleEventClick(event: CalendarEvent) {
     if (event.id.startsWith('block-')) {
       const blockId = event.id.slice('block-'.length);
@@ -338,18 +346,21 @@ function SchedulePageContent() {
 
   const sidebar = (
     <div className="flex flex-col gap-4">
-      <MiniMonthCalendar
-        selectedDateIso={selectedDateIso}
-        onSelectDate={setSelectedDateIso}
-      />
-      <Card>
+      <div className="rounded-2xl border border-orange-100 bg-white/90 p-1 shadow-sm backdrop-blur-sm">
+        <MiniMonthCalendar
+          selectedDateIso={selectedDateIso}
+          onSelectDate={setSelectedDateIso}
+          className="border-0 shadow-none"
+        />
+      </div>
+      <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
         <CalendarLegend variant="worker" />
-      </Card>
-      <Card className="bg-orange-50 ring-1 ring-orange-100">
-        <p className="text-xs text-orange-700">
+      </div>
+      <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 shadow-sm">
+        <p className="text-xs leading-relaxed text-orange-800">
           {t('schedule.page.approvedShiftsNote')}
         </p>
-      </Card>
+      </div>
     </div>
   );
 
@@ -373,26 +384,31 @@ function SchedulePageContent() {
 
   const body = (
     <div className="flex flex-col gap-4">
-      {/* Slot-config form: a single Card above the body keeps the
-          existing "Cấu hình khung giờ" affordance without crowding the
-          sidebar. Day-grid views consume this; Agenda ignores it. */}
-      <Card>
-        <p className="mb-3 text-sm font-semibold text-gray-900">
-          {t('schedule.slotCfg.title')}
-        </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <Input
+      {/* Phase 9B: slot config tucked inside a collapsible `<details>` so
+          it doesn't dominate the body on mobile. The summary uses a custom
+          chevron because Tailwind's `marker:hidden` doesn't reach Safari's
+          `::-webkit-details-marker` (already handled in globals.css). */}
+      <details className="group rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
+          <span>{t('schedule.slotCfg.toggle')}</span>
+          <span
+            className="text-xs text-gray-500 transition-transform group-open:rotate-180"
+            aria-hidden="true"
+          >
+            ▾
+          </span>
+        </summary>
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <TimeFieldVN
             label={t('schedule.slotCfg.dayStart')}
-            type="time"
             value={slotCfg.dayStart}
-            onChange={(e) => handleSlotCfgChange({ dayStart: e.target.value })}
+            onChange={(v) => handleSlotCfgChange({ dayStart: v })}
             className="w-32"
           />
-          <Input
+          <TimeFieldVN
             label={t('schedule.slotCfg.dayEnd')}
-            type="time"
             value={slotCfg.dayEnd}
-            onChange={(e) => handleSlotCfgChange({ dayEnd: e.target.value })}
+            onChange={(v) => handleSlotCfgChange({ dayEnd: v })}
             className="w-32"
           />
           <Input
@@ -415,63 +431,65 @@ function SchedulePageContent() {
             {slotCfgError}
           </p>
         )}
-      </Card>
+      </details>
 
       {actionError && (
         <div
           role="alert"
-          className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700"
+          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {actionError}
         </div>
       )}
 
-      {/* The active body view. */}
-      {view === 'week' && (
-        slotsValid ? (
-          <WeekView
-            weekStart={startOfWeek(selectedDateIso)}
-            slotConfig={slotCfg}
-            events={calendarEvents}
-            onCellClick={openCreateForSlot}
-            onEventClick={handleEventClick}
-          />
-        ) : (
-          <Card>
-            <p className="py-6 text-center text-sm text-gray-400">
+      {/* Calendar body — wrapped in a soft white panel so the whole grid
+          reads as a real product surface, not a bare table. */}
+      <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm">
+        {view === 'week' && (
+          slotsValid ? (
+            <WeekView
+              weekStart={startOfWeek(selectedDateIso)}
+              slotConfig={slotCfg}
+              events={calendarEvents}
+              onCellClick={openCreateForSlot}
+              onEventClick={handleEventClick}
+              className="rounded-2xl"
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-gray-400">
               {slotCfgError ?? t('schedule.slotCfg.error.INVALID_TIME_RANGE')}
             </p>
-          </Card>
-        )
-      )}
+          )
+        )}
 
-      {view === 'day' && (
-        slotsValid ? (
-          <DayView
-            dateIso={selectedDateIso}
-            slotConfig={slotCfg}
-            events={calendarEvents}
-            onCellClick={openCreateForSlot}
-            onEventClick={handleEventClick}
-          />
-        ) : (
-          <Card>
-            <p className="py-6 text-center text-sm text-gray-400">
+        {view === 'day' && (
+          slotsValid ? (
+            <DayView
+              dateIso={selectedDateIso}
+              slotConfig={slotCfg}
+              events={calendarEvents}
+              onCellClick={openCreateForSlot}
+              onEventClick={handleEventClick}
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-gray-400">
               {slotCfgError ?? t('schedule.slotCfg.error.INVALID_TIME_RANGE')}
             </p>
-          </Card>
-        )
-      )}
+          )
+        )}
 
-      {view === 'agenda' && (
-        <AgendaView
-          startDateIso={selectedDateIso}
-          dayCount={7}
-          events={calendarEvents}
-          onEventClick={handleEventClick}
-          emptyMessage={t('calendar.empty.worker')}
-        />
-      )}
+        {view === 'agenda' && (
+          <div className="p-4 sm:p-6">
+            <AgendaView
+              startDateIso={selectedDateIso}
+              dayCount={7}
+              events={calendarEvents}
+              onEventClick={handleEventClick}
+              emptyMessage={t('calendar.empty.worker')}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Flat fallback list — kept so workers can still delete blocks
           without finding them on the timetable. */}
@@ -481,6 +499,7 @@ function SchedulePageContent() {
         </h2>
         {flatList.length === 0 ? (
           <EmptyState
+            tone="warm"
             title={t('schedule.empty.title')}
             description={t('schedule.empty.description')}
           />
@@ -501,23 +520,70 @@ function SchedulePageContent() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+    <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Phase 9D — subtle decorative blob behind the entire schedule view
+          so the page reads as a designed surface rather than a bare grid.
+          Pointer-events disabled and aria-hidden so the decoration never
+          intercepts clicks or keyboard nav. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden"
+      >
+        <div className="float-soft float-soft-slow absolute -top-32 -right-24 h-72 w-72 rounded-full bg-orange-200/40 blur-3xl" />
+        <div className="float-soft absolute -top-12 -left-32 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
+      </div>
+
+      {/* Phase 9B/9C hero header — gradient strip with the page title and a
+          short subtitle so the page reads as a polished product surface. */}
+      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+          {t('nav.schedule')}
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
           {t('schedule.page.title')}
         </h1>
-        <p className="mt-1 text-sm text-gray-500">{t('schedule.page.subtitle')}</p>
+        <p className="mt-1 max-w-2xl text-sm text-gray-600">
+          {t('schedule.page.subtitle')}
+        </p>
       </header>
 
       <CalendarShell sidebar={sidebar} toolbar={toolbar} body={body} />
 
-      {/* Add / edit dialog (preserved verbatim from Phase 5B). */}
+      {/* Add / edit dialog (preserved from Phase 5B; date/time inputs
+          swapped for the Vietnamese-friendly fields in Phase 9B, plus
+          shift-overlap guard added). */}
       <ScheduleBlockDialog
         seed={modalSeed}
         userId={currentUserId}
+        myApplications={myCalendarApplications}
+        shiftIndex={shiftIndex}
+        myBlocks={myBlocks}
         onClose={closeModal}
       />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Locked chip — tiny inline indicator on approved-shift events
+// ---------------------------------------------------------------------------
+
+function LockedChip() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-orange-200">
+      <svg
+        className="h-2.5 w-2.5"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.4}
+        aria-hidden="true"
+      >
+        <rect x="5" y="11" width="14" height="9" rx="2" />
+        <path strokeLinecap="round" d="M8 11V8a4 4 0 0 1 8 0v3" />
+      </svg>
+      {t('schedule.event.lockedLabel')}
+    </span>
   );
 }
 
@@ -593,16 +659,22 @@ function BlockRow({
 }
 
 // ---------------------------------------------------------------------------
-// Add / edit dialog (preserved verbatim from Phase 5B)
+// Add / edit dialog (Phase 5B form, Phase 9B inputs + shift-overlap gate)
 // ---------------------------------------------------------------------------
 
 function ScheduleBlockDialog({
   seed,
   userId,
+  myApplications,
+  shiftIndex,
+  myBlocks,
   onClose,
 }: {
   seed: ModalSeed | null;
   userId: string;
+  myApplications: Application[];
+  shiftIndex: Map<string, Shift>;
+  myBlocks: ScheduleBlock[];
   onClose: () => void;
 }) {
   const add = useScheduleStore((s) => s.add);
@@ -617,8 +689,6 @@ function ScheduleBlockDialog({
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Re-seed the form whenever the dialog opens (or the seed changes).
-  // Closed dialogs keep their state so a typo is not lost between toggles.
   useEffect(() => {
     if (!open || !seed) return;
     if (seed.block) {
@@ -642,6 +712,40 @@ function ScheduleBlockDialog({
   function handleSubmit() {
     if (!seed) return;
     setError(null);
+
+    // Phase 9B client-side guards. We let the store own the canonical
+    // validation (required fields, time-range, owner-mismatch) — these
+    // checks add UX-friendly preconditions that surface localized errors
+    // before the round-trip.
+
+    if (date === '' || startTime === '' || endTime === '') {
+      setError(t('schedule.error.TIME_REQUIRED'));
+      return;
+    }
+
+    // End-after-start sanity. The store also checks this but its error
+    // code is `TIME_RANGE_INVALID`; we surface the friendlier message
+    // here so the user doesn't see a bare error key.
+    if (endTime <= startTime) {
+      setError(t('error.endBeforeStart'));
+      return;
+    }
+
+    // Phase 9B — block-vs-shift overlap. Worker can't create or edit a
+    // personal busy block over an approved/checked-in/checked-out
+    // /cancellation-requested work shift.
+    const overlap = findShiftOverlap(
+      { date, startTime, endTime },
+      myApplications,
+      shiftIndex,
+    );
+    if (overlap) {
+      setError(t('error.shiftOverlap'));
+      return;
+    }
+
+    void myBlocks; // intentionally unused — store handles block↔block uniqueness
+
     const result = seed.block
       ? update(seed.block.id, userId, { title, date, startTime, endTime, note })
       : add({ userId, title, date, startTime, endTime, note });
@@ -669,27 +773,24 @@ function ScheduleBlockDialog({
           onChange={(e) => setTitle(e.target.value)}
           required
         />
-        <Input
+        <DateFieldVN
           label={t('schedule.form.date')}
-          type="date"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={setDate}
           required
         />
         <div className="flex gap-2">
-          <Input
+          <TimeFieldVN
             label={t('schedule.form.startTime')}
-            type="time"
             value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
+            onChange={setStartTime}
             className="flex-1"
             required
           />
-          <Input
+          <TimeFieldVN
             label={t('schedule.form.endTime')}
-            type="time"
             value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
+            onChange={setEndTime}
             className="flex-1"
             required
           />

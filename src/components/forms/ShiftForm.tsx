@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Input, Select, Textarea, Button } from '@/components/ui';
+import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { formatVND } from '@/lib/format';
 import { hoursBetween, calculateDeposit } from '@/domain/deposit';
@@ -178,31 +178,28 @@ export function ShiftForm({
         />
 
         {/* Date */}
-        <Input
+        <DateFieldVN
           label={t('form.date')}
-          type="date"
           value={values.date}
-          onChange={(e) => set('date', e.target.value)}
+          onChange={(v) => set('date', v)}
           error={errors.date}
           required
         />
 
         {/* Start time */}
-        <Input
+        <TimeFieldVN
           label={t('form.startTime')}
-          type="time"
           value={values.startTime}
-          onChange={(e) => set('startTime', e.target.value)}
+          onChange={(v) => set('startTime', v)}
           error={errors.startTime}
           required
         />
 
         {/* End time */}
-        <Input
+        <TimeFieldVN
           label={t('form.endTime')}
-          type="time"
           value={values.endTime}
-          onChange={(e) => set('endTime', e.target.value)}
+          onChange={(v) => set('endTime', v)}
           error={errors.endTime}
           required
         />

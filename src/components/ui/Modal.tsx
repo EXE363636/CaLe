@@ -40,19 +40,20 @@ export function Modal({ open, onClose, title, children, className = '' }: ModalP
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
-      {/* Backdrop */}
+      {/* Backdrop — soft fade-in via globals.css `modal-backdrop-anim`. */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="modal-backdrop-anim absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Panel */}
+      {/* Panel — small lift + scale-in via `modal-panel-anim`. */}
       <div
         ref={panelRef}
         tabIndex={-1}
         className={[
-          'relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl',
+          'modal-panel-anim relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl',
+          'ring-1 ring-black/5',
           'focus:outline-none',
           className,
         ].join(' ')}
@@ -67,7 +68,7 @@ export function Modal({ open, onClose, title, children, className = '' }: ModalP
           <button
             onClick={onClose}
             aria-label="Đóng"
-            className="ml-auto rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

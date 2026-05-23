@@ -49,12 +49,12 @@ export function CalendarEventCard({
   absolute = false,
 }: CalendarEventCardProps) {
   const baseClasses = [
-    'flex flex-col gap-0.5 overflow-hidden rounded-md border px-2 py-1.5 text-left',
-    'min-h-[44px]',
+    'flex flex-col gap-0.5 overflow-hidden rounded-lg border px-2 py-1.5 text-left',
+    'min-h-[44px] shadow-sm',
     absolute ? 'h-full w-full' : 'w-full',
     variantClasses[variant],
     onClick
-      ? 'cursor-pointer transition-shadow hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1'
+      ? 'cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1 motion-reduce:hover:translate-y-0 motion-reduce:transition-none'
       : '',
     className,
   ]

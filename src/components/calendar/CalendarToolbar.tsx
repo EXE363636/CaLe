@@ -51,7 +51,7 @@ export function CalendarToolbar({
   return (
     <div
       className={[
-        'flex flex-wrap items-center gap-3 border-b border-gray-200 bg-white px-4 py-3',
+        'flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm',
         className,
       ].join(' ')}
     >

@@ -205,6 +205,11 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'error.required': 'Trường này là bắt buộc.',
   'error.email.invalid': 'Địa chỉ email không hợp lệ.',
+  'error.dateInvalid': 'Ngày không hợp lệ. Vui lòng nhập theo dạng dd/mm/yyyy.',
+  'error.timeInvalid': 'Giờ không hợp lệ. Vui lòng nhập theo dạng HH:mm (24 giờ).',
+  'error.endBeforeStart': 'Giờ kết thúc phải sau giờ bắt đầu.',
+  'error.shiftOverlap':
+    'Khung giờ này trùng với ca làm đã được duyệt của bạn.',
   'error.password.tooShort': 'Mật khẩu phải có ít nhất 8 ký tự.',
   'error.phone.invalid': 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam.',
   'error.date.invalid': 'Ngày không hợp lệ.',
@@ -344,6 +349,7 @@ export const vi: Record<string, string> = {
   'schedule.week.current': 'Tuần này',
   'schedule.week.next': 'Tuần sau',
   'schedule.slotCfg.title': 'Cấu hình khung giờ',
+  'schedule.slotCfg.toggle': 'Tuỳ chỉnh khung giờ',
   'schedule.slotCfg.dayStart': 'Giờ bắt đầu ngày',
   'schedule.slotCfg.dayEnd': 'Giờ kết thúc ngày',
   'schedule.slotCfg.slotMinutes': 'Độ dài mỗi slot (phút)',
@@ -356,6 +362,8 @@ export const vi: Record<string, string> = {
   'schedule.timetable.timeColumn': 'Giờ',
   'schedule.timetable.addInSlot': 'Thêm lịch vào khung giờ này',
   'schedule.list.title': 'Tất cả lịch bận',
+  'schedule.event.lockedLabel': 'Ca đã duyệt',
+  'schedule.event.personalLabel': 'Lịch cá nhân',
   'schedule.empty.weekHint':
     'Không có lịch bận trong tuần này. Bấm vào ô trống để thêm.',
 
@@ -388,15 +396,40 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Landing page
   // -------------------------------------------------------------------------
-  'landing.hero.title': 'Tìm người làm ngay hôm nay',
+  'landing.hero.badge': 'Sinh viên · Linh hoạt · Tin cậy',
+  'landing.hero.title': 'Việc làm thêm ngắn hạn',
+  'landing.hero.titleAccent': 'cho mọi sinh viên',
   'landing.hero.subtitle':
-    'Nền tảng kết nối nhà tuyển dụng với sinh viên và người tìm việc linh hoạt tại Việt Nam.',
+    'Nền tảng kết nối nhà tuyển dụng với sinh viên và người tìm việc linh hoạt tại Việt Nam. Đặt cọc minh bạch, đánh giá hai chiều, không cần ứng dụng tải về.',
+  'landing.hero.trustHint':
+    'Miễn phí đăng ký · Người làm không đặt cọc · Toàn bộ thanh toán giả lập trong MVP.',
+
+  'landing.hero.featured.badge': 'Việc đang nổi bật',
+  'landing.hero.featured.statusBadge': 'Đang tuyển',
+  'landing.hero.featured.viewCta': 'Xem chi tiết',
+  'landing.hero.featured.exploreCta': 'Khám phá ca làm',
+  'landing.hero.featured.exploreAria': 'Khám phá ca làm trên CaLẻ / ShiftNow',
+  'landing.hero.featured.fallbackTitle': 'Khám phá ca làm phù hợp',
+  'landing.hero.featured.fallbackHint':
+    'Hệ thống đang cập nhật ca làm. Bấm để xem danh sách đầy đủ.',
+  'landing.hero.featured.repLabel': 'Điểm uy tín',
+  'landing.hero.featured.repHint': '/ 100 — đáng tin cậy',
+  'landing.hero.featured.upcomingLabel': 'Sắp diễn ra',
+  'landing.hero.featured.upcomingDay': 'Thứ Bảy, 24/05',
+  'landing.hero.featured.upcomingTime': 'Ca 14:00 – 18:00',
   'landing.cta.employer': 'Đăng ca cần tuyển',
   'landing.cta.worker': 'Tìm ca làm ngay',
   'landing.cta.registerEmployer': 'Đăng ký Nhà tuyển dụng',
   'landing.cta.registerWorker': 'Đăng ký Người làm',
 
+  'landing.trust.escrow': 'Tiền giữ ký quỹ minh bạch',
+  'landing.trust.noDeposit': 'Người làm không đặt cọc',
+  'landing.trust.reputation': 'Hệ thống điểm uy tín',
+  'landing.trust.schedule': 'Lịch cá nhân & lịch tuyển dụng',
+
   'landing.employer.title': 'Dành cho Nhà tuyển dụng',
+  'landing.employer.lead':
+    'Đăng ca, đặt cọc minh bạch, duyệt người làm và xác nhận hoàn thành — tất cả trên một nền tảng.',
   'landing.employer.benefit1': 'Tìm người nhanh',
   'landing.employer.benefit1.desc': 'Đăng ca và nhận đơn ứng tuyển trong vài giờ.',
   'landing.employer.benefit2': 'Thanh toán an toàn',
@@ -405,6 +438,8 @@ export const vi: Record<string, string> = {
   'landing.employer.benefit3.desc': 'Xem điểm uy tín và lịch sử làm việc của người làm.',
 
   'landing.worker.title': 'Dành cho Người làm',
+  'landing.worker.lead':
+    'Tìm ca làm phù hợp, ứng tuyển nhanh, nhận tiền sau khi hoàn thành — và xây dựng điểm uy tín cá nhân.',
   'landing.worker.benefit1': 'Làm linh hoạt',
   'landing.worker.benefit1.desc': 'Chọn ca theo lịch của bạn, không ràng buộc.',
   'landing.worker.benefit2': 'Nhận tiền nhanh',
@@ -413,12 +448,17 @@ export const vi: Record<string, string> = {
   'landing.worker.benefit3.desc': 'Người làm không cần đặt cọc bất kỳ khoản tiền nào.',
 
   'landing.howItWorks.title': 'Cách hoạt động',
+  'landing.howItWorks.lead':
+    'Quy trình ngắn gọn cho cả hai phía. Mọi bước đều có thông báo và trạng thái rõ ràng.',
   'landing.howItWorks.employer.step1': 'Đăng ca làm với đầy đủ thông tin',
   'landing.howItWorks.employer.step2': 'Đặt cọc tiền lương vào hệ thống',
   'landing.howItWorks.employer.step3': 'Duyệt người làm và xác nhận hoàn thành',
   'landing.howItWorks.worker.step1': 'Tạo hồ sơ và xác minh số điện thoại',
   'landing.howItWorks.worker.step2': 'Tìm và ứng tuyển ca làm phù hợp',
   'landing.howItWorks.worker.step3': 'Làm việc, check-in/out và nhận tiền',
+
+  'landing.finalCta.title': 'Bắt đầu ngay hôm nay',
+  'landing.finalCta.subtitle': 'Đăng ký miễn phí, không cần đặt cọc.',
 
   // -------------------------------------------------------------------------
   // Auth pages
@@ -433,11 +473,32 @@ export const vi: Record<string, string> = {
   'auth.register.asWorker': 'Tôi muốn tìm ca làm',
   'auth.register.asEmployer': 'Tôi cần tuyển người làm',
 
+  // Auth side panel (Phase 9 visual polish)
+  'auth.side.welcome': 'Chào mừng quay lại',
+  'auth.side.welcome.desc':
+    'Đăng nhập để tiếp tục quản lý ca làm, đơn ứng tuyển và lịch cá nhân của bạn.',
+  'auth.side.join': 'Tham gia CaLẻ / ShiftNow',
+  'auth.side.join.desc':
+    'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả sinh viên tìm việc lẫn quán/sự kiện cần người làm linh hoạt.',
+  'auth.side.benefit1': 'Thanh toán minh bạch',
+  'auth.side.benefit1.desc': 'Nhà tuyển dụng đặt cọc trước, tiền chỉ giải ngân khi hoàn thành.',
+  'auth.side.benefit2': 'Không phí ẩn',
+  'auth.side.benefit2.desc': 'Người làm không đặt cọc. Đăng ký miễn phí.',
+  'auth.side.benefit3': 'Điểm uy tín hai chiều',
+  'auth.side.benefit3.desc': 'Đánh giá hai chiều giúp xây dựng cộng đồng tin cậy.',
+  'auth.side.disclaimer':
+    'Phiên bản MVP — toàn bộ thanh toán & xác minh đều giả lập, không có giao dịch thật.',
+
   // -------------------------------------------------------------------------
   // Worker dashboard
   // -------------------------------------------------------------------------
   'worker.dashboard.title': 'Bảng điều khiển',
   'worker.dashboard.welcome': 'Xin chào',
+  'worker.dashboard.welcome.veteran':
+    'Bạn đã hoàn thành {count} ca. Tiếp tục giữ phong độ nhé!',
+  'worker.dashboard.welcome.newcomer': 'Sẵn sàng cho ca làm đầu tiên?',
+  'worker.dashboard.cancelQuota': 'Hạn mức huỷ tuần',
+  'worker.dashboard.cancelQuota.weekHint': 'còn lại',
   'worker.dashboard.stats.completedShifts': 'Ca đã hoàn thành',
   'worker.dashboard.stats.totalEarnings': 'Tổng thu nhập',
   'worker.dashboard.stats.reputationScore': 'Điểm uy tín',
@@ -445,7 +506,11 @@ export const vi: Record<string, string> = {
   'worker.dashboard.upcomingShifts': 'Ca làm sắp tới',
   'worker.dashboard.appliedShifts': 'Đơn đã ứng tuyển',
   'worker.dashboard.noUpcomingShifts': 'Bạn chưa có ca làm nào sắp tới.',
+  'worker.dashboard.noUpcomingShifts.hint':
+    'Tìm ca làm phù hợp với lịch của bạn và ứng tuyển trực tiếp trên trang.',
   'worker.dashboard.noApplications': 'Bạn chưa ứng tuyển ca làm nào.',
+  'worker.dashboard.noApplications.hint':
+    'Khi bạn ứng tuyển một ca, đơn của bạn sẽ hiển thị ở đây trong khi chờ duyệt.',
   'worker.dashboard.restricted':
     'Tài khoản bị hạn chế do điểm uy tín dưới 50. Hãy hoàn thành các ca làm để tăng điểm.',
 
@@ -453,7 +518,12 @@ export const vi: Record<string, string> = {
   // Employer dashboard
   // -------------------------------------------------------------------------
   'employer.dashboard.title': 'Bảng điều khiển',
+  'employer.dashboard.welcome.active':
+    'Bạn đang có {count} ca làm hoạt động. Theo dõi trạng thái và đơn ứng tuyển bên dưới.',
+  'employer.dashboard.welcome.idle':
+    'Chưa có ca làm nào hoạt động. Đăng ca mới để bắt đầu nhận đơn ứng tuyển.',
   'employer.dashboard.stats.postedShifts': 'Ca đã đăng',
+  'employer.dashboard.stats.activeShifts': 'Ca đang hoạt động',
   'employer.dashboard.stats.completedShifts': 'Ca đã hoàn thành',
   'employer.dashboard.stats.totalDeposited': 'Tổng đã đặt cọc',
   'employer.dashboard.stats.totalPaidOut': 'Tổng đã thanh toán',
@@ -461,7 +531,10 @@ export const vi: Record<string, string> = {
   'employer.dashboard.stats.boostCredits': 'Lượt boost còn lại',
   'employer.dashboard.upcomingShifts': 'Ca làm sắp tới',
   'employer.dashboard.noShifts': 'Bạn chưa đăng ca làm nào.',
-  'employer.dashboard.applicants': 'Đơn ứng tuyển',
+  'employer.dashboard.noShifts.hint':
+    'Đăng ca mới chỉ mất vài phút. Hệ thống sẽ tự động giữ tiền đặt cọc và xử lý đơn ứng tuyển.',
+  'employer.dashboard.applicants': 'Đơn chờ duyệt',
+  'employer.dashboard.pendingApps': 'Đơn ứng tuyển chờ duyệt ({count})',
   'employer.applicant.viewProfile': 'Xem hồ sơ',
   'employer.applicant.fullProfile': 'Hồ sơ người làm',
   'employer.applicant.completedShifts': 'Ca hoàn thành',
@@ -479,6 +552,10 @@ export const vi: Record<string, string> = {
   // Admin dashboard
   // -------------------------------------------------------------------------
   'admin.dashboard.title': 'Quản trị hệ thống',
+  'admin.dashboard.eyebrow': 'Bảng điều khiển admin',
+  'admin.dashboard.subtitle':
+    'Theo dõi người dùng, ca làm, tranh chấp và các điều chỉnh thủ công. Override chỉ dùng khi cần xử lý ngoại lệ.',
+  'admin.dashboard.badge': 'Chế độ admin',
   'admin.dashboard.tabs.users': 'Người dùng',
   'admin.dashboard.tabs.shifts': 'Ca làm',
   'admin.dashboard.tabs.disputes': 'Tranh chấp',
@@ -493,6 +570,10 @@ export const vi: Record<string, string> = {
   // Shift listing / detail
   // -------------------------------------------------------------------------
   'shifts.listing.title': 'Tìm ca làm',
+  'shifts.listing.eyebrow': 'Khám phá ca làm',
+  'shifts.listing.subtitle':
+    'Tìm ca làm ngắn hạn phù hợp với lịch của bạn. Hệ thống chỉ hiển thị ca đã được nhà tuyển dụng đặt cọc.',
+  'shifts.listing.matchSuffix': 'ca phù hợp',
   'shifts.listing.empty': 'Không tìm thấy ca làm phù hợp.',
   'shifts.listing.emptyHint': 'Thử thay đổi bộ lọc hoặc từ khoá tìm kiếm.',
   'shifts.detail.employer': 'Nhà tuyển dụng',
@@ -505,6 +586,8 @@ export const vi: Record<string, string> = {
   'shifts.detail.fullyBooked': 'Ca này đã đủ người.',
   'shifts.detail.notPublished': 'Ca làm này chưa được đăng công khai.',
   'shifts.deposit.title': 'Mô phỏng đặt cọc',
+  'shifts.new.subtitle':
+    'Hoàn thành thông tin ca làm. Hệ thống sẽ tự động tính số tiền đặt cọc dựa trên độ uy tín nhà tuyển dụng.',
   'shifts.deposit.amount': 'Số tiền đặt cọc',
   'shifts.deposit.description':
     'Nhà tuyển dụng cần đặt cọc toàn bộ tiền lương trước khi ca được đăng công khai.',

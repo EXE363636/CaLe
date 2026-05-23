@@ -33,10 +33,35 @@ function AdminDashboardContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-6 text-2xl font-bold text-gray-900">{t('admin.dashboard.title')}</h1>
+      {/* Phase 9C: gradient hero header so the admin surface reads as a
+          polished product page, not a raw control panel. The visual
+          treatment matches the worker/employer dashboards (warm gradient
+          + uppercase eyebrow + bold title + subtitle) but the right edge
+          carries a "hệ thống / admin" badge to keep the tone serious. */}
+      <header className="mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+              {t('admin.dashboard.eyebrow')}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {t('admin.dashboard.title')}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-gray-600">
+              {t('admin.dashboard.subtitle')}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-3 py-1 text-xs font-semibold text-orange-700 shadow-sm">
+            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
+            </svg>
+            {t('admin.dashboard.badge')}
+          </span>
+        </div>
+      </header>
 
       {/* Tab nav */}
-      <div className="mb-6 flex flex-wrap gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="mb-6 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-white/80 p-1 shadow-sm backdrop-blur-sm">
         <TabButton active={tab === 'analytics'} onClick={() => setTab('analytics')}>
           {t('admin.dashboard.tabs.analytics')}
         </TabButton>

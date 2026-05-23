@@ -11,12 +11,10 @@ import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Card, Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
-import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { quotaUsage } from '@/domain/cancellationQuota';
-import { averageRating } from '@/domain/rating';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
@@ -62,6 +60,18 @@ function WorkerDashboardContent() {
     [applications, worker],
   );
 
+  // Live cancellation-quota usage for the dashboard tile (Phase 9 polish).
+  // Pure helper, stable inputs, so it's safe outside the cancel dialog
+  // path — `nowIso` is recomputed on every render but `quotaUsage` is fast.
+  const liveQuota = useMemo(() => {
+    if (!worker) return null;
+    return quotaUsage(
+      worker.cancellationHistory,
+      worker.reputationScore,
+      new Date().toISOString(),
+    );
+  }, [worker]);
+
   if (!worker) return null;
 
   // Helper to look up a shift
@@ -71,7 +81,6 @@ function WorkerDashboardContent() {
   // Stats
   const completedShifts = myApps.filter((a) => a.status === 'Confirmed');
   const totalEarnings = completedShifts.reduce((acc, a) => acc + (a.payoutAmount ?? 0), 0);
-  const avgRating = averageRating(worker.ratingsReceived);
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Phase 3: derive the worker's current cancellation quota whenever the
@@ -166,30 +175,93 @@ function WorkerDashboardContent() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Greeting */}
-      <header className="mb-6">
-        <p className="text-sm text-gray-500">{t('worker.dashboard.welcome')}</p>
-        <h1 className="text-2xl font-bold text-gray-900">{worker.fullName}</h1>
+      {/* Welcome card — soft gradient strip with avatar fallback + quick stats peek */}
+      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
+            {worker.fullName.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+              {t('worker.dashboard.welcome')}
+            </p>
+            <h1 className="truncate text-2xl font-bold text-gray-900">
+              {worker.fullName}
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {worker.completedShiftCount > 0
+                ? t('worker.dashboard.welcome.veteran').replace(
+                    '{count}',
+                    String(worker.completedShiftCount),
+                  )
+                : t('worker.dashboard.welcome.newcomer')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/shifts">
+              <Button size="sm" variant="primary">
+                {t('btn.findShift')}
+              </Button>
+            </Link>
+            <Link href="/worker/schedule">
+              <Button size="sm" variant="secondary">
+                {t('nav.schedule')}
+              </Button>
+            </Link>
+          </div>
+        </div>
       </header>
 
       {/* Restriction banner */}
       {restricted && (
-        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {t('worker.dashboard.restricted')}
         </div>
       )}
 
-      {/* Stats grid */}
+      {/* Stats grid — Phase 9 polish: stronger tiles, reputation gets accent treatment */}
       <section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label={t('worker.dashboard.stats.completedShifts')} value={String(worker.completedShiftCount)} />
-        <StatCard label={t('worker.dashboard.stats.totalEarnings')} value={formatVND(totalEarnings)} highlight />
-        <StatCard
+        <StatTile
           label={t('worker.dashboard.stats.reputationScore')}
-          valueNode={<ReputationBadge score={worker.reputationScore} />}
+          value={String(worker.reputationScore)}
+          suffix="/ 100"
+          tone={
+            worker.reputationScore >= 80
+              ? 'good'
+              : worker.reputationScore >= 50
+                ? 'warn'
+                : 'bad'
+          }
+          icon="star"
         />
-        <StatCard
-          label={t('worker.dashboard.stats.avgRating')}
-          value={avgRating === null ? t('reputation.noRatings') : `${avgRating.toFixed(1)} / 5 ⭐`}
+        <StatTile
+          label={t('worker.dashboard.stats.completedShifts')}
+          value={String(worker.completedShiftCount)}
+          tone="neutral"
+          icon="check"
+        />
+        <StatTile
+          label={t('worker.dashboard.stats.totalEarnings')}
+          value={formatVND(totalEarnings)}
+          tone="brand"
+          icon="wallet"
+        />
+        <StatTile
+          label={t('worker.dashboard.cancelQuota')}
+          value={
+            liveQuota
+              ? `${liveQuota.weekly.remaining}/${liveQuota.weekly.limit}`
+              : '–'
+          }
+          suffix={liveQuota ? t('worker.dashboard.cancelQuota.weekHint') : undefined}
+          tone={
+            liveQuota && liveQuota.weekly.remaining === 0
+              ? 'bad'
+              : liveQuota && liveQuota.weekly.remaining <= 1
+                ? 'warn'
+                : 'neutral'
+          }
+          icon="calendar"
         />
       </section>
 
@@ -202,7 +274,18 @@ function WorkerDashboardContent() {
               {t('worker.dashboard.upcomingShifts')}
             </h2>
             {upcoming.length === 0 ? (
-              <EmptyState title={t('worker.dashboard.noUpcomingShifts')} />
+              <EmptyState
+                tone="warm"
+                title={t('worker.dashboard.noUpcomingShifts')}
+                description={t('worker.dashboard.noUpcomingShifts.hint')}
+                action={
+                  <Link href="/shifts">
+                    <Button size="sm" variant="primary">
+                      {t('btn.findShift')}
+                    </Button>
+                  </Link>
+                }
+              />
             ) : (
               <div className="flex flex-col gap-3">
                 {upcoming.map((a) => {
@@ -229,7 +312,10 @@ function WorkerDashboardContent() {
               {t('worker.dashboard.appliedShifts')}
             </h2>
             {pending.length === 0 ? (
-              <EmptyState title={t('worker.dashboard.noApplications')} />
+              <EmptyState
+                title={t('worker.dashboard.noApplications')}
+                description={t('worker.dashboard.noApplications.hint')}
+              />
             ) : (
               <div className="flex flex-col gap-3">
                 {pending.map((a) => {
@@ -399,30 +485,116 @@ function WorkerDashboardContent() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function StatCard({
+/**
+ * Phase 9 visual polish: replaces the older `StatCard`. A stat tile carries
+ * a small label, a primary value, an optional suffix (e.g. "/ 100"), a
+ * mini icon glyph and a colored top-accent strip driven by `tone`.
+ */
+type Tone = 'brand' | 'neutral' | 'good' | 'warn' | 'bad';
+type IconName = 'star' | 'check' | 'wallet' | 'calendar' | 'briefcase' | 'users' | 'shield';
+
+function StatTile({
   label,
   value,
-  valueNode,
-  highlight,
+  suffix,
+  tone = 'neutral',
+  icon,
 }: {
   label: string;
-  value?: string;
-  valueNode?: React.ReactNode;
-  highlight?: boolean;
+  value: string;
+  suffix?: string;
+  tone?: Tone;
+  icon?: IconName;
 }) {
+  const toneRing: Record<Tone, string> = {
+    brand: 'before:bg-orange-500',
+    neutral: 'before:bg-slate-300',
+    good: 'before:bg-emerald-500',
+    warn: 'before:bg-amber-500',
+    bad: 'before:bg-red-500',
+  };
+  const toneText: Record<Tone, string> = {
+    brand: 'text-orange-600',
+    neutral: 'text-gray-900',
+    good: 'text-emerald-600',
+    warn: 'text-amber-600',
+    bad: 'text-red-600',
+  };
   return (
-    <Card className="p-4">
-      <p className="text-xs text-gray-500">{label}</p>
-      <div
-        className={[
-          'mt-1 text-lg font-bold',
-          highlight ? 'text-orange-600' : 'text-gray-900',
-        ].join(' ')}
-      >
-        {valueNode ?? value}
+    <div
+      className={[
+        'relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm',
+        'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
+        toneRing[tone],
+      ].join(' ')}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+          {label}
+        </p>
+        {icon && <TileIcon name={icon} />}
       </div>
-    </Card>
+      <p className={['mt-2 text-2xl font-extrabold', toneText[tone]].join(' ')}>
+        {value}
+        {suffix && (
+          <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
+        )}
+      </p>
+    </div>
   );
+}
+
+function TileIcon({ name }: { name: IconName }) {
+  const cls = 'h-5 w-5 text-gray-300';
+  switch (name) {
+    case 'star':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="m12 2 3 7 7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z" />
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+      );
+    case 'wallet':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
+        </svg>
+      );
+    case 'calendar':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="3" />
+          <path strokeLinecap="round" d="M3 10h18M8 3v4M16 3v4" />
+        </svg>
+      );
+    case 'briefcase':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+          <rect x="3" y="7" width="18" height="13" rx="2" />
+          <path strokeLinecap="round" d="M9 7V5h6v2" />
+        </svg>
+      );
+    case 'users':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
+          <circle cx="9" cy="8" r="3" />
+          <path strokeLinecap="round" d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 1 0 0-6M21 20c0-2.5-2-4.5-5-5" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
 }
 
 function UpcomingShiftCard({

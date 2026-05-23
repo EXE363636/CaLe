@@ -11,15 +11,41 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
+/**
+ * Variant styling for the four button intents. Phase 9 polish:
+ *   - `primary` gets a subtle gradient + orange shadow ring on hover for
+ *     extra "tap me" affordance.
+ *   - `secondary` keeps the outlined orange look but tightens hover bg.
+ *   - `ghost` reads as a tertiary action with muted hover.
+ *   - `danger` keeps red but with consistent hover shadow.
+ *
+ * All variants share the same focus ring (`focus-visible:ring-orange-400`)
+ * so keyboard users get a uniform accent. Disabled state explicitly
+ * removes shadows so the button reads as inactive.
+ */
 const variantClasses: Record<ButtonVariant, string> = {
-  primary:
-    'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700 disabled:bg-orange-300',
-  secondary:
-    'bg-white text-orange-600 border border-orange-500 hover:bg-orange-50 active:bg-orange-100 disabled:opacity-50',
-  ghost:
-    'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200 disabled:opacity-50',
-  danger:
-    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-300',
+  primary: [
+    'bg-gradient-to-b from-orange-500 to-orange-600 text-white',
+    'shadow-sm hover:shadow-md hover:from-orange-500 hover:to-orange-700',
+    'active:from-orange-600 active:to-orange-700',
+    'disabled:from-orange-300 disabled:to-orange-300 disabled:shadow-none',
+  ].join(' '),
+  secondary: [
+    'bg-white text-orange-600 border border-orange-500',
+    'shadow-sm hover:bg-orange-50 hover:shadow-md active:bg-orange-100',
+    'disabled:opacity-50 disabled:shadow-none',
+  ].join(' '),
+  ghost: [
+    'bg-transparent text-gray-700',
+    'hover:bg-gray-100 active:bg-gray-200',
+    'disabled:opacity-50',
+  ].join(' '),
+  danger: [
+    'bg-gradient-to-b from-red-500 to-red-600 text-white',
+    'shadow-sm hover:shadow-md hover:from-red-500 hover:to-red-700',
+    'active:from-red-600 active:to-red-700',
+    'disabled:from-red-300 disabled:to-red-300 disabled:shadow-none',
+  ].join(' '),
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -47,7 +73,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || loading}
         className={[
           'inline-flex items-center justify-center gap-2 rounded-lg font-medium',
-          'transition-colors duration-150 focus:outline-none focus-visible:ring-2',
+          // Smoother multi-property transition than colors-only — subtle
+          // press affordance via `motion-press` (defined in globals.css,
+          // motion-reduce safe).
+          'motion-press transition focus:outline-none focus-visible:ring-2',
           'focus-visible:ring-orange-400 focus-visible:ring-offset-2',
           'disabled:cursor-not-allowed',
           variantClasses[variant],

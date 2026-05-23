@@ -1,6 +1,6 @@
 'use client';
 
-import { Select, Input, Button } from '@/components/ui';
+import { Select, Input, Button, DateFieldVN } from '@/components/ui';
 import type { SelectOption } from '@/components/ui';
 import type { FilterCriteria } from '@/domain/filter';
 import { t } from '@/i18n/vi';
@@ -58,21 +58,17 @@ export function ShiftFilters({
       )}
 
       {/* Date from */}
-      <Input
-        type="date"
+      <DateFieldVN
         value={criteria.dateFrom ?? ''}
-        onChange={(e) => update({ dateFrom: e.target.value || undefined })}
+        onChange={(v) => update({ dateFrom: v || undefined })}
         aria-label={t('form.filterDateFrom')}
-        placeholder={t('form.filterDateFrom')}
       />
 
       {/* Date to */}
-      <Input
-        type="date"
+      <DateFieldVN
         value={criteria.dateTo ?? ''}
-        onChange={(e) => update({ dateTo: e.target.value || undefined })}
+        onChange={(v) => update({ dateTo: v || undefined })}
         aria-label={t('form.filterDateTo')}
-        placeholder={t('form.filterDateTo')}
       />
 
       {/* Wage min */}

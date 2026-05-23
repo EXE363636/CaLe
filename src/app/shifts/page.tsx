@@ -65,32 +65,46 @@ export default function ShiftsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{t('shifts.listing.title')}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {filtered.length} ca làm phù hợp
-        </p>
+      {/* Phase 9C: gradient hero header so the listing page reads as a
+          designed surface, not a bare title above filters. */}
+      <header className="mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+              {t('shifts.listing.eyebrow')}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {t('shifts.listing.title')}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-gray-600">
+              {t('shifts.listing.subtitle')}
+            </p>
+          </div>
+          <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+            {filtered.length} {t('shifts.listing.matchSuffix')}
+          </span>
+        </div>
+      </header>
+
+      {/* Search + filters wrapped in a single card so they read as a
+          unified control surface. */}
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm">
+        <ShiftSearchBar
+          value={searchText}
+          onSearch={setSearchText}
+          className="mb-3"
+        />
+        <ShiftFilters
+          criteria={criteria}
+          onChange={setCriteria}
+          jobTypeOptions={JOB_TYPE_OPTIONS}
+        />
       </div>
-
-      {/* Search bar */}
-      <ShiftSearchBar
-        value={searchText}
-        onSearch={setSearchText}
-        className="mb-4"
-      />
-
-      {/* Filters */}
-      <ShiftFilters
-        criteria={criteria}
-        onChange={setCriteria}
-        jobTypeOptions={JOB_TYPE_OPTIONS}
-        className="mb-6"
-      />
 
       {/* Results */}
       {filtered.length === 0 ? (
         <EmptyState
+          tone="warm"
           title={t('shifts.listing.empty')}
           description={t('shifts.listing.emptyHint')}
         />

@@ -15,9 +15,11 @@
  *     class="min-h-[44px] min-w-[44px]"
  *
  * Theme
- *   The MVP is light-only — no dark mode is supported. The body uses a
- *   slate-50 background and slate-900 foreground so cards and inputs (which
- *   use white backgrounds) read with adequate contrast on every page.
+ *   Light only — no dark mode supported. Page chrome uses a soft warm
+ *   gradient anchored on the slate-50 → orange tinge so cards (white)
+ *   pop against the backdrop. The visual polish pass (Phase 9) added
+ *   the gradient + decorative radial blobs + smooth motion utility
+ *   classes consumed across the app.
  *
  * Content sources
  *   Tailwind v4 auto-detects template files. The `@source` directives below
@@ -32,8 +34,15 @@
 @source "../**/*.tsx";
 
 :root {
-  --background: #f8fafc;       /* slate-50 — page chrome */
+  /* Page chrome — soft warm gradient anchor + readable foreground. */
+  --background: #f8fafc;       /* slate-50 fallback for older browsers */
   --foreground: #0f172a;       /* slate-900 — body text */
+
+  /* Brand palette — surfaces and accents (matches Tailwind orange-500). */
+  --brand: #f97316;            /* orange-500 */
+  --brand-soft: #ffedd5;       /* orange-100 */
+  --brand-tint: #fff7ed;       /* orange-50 */
+
   color-scheme: light;
 }
 
@@ -50,8 +59,213 @@ body {
   color: var(--foreground);
 }
 
+/* Soft warm gradient + faint radial blobs sitting behind the app chrome.
+ * Phase 9C: anchors strengthened so the warmth is visible immediately
+ * after a hard refresh, even on the dashboards where most cards are
+ * white. Alpha values raised from ~0.10 to ~0.16 on the corner blobs
+ * and the linear top stop pushed further toward orange-50 so the first
+ * 1/3 of the viewport reads as warmly tinted, not slate-on-slate. */
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-image:
+    radial-gradient(at 8% 4%, rgba(251, 146, 60, 0.18) 0, transparent 48%),
+    radial-gradient(at 92% 6%, rgba(253, 186, 116, 0.16) 0, transparent 52%),
+    radial-gradient(at 96% 92%, rgba(254, 215, 170, 0.18) 0, transparent 58%),
+    linear-gradient(180deg, #ffedd5 0%, #fff7ed 22%, #f8fafc 55%, #f8fafc 100%);
+  background-attachment: fixed;
+}
+
+/* ----------------------------------------------------------------------------
+ * Motion + interaction utilities
+ *
+ * Phase 9 visual polish adds three reusable transition classes that the
+ * UI primitives apply consistently. They respect `prefers-reduced-motion`
+ * via the media query at the bottom so users with motion sensitivity get
+ * an instant non-animated experience.
+ * ------------------------------------------------------------------------- */
+
+.motion-lift {
+  transition: transform 180ms ease-out, box-shadow 180ms ease-out;
+}
+.motion-lift:hover {
+  transform: translateY(-2px);
+}
+
+.motion-press {
+  transition: transform 100ms ease-out, background-color 150ms ease-out,
+    box-shadow 150ms ease-out;
+}
+.motion-press:active {
+  transform: translateY(1px);
+}
+
+/* Modal panel mount animation — single, keyframe-based, low duration.
+ * Applied via `.modal-panel-anim` on the panel element, never on the
+ * backdrop (instant click-out is preferable). */
+@keyframes modal-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.modal-panel-anim {
+  animation: modal-panel-in 160ms ease-out;
+}
+
+@keyframes modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal-backdrop-anim {
+  animation: modal-backdrop-in 140ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-lift,
+  .motion-press {
+    transition: none;
+  }
+  .motion-lift:hover {
+    transform: none;
+  }
+  .modal-panel-anim,
+  .modal-backdrop-anim,
+  .entrance-up,
+  .entrance-right,
+  .float-soft {
+    animation: none;
+  }
+  /* Reduced-motion users see the reveal end-state immediately — no
+   * fade/slide, but the layout still stabilises correctly. */
+  .reveal,
+  .entrance-up,
+  .entrance-right {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * Decorative class — used only on the landing hero. Encapsulates the warm
+ * orange→amber radial blob so the page markup stays clean.
+ * ------------------------------------------------------------------------- */
+.hero-decor {
+  background-image:
+    radial-gradient(at 20% 10%, rgba(251, 146, 60, 0.18) 0, transparent 55%),
+    radial-gradient(at 85% 25%, rgba(252, 211, 77, 0.18) 0, transparent 55%),
+    radial-gradient(at 50% 90%, rgba(253, 186, 116, 0.15) 0, transparent 60%);
+}
+
+/* ----------------------------------------------------------------------------
+ * Safari quirk — `<details>` disclosure marker.
+ *
+ * Tailwind's `list-none` + `marker:hidden` removes the marker on Chromium /
+ * Firefox, but Safari renders an additional `::-webkit-details-marker` that
+ * neither rule reaches. Hide it explicitly so our custom `▾` chevron is the
+ * only visible disclosure indicator on every browser.
+ * ------------------------------------------------------------------------- */
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9D — entrance animations + scroll-reveal + decorative float
+ *
+ * Three new keyframe families:
+ *   - `entrance-up`  : opacity + slight upward translate, used for landing
+ *                      hero copy/CTAs on first paint via `.entrance-up`
+ *                      with `--entrance-delay` controlling stagger.
+ *   - `entrance-right`: opacity + slight rightward translate, used for the
+ *                      hero mockup column so it slides in from the right.
+ *   - `float-soft`   : tiny y-axis drift on decorative shapes only. Looped,
+ *                      slow (≥6s), low amplitude — never reaches the
+ *                      "distracting" threshold per accessibility scope.
+ *
+ * The `Reveal` React component uses `IntersectionObserver` to add
+ * `.is-revealed` to its root once the element scrolls into view; the
+ * `.reveal` class describes the rest state. All entrance + reveal +
+ * float classes are short-circuited under `prefers-reduced-motion: reduce`
+ * via the media query at the bottom.
+ * ------------------------------------------------------------------------- */
+
+@keyframes entrance-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.entrance-up {
+  opacity: 0;
+  animation: entrance-up 520ms ease-out forwards;
+  animation-delay: var(--entrance-delay, 0ms);
+}
+
+@keyframes entrance-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.entrance-right {
+  opacity: 0;
+  animation: entrance-right 620ms ease-out forwards;
+  animation-delay: var(--entrance-delay, 0ms);
+}
+
+/* Scroll-reveal base + revealed states. The `Reveal` component flips the
+ * `.is-revealed` class once the element enters the viewport. We use
+ * transform + opacity (compositor-only properties) so reveal never
+ * triggers a layout reflow. */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 520ms ease-out,
+    transform 520ms ease-out;
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Soft floating drift — reserved for hero decorative shapes only.
+ * Amplitude is intentionally tiny (4px) and the duration long (≥6s) so
+ * the motion reads as ambient warmth, not chrome. */
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+.float-soft {
+  animation: float-soft 8s ease-in-out infinite;
+}
+.float-soft.float-soft-slow {
+  animation-duration: 11s;
+}
+
+/* Subtle dot-grid pattern — used as a behind-hero decoration. CSS-only,
+ * no SVG asset, so the bundle stays small. Layered at low opacity so
+ * the grid reads as paper texture, not active chrome. */
+.bg-dot-grid {
+  background-image: radial-gradient(
+    rgba(249, 115, 22, 0.18) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
 }
