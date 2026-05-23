@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppHydrator } from "@/components/layout/AppHydrator";
 import { NavBar } from "@/components/layout/NavBar";
 import { Footer } from "@/components/layout/Footer";
+import { ToastHost } from "@/components/layout/ToastHost";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -34,6 +35,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <ToastHost />
         </AppHydrator>
       </body>
     </html>

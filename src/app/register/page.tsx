@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { Input, Button } from '@/components/ui';
 import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
+import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired, isValidPassword, isValidVNPhone } from '@/lib/validate';
 
@@ -118,10 +120,18 @@ function RegisterForm() {
     setLoading(false);
 
     if (!result.ok) {
-      setErrors({ form: t(`auth.error.${result.error}`) });
+      const msg = toastFromStoreError(result.error);
+      setErrors({ form: msg });
+      showError(msg, undefined, { scope: 'auth' });
       return;
     }
 
+    clearToastsByScope('auth');
+    showSuccess(
+      t('feedback.auth.register.success'),
+      t('feedback.auth.register.success.desc'),
+      { scope: 'auth' },
+    );
     router.push(DASHBOARD[values.role]);
   }
 

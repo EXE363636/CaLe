@@ -64,6 +64,8 @@ import {
 } from '@/domain/week';
 import { t } from '@/i18n/vi';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
+import { showSuccess, showError } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useScheduleStore } from '@/stores/scheduleStore';
@@ -303,7 +305,11 @@ function SchedulePageContent() {
     setActionError(null);
     const result = remove(id, currentUserId);
     if (!result.ok) {
-      setActionError(t(`schedule.error.${result.error}`));
+      const message = toastFromStoreError(result.error);
+      setActionError(message);
+      showError(message);
+    } else {
+      showSuccess(t('feedback.schedule.delete.success'));
     }
   }
 
@@ -756,9 +762,16 @@ function ScheduleBlockDialog({
       ? update(seed.block.id, userId, { title, date, startTime, endTime, note })
       : add({ userId, title, date, startTime, endTime, note });
     if (!result.ok) {
-      setError(t(`schedule.error.${result.error}`));
+      const message = toastFromStoreError(result.error);
+      setError(message);
+      showError(message);
       return;
     }
+    showSuccess(
+      seed.block
+        ? t('feedback.schedule.update.success')
+        : t('feedback.schedule.add.success'),
+    );
     onClose();
   }
 

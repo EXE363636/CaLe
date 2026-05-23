@@ -117,12 +117,42 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   login(email, password) {
-    const user = useUserStore.getState().findByEmail(email);
-    if (!user) return { ok: false, error: 'INVALID_CREDENTIALS' };
+    // Phase 9P — auth correctness fix.
+    //
+    // Previous code returned a generic INVALID_CREDENTIALS only when the
+    // email didn't match a user, but treated `mock-hash:demo` as a
+    // universal password — so any random password was accepted for any
+    // seed account. That was a real auth bug, not just a demo shortcut.
+    //
+    // New rule:
+    //   1. Empty / non-string password → INVALID_CREDENTIALS.
+    //   2. Email must resolve to a user — but we don't reveal that to the
+    //      caller (always return INVALID_CREDENTIALS, never a "no such
+    //      account" error) so attackers can't enumerate registered
+    //      emails.
+    //   3. Password must match the stored `mock-hash:<password>` exactly.
+    //   4. Only after credentials match do we surface SUSPENDED. A
+    //      suspended account with a wrong password still returns
+    //      INVALID_CREDENTIALS so the suspension state isn't leaked.
+    //
+    // Demo accounts keep `passwordHash: "mock-hash:demo"` in seed data;
+    // typing `demo` still works for them but nothing else does.
+    if (typeof password !== 'string' || password.length === 0) {
+      return { ok: false, error: 'INVALID_CREDENTIALS' };
+    }
 
-    // Mock check: passwords are stored as `mock-hash:<password>` placeholders.
+    const trimmedEmail = (email ?? '').trim().toLowerCase();
+    if (trimmedEmail === '') {
+      return { ok: false, error: 'INVALID_CREDENTIALS' };
+    }
+
+    const user = useUserStore.getState().findByEmail(trimmedEmail);
+    if (!user) {
+      return { ok: false, error: 'INVALID_CREDENTIALS' };
+    }
+
     const expected = `mock-hash:${password}`;
-    if (user.passwordHash !== expected && user.passwordHash !== 'mock-hash:demo') {
+    if (user.passwordHash !== expected) {
       return { ok: false, error: 'INVALID_CREDENTIALS' };
     }
 

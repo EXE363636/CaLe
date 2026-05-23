@@ -18,6 +18,8 @@ import { quotaUsage } from '@/domain/cancellationQuota';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
+import { showSuccess, showError, showInfo } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { t } from '@/i18n/vi';
@@ -274,14 +276,24 @@ function WorkerDashboardContent() {
 
   function handleCheckIn(appId: string) {
     setActionLoading(appId);
-    checkIn(appId);
+    const result = checkIn(appId);
     setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('feedback.checkIn.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   function handleCheckOut(appId: string) {
     setActionLoading(appId);
-    checkOut(appId);
+    const result = checkOut(appId);
     setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('feedback.checkOut.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   function handleCancelRequest(appId: string) {
@@ -299,11 +311,22 @@ function WorkerDashboardContent() {
       // Close on success regardless of branch — the dashboard re-renders
       // with the new application status (CancelledByWorker or
       // CancellationRequested) reflecting whichever path was taken.
+      if (result.value.requiresApproval) {
+        showInfo(
+          t('feedback.cancelRequest.success'),
+          t('feedback.cancelRequest.success.desc'),
+        );
+      } else {
+        showSuccess(t('feedback.cancel.success'));
+      }
       setCancelTarget(null);
+      return;
     }
     // On QUOTA_EXCEEDED / WRONG_STATUS / etc. the dialog stays open. The
     // dialog itself renders the quota message and the user-facing error;
-    // we keep the modal mounted so they can see the explanation.
+    // we keep the modal mounted so they can see the explanation. Also
+    // surface a toast so the actor knows the action was rejected.
+    showError(toastFromStoreError(result.error));
   }
 
   return (

@@ -18,6 +18,8 @@ import { RatingForm } from '@/components/forms/RatingForm';
 import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
 import { shouldMarkNoShow } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
+import { showSuccess, showError } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Application, ApplicationStatus, Shift, Worker } from '@/types';
@@ -80,8 +82,13 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
   function handleApprove(appId: string) {
     setActionLoading(appId);
-    approve(appId);
+    const result = approve(appId);
     setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('feedback.applicant.approve.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   function handleReject(appId: string) {
@@ -97,20 +104,30 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     const result = reject(rejectingAppId, reason);
     setActionLoading(null);
     if (!result.ok) {
-      setRejectError(
+      const message =
         result.error === 'REASON_REQUIRED'
           ? t('reject.error.reasonRequired')
-          : t(`application.error.${result.error}`),
-      );
+          : toastFromStoreError(result.error);
+      setRejectError(message);
+      showError(message);
       return;
     }
+    showSuccess(t('feedback.applicant.reject.success'));
     setRejectingAppId(null);
   }
 
   function handleMarkNoShow(appId: string) {
     setActionLoading(appId);
-    markNoShow(appId);
+    const result = markNoShow(appId);
     setActionLoading(null);
+    if (result.ok) {
+      showSuccess(
+        t('feedback.applicant.markNoShow.success'),
+        t('feedback.applicant.markNoShow.success.desc'),
+      );
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   function handleReportIssue(appId: string) {
@@ -119,14 +136,24 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
   function handleApproveCancellation(appId: string) {
     setActionLoading(appId);
-    approveCancellationRequest(appId);
+    const result = approveCancellationRequest(appId);
     setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('feedback.applicant.cancellationApproved.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   function handleRejectCancellation(appId: string) {
     setActionLoading(appId);
-    rejectCancellationRequest(appId);
+    const result = rejectCancellationRequest(appId);
     setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('feedback.applicant.cancellationRejected.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   function handleCancelShift() {
@@ -139,13 +166,9 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
       // Phase 9G — distinguish the three failure modes so the employer
       // sees a precise reason. `NOT_FOUND` is rare (only if the shift
       // was deleted between render and click).
-      const errorKey =
-        result.error === 'TOO_LATE_HAS_APPLICANTS'
-          ? 'shift.error.TOO_LATE_HAS_APPLICANTS'
-          : result.error === 'TOO_LATE_STARTED'
-            ? 'shift.error.TOO_LATE_STARTED'
-            : 'shift.error.NOT_FOUND';
-      setCancelError(t(errorKey));
+      const message = toastFromStoreError(result.error);
+      setCancelError(message);
+      showError(message);
       setCancelLoading(false);
       return;
     }
@@ -175,6 +198,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
     setCancelLoading(false);
     setCancelConfirm(false);
+    showSuccess(
+      t('feedback.shift.cancel.success'),
+      t('feedback.shift.cancel.success.desc'),
+    );
     // Redirect back to the employer dashboard so the employer sees the
     // cancellation reflected in their shift list immediately.
     router.push('/employer/dashboard');

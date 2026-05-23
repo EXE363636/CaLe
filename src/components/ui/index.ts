@@ -21,8 +21,8 @@ export { Textarea } from './Textarea';
 
 export { Modal } from './Modal';
 
-export { Toast, ToastContainer } from './Toast';
-export type { ToastTone, ToastItem } from './Toast';
+export { Toast } from './Toast';
+export type { ToastTone, ToastItem } from '@/stores/toastStore';
 
 export { EmptyState } from './EmptyState';
 

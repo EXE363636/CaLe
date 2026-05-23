@@ -1,6 +1,6 @@
 # Visual QA Notes — CaLẻ / ShiftNow
 
-Last reviewed: **2026-05-23, Phase 9N notification-bell same-page click pass.**
+Last reviewed: **2026-05-23, Phase 9S product navigation shell pass.**
 
 This file complements `RESPONSIVE.md`. Where that file checks layout
 breakpoints, this one captures whether each main route reads as a
@@ -784,3 +784,452 @@ Re-run this audit after any change to:
 - `src/components/layout/NotificationBell.tsx` (the bell row).
 - `src/components/layout/DashboardNotificationCard.tsx` (the in-page card).
 - The `useDashboardModalEvents(...)` subscription blocks in any dashboard page.
+
+
+## Phase 9O — Global action feedback (toast) system
+
+Last reviewed: **2026-05-23, Phase 9O global toast pass**.
+
+### A. Toast surface
+
+- Mounted once via `<ToastHost />` in `app/layout.tsx`. Portals to `document.body`, z-index `[110]` (above `Modal`'s `[100]`).
+- Top-right on `sm+` screens, bottom-center stack on mobile.
+- 200ms slide-in animation; respects `prefers-reduced-motion: reduce`.
+- Each toast renders title (bold) + optional description (small gray) + tone-colored icon + close button.
+- Live-region semantics: `role="status"` + `aria-live="polite"` for success/info; `role="alert"` + `aria-live="assertive"` for warning/error.
+
+### B. Worker action feedback
+
+| Action                                                | Result branch                                  | Toast                                                                                                |
+| ----------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Apply on `/shifts/[id]`                                | success                                        | success "Đã ứng tuyển thành công" + desc                                                              |
+| Apply, `REPUTATION_TOO_LOW`                            | failure                                        | error "Điểm uy tín của bạn quá thấp (dưới 50)…"                                                       |
+| Apply, `FULLY_BOOKED` / `ALREADY_APPLIED` / `CONFLICT` / `SCHEDULE_CONFLICT` | failure       | error with the matching reason                                                                       |
+| Cancel application (immediate, > 3h before start)      | success                                        | success "Đã huỷ đơn ứng tuyển"                                                                       |
+| Cancel application (within 3h, requires approval)      | success branch with `requiresApproval: true`   | info "Đã gửi yêu cầu huỷ ca" + desc                                                                  |
+| Cancel application, `QUOTA_EXCEEDED`                   | failure                                        | error "Đã hết hạn mức huỷ trong tuần / tháng"                                                         |
+| Check-in / check-out from dashboard                    | success                                        | success "Đã check-in" / "Đã check-out, chờ nhà tuyển dụng xác nhận"                                  |
+| Add / edit / delete personal busy block                | success                                        | success "Đã thêm / cập nhật / xoá lịch bận"                                                          |
+| Block overlaps approved shift / time-range invalid     | failure                                        | error "Khung giờ này trùng…" / "Giờ kết thúc phải sau giờ bắt đầu"                                  |
+
+### C. Employer action feedback
+
+| Action                                                 | Result branch | Toast                                                                                |
+| ------------------------------------------------------ | ------------- | ------------------------------------------------------------------------------------ |
+| Create shift on `/employer/shifts/new`                  | success       | success "Đã tạo ca tuyển dụng" + "Bấm Mô phỏng đặt cọc để công khai…"                 |
+| Simulate deposit                                       | success       | success "Đã mô phỏng đặt cọc — ca đã được công khai"                                  |
+| Cancel shift on `/employer/shifts/[id]`                  | success       | success "Đã huỷ ca làm" + "Tiền đặt cọc đã được hoàn (mô phỏng)."                     |
+| Cancel shift, `TOO_LATE_HAS_APPLICANTS`                  | failure       | error "Không thể huỷ ca trong vòng 6 giờ trước khi ca bắt đầu vì ca đã có người ứng tuyển hoặc được duyệt." |
+| Cancel shift, `TOO_LATE_STARTED`                         | failure       | error "Không thể huỷ ca sau khi ca đã bắt đầu."                                       |
+| Approve applicant                                       | success       | success "Đã duyệt người ứng tuyển"                                                    |
+| Reject applicant (with reason)                          | success       | success "Đã từ chối đơn ứng tuyển"                                                    |
+| Reject without reason                                   | failure       | error "Vui lòng nhập lý do."                                                          |
+| Mark no-show                                           | success       | success "Đã đánh dấu vắng mặt" + "Bạn được tặng 1 lượt boost…"                         |
+| Approve / reject cancellation request                   | success       | success matching the action                                                            |
+
+### D. Admin action feedback
+
+| Action                                       | Result branch | Toast                                                                              |
+| -------------------------------------------- | ------------- | ---------------------------------------------------------------------------------- |
+| Reputation adjust                            | success       | success "Đã cập nhật điểm uy tín"                                                  |
+| Reputation adjust, score out of range        | failure       | error "Điểm uy tín phải nằm trong khoảng 0–100."                                   |
+| Reputation adjust, missing reason            | failure       | error "Vui lòng nhập lý do."                                                       |
+| Suspend user                                 | success       | success "Đã tạm khoá tài khoản"                                                     |
+| Suspend self / last admin                    | failure       | error "Bạn không thể tự khoá tài khoản mình." / "Không thể khoá quản trị viên đang hoạt động cuối cùng." |
+| Reactivate user                              | success       | success "Đã mở khoá tài khoản"                                                      |
+| Resolve dispute                              | success       | success "Đã giải quyết tranh chấp"                                                  |
+
+### E. Auth feedback
+
+| Action                                       | Result branch | Toast                                                                |
+| -------------------------------------------- | ------------- | -------------------------------------------------------------------- |
+| Login                                        | success       | success "Đăng nhập thành công"                                        |
+| Login, wrong password                         | failure       | error "Email hoặc mật khẩu không đúng."                              |
+| Login, suspended account                      | failure       | error "Tài khoản đã bị tạm khoá. Vui lòng liên hệ quản trị viên."    |
+| Register                                     | success       | success "Tạo tài khoản thành công" + desc                            |
+| Register, email already taken                | failure       | error "Email này đã được đăng ký."                                    |
+| Logout (NavBar / MobileNav)                  | success       | success "Đã đăng xuất"                                                |
+
+### F. Toast vs notification distinction
+
+- Toasts: ephemeral, in-memory only, surfaced to the **actor** (the user who took the action) immediately. Auto-dismiss.
+- Notifications: persistent, role-scoped, surfaced to the **affected user** in the bell. Survive page reload. Clickable deep links open the right modal/route.
+- Both can fire for the same action without duplicating content. Example: employer approves applicant → actor toast "Đã duyệt người ứng tuyển" + recipient `ApplicationApproved` notification linking to `/shifts/{id}`.
+
+### G. Notification mark-read no-spam
+
+`markRead(id)` and `markAllRead(userId)` from the notification store do **not** fire toasts. Marking a notification read is a passive UI-only action; toasting on every click would be noise. The bell dropdown closes silently as before.
+
+### H. Form-level validation no-spam
+
+Field-level validation (e.g. invalid email format while typing in the login form) shows inline error text under the field, not a toast. Toasts fire only on **submit** when the action result actually arrives.
+
+### I. Reduced motion
+
+When `prefers-reduced-motion: reduce` is set, the toast slide-in animation is short-circuited (added to the existing `@media` block in `globals.css`). Toasts still appear and dismiss correctly; they just don't animate in.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/toastStore.ts` (queue / duration logic).
+- `src/lib/toast.ts` (helper API).
+- `src/lib/errorMap.ts` (error code → message map).
+- `src/components/ui/Toast.tsx` (visuals / aria semantics).
+- `src/components/layout/ToastHost.tsx` (portal mount, layout).
+- Any action-handler call site that calls `showSuccess` / `showError` / `showWarning` / `showInfo`.
+
+
+## Phase 9P — Auth correctness, toast UX polish, admin shift detail nav
+
+Last reviewed: **2026-05-23, Phase 9P auth + toast + admin nav pass**.
+
+### A. Auth correctness QA
+
+| Scenario                                                                  | Expected result                                                              |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Login with `an.nguyen@gmail.com` / `demo`                                  | success → worker dashboard                                                    |
+| Login with `an.nguyen@gmail.com` / `wrong`                                 | error toast "Email hoặc mật khẩu không đúng."                                |
+| Login with `an.nguyen@gmail.com` / *(empty)*                               | error toast "Email hoặc mật khẩu không đúng."                                |
+| Login with `unknown@example.vn` / `demo`                                   | error toast "Email hoặc mật khẩu không đúng." (no enumeration)               |
+| Login with `   AN.nguyen@GMAIL.com   ` / `demo`                            | success (case + whitespace normalised)                                       |
+| Login with a suspended account, correct password                           | error toast "Tài khoản đã bị tạm khoá. Vui lòng liên hệ quản trị viên."     |
+| Login with a suspended account, wrong password                             | error toast "Email hoặc mật khẩu không đúng." (suspension state not leaked) |
+| Register a new worker with `password=longEnoughPwd`, then logout, then login with that exact password | success                                                  |
+| Register, then attempt to log in with a different password                | error toast "Email hoặc mật khẩu không đúng."                                |
+
+Automated regression coverage: `src/__tests__/authStore.test.ts` (12 cases).
+
+### B. Toast position / alignment / progress
+
+- Desktop: toasts pin to `top-24 right-4` — clear of the sticky NavBar; the NavBar's logout / notification bell remain clickable while a toast is visible.
+- Mobile (< 640 px): toasts stack at `bottom-4`, full-width within page padding.
+- Icon badge centers vertically with the title + description block (`items-center` on the row, `self-start` on the close button).
+- Auto-dismiss progress bar runs along the bottom edge from full width to zero over the toast's duration (success 3s, info/warning 4s, error 5s). Color matches the tone (emerald / red / amber / blue).
+- Sticky toasts (when an action raises `showError(..., { sticky: true })`) skip the bar entirely.
+- `prefers-reduced-motion: reduce` short-circuits both the slide-in animation and the progress-bar shrink — the toast appears instantly with the bar at full width and disappears at the auto-dismiss time.
+- Multiple toasts stack vertically with consistent gap; each independently dismissible.
+
+### C. Toast tone correctness — admin actions
+
+| Admin action                                | Click branch                                          | Toast                                                                |
+| ------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| Tạm khoá user (success)                      | `result.ok`                                            | success "Đã tạm khoá tài khoản"                                       |
+| Tạm khoá self                                | `CANNOT_SUSPEND_SELF`                                  | error "Bạn không thể tự khoá tài khoản mình."                        |
+| Tạm khoá last active admin                   | `CANNOT_SUSPEND_LAST_ADMIN`                            | error "Không thể khoá quản trị viên đang hoạt động cuối cùng."        |
+| Mở khoá (success)                            | `result.ok`                                            | success "Đã mở khoá tài khoản"                                        |
+| Override escrow (success)                    | `result.ok`                                            | success "Đã override trạng thái đặt cọc"                              |
+| Override escrow (failure)                    | `SHIFT_NOT_FOUND` etc.                                 | error from `toastFromStoreError`                                      |
+| Resolve dispute (success)                    | `result.ok`                                            | success "Đã giải quyết tranh chấp"                                    |
+
+The previous "always success" tone bug is gone — tone now strictly follows `result.ok`.
+
+### D. Admin shift detail navigation
+
+On `/admin/dashboard` → Ca làm tab:
+
+| Action                              | Result                                                                |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| Click shift title                    | navigates to `/shifts/{id}` (admin viewer branch)                      |
+| Click "Xem chi tiết" button          | navigates to `/shifts/{id}`                                           |
+| Click "Override (khẩn cấp)"          | opens inline override form; success/failure toasts as wired            |
+| Filters `Tất cả` / `Đang hoạt động` / `Đã hoàn thành` / `Tranh chấp` | apply correctly; preserved from earlier phases   |
+
+Hover state on the title underlines the text in orange. Keyboard `Tab` order:
+1. Title link
+2. "Xem chi tiết" button
+3. "Override (khẩn cấp)" button.
+
+Each focusable element gets a visible orange ring on `:focus-visible`.
+
+The shift detail page already shows everything an admin needs without going through override: title, description, employer (clickable to `EmployerProfileModal`), location, date, time, wage, positions filled/total, shift status, escrow status, applicant list (when present). Cancellation/completion/dispute states show via the existing badges.
+
+### E. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/authStore.ts` `login` (the auth rule).
+- `src/__tests__/authStore.test.ts` (the regression coverage).
+- `src/components/ui/Toast.tsx` (icon alignment, progress-bar markup).
+- `src/components/layout/ToastHost.tsx` (positioning).
+- `src/app/globals.css` `@keyframes toast-progress-shrink` or the reduced-motion block.
+- The admin `<ShiftRow>` block in `src/app/admin/dashboard/page.tsx`.
+
+
+## Phase 9Q — Toast lifecycle hardening + global footer
+
+Last reviewed: **2026-05-23, Phase 9Q dedupe + footer pass**.
+
+### A. Toast dedupe behavior
+
+| Scenario                                                             | Expected                                                                |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Click "Đăng nhập" with wrong password once                            | One error toast appears with progress bar                                |
+| Click "Đăng nhập" with same wrong password again while toast visible | No second toast; existing toast pulses (shake), progress bar restarts at full width, dismiss timer resets |
+| Click "Đăng nhập" with a different wrong-password reason              | Different toasts stack (e.g. `INVALID_CREDENTIALS` then `SUSPENDED`)      |
+| Click "Đăng nhập" with same wrong password 5 times in <1s            | Still only one toast on screen; pulsing each time                        |
+| Wait for toast to auto-dismiss, then trigger same error again        | Fresh toast appears with `version: 1`; progress runs full duration       |
+| Manual close (X) → trigger same error again                          | Fresh toast appears as new item                                          |
+
+Automated regression: `src/__tests__/toastStore.test.ts` (13 cases).
+
+### B. Toast lifecycle / timers
+
+- Every non-sticky toast auto-dismisses exactly after its duration (success 3s / info 4s / warning 4s / error 5s) measured from the most recent show or dedupe re-trigger.
+- The auto-dismiss timer is keyed on `version`: each dedupe bump clears the prior `setTimeout` and starts a new one. No timer leaks.
+- Manual close removes the toast immediately and cancels its timer.
+- `<ToastHost>` calls `useToastStore.getState().clear()` on unmount, so dev hot-reloads or layout transitions never leave dangling toasts.
+- Sticky toasts (`duration <= 0`) never auto-dismiss; user must close.
+- `MAX_VISIBLE_TOASTS = 4`. Showing a 5th non-sticky toast evicts the oldest non-sticky one.
+
+### C. Progress bar
+
+- Thin colored bar (`h-0.5`) along the bottom edge.
+- Width animates from 100% → 0% over `duration` via `@keyframes toast-progress-shrink` with linear timing — honest visual progress.
+- Re-keyed on `version` so dedupe restarts the animation cleanly.
+- Hidden entirely when `duration <= 0` (sticky).
+- Tone-matched color: success → emerald, error → red, info → blue, warning → amber.
+- `prefers-reduced-motion: reduce` short-circuits the animation; the bar shows full-width but the dismiss timer still runs.
+- Does not block the close button (which sits in the top-right corner with `self-start`).
+
+### D. Toast position / icon alignment (preserved from 9P)
+
+- Desktop: `sm:top-24 sm:right-4` so toasts sit clearly below the sticky NavBar.
+- Mobile: bottom-center (`bottom-4`).
+- Icon badge centers vertically with the title + description block via `items-center`.
+- Multiple toasts stack with consistent gap; each independently dismissible.
+
+### E. Footer placement
+
+| Surface                                | Footer visible? |
+| -------------------------------------- | --------------- |
+| `/` (landing)                           | ✅              |
+| `/login`, `/register`                   | ✅              |
+| `/shifts`, `/shifts/[id]`               | ✅              |
+| `/worker/dashboard`, `/worker/profile`, `/worker/schedule` | ✅ |
+| `/employer/dashboard`, `/employer/profile`, `/employer/schedule` | ✅ |
+| `/employer/shifts/new`, `/employer/shifts/[id]` | ✅       |
+| `/admin/dashboard`                      | ❌ (hidden by `usePathname().startsWith('/admin')`) |
+| Any modal overlay                       | ❌ (modal portals into `document.body`, footer is in the page tree) |
+
+### F. Footer responsive behavior
+
+- Mobile (`< md`): single-column stack, brand on top, link columns below, bottom row stacks vertically.
+- Tablet (`md`): 2-column grid for the 5 sections.
+- Desktop (`lg`): 5-column grid laid out side by side.
+- Bottom row flex direction switches from `flex-col` to `sm:flex-row` so the copyright and the MVP disclaimer pill share a row at ≥ 640 px.
+
+### G. Footer content
+
+- Brand: "CaLẻ / ShiftNow" (orange), publisher "CaLedo Tech".
+- Tagline: "Kết nối ca làm ngắn hạn an toàn, minh bạch và linh hoạt."
+- Contact (mock): `support@caledo.vn`, hotline `1900 3636`, address `Hà Nội, Việt Nam`.
+- Four nav columns: `Về CaLedo`, `Dành cho người lao động`, `Dành cho nhà tuyển dụng`, `Pháp lý & hỗ trợ`. Each carries 4 links.
+- Real routes (`/shifts`, `/worker/profile`, `/worker/schedule`, `/employer/dashboard`, `/employer/shifts/new`) are rendered as `<Link>`s. Future / unimplemented routes (Giới thiệu, Cách hoạt động, Điều khoản, …) are rendered as `aria-disabled` text with cursor: default — no fake navigation.
+- Bottom row: `© 2026 CaLedo Tech. All rights reserved.` + MVP pill `MVP mock data — chưa dùng cho giao dịch thật.`
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/toastStore.ts` (dedupe / cap / version logic).
+- `src/__tests__/toastStore.test.ts`.
+- `src/components/ui/Toast.tsx` (timer effect, progress key, shake class).
+- `src/components/layout/ToastHost.tsx` (cleanup or position).
+- `src/app/globals.css` `@keyframes toast-shake` / `@keyframes toast-progress-shrink` / reduced-motion block.
+- `src/components/layout/Footer.tsx` (column shape, placement gate).
+
+
+## Phase 9R — Toast lifecycle ownership + auth cleanup + real footer routes
+
+Last reviewed: **2026-05-23, Phase 9R lifecycle + footer pass**.
+
+### A. Toast lifecycle (store-owned)
+
+| Scenario                                                              | Expected                                                       |
+| --------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Wrong-password error toast (duration 5000ms)                           | disappears at exactly 5000ms ± frame                            |
+| Wrong-password retry at t=2500ms                                      | toast pulses, progress restarts, total visible time is 7500ms (2500 + new 5000) |
+| Manual close before timeout                                           | toast removed immediately; no late-firing timer reappearance    |
+| Sticky toast (`showError(..., { sticky: true })`)                      | never auto-dismisses                                            |
+| `clear()` while toasts are visible                                    | all removed; no late-firing timer reappearance                  |
+
+Automated regression: `src/__tests__/toastStore.test.ts` (20 cases including 7 new in 9R using `vi.useFakeTimers()`).
+
+### B. Auth toast cleanup
+
+| Scenario                                                              | Expected                                                                |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Type wrong password 5x rapidly on `/login`                             | One error toast, shakes each time, no stack                              |
+| Type wrong password then submit correct password                       | Old error toast cleared via `clearToastsByScope('auth')`; success toast appears; dashboard does NOT show stale "Email hoặc mật khẩu không đúng." |
+| Successful login pushes to `/worker/dashboard`                         | Route-change effect in `<ToastHost>` clears any leftover auth toast for safety |
+| Logout from NavBar/MobileNav                                           | All toasts cleared, then "Đã đăng xuất" success toast shown              |
+| Successful register from `/register`                                   | Auth-scope toasts cleared, success toast with description shown          |
+
+### C. Footer placement after Phase 9R
+
+| Surface                                | Footer visible? |
+| -------------------------------------- | --------------- |
+| `/` (landing)                           | ✅              |
+| `/login`, `/register`                   | ✅              |
+| Static info pages (`/about`, `/safety`, …) | ✅           |
+| `/shifts`, `/shifts/[id]`               | ✅              |
+| `/worker/dashboard`, `/worker/profile`, `/worker/schedule`, `/worker/reputation-guide`, `/worker/cancellation-policy` | ✅ |
+| `/employer/dashboard`, `/employer/profile`, `/employer/schedule`, `/employer/payments`, `/employer/reviews` | ✅ |
+| `/employer/shifts/new`, `/employer/shifts/[id]` | ✅            |
+| `/admin/dashboard`                      | ✅ (Phase 9R reversed Phase 9Q's admin hide) |
+| Inside any modal overlay                 | ❌ (modal portals to `document.body`)         |
+
+### D. Footer link integrity
+
+| Footer link                              | Destination route                          |
+| ---------------------------------------- | ------------------------------------------ |
+| Giới thiệu                                | `/about`                                   |
+| Cách hoạt động                            | `/how-it-works`                            |
+| An toàn & xác minh                        | `/safety`                                   |
+| Câu hỏi thường gặp                        | `/faq`                                      |
+| Tìm ca làm                                | `/shifts`                                   |
+| Hồ sơ & điểm uy tín                       | `/worker/reputation-guide`                  |
+| Lịch cá nhân                              | `/worker/schedule` (RoleGuard)              |
+| Quy định huỷ ca                           | `/worker/cancellation-policy`               |
+| Đăng ca tuyển                             | `/employer/shifts/new` (RoleGuard)          |
+| Quản lý ứng viên                          | `/employer/dashboard` (RoleGuard)           |
+| Đặt cọc & thanh toán                      | `/employer/payments`                        |
+| Đánh giá sau ca                           | `/employer/reviews`                         |
+| Điều khoản sử dụng                        | `/terms`                                    |
+| Chính sách bảo mật                        | `/privacy`                                  |
+| Chính sách xử lý tranh chấp               | `/disputes`                                 |
+| Liên hệ hỗ trợ                            | `/support`                                  |
+
+Every link clickable. No `aria-disabled` placeholders.
+
+### E. Static info pages
+
+Each new page uses the shared `<InfoPage>` shell:
+- Eyebrow line, large title, short intro paragraph.
+- 3–6 content sections with substantive Vietnamese copy.
+- Optional CTA row at the bottom linking back to `/shifts`, `/employer/dashboard`, `/support`, etc. as appropriate.
+- No fake content blocks, no AI-filler. Each page describes real product behaviour or real policy posture.
+
+### F. Footer responsive behavior
+
+- Mobile (`< md`): single-column stack, brand on top, link columns below, bottom row stacks vertically.
+- Tablet (`md`): 2-column grid for the 5 sections.
+- Desktop (`lg`): 5-column grid laid out side by side.
+- Bottom row flex direction switches from `flex-col` to `sm:flex-row` so the copyright and the location/version line share a row at ≥ 640 px.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/toastStore.ts` (timer ownership, dedupe, scope).
+- `src/lib/toast.ts` (helper API).
+- `src/components/ui/Toast.tsx` (component shape).
+- `src/components/layout/ToastHost.tsx` (route-change effect).
+- `src/components/layout/Footer.tsx` (column shape).
+- `src/components/layout/InfoPage.tsx` (shared info-page shell).
+- Any of the 12 static pages under `/about`, `/how-it-works`, `/safety`, `/faq`, `/terms`, `/privacy`, `/disputes`, `/support`, `/worker/reputation-guide`, `/worker/cancellation-policy`, `/employer/payments`, `/employer/reviews`.
+- Auth flows in `src/app/login/page.tsx`, `src/app/register/page.tsx`, `src/components/layout/NavBar.tsx`, `src/components/layout/MobileNav.tsx`.
+
+
+## Phase 9S — Product navigation shell
+
+Last reviewed: **2026-05-23, Phase 9S navigation pass**.
+
+### A. Public navbar (logged out)
+
+| Element                                      | Expected                                                                |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| Brand block                                  | "CaLẻ / ShiftNow" + small "by CaLedo Tech" eyebrow on `sm+`              |
+| `Trang chủ` link                              | Active on `/` only (exact match)                                         |
+| `Tìm ca làm` link                             | Active on `/shifts` and `/shifts/[id]`                                   |
+| `Người lao động ▾` dropdown                  | 4 items: Tìm ca làm / Hồ sơ & điểm uy tín / Lịch cá nhân / Quy định huỷ ca |
+| `Nhà tuyển dụng ▾` dropdown                  | 4 items: Đăng ca tuyển / Quản lý ứng viên / Đặt cọc & thanh toán / Đánh giá sau ca |
+| `An toàn & hướng dẫn ▾` dropdown             | 4 items: Cách hoạt động / An toàn & xác minh / Câu hỏi thường gặp / Xử lý tranh chấp |
+| `Hỗ trợ` link                                 | → `/support`                                                             |
+| Right cluster                                | `Đăng nhập` · `Đăng ký` · primary orange CTA `Tìm ca làm ngay` (`→ /shifts`) |
+
+### B. Dropdown behavior
+
+- Click trigger to toggle open/close.
+- Click outside the dropdown card closes it.
+- Press ESC closes it.
+- Navigating to a link inside the menu closes it.
+- Each item has bold label + muted Vietnamese description below.
+- Hover background flips to `orange-50`.
+- Trigger lights up (orange-50 / orange-700) when current path matches any of its `activePrefixes`.
+
+### C. Authenticated navbar — worker
+
+`/worker/dashboard` after login:
+
+| Item                  | Active when                            |
+| --------------------- | -------------------------------------- |
+| Trang chủ              | `/`                                    |
+| Tìm ca làm             | `/shifts`, `/shifts/[id]`              |
+| Tổng quan              | `/worker/dashboard`                    |
+| Lịch cá nhân           | `/worker/schedule`                     |
+| Hồ sơ                  | `/worker/profile`, `/worker/profile/*` |
+| Hỗ trợ                 | `/support`                             |
+| Notification bell      | visible, opens dropdown                |
+| Logout                 | visible (red on hover)                 |
+
+### D. Authenticated navbar — employer
+
+| Item                  | Active when                              |
+| --------------------- | ---------------------------------------- |
+| Trang chủ              | `/`                                      |
+| Đăng ca tuyển          | `/employer/shifts/new`                   |
+| Tổng quan              | `/employer/dashboard`                    |
+| Lịch tuyển dụng        | `/employer/schedule`                     |
+| Hồ sơ doanh nghiệp     | `/employer/profile`, `/employer/profile/*` |
+| Hỗ trợ                 | `/support`                               |
+| Notification bell      | visible                                  |
+| Logout                 | visible                                  |
+
+### E. Authenticated navbar — admin
+
+| Item                  | Destination                            |
+| --------------------- | -------------------------------------- |
+| Trang chủ              | `/`                                    |
+| Tổng quan admin        | `/admin/dashboard`                     |
+| Người dùng             | `/admin/dashboard?tab=users`           |
+| Ca làm                 | `/admin/dashboard?tab=shifts`          |
+| Tranh chấp             | `/admin/dashboard?tab=disputes`        |
+| Hỗ trợ                 | `/support`                             |
+
+### F. Mobile drawer (`< lg`)
+
+- Hamburger trigger replaces the desktop nav strip.
+- Drawer slides in from the right, max width `90vw`.
+- Sections per role:
+  - **Public:** Chính (2 links) · Người lao động (4) · Nhà tuyển dụng (4) · Hướng dẫn & hỗ trợ (5).
+  - **Worker:** Chính (5) · Hướng dẫn (4).
+  - **Employer:** Chính (5) · Hướng dẫn (4).
+  - **Admin:** Chính (5) · Hướng dẫn (2).
+- Drawer footer:
+  - Logged-in: red `Đăng xuất` button (preserves Phase 9R toast cleanup).
+  - Guest: stacked `Đăng nhập` (ghost) + `Đăng ký` (orange) buttons.
+- Closes on route change, ESC, backdrop click, link click.
+
+### G. Active-state matching
+
+- `Trang chủ` uses exact match — never lights up on any other route.
+- Sub-route links highlight the parent (e.g. `/worker/profile/edit` keeps `Hồ sơ` lit).
+- Dropdown triggers use prefix matching against `activePrefixes` so e.g. `Người lao động ▾` is active anywhere under `/worker/*`, even when none of the visible menu items match.
+- Admin tab deep links strip the `?tab=` query before active-state comparison so each tab link can highlight cleanly.
+
+### H. Link consistency
+
+- Every navbar item is a real `<Link>`. No `aria-disabled` or placeholder text.
+- Dropdown destinations reuse the exact same routes as the Phase 9R footer.
+- Notification bell and logout flow are unchanged from prior phases.
+- Modal overlays still portal to `document.body`; the navbar lives in the page tree under `<header>` so it never appears inside a modal.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/NavBar.tsx` (groups, dropdown primitive, active matching).
+- `src/components/layout/MobileNav.tsx` (drawer sections, role gating).
+- Any new top-level route that should appear in the navbar — add it to one of the three constants (`WORKER_GROUP`, `EMPLOYER_GROUP`, `SAFETY_GROUP`) or to the role-aware `Nav` variants.

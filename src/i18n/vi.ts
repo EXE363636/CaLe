@@ -240,8 +240,98 @@ export const vi: Record<string, string> = {
   'apply.error.FULLY_BOOKED': 'Ca làm này đã đủ người.',
   'apply.error.ALREADY_APPLIED': 'Bạn đã ứng tuyển ca làm này rồi.',
   'apply.error.SHIFT_NOT_FOUND': 'Không tìm thấy ca làm.',
+  'apply.error.SHIFT_NOT_AVAILABLE': 'Ca làm này không còn nhận đơn ứng tuyển.',
+  'apply.error.SHIFT_NOT_DEPOSITED': 'Ca làm chưa được đặt cọc.',
   'apply.error.WORKER_NOT_FOUND': 'Không tìm thấy tài khoản người làm.',
   'apply.error.NOT_PUBLISHED': 'Ca làm này chưa được đăng công khai.',
+
+  // -------------------------------------------------------------------------
+  // Phase 9O — global action feedback (toast titles + descriptions).
+  //
+  // Naming: `feedback.<actor>.<action>.{success,error}`.
+  // Use these via `showSuccess` / `showError` from `@/lib/toast`.
+  // -------------------------------------------------------------------------
+  'feedback.error.generic': 'Có lỗi xảy ra. Vui lòng thử lại.',
+  'feedback.error.applicationNotFound': 'Không tìm thấy đơn ứng tuyển.',
+  'feedback.error.wrongStatus': 'Trạng thái hiện tại không cho phép thao tác này.',
+  'feedback.error.reasonRequired': 'Vui lòng nhập lý do.',
+  'feedback.error.positionsBelowFilled':
+    'Số người tuyển không thể nhỏ hơn số người đã được duyệt.',
+  'feedback.error.userNotFound': 'Không tìm thấy người dùng.',
+  'feedback.error.notAWorker': 'Tài khoản này không phải là người làm.',
+  'feedback.error.disputeNotFound': 'Không tìm thấy tranh chấp.',
+  'feedback.error.invalidOutcome': 'Kết quả tranh chấp không hợp lệ.',
+  'feedback.error.cannotSuspendSelf': 'Bạn không thể tự khoá tài khoản mình.',
+  'feedback.error.cannotSuspendLastAdmin':
+    'Không thể khoá quản trị viên đang hoạt động cuối cùng.',
+  'feedback.error.invalidStars': 'Số sao đánh giá không hợp lệ (1–5).',
+  'feedback.error.alreadySubmitted': 'Bạn đã gửi đánh giá cho ca này rồi.',
+  'feedback.error.commentTooLong': 'Nội dung đánh giá quá dài.',
+  'feedback.error.ownerMismatch': 'Lịch này không thuộc về bạn.',
+  'feedback.error.titleRequired': 'Vui lòng nhập tiêu đề.',
+  'feedback.error.dateRequired': 'Vui lòng chọn ngày.',
+  'feedback.error.timeRequired': 'Vui lòng nhập giờ.',
+  'feedback.error.timeRangeInvalid': 'Giờ kết thúc phải sau giờ bắt đầu.',
+  'feedback.error.blockNotFound': 'Không tìm thấy lịch bận.',
+  'feedback.error.overlapsApprovedShift':
+    'Khung giờ này trùng với ca đã được duyệt.',
+  'feedback.error.invalidCredentials': 'Email hoặc mật khẩu không đúng.',
+  'feedback.error.suspended':
+    'Tài khoản đã bị tạm khoá. Vui lòng liên hệ quản trị viên.',
+  'feedback.error.emailTaken': 'Email này đã được đăng ký.',
+  'feedback.error.invalidEmail': 'Email không hợp lệ.',
+  'feedback.error.invalidPassword': 'Mật khẩu cần ít nhất 8 ký tự.',
+  'feedback.error.invalidPhone': 'Số điện thoại không hợp lệ.',
+
+  // Worker action feedback
+  'feedback.apply.success': 'Đã ứng tuyển thành công',
+  'feedback.apply.success.desc':
+    'Nhà tuyển dụng sẽ xem hồ sơ và phản hồi sớm.',
+  'feedback.cancel.success': 'Đã huỷ đơn ứng tuyển',
+  'feedback.cancelRequest.success': 'Đã gửi yêu cầu huỷ ca',
+  'feedback.cancelRequest.success.desc':
+    'Nhà tuyển dụng sẽ duyệt hoặc từ chối yêu cầu của bạn.',
+  'feedback.checkIn.success': 'Đã check-in',
+  'feedback.checkOut.success': 'Đã check-out, chờ nhà tuyển dụng xác nhận',
+  'feedback.schedule.add.success': 'Đã thêm lịch bận',
+  'feedback.schedule.update.success': 'Đã cập nhật lịch bận',
+  'feedback.schedule.delete.success': 'Đã xoá lịch bận',
+
+  // Employer action feedback
+  'feedback.shift.create.success': 'Đã tạo ca tuyển dụng',
+  'feedback.shift.create.success.desc':
+    'Bấm "Mô phỏng đặt cọc" để công khai ca cho người làm.',
+  'feedback.shift.deposit.success': 'Đã mô phỏng đặt cọc — ca đã được công khai',
+  'feedback.shift.edit.success': 'Đã lưu thay đổi',
+  'feedback.shift.cancel.success': 'Đã huỷ ca làm',
+  'feedback.shift.cancel.success.desc':
+    'Tiền đặt cọc đã được hoàn (mô phỏng).',
+  'feedback.applicant.approve.success': 'Đã duyệt người ứng tuyển',
+  'feedback.applicant.reject.success': 'Đã từ chối đơn ứng tuyển',
+  'feedback.applicant.confirm.success': 'Đã xác nhận hoàn thành ca',
+  'feedback.applicant.confirm.success.desc':
+    'Tiền công đã được thanh toán cho người làm (mô phỏng).',
+  'feedback.applicant.markNoShow.success': 'Đã đánh dấu vắng mặt',
+  'feedback.applicant.markNoShow.success.desc':
+    'Bạn được tặng 1 lượt boost cho ca tiếp theo.',
+  'feedback.applicant.cancellationApproved.success':
+    'Đã chấp nhận yêu cầu huỷ',
+  'feedback.applicant.cancellationRejected.success': 'Đã từ chối yêu cầu huỷ',
+
+  // Admin action feedback
+  'feedback.admin.reputationAdjust.success': 'Đã cập nhật điểm uy tín',
+  'feedback.admin.suspend.success': 'Đã tạm khoá tài khoản',
+  'feedback.admin.reactivate.success': 'Đã mở khoá tài khoản',
+  'feedback.admin.dispute.resolve.success': 'Đã giải quyết tranh chấp',
+  'feedback.admin.escrow.override.success': 'Đã override trạng thái đặt cọc',
+
+  // Auth action feedback
+  'feedback.auth.login.success': 'Đăng nhập thành công',
+  'feedback.auth.register.success': 'Tạo tài khoản thành công',
+  'feedback.auth.register.success.desc':
+    'Bạn có thể đăng nhập và bắt đầu sử dụng ngay.',
+  'feedback.auth.logout.success': 'Đã đăng xuất',
+  'feedback.profile.save.success': 'Đã lưu hồ sơ',
 
   // -------------------------------------------------------------------------
   // Auth errors

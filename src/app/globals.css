@@ -137,6 +137,54 @@ body {
   animation: modal-backdrop-in 140ms ease-out;
 }
 
+/* Toast entrance animation (Phase 9O). Slight slide-up + fade-in.
+ * Short duration so the feedback feels responsive. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.toast-anim {
+  animation: toast-in 200ms ease-out;
+}
+
+/* Toast auto-dismiss progress bar (Phase 9P). Width shrinks from 100%
+ * to 0 over the toast's `duration` (set inline as `animation-duration`).
+ * Linear timing so the visual progress is honest. Reduced-motion users
+ * see a static full-width bar (overridden in the media query below). */
+@keyframes toast-progress-shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.toast-progress {
+  width: 100%;
+  animation-name: toast-progress-shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+
+/* Toast dedupe shake (Phase 9Q). Plays once when an identical toast is
+ * re-triggered while still visible, so the user notices the repeated
+ * event without a duplicate stacking up. Tiny horizontal nudge — never
+ * exceeds 4px to stay calm. */
+@keyframes toast-shake {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(-3px); }
+  40%  { transform: translateX(3px); }
+  60%  { transform: translateX(-2px); }
+  80%  { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+.toast-shake {
+  animation: toast-shake 320ms ease-in-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .motion-lift,
   .motion-press {
@@ -147,6 +195,9 @@ body {
   }
   .modal-panel-anim,
   .modal-backdrop-anim,
+  .toast-anim,
+  .toast-progress,
+  .toast-shake,
   .entrance-up,
   .entrance-right,
   .float-soft {

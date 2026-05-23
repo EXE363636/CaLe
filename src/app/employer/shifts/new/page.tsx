@@ -13,6 +13,7 @@ import {
   trustForEmployer,
 } from '@/domain/employerTrust';
 import { formatVND } from '@/lib/format';
+import { showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 
 export default function NewShiftPage() {
@@ -56,12 +57,17 @@ function NewShiftContent() {
     const shift = createShift({ ...values, employerId: currentUserId });
     setCreatedShiftId(shift.id);
     setDepositAmount(shift.depositAmount);
+    showSuccess(
+      t('feedback.shift.create.success'),
+      t('feedback.shift.create.success.desc'),
+    );
   }
 
   function handleDeposit() {
     if (!createdShiftId) return;
     simulateDeposit(createdShiftId);
     setDeposited(true);
+    showSuccess(t('feedback.shift.deposit.success'));
     setTimeout(() => router.push(`/employer/shifts/${createdShiftId}`), 1200);
   }
 

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { Input, Button } from '@/components/ui';
 import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
+import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired } from '@/lib/validate';
 
@@ -55,11 +57,19 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!result.ok) {
-      const msg = t(`auth.error.${result.error}`);
+      const msg = toastFromStoreError(result.error);
       setErrors({ form: msg });
+      showError(msg, undefined, { scope: 'auth' });
       return;
     }
 
+    // Phase 9R — drop any previous wrong-password / invalid-email
+    // error toasts so the dashboard the user lands on doesn't carry
+    // stale auth errors over from the login attempt.
+    clearToastsByScope('auth');
+    showSuccess(t('feedback.auth.login.success'), undefined, {
+      scope: 'auth',
+    });
     router.push(DASHBOARD[result.value.role] ?? '/');
   }
 

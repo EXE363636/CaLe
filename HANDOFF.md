@@ -664,6 +664,156 @@ These were caught during manual QA. Read the affected file's history before "sim
     - **Constraints honored** — no new dependencies (`window.dispatchEvent` is a browser primitive), no schema bump (still v4), no business-logic changes, no notification-creation-site changes (links unchanged from Phase 9L). `markRead` semantics unchanged.
     - **Files changed (Phase 9N):** `src/lib/notificationAction.ts` (new), `src/components/layout/NotificationBell.tsx` (uses shared helper, `<button>` rows), `src/components/layout/DashboardNotificationCard.tsx` (uses shared helper, dropped Phase 9M props), `src/app/worker/dashboard/page.tsx` (event subscription), `src/app/employer/dashboard/page.tsx` (event subscription), `src/app/admin/dashboard/page.tsx` (event subscription), `HANDOFF.md` (Section 8 principle + this entry), `VISUAL_QA.md`.
 
+31. **Phase 9O global action feedback (toast) system** *(2026-05-23, Phase 9O)*. Until now, action results lived in scattered inline `setError(...)` strings; success was usually invisible to the actor. Phase 9O introduces a single global toast surface so every action surfaces real feedback to the user.
+    - **A. Toast store** `src/stores/toastStore.ts`:
+      - Slice: `toasts: ToastItem[]`. Mutators: `show(input)` returns the id; `dismiss(id)`; `clear()`.
+      - `ToastTone` union: `'success' | 'error' | 'warning' | 'info'`.
+      - Default durations: success 3000ms, info/warning 4000ms, error 5000ms. `duration: 0` makes a toast sticky.
+      - In-memory only — never persisted to localStorage. No schema bump. Stable raw selector pattern (UI reads `toasts` directly; no per-call filtering inside selectors).
+    - **B. Helper API** `src/lib/toast.ts` — typed wrappers `showSuccess(title, description?)`, `showError(title, description?, { sticky? })`, `showWarning`, `showInfo`, plus `dismissToast(id)`. Action sites import these instead of touching the store directly.
+    - **C. Central error map** `src/lib/errorMap.ts` — `toastFromStoreError(code)` translates known store error codes (e.g. `REPUTATION_TOO_LOW`, `SHIFT_FULL`, `TOO_LATE_HAS_APPLICANTS`, `INVALID_SCORE`, `OVERLAPS_APPROVED_SHIFT`, `INVALID_CREDENTIALS`, `SUSPENDED`, …) into Vietnamese messages. Unknown codes fall back to `feedback.error.generic` and `console.warn` for dev visibility. Single source of truth so the same code never has two different toasts in different pages.
+    - **D. Toast primitive rewrite** `src/components/ui/Toast.tsx`:
+      - Title + optional description, tone-coded icon in a soft circle, accent bar, ring, close button (44 × 44 hit area).
+      - `role="status"` + `aria-live="polite"` for success/info; `role="alert"` + `aria-live="assertive"` for warning/error. Keyboard-accessible close.
+      - 200ms slide-in keyframe (`@keyframes toast-in`) — short-circuited under `prefers-reduced-motion: reduce` (added to the existing media-query block in `globals.css`).
+    - **E. Toast host** `src/components/layout/ToastHost.tsx` — single mount point at `app/layout.tsx`. Portals into `document.body`, renders top-right on `sm+`, bottom-center on mobile. Pulls `toasts` via stable selector and subscribes to `dismiss`. Stacks multiple toasts cleanly.
+    - **F. Wired action sites:**
+      - **Worker:** apply (`/shifts/[id]`), cancel + cancellation request (`/shifts/[id]` + `/worker/dashboard`), check-in / check-out (`/worker/dashboard`), schedule add / update / delete (`/worker/schedule`).
+      - **Employer:** create shift (`/employer/shifts/new`), simulate deposit (same), cancel shift (`/employer/shifts/[id]`), approve / reject applicant (same), mark no-show, approve / reject cancellation request, confirm completion already showed inline UI — kept that and added a toast for the success path via the existing approve flow.
+      - **Admin:** suspend / reactivate, reputation adjust (out-of-range, missing reason, store error all toast), resolve dispute.
+      - **Auth:** login success/failure, register success/failure, logout (NavBar + MobileNav).
+    - **G. i18n** — large new block under `feedback.*` covering success titles + descriptions for every wired action and `feedback.error.*` lookup keys for the central error map. All-Vietnamese strings; no English fallback shown to end users.
+    - **H. Toast vs notification distinction:**
+      - Toast = ephemeral, in-memory, dismisses automatically, shown to the **actor** (the user who took the action) right after the action completes.
+      - Notification = persistent, role-scoped, lives in `cale.notifications` localStorage, shown to the **affected user** in the bell, deep-linked via Phase 9L/M/N.
+      - Some flows produce both (e.g. employer approves applicant: actor sees `feedback.applicant.approve.success` toast; worker recipient sees `ApplicationApproved` notification on their bell with a `/shifts/{id}` link). The two layers don't duplicate content — toasts confirm to the actor that the action happened; notifications inform the recipient.
+    - **Constraints honored** — no new dependencies, no schema bump (still v4), no business-logic changes, no store mutator-signature changes. Mock / localStorage only. Pure additive surface.
+    - **Files changed (Phase 9O):** `src/stores/toastStore.ts` (new), `src/lib/toast.ts` (new), `src/lib/errorMap.ts` (new), `src/components/ui/Toast.tsx` (rewritten — title + description + tone palette + reduced-motion-aware animation), `src/components/ui/index.ts` (re-exports), `src/components/layout/ToastHost.tsx` (new portal mount), `src/app/layout.tsx` (mounts `<ToastHost />`), `src/app/globals.css` (`@keyframes toast-in` + reduced-motion entry), `src/i18n/vi.ts` (large `feedback.*` block + a few `apply.error.*` keys), `src/app/shifts/[id]/page.tsx`, `src/app/worker/dashboard/page.tsx`, `src/app/worker/schedule/page.tsx`, `src/app/employer/shifts/new/page.tsx`, `src/app/employer/shifts/[id]/page.tsx`, `src/app/admin/dashboard/page.tsx`, `src/app/login/page.tsx`, `src/app/register/page.tsx`, `src/components/layout/NavBar.tsx`, `src/components/layout/MobileNav.tsx`, `HANDOFF.md`, `VISUAL_QA.md`.
+
+32. **Phase 9P auth correctness, toast UX polish, admin shift detail navigation** *(2026-05-23, Phase 9P)*. Three independent QA findings, fixed together because they all touch real product correctness rather than just visuals.
+    - **A. Auth correctness — critical fix** (`src/stores/authStore.ts`):
+      - **Root cause.** The previous `login` accepted *any* password whenever the stored hash was `mock-hash:demo`: the check was `if (user.passwordHash !== expected && user.passwordHash !== 'mock-hash:demo')`. Since all seed users use `mock-hash:demo`, that meant any random string logged in successfully — a serious auth bug, not just a demo shortcut.
+      - **New rule:** `login(email, password)`:
+        1. Empty / non-string password → `INVALID_CREDENTIALS` (no auto-login).
+        2. Email is normalised (trim + lowercase) before lookup.
+        3. Unknown email → `INVALID_CREDENTIALS` (never `EMAIL_NOT_FOUND`, so attackers can't enumerate registered emails).
+        4. Wrong password → `INVALID_CREDENTIALS`.
+        5. Correct password + suspended → `SUSPENDED` (only after credentials match — suspension state is never leaked to a caller who can't authenticate).
+      - Demo accounts still keep `passwordHash: "mock-hash:demo"`, so typing `demo` continues to work for them; nothing else does.
+      - `register` is unchanged in behaviour but its hashed password is now actually verified on subsequent logins (because the universal-`demo` backdoor is gone).
+      - **New tests** `src/__tests__/authStore.test.ts` (12 cases): correct password succeeds; case-insensitive email; wrong password rejected; `demo` rejected for non-demo accounts; `demo` accepted only for demo accounts; unknown email rejected; empty password rejected; suspended-with-correct-password returns `SUSPENDED`; suspended-with-wrong-password returns `INVALID_CREDENTIALS` (regression guard against suspension leak); register + login + wrong-password round-trip; short password rejected; duplicate email rejected.
+    - **B. Toast UX polish** (`src/components/layout/ToastHost.tsx`, `src/components/ui/Toast.tsx`, `src/app/globals.css`):
+      - **Position.** Desktop offset moved from `top-4` → `top-24` so toasts sit clearly below the sticky NavBar (`h-16`-ish) and never cover the logout / nav actions. Mobile stays bottom-center.
+      - **Icon alignment.** Card's flex now uses `items-center` so the tone-icon badge centers vertically with the entire title + description block. Close button uses `self-start` so it stays visually anchored to the top-right corner without affecting icon alignment.
+      - **Auto-dismiss progress bar.** New `.toast-progress` element rendered along the bottom of every non-sticky toast. Width animates from 100% → 0% over the toast's `duration` via `animation-duration` set inline. Tone-aware color (success → emerald, error → red, warning → amber, info → blue). Sticky toasts (`duration <= 0`) skip the bar entirely.
+      - **Reduced motion.** `.toast-progress` added to the `@media (prefers-reduced-motion: reduce)` block alongside `.toast-anim` so motion-sensitive users see instant transitions.
+      - All Phase 9O semantics preserved: live-region tones, stacking, close button, single global mount, error-code → message map.
+    - **C. Toast tone correctness** — `handleSuspend` and `handleReactivate` in `src/app/admin/dashboard/page.tsx` already toast based on `result.ok` (Phase 9O wiring). Confirmed: success path → success toast, failure path (`CANNOT_SUSPEND_SELF`, `CANNOT_SUSPEND_LAST_ADMIN`, `USER_NOT_FOUND`) → error toast with the real reason. Same pattern for `overrideEscrow` (success/error toast added in this phase).
+    - **D. Admin shift detail navigation** (`src/app/admin/dashboard/page.tsx`):
+      - The Ca làm tab's `<ShiftRow>` now exposes two distinct actions:
+        1. **Title is a `<Link>` to `/shifts/{id}`** with hover/focus styles (`hover:text-orange-600`, `focus-visible:ring`). Admins land on the public shift detail page, which already has a "đang xem với tư cách quản trị viên" branch and shows the full record (title, description, employer, date/time, wage, positions filled/total, status, escrow, location).
+        2. **Explicit "Xem chi tiết" button** (also linking to `/shifts/{id}`), so the action is discoverable for users who don't realise the title is clickable.
+        3. **"Override (khẩn cấp)" button kept**, but no longer the only way to inspect details. Each emergency action surfaces a real toast (success or `toastFromStoreError(result.error)`).
+      - Row metadata expanded to show `positionsFilled / positionsTotal` alongside the existing date / deposit summary so admins get a quick health snapshot before opening the detail.
+      - Existing filters (`Tất cả` / `Đang hoạt động` / `Đã hoàn thành` / `Tranh chấp`) untouched.
+      - The escrow override flow now surfaces success/error feedback via the global toast system instead of failing silently.
+    - **Constraints honored** — no new dependencies, no schema bump (still v4), no business-logic changes outside the auth rule, no notification-creation-site changes. Mock / localStorage only. New tests use existing Vitest setup; no new test runner.
+    - **Files changed (Phase 9P):** `src/stores/authStore.ts` (login rewrite), `src/__tests__/authStore.test.ts` (new — 12 cases), `src/components/ui/Toast.tsx` (icon alignment + progress bar), `src/components/layout/ToastHost.tsx` (`sm:top-24` positioning), `src/app/globals.css` (`@keyframes toast-progress-shrink` + reduced-motion entry), `src/app/admin/dashboard/page.tsx` (Link import, ShiftRow title-as-link + "Xem chi tiết" button + positions counter + override toast feedback), `HANDOFF.md`, `VISUAL_QA.md`.
+
+33. **Phase 9Q toast lifecycle hardening + global footer** *(2026-05-23, Phase 9Q)*. Manual QA after Phase 9P found two real product issues: clicking a failing action repeatedly (e.g. wrong-password login) stacked identical toasts, and the existing footer was a one-line stub. This phase makes both production-shape.
+    - **A. Toast dedupe** (`src/stores/toastStore.ts`):
+      - New `dedupeKey = ${tone}|${title}|${description}` is computed inside `show`. If a toast with the same key is already on screen, the store **bumps the existing toast's `version` field and refreshes `createdAt`** instead of pushing a duplicate. The same id is returned to the caller so any external tracking stays stable.
+      - Different toasts (different tone, title, or description) still stack normally.
+      - A toast that has been dismissed (`dismiss(id)` or auto-dismissed) can appear again with a fresh `version: 1`.
+      - New constant `MAX_VISIBLE_TOASTS = 4`. When the queue exceeds the cap, the oldest **non-sticky** toast is evicted first; sticky toasts (`duration <= 0`) are pinned and only evicted when every slot is sticky.
+    - **B. Toast lifecycle in the component** (`src/components/ui/Toast.tsx`):
+      - `<Toast>` now accepts a `version` prop. The auto-dismiss `useEffect` lists `version` in its dep array, so a dedupe re-trigger cleanly clears the stale `setTimeout` and starts a new one matching the refreshed duration.
+      - The progress bar element is re-keyed on `version` (`key={\`progress-${version}\`}`) so React mounts a fresh node and the `@keyframes toast-progress-shrink` animation restarts at full width — no more half-empty bars after a re-trigger.
+      - A new `.toast-shake` class (added to `globals.css` via `@keyframes toast-shake`) plays a tiny ±3px horizontal pulse only when `version` changes from one value to another. Tracked with a `useRef(prevVersion)` so the initial mount doesn't shake.
+      - Sticky toasts (`duration <= 0`) skip the progress bar entirely — pre-existing behavior, preserved.
+    - **C. ToastHost cleanup** (`src/components/layout/ToastHost.tsx`):
+      - `useEffect` cleanup now calls `useToastStore.getState().clear()` on unmount so navigating away (or hot-reloading in dev) never leaves stale `dismiss` handlers pointing at unmounted toast nodes.
+      - Forwards `t.version` to each `<Toast>`.
+    - **D. Reduced motion.** Both `.toast-progress` and `.toast-shake` are added to the `@media (prefers-reduced-motion: reduce)` block in `globals.css`. Reduced-motion users get instant transitions but the dedupe + auto-dismiss timer logic still runs unchanged, so functionality isn't degraded.
+    - **E. Tests** (`src/__tests__/toastStore.test.ts` — 13 cases): first show creates one item; identical re-show doesn't stack; identical re-show bumps `version` and `createdAt`; different tone/title/description create separate items; dismissed toast can appear again with `version: 1`; `MAX_VISIBLE_TOASTS` cap enforced; oldest non-sticky evicted first when cap exceeded; sticky `duration: 0` preserved verbatim; per-tone defaults applied; `dismiss` removes only the matching item; `clear` removes all.
+    - **F. Global footer** (`src/components/layout/Footer.tsx` rewritten):
+      - Five-column responsive layout (mobile stacks; `md:` two columns; `lg:` five columns).
+      - Column 1 — brand `CaLẻ / ShiftNow` (orange), publisher `CaLedo Tech`, tagline, mock contact (`support@caledo.vn`, hotline `1900 3636`, address `Hà Nội, Việt Nam`).
+      - Columns 2–5 — `Về CaLedo`, `Dành cho người lao động`, `Dành cho nhà tuyển dụng`, `Pháp lý & hỗ trợ`. Each column contains four links. Routes that already exist (`/shifts`, `/worker/profile`, `/worker/schedule`, `/employer/shifts/new`, `/employer/dashboard`) link normally; the rest are rendered as `aria-disabled` placeholder text so we don't pretend they navigate anywhere.
+      - Bottom row — copyright `© 2026 CaLedo Tech. All rights reserved.` plus an MVP disclaimer pill: `MVP mock data — chưa dùng cho giao dịch thật.`
+      - Subtle border-top in `border-orange-100`, slightly translucent white panel so the footer separates from the warm body chrome without a hard line.
+      - **Placement decision.** Footer is mounted once in `app/layout.tsx` (already wired since Phase 9). Phase 9Q makes it client-side and uses `usePathname()` to **hide on `/admin/*`** so the admin tooling UI stays compact. Worker / employer dashboards keep the footer because they're product surfaces with normal page heights.
+      - No external SVG assets, no QR codes, no third-party logos.
+    - **Constraints honored** — no new dependencies, no schema bump (still v4), no business-logic changes, no toast-creation-site changes (callers still use `showSuccess` / `showError` etc.), no notification changes. Mock / localStorage only.
+    - **Files changed (Phase 9Q):** `src/stores/toastStore.ts` (dedupe + version + cap), `src/__tests__/toastStore.test.ts` (new — 13 cases), `src/components/ui/Toast.tsx` (version-driven timer reset, progress re-key, shake on dedupe), `src/components/layout/ToastHost.tsx` (forward version, clear on unmount), `src/app/globals.css` (`@keyframes toast-shake` + reduced-motion entry), `src/components/layout/Footer.tsx` (rewrite), `HANDOFF.md`, `VISUAL_QA.md`.
+
+34. **Phase 9R toast lifecycle ownership + auth cleanup + real footer routes** *(2026-05-23, Phase 9R)*. Three production-quality fixes after Phase 9Q manual QA: a stuck-toast race, stale auth errors carrying over after a successful login, and footer dead links / MVP-flavoured pill.
+    - **A. Toast auto-dismiss owned by the store** (`src/stores/toastStore.ts`):
+      - Root cause of the "progress bar finishes but toast stays" bug was a race between the `<Toast>` component's local `setTimeout` (keyed on `version`) and Zustand state updates. The component's effect would clean up its old timer before the new one fired in the right order, occasionally leaving a stale toast on screen.
+      - The fix moves timer ownership into the store. Module-scoped `Map<id, TimerHandle>` registry; `show` schedules `setTimeout` keyed on the toast id; `dismiss`, `clear`, `clearByScope` and the dedupe re-trigger all go through `clearTimer(id)` first. The component is now purely presentational — it consumes `version` only for the progress-bar `key` and the shake animation.
+      - Sticky toasts (`duration <= 0`) skip the registry entirely. Cap eviction also clears the evicted toast's timer.
+    - **B. Toast scopes + auth cleanup** (`src/stores/toastStore.ts`, `src/lib/toast.ts`):
+      - New optional `scope: ToastScope` field on `ToastItem`. Free-form string so callers can introduce buckets like `'auth' | 'worker' | …` without changing the store.
+      - New `clearByScope(scope)` mutator drops every toast in a category and cancels their timers.
+      - New helper `clearToastsByScope(scope)` re-exports the store mutator for call sites.
+      - `showSuccess / showError / showWarning / showInfo` accept an optional `{ scope }` (and `{ sticky }` for `showError`). Backward-compatible — call sites that don't pass options still work.
+      - Login/register/logout flows now call `clearToastsByScope('auth')` before showing their success toast and pass `scope: 'auth'` to every auth-related toast. So a user who clicks "Đăng nhập" with the wrong password 5 times then succeeds sees the success toast, not the lingering error.
+    - **C. Route-change cleanup** (`src/components/layout/ToastHost.tsx`):
+      - `<ToastHost>` now reads `usePathname()` and tracks the previous path with a `useRef`. When the path leaves `/login` or `/register` (e.g. after a successful submit pushes the user to a dashboard), it calls `clearByScope('auth')` so any stale wrong-password toast doesn't ride along into the dashboard.
+    - **D. Component cleanup** (`src/components/ui/Toast.tsx`):
+      - Removed the local `useEffect` that scheduled `setTimeout(onClose, duration)`. The auto-dismiss now happens via the store. Component still uses `version` to re-key the progress bar (`<span key={\`progress-${version}\`}>`) and play the shake pulse on dedupe.
+    - **E. Footer mounted everywhere with real routes** (`src/components/layout/Footer.tsx`):
+      - Removed the `usePathname().startsWith('/admin')` hide. Footer is now visible on every route including `/admin/*`. The previous Phase 9Q exclusion left admins with no way to find legal/help links from the management screens. Modals never see the footer because they portal into `document.body` while the footer lives in the page tree.
+      - Every footer link is now a real `<Link>` to a real route. Phase 9Q's `aria-disabled` placeholder rows are gone. Existing routes are reused where they fit (`/shifts`, `/worker/schedule`, `/employer/shifts/new`, `/employer/dashboard`); the rest are new static info pages shipped in this same phase.
+      - Bottom row no longer shows the "MVP mock data — chưa dùng cho giao dịch thật" pill. Replaced with a more natural `Made with care in Hà Nội · Phiên bản dùng thử` line so the footer reads like a real product without hiding that this is a trial build.
+      - Brand line, contact, copy preserved with light tightening.
+    - **F. Static info pages** (12 new routes):
+      - `/about`, `/how-it-works`, `/safety`, `/faq`, `/terms`, `/privacy`, `/disputes`, `/support`, `/worker/reputation-guide`, `/worker/cancellation-policy`, `/employer/payments`, `/employer/reviews`.
+      - Each page uses a shared `<InfoPage>` shell with eyebrow + title + intro + sections + optional CTA row. Vietnamese copy is written naturally, not AI-filler — every page has 3–6 substantive sections with concrete rules, examples, or links.
+      - All pages are pure server components. Total static route count: 15 → **27**.
+    - **G. Tests** (`src/__tests__/toastStore.test.ts` extended):
+      - 7 new lifecycle / scope cases on top of the Phase 9Q dedupe + cap suite. Uses `vi.useFakeTimers()` to verify exact-duration auto-dismiss, dedupe timer reset (advancing past the *original* duration after a re-trigger should NOT remove the toast), manual dismiss timer cleanup, `clear()` cancels all timers, and `clearByScope` cleanly partitions the queue.
+      - **Total tests: 33 → 40** (4 files, all passing).
+    - **Constraints honored** — no new dependencies (`vi.useFakeTimers` ships with Vitest), no schema bump (still v4), no business-logic changes, no notification-creation-site changes. Mock / localStorage only.
+    - **Files changed (Phase 9R):** `src/stores/toastStore.ts` (store-owned timers + scope), `src/lib/toast.ts` (helper API + `clearToastsByScope`), `src/components/ui/Toast.tsx` (drop local timer), `src/components/layout/ToastHost.tsx` (route-change cleanup), `src/app/login/page.tsx` (scope + cleanup), `src/app/register/page.tsx` (scope + cleanup), `src/components/layout/NavBar.tsx` (clear on logout), `src/components/layout/MobileNav.tsx` (clear on logout), `src/components/layout/Footer.tsx` (real routes, no admin hide, no MVP pill), `src/components/layout/InfoPage.tsx` (new shared shell), 12 new info pages (`src/app/{about,how-it-works,safety,faq,terms,privacy,disputes,support,worker/reputation-guide,worker/cancellation-policy,employer/payments,employer/reviews}/page.tsx`), `src/__tests__/toastStore.test.ts` (extended), `HANDOFF.md`, `VISUAL_QA.md`.
+
+35. **Phase 9S product-grade navigation shell** *(2026-05-23, Phase 9S)*. The Phase 9R footer matured into a real product surface but the top NavBar still read as a starter-template stub: brand on the left, three flat links in the middle, no Trang chủ entry, no grouping, lots of empty space. Phase 9S replaces both NavBar and MobileNav with a grouped, role-aware navigation that matches the breadth of the new footer.
+    - **A. Public navbar** (`src/components/layout/NavBar.tsx` rewrite):
+      - Brand block: `CaLẻ / ShiftNow` with a small `by CaLedo Tech` eyebrow that appears on `sm+`.
+      - Center nav (visible on `lg+`): `Trang chủ` · `Tìm ca làm` · `Người lao động ▾` · `Nhà tuyển dụng ▾` · `An toàn & hướng dẫn ▾` · `Hỗ trợ`. Three dropdowns each surface four destinations with a short Vietnamese description per item:
+        - **Người lao động** → `/shifts`, `/worker/reputation-guide`, `/worker/schedule`, `/worker/cancellation-policy`.
+        - **Nhà tuyển dụng** → `/employer/shifts/new`, `/employer/dashboard`, `/employer/payments`, `/employer/reviews`.
+        - **An toàn & hướng dẫn** → `/how-it-works`, `/safety`, `/faq`, `/disputes`.
+      - Right cluster (visible on `lg+`): `Đăng nhập` · `Đăng ký` · primary CTA `Tìm ca làm ngay`. The CTA is an orange gradient button so the primary action is unambiguous.
+      - On `< lg`, the desktop nav collapses; the brand + hamburger remain.
+    - **B. Authenticated navbar variants** (same file):
+      - **Worker:** `Trang chủ` · `Tìm ca làm` · `Tổng quan` · `Lịch cá nhân` · `Hồ sơ` · `Hỗ trợ` + bell + logout.
+      - **Employer:** `Trang chủ` · `Đăng ca tuyển` · `Tổng quan` · `Lịch tuyển dụng` · `Hồ sơ doanh nghiệp` · `Hỗ trợ` + bell + logout.
+      - **Admin:** `Trang chủ` · `Tổng quan admin` · `Người dùng` · `Ca làm` · `Tranh chấp` · `Hỗ trợ` + bell + logout. The Người dùng / Ca làm / Tranh chấp links use `?tab=...` deep links that the admin dashboard's existing `searchParams` reader handles natively.
+    - **C. Dropdown primitive** (in-component):
+      - In-house, no library. `<button aria-haspopup="menu" aria-expanded>` for the trigger, `<Link role="menuitem">` for items.
+      - Closes on outside click, ESC key, route change, and after any item click.
+      - Each item shows a label plus a one-line description in muted text so the menu reads like real product navigation, not a list of routes.
+      - White card · soft shadow · 1px ring · `hover:bg-orange-50` on items · keyboard focus ring.
+    - **D. Active-state matching:**
+      - `isPathActive(pathname, target)` matches the target prefix-style so `/worker/profile/edit` keeps `Hồ sơ` lit.
+      - Dropdown triggers light up when `pathname` matches **any** of `activePrefixes`; e.g. the `Người lao động` dropdown is active anywhere under `/worker/*` even when none of its visible items match exactly.
+      - Query-param links (`/admin/dashboard?tab=users`) match against `pathname` only — the query is stripped before comparison.
+      - `Trang chủ` uses an `exact` flag so it doesn't claim the active state on every route.
+    - **E. Mobile drawer** (`src/components/layout/MobileNav.tsx` rewrite):
+      - Same role-aware structure but laid out as labelled sections in a vertical drawer:
+        - **Public:** Chính · Người lao động · Nhà tuyển dụng · Hướng dẫn & hỗ trợ.
+        - **Worker:** Chính (5 worker links) · Hướng dẫn (4 info links).
+        - **Employer:** Chính (5 employer links) · Hướng dẫn (4 info links).
+        - **Admin:** Chính (5 admin links) · Hướng dẫn (2 info links).
+      - Footer of the drawer carries the auth actions: logged-in users see a red `Đăng xuất` button (preserves the Phase 9R toast cleanup); guests see two stacked buttons (`Đăng nhập` ghost + `Đăng ký` orange).
+      - Drawer is now `w-80 max-w-[90vw]` (was `w-72`) so the longer Vietnamese link labels fit cleanly.
+    - **F. Visual style** kept consistent with the rest of the app: warm orange brand accent, white background, subtle `border-orange-100` border-bottom, no third-party logos, no QR codes, no fake search hero.
+    - **G. Link consistency.** Every navbar link goes to a real route. The dropdowns reuse the exact same destinations the Phase 9R footer points at, so the two surfaces stay in sync. No `aria-disabled` placeholders.
+    - **H. Notification bell + logout** preserved from the prior NavBar; bell still mounts on desktop for logged-in users, logout button kept in both desktop and mobile shells. Phase 9R toast cleanup behavior preserved (`useToastStore.getState().clear()` on logout).
+    - **Constraints honored** — no new dependencies, no schema bump (still v4), no business-logic changes, no notification-creation-site changes, no homepage redesign (the optional "compact hero" suggestion in the spec was deferred since the current landing page already has a substantial hero from earlier phases). Mock / localStorage only.
+    - **Files changed (Phase 9S):** `src/components/layout/NavBar.tsx` (rewrite — public/role-aware variants + dropdown primitive + active-state matching), `src/components/layout/MobileNav.tsx` (rewrite — grouped sections per role + auth footer), `HANDOFF.md`, `VISUAL_QA.md`.
+
 ---
 
 ## 5b. Phase 2 ✅ Completed — Safer Worker Cancellation Flow

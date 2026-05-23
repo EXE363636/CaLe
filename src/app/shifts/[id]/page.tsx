@@ -15,6 +15,8 @@ import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
+import { showSuccess, showError, showInfo } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import type { Shift } from '@/types';
@@ -81,8 +83,15 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     const result = apply(shift.id, worker.id);
     setLoading(false);
     if (!result.ok) {
-      setApplyError(t(`apply.error.${result.error}`));
+      const message = toastFromStoreError(result.error);
+      setApplyError(message);
+      showError(message);
+      return;
     }
+    showSuccess(
+      t('feedback.apply.success'),
+      t('feedback.apply.success.desc'),
+    );
   }
 
   function handleConfirmCancel(reason: string) {
@@ -92,26 +101,24 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     const result = cancelByWorker(myApp.id, reason);
     setLoading(false);
     if (!result.ok) {
-      // REASON_REQUIRED is prevented by the dialog's button gating; surface
-      // anything else (WRONG_STATUS, APPLICATION_NOT_FOUND, SHIFT_NOT_FOUND,
-      // QUOTA_EXCEEDED) inline.
-      const code = result.error;
-      let message: string;
-      if (code === 'REASON_REQUIRED') {
-        message = t('cancel.confirm.reasonRequired');
-      } else if (code === 'SHIFT_NOT_FOUND') {
-        message = t('shift.error.NOT_FOUND');
-      } else if (code === 'QUOTA_EXCEEDED') {
-        message = t('cancel.confirm.quotaBlocked');
-      } else {
-        message = t(`application.error.${code}`);
-      }
+      const message = toastFromStoreError(result.error);
       setApplyError(message);
+      showError(message);
       return;
+    }
+    // Phase 9O — toast based on whether a request was created or the
+    // application was cancelled outright.
+    if (result.value.requiresApproval) {
+      showInfo(
+        t('feedback.cancelRequest.success'),
+        t('feedback.cancelRequest.success.desc'),
+      );
+    } else {
+      showSuccess(t('feedback.cancel.success'));
     }
     // On success, close the dialog. If approval is required the application
     // status flips to `CancellationRequested` and the page re-renders with
-    // the new badge — no toast needed.
+    // the new badge.
     setCancelDialogOpen(false);
   }
 

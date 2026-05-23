@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -15,6 +16,8 @@ import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
+import { showSuccess, showError } from '@/lib/toast';
+import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Dispute, EscrowStatus, Shift, User } from '@/types';
@@ -423,14 +426,22 @@ function UsersPanel({
     setActionError(null);
     const result = suspend(userId);
     if (!result.ok) {
-      setActionError(t(`admin.error.${result.error}`));
+      const message = toastFromStoreError(result.error);
+      setActionError(message);
+      showError(message);
+    } else {
+      showSuccess(t('feedback.admin.suspend.success'));
     }
   }
   function handleReactivate(userId: string) {
     setActionError(null);
     const result = reactivate(userId);
     if (!result.ok) {
-      setActionError(t(`admin.error.${result.error}`));
+      const message = toastFromStoreError(result.error);
+      setActionError(message);
+      showError(message);
+    } else {
+      showSuccess(t('feedback.admin.reactivate.success'));
     }
   }
 
@@ -587,7 +598,9 @@ function UserRow({
     setFormError(null);
     const trimmed = reason.trim();
     if (trimmed === '') {
-      setFormError(t('admin.error.REASON_REQUIRED'));
+      const message = t('admin.error.REASON_REQUIRED');
+      setFormError(message);
+      showError(message);
       return;
     }
     if (
@@ -596,16 +609,20 @@ function UserRow({
       newScore < 0 ||
       newScore > 100
     ) {
-      setFormError(t('admin.user.scoreOutOfRange'));
+      const message = t('admin.user.scoreOutOfRange');
+      setFormError(message);
+      showError(message);
       return;
     }
     const result = adjustReputation(user.id, newScore, trimmed);
     if (!result.ok) {
       // Map admin store errors to localized messages; fall back to generic.
-      const key = `admin.error.${result.error}`;
-      setFormError(t(key));
+      const message = toastFromStoreError(result.error);
+      setFormError(message);
+      showError(message);
       return;
     }
+    showSuccess(t('feedback.admin.reputationAdjust.success'));
     setReason('');
     handleCancelAdjust();
   }
@@ -859,26 +876,49 @@ function ShiftRow({ shift, employerName }: { shift: Shift; employerName: string 
 
   function handleOverride() {
     if (note.trim() === '' || target === shift.escrowStatus) return;
-    overrideEscrow(shift.id, target, note.trim());
+    const result = overrideEscrow(shift.id, target, note.trim());
     setEditing(false);
     setNote('');
+    if (result.ok) {
+      showSuccess(t('feedback.admin.escrow.override.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-gray-900">{shift.title}</p>
+          {/* Phase 9P — title is now a link to the public shift detail
+              so admins can inspect the full record (description,
+              applicants, etc.) without going through the override
+              flow. The page already handles the admin viewer branch. */}
+          <Link
+            href={`/shifts/${shift.id}`}
+            className="block truncate text-sm font-semibold text-gray-900 hover:text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded"
+          >
+            {shift.title}
+          </Link>
           <p className="truncate text-xs text-gray-500">
-            {employerName} • {formatDateVN(shift.date)} • {formatVND(shift.depositAmount)}
+            {employerName} • {formatDateVN(shift.date)} •{' '}
+            {shift.positionsFilled}/{shift.positionsTotal} •{' '}
+            {formatVND(shift.depositAmount)}
           </p>
         </div>
         <ShiftStatusBadge status={shift.status} />
         <EscrowStatusBadge status={shift.escrowStatus} />
         {!editing && (
-          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-            {t('admin.shifts.override')}
-          </Button>
+          <>
+            <Link href={`/shifts/${shift.id}`}>
+              <Button size="sm" variant="ghost">
+                {t('btn.viewDetail')}
+              </Button>
+            </Link>
+            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+              {t('admin.shifts.override')}
+            </Button>
+          </>
         )}
       </div>
 
@@ -998,9 +1038,14 @@ function DisputeRow({
 
   function handleResolve() {
     if (note.trim() === '') return;
-    resolveDispute(dispute.id, outcome, note.trim());
+    const result = resolveDispute(dispute.id, outcome, note.trim());
     setResolving(false);
     setNote('');
+    if (result.ok) {
+      showSuccess(t('feedback.admin.dispute.resolve.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
   }
 
   return (
