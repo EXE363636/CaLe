@@ -1,42 +1,82 @@
 'use client';
 
 /**
- * MobileNav (Phase 9S rewrite, Phase 9T tightening).
+ * MobileNav (Phase 9X — portal fix + authenticated user-summary card).
  *
- * Hamburger drawer for `< xl` viewports (Phase 9T bumped from `< lg` so
- * the long Vietnamese labels stay on one line in the desktop bar).
- * Mirrors the desktop nav's grouped structure so users see the same
- * product-level shape on small screens. Sections:
+ * ## Phase 9X — root cause + fix for the "drawer hides only the navbar
+ *                strip" bug at < sm widths
  *
- *   - Chính (top-level: Trang chủ, Tìm ca làm)
- *   - Người lao động (the four worker links)
- *   - Nhà tuyển dụng (the four employer links)
- *   - Hướng dẫn & hỗ trợ (info pages + Hỗ trợ)
- *   - Tài khoản (Đăng nhập / Đăng ký or Tổng quan / Hồ sơ + Logout)
+ * Symptom: at 360 / 390 / 430 px the drawer slid in but the homepage
+ * hero kept showing through everywhere below the navbar — the drawer
+ * appeared to clip to roughly the height of the header (~64 px).
  *
- * Drawer renders the role-aware account section so logged-in users see
- * their dashboard / profile / logout, and guests see Đăng nhập / Đăng ký.
+ * Root cause: `<header>` in `NavBar.tsx` carries `backdrop-blur-sm`,
+ * which translates to `backdrop-filter: blur(...)`. Per CSS spec, an
+ * element with a non-`none` `backdrop-filter` becomes a containing
+ * block for ALL descendants, **including `position: fixed`
+ * descendants**. `<MobileNav>` was rendered inline inside `<header>`,
+ * so its drawer's `fixed inset-0 …` positioned relative to the
+ * header's box (not the viewport). The drawer's full-screen mode
+ * therefore covered only the header strip; the hero peeked through
+ * everywhere else.
  *
- * Closes on route change, ESC, outside click, and after any nav link
- * click. Notification bell stays in the desktop NavBar — it's already
- * accessible there. Logout button is preserved in the drawer footer
- * for logged-in users.
+ * Fix: portal the drawer + backdrop into `document.body` so they
+ * escape the header's containing-block trap. The hamburger trigger
+ * button stays inline inside `<header>` because it must remain part
+ * of the navbar's flex layout.
  *
- * Phase 9T also drops the admin `?tab=` deep links from the Chính
- * group; the admin dashboard's own tab system already covers those
- * surfaces and duplicating them here read as a half-broken second
- * navigation primitive in QA. The drawer keeps a thin divider between
- * sections (`border-t`) so the grouped sections feel substantial even
- * on narrow phones where the drawer can otherwise read as sparse.
+ * Z-index map (Phase 9X canonical, see HANDOFF.md / VISUAL_QA.md):
+ *
+ *   header (sticky)              z-30
+ *   nav guest dropdown menu      z-40
+ *   notification bell panel      z-50
+ *   user menu panel              z-40
+ *   mobile drawer backdrop       z-[70]   ← Phase 9X bump
+ *   mobile drawer panel          z-[80]   ← Phase 9X bump
+ *   modal overlay                z-[100]
+ *   toast host                   z-[110]
+ *
+ * The drawer panel must always sit above the navbar (z-30) AND above
+ * the user-menu / nav dropdown panels so opening the drawer never
+ * leaves a guest dropdown visible behind it. It must stay below the
+ * modal overlay so a help modal opened from inside the drawer (rare
+ * but possible) renders correctly.
+ *
+ * Other Phase 9X changes:
+ *
+ *   - For `isLoggedIn` users, the drawer body now opens with a user
+ *     summary card (avatar `lg`, name, role, email, trust chip) on a
+ *     subtle warm gradient strip. Below it the existing grouped
+ *     sections (Phase 9T/9U) render unchanged.
+ *
+ *   - Drawer backdrop bumped from z-40 to z-[70]; drawer panel bumped
+ *     from z-50 to z-[80]; the panel is opaque white so it can never
+ *     read as transparent.
+ *
+ *   - Phase 9U body scroll-lock effect (`body.no-scroll` + scrollbar
+ *     gutter compensation) is preserved exactly. It still lives in
+ *     this component, gated by `typeof document === 'undefined'`.
+ *
+ *   - ESC, route-change auto-close, link-click auto-close, close
+ *     button — all preserved.
  */
 
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { showSuccess } from '@/lib/toast';
 import { useToastStore } from '@/stores/toastStore';
 import { t } from '@/i18n/vi';
+import { UserAvatar } from '@/components/user/UserAvatar';
+import type { Admin, Employer, User, Worker } from '@/types';
 
 interface DrawerLink {
   href: string;
@@ -179,8 +219,89 @@ function CloseIcon() {
   );
 }
 
+// Small life-buoy / chat glyph for the drawer support row (Phase 9U).
+function SupportGlyph() {
+  return (
+    <svg
+      className="h-3.5 w-3.5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// User-summary helpers (Phase 9X)
+// ---------------------------------------------------------------------------
+
+function displayName(user: User): string {
+  if (user.role === 'worker') return (user as Worker).fullName;
+  if (user.role === 'employer') return (user as Employer).companyName;
+  return (user as Admin).fullName;
+}
+
+function avatarUrlFor(user: User): string | undefined {
+  if (user.role === 'worker') return (user as Worker).avatarUrl;
+  if (user.role === 'employer') return (user as Employer).logoUrl;
+  return undefined;
+}
+
+function roleLabel(user: User): string {
+  if (user.role === 'worker') return t('role.worker');
+  if (user.role === 'employer') return t('role.employer');
+  return t('role.admin');
+}
+
+function trustChip(user: User): { label: string; tone: 'good' | 'warn' | 'neutral' } {
+  if (user.role === 'worker') {
+    const score = (user as Worker).reputationScore;
+    return {
+      label: t('nav.userMenu.chip.reputation').replace('{score}', String(score)),
+      tone: score >= 80 ? 'good' : score >= 50 ? 'warn' : 'neutral',
+    };
+  }
+  if (user.role === 'employer') {
+    const e = user as Employer;
+    return e.verifiedBusiness
+      ? { label: t('nav.userMenu.chip.verifiedBusiness'), tone: 'good' }
+      : { label: t('nav.userMenu.chip.individualEmployer'), tone: 'neutral' };
+  }
+  return { label: t('nav.userMenu.chip.admin'), tone: 'good' };
+}
+
+function chipClasses(tone: 'good' | 'warn' | 'neutral'): string {
+  switch (tone) {
+    case 'good':
+      return 'bg-green-100 text-green-700';
+    case 'warn':
+      return 'bg-amber-100 text-amber-700';
+    default:
+      return 'bg-orange-100 text-orange-700';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MobileNav
+// ---------------------------------------------------------------------------
+
 export function MobileNav() {
   const [open, setOpen] = useState(false);
+
+  // Phase 9X — portal mount guard. `createPortal` needs a real DOM
+  // node; on the server (and during the first hydration pass) we
+  // render only the trigger, never the portaled overlay.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const drawerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname() ?? '';
   const router = useRouter();
@@ -189,14 +310,12 @@ export function MobileNav() {
 
   const role = currentUser?.role ?? null;
   const isLoggedIn = currentUser !== null;
-  const sections =
-    role === 'worker'
-      ? WORKER_SECTIONS
-      : role === 'employer'
-        ? EMPLOYER_SECTIONS
-        : role === 'admin'
-          ? ADMIN_SECTIONS
-          : PUBLIC_SECTIONS;
+  const sections = useMemo<DrawerSection[]>(() => {
+    if (role === 'worker') return WORKER_SECTIONS;
+    if (role === 'employer') return EMPLOYER_SECTIONS;
+    if (role === 'admin') return ADMIN_SECTIONS;
+    return PUBLIC_SECTIONS;
+  }, [role]);
 
   // Close drawer on route change.
   useEffect(() => {
@@ -213,41 +332,83 @@ export function MobileNav() {
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
-  return (
-    <div className="xl:hidden">
-      {/* Hamburger button */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? t('btn.close') : 'Menu'}
-        aria-expanded={open}
-        aria-controls="mobile-nav-drawer"
-        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-      >
-        <HamburgerIcon open={open} />
-      </button>
+  // Phase 9U body scroll lock — preserved exactly.
+  //
+  // Toggles `body.no-scroll` while open and writes a scrollbar gutter
+  // into `padding-right` so the layout doesn't shift when the
+  // vertical scroll bar disappears. Restored on close + on unmount,
+  // so a route change mid-drawer never leaves the body locked.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const body = document.body;
+    if (open) {
+      const scrollBarGutter =
+        window.innerWidth - document.documentElement.clientWidth;
+      body.classList.add('no-scroll');
+      if (scrollBarGutter > 0) {
+        body.style.paddingRight = `${scrollBarGutter}px`;
+      }
+      return () => {
+        body.classList.remove('no-scroll');
+        body.style.paddingRight = '';
+      };
+    }
+    return undefined;
+  }, [open]);
 
-      {/* Backdrop */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/30"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+  function handleLogout() {
+    logout();
+    useToastStore.getState().clear();
+    showSuccess(t('feedback.auth.logout.success'), undefined, {
+      scope: 'auth',
+    });
+    setOpen(false);
+    router.push('/login');
+  }
 
-      {/* Drawer */}
+  // ------------------------------------------------------------------
+  // The portaled overlay (backdrop + drawer panel).
+  // Lives on document.body so it escapes the <header>'s
+  // `backdrop-filter` containing-block trap.
+  // ------------------------------------------------------------------
+  const overlay = (
+    <>
+      {/* Backdrop — z-[70] so it sits above the navbar (z-30) and any
+          dropdown menus (z-40 / z-50) but below the drawer panel
+          (z-[80]). Invisible at < sm because the drawer covers the
+          whole viewport, but it's still on top of everything else so
+          a click outside the drawer dismisses it. */}
+      <div
+        className={[
+          'fixed inset-0 z-[70] bg-black/30 transition-opacity duration-200',
+          open ? 'opacity-100' : 'pointer-events-none opacity-0',
+        ].join(' ')}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Drawer panel.
+       *
+       * - At `< sm`: occupies the entire viewport via `fixed inset-0`.
+       * - At `sm+`: reverts to the right-side panel (`sm:inset-y-0
+       *   sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw]`).
+       * - The `bg-white` is opaque so the drawer can never read as
+       *   transparent (Phase 9X requirement).
+       * - z-[80] sits above the backdrop (z-[70]) but below modal
+       *   (z-[100]) and toast (z-[110]).
+       */}
       <div
         id="mobile-nav-drawer"
         ref={drawerRef}
         className={[
-          'fixed inset-y-0 right-0 z-50 w-80 max-w-[90vw] bg-white shadow-xl',
+          'fixed inset-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw] z-[80] bg-white shadow-xl',
           'flex flex-col transition-transform duration-200',
           open ? 'translate-x-0' : 'translate-x-full',
         ].join(' ')}
         aria-hidden={!open}
       >
-        {/* Drawer header */}
-        <div className="flex items-center justify-between border-b border-orange-100 px-4 py-4">
+        {/* Drawer header — warm gradient strip as before. */}
+        <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-white px-4 py-4">
           <div className="flex flex-col leading-tight">
             <span className="text-base font-bold text-orange-600">
               {t('site.name')}
@@ -265,14 +426,21 @@ export function MobileNav() {
           </button>
         </div>
 
-        {/* Sections — Phase 9T: tighter `gap-2` between sections plus a
-            thin divider so the drawer reads as denser product nav rather
-            than four loose card sections floating in white space. */}
+        {/* Body — scrollable. */}
         <nav
           className="flex-1 overflow-y-auto px-3 py-3"
           aria-label="Mobile navigation"
         >
-          <ul className="flex flex-col gap-2">
+          {/* Phase 9X — authenticated user summary card pinned above
+              the grouped sections. Mirrors the desktop user-menu
+              summary so the user gets the same identity context on
+              small screens. Guests skip this entirely; the drawer
+              header alone (brand block) is enough. */}
+          {isLoggedIn && currentUser && (
+            <UserSummaryCard user={currentUser} />
+          )}
+
+          <ul className="mt-3 flex flex-col gap-2">
             {sections.map((section, idx) => (
               <li
                 key={section.heading}
@@ -284,6 +452,7 @@ export function MobileNav() {
                   heading={section.heading}
                   links={section.links}
                   pathname={pathname}
+                  onNavigate={() => setOpen(false)}
                 />
               </li>
             ))}
@@ -291,19 +460,20 @@ export function MobileNav() {
         </nav>
 
         {/* Account / auth footer */}
-        <div className="border-t border-gray-100 px-4 py-4">
+        <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+          <Link
+            href="/support"
+            onClick={() => setOpen(false)}
+            className="mb-3 flex min-h-[40px] items-center gap-2 rounded-lg px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-700"
+          >
+            <SupportGlyph />
+            <span>Cần hỗ trợ? Liên hệ đội CaLẻ</span>
+          </Link>
+
           {isLoggedIn ? (
             <button
-              onClick={() => {
-                logout();
-                useToastStore.getState().clear();
-                showSuccess(t('feedback.auth.logout.success'), undefined, {
-                  scope: 'auth',
-                });
-                setOpen(false);
-                router.push('/login');
-              }}
-              className="flex min-h-[44px] w-full items-center rounded-lg px-3 text-sm font-medium text-red-600 hover:bg-red-50"
+              onClick={handleLogout}
+              className="flex min-h-[44px] w-full items-center justify-center rounded-lg px-3 text-sm font-semibold text-red-600 hover:bg-red-50"
             >
               {t('nav.logout')}
             </button>
@@ -327,26 +497,80 @@ export function MobileNav() {
           )}
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <div className="xl:hidden">
+      {/* Hamburger trigger — stays inline inside <header> so it sits in
+          the navbar's flex layout. Only the drawer + backdrop portal. */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? t('btn.close') : 'Menu'}
+        aria-expanded={open}
+        aria-controls="mobile-nav-drawer"
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+      >
+        <HamburgerIcon open={open} />
+      </button>
+
+      {/* Portal the overlay into <body> so it escapes the <header>'s
+          `backdrop-filter` containing-block trap. Mounting guard
+          keeps SSR safe — the trigger renders on first paint, the
+          overlay only after the client `useEffect` has fired. */}
+      {mounted && createPortal(overlay, document.body)}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// User summary card (Phase 9X) — top of the drawer for authenticated users.
+// ---------------------------------------------------------------------------
+
+function UserSummaryCard({ user }: { user: User }) {
+  const name = displayName(user);
+  const avatarUrl = avatarUrlFor(user);
+  const role = roleLabel(user);
+  const chip = trustChip(user);
+
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-white px-3 py-3 shadow-sm">
+      <UserAvatar name={name} avatarUrl={avatarUrl} size="lg" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-gray-900">{name}</p>
+        <p className="truncate text-xs text-gray-600">{role}</p>
+        <p className="mt-0.5 truncate text-xs text-gray-400">{user.email}</p>
+        <span
+          className={[
+            'mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
+            chipClasses(chip.tone),
+          ].join(' ')}
+        >
+          {chip.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Drawer section view
 // ---------------------------------------------------------------------------
 
 function DrawerSectionView({
   heading,
   links,
   pathname,
+  onNavigate,
 }: {
   heading: string;
   links: DrawerLink[];
   pathname: string;
+  onNavigate: () => void;
 }): ReactNode {
   return (
     <section>
-      <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+      <p className="mx-1 mb-1 mt-0 rounded-md bg-orange-50/60 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700">
         {heading}
       </p>
       <ul className="flex flex-col gap-0.5">
@@ -359,6 +583,7 @@ function DrawerSectionView({
             <li key={link.href}>
               <Link
                 href={link.href}
+                onClick={onNavigate}
                 className={[
                   'flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium transition-colors',
                   active

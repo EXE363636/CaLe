@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * NavBar (Phase 9T refinement of the Phase 9S rewrite).
+ * NavBar (Phase 9W refinement of the Phase 9T / 9V dropdown).
  *
  * A real product nav with:
  *   - Brand block (CaLẻ / ShiftNow) plus a small "by CaLedo Tech" subtitle.
@@ -20,26 +20,26 @@
  *
  * No third-party dropdown library — the dropdown is a small in-component
  * primitive built on a button + popover with click-outside / route-
- * change auto-close. Phase 9T adds hover-open with a 150ms close delay so
- * the cursor can travel from the trigger to the menu without the menu
- * collapsing. Click-toggle, ESC, outside-click, and route-change close
- * remain. Keyboard-accessible: native `<button>` for the trigger,
- * `<Link>` for items, focus rings on both, `onFocus` on the trigger
- * mirrors hover-open for keyboard users.
+ * change auto-close. Phase 9T introduced hover-open with a 150ms close
+ * delay so the cursor can travel from the trigger to the menu without
+ * the menu collapsing. Phase 9W lifts the dropdown's coordination state
+ * to this NavBar parent so only ONE dropdown can be open at a time —
+ * see the "Phase 9W single-open coordinator" block below for the root
+ * cause and the fix. Click-toggle, ESC, outside-click, route-change
+ * close, and `onFocus` keyboard-open are all preserved.
  *
  * Phase 9T also bumps the desktop-nav breakpoint from `lg` to `xl` so
  * the long Vietnamese labels never wrap or compete with the brand at
  * common laptop widths. Below `xl` the hamburger drives the entire nav.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore, useCurrentUser } from '@/stores/authStore';
+import { usePathname } from 'next/navigation';
+import { useCurrentUser } from '@/stores/authStore';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
-import { showSuccess } from '@/lib/toast';
-import { useToastStore } from '@/stores/toastStore';
+import { UserMenu } from './UserMenu';
 import { t } from '@/i18n/vi';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +60,14 @@ interface MenuGroup {
   activePrefixes: string[];
   items: MenuItem[];
 }
+
+/**
+ * Phase 9W — `DropdownId` is the union of all dropdown identifiers used
+ * by the NavBar's single-open coordinator. Adding a new dropdown means
+ * extending this union AND adding a `<Dropdown id="..." />` instance
+ * below; nothing else has to change.
+ */
+type DropdownId = 'worker' | 'employer' | 'safety';
 
 const WORKER_GROUP: MenuGroup = {
   label: 'Người lao động',
@@ -161,24 +169,168 @@ function isAnyPrefixActive(pathname: string, prefixes: string[]): boolean {
 
 export function NavBar() {
   const pathname = usePathname() ?? '';
-  const router = useRouter();
   const currentUser = useCurrentUser();
-  const logout = useAuthStore((s) => s.logout);
 
   const role = currentUser?.role ?? null;
   const isLoggedIn = currentUser !== null;
 
-  function handleLogout() {
-    logout();
-    useToastStore.getState().clear();
-    showSuccess(t('feedback.auth.logout.success'), undefined, {
-      scope: 'auth',
-    });
-    router.push('/login');
-  }
+  // -------------------------------------------------------------------------
+  // Phase 9W — single-open dropdown coordinator
+  //
+  // Root cause of the Phase 9V follow-up bug: each `<Dropdown>` owned
+  // its own local `open` boolean and its own `closeTimerRef`. When a
+  // user moved the cursor fast between two triggers, the trigger A's
+  // 150 ms close timer was still pending while trigger B's
+  // `setOpen(true)` ran — both menus became visible at once, overlapping.
+  //
+  // Fix: lift state to this NavBar parent. The parent owns:
+  //   1. `activeDropdown` — exactly one of `'worker' | 'employer' |
+  //      'safety' | null`. Setting a new id implicitly closes the
+  //      previously-open dropdown so two menus can never co-exist.
+  //   2. `closeTimerRef` — ONE shared timer ref; opening any dropdown
+  //      cancels any pending close, and scheduling a close cancels the
+  //      previous timer first so timers don't accumulate.
+  //   3. The outside-click, ESC, and route-change handlers — they're
+  //      route- and document-level, not per-dropdown, so they belong
+  //      here.
+  //
+  // Each `<Dropdown>` is now a controlled, layout-only child. It owns
+  // markup, hover/focus/click triggers, and the `containerRef` used by
+  // the parent's outside-click test, but it does NOT decide when its
+  // own menu is open.
+  // -------------------------------------------------------------------------
+  const [activeDropdown, setActiveDropdown] = useState<DropdownId | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Refs to each dropdown container, used by the parent-level
+  // outside-click listener. We register/unregister via the
+  // `registerContainer` callback passed to each `<Dropdown>` so the
+  // map stays in sync if a dropdown unmounts (e.g. role change).
+  const containersRef = useRef<Map<DropdownId, HTMLElement>>(new Map());
+  const registerContainer = useCallback(
+    (id: DropdownId, node: HTMLElement | null) => {
+      const map = containersRef.current;
+      if (node) {
+        map.set(id, node);
+      } else {
+        map.delete(id);
+      }
+    },
+    [],
+  );
+
+  const cancelClose = useCallback(() => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+
+  const openDropdown = useCallback(
+    (id: DropdownId) => {
+      cancelClose();
+      // Setting a new id implicitly closes the previously-open dropdown
+      // because the controlled child reads `isOpen={activeDropdown === id}`.
+      setActiveDropdown(id);
+    },
+    [cancelClose],
+  );
+
+  const scheduleCloseDropdown = useCallback(
+    (id: DropdownId) => {
+      cancelClose();
+      closeTimerRef.current = setTimeout(() => {
+        // Only close if this dropdown is still the one that's open —
+        // a faster `openDropdown(otherId)` may have run while the
+        // timer was pending.
+        setActiveDropdown((current) => (current === id ? null : current));
+        closeTimerRef.current = null;
+      }, 150);
+    },
+    [cancelClose],
+  );
+
+  const toggleDropdown = useCallback(
+    (id: DropdownId) => {
+      cancelClose();
+      setActiveDropdown((current) => (current === id ? null : id));
+    },
+    [cancelClose],
+  );
+
+  const closeNow = useCallback(() => {
+    cancelClose();
+    setActiveDropdown(null);
+  }, [cancelClose]);
+
+  // Cleanup the shared timer when NavBar unmounts.
+  useEffect(() => () => cancelClose(), [cancelClose]);
+
+  // Close on route change (covers programmatic navigation + Link clicks
+  // that triggered before the child's `onClick` handler ran).
+  useEffect(() => {
+    cancelClose();
+    setActiveDropdown(null);
+  }, [pathname, cancelClose]);
+
+  // Outside-click dismissal — single document-level listener that
+  // checks against ALL registered dropdown containers.
+  useEffect(() => {
+    if (activeDropdown === null) return;
+    function handler(event: MouseEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      for (const node of containersRef.current.values()) {
+        if (node.contains(target)) return; // click landed inside a dropdown
+      }
+      cancelClose();
+      setActiveDropdown(null);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [activeDropdown, cancelClose]);
+
+  // ESC dismissal.
+  useEffect(() => {
+    if (activeDropdown === null) return;
+    function handler(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        cancelClose();
+        setActiveDropdown(null);
+      }
+    }
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [activeDropdown, cancelClose]);
+
+  // Phase 9X — desktop logout now lives inside `<UserMenu />`. The
+  // mobile drawer keeps its own logout button for `< xl` viewports.
+  // NavBar no longer needs to know about logout at all.
+
+  // Phase 9V — DO NOT add `overflow-x-hidden` here.
+  //
+  // Phase 9U briefly added `overflow-x-hidden` to this <header> as a
+  // "defensive" horizontal-overflow guard. Per CSS spec, when
+  // `overflow-x: hidden` is paired with default `overflow-y: visible`,
+  // browsers promote `overflow-y` to implicit `auto`, turning the
+  // ~64px-tall header into a clipping context. The desktop dropdown
+  // menus (`absolute left-0 top-full mt-2 w-72`) extend ~280–320 px
+  // DOWNWARD from inside the header and got cropped at the header's
+  // bottom edge — they appeared sliced off across all desktop widths.
+  //
+  // The actual horizontal-overflow safety net lives at the document
+  // root (`html, body { overflow-x: hidden; width: 100% }` in
+  // `globals.css`). That clamp is sufficient. The header must NOT
+  // re-introduce its own `overflow-x-hidden`. If a future page
+  // surfaces a real horizontal scroll bug, fix the offending
+  // descendant element rather than restoring this clip.
+  //
+  // Z-index map (preserved): header = z-30, dropdown menu = z-40.
+  // Phase 9X — `shadow-sm` adds a hint of depth so the sticky nav
+  // visibly lifts off the page; the underline border still defines
+  // the bottom edge.
   return (
-    <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
         {/* Brand block */}
         <Link
@@ -201,7 +353,17 @@ export function NavBar() {
           className="ml-2 hidden flex-1 items-center justify-center gap-1 xl:flex"
           aria-label="Main navigation"
         >
-          {role === null && <PublicNav pathname={pathname} />}
+          {role === null && (
+            <PublicNav
+              pathname={pathname}
+              activeDropdown={activeDropdown}
+              registerContainer={registerContainer}
+              onOpen={openDropdown}
+              onClose={scheduleCloseDropdown}
+              onToggle={toggleDropdown}
+              onItemClick={closeNow}
+            />
+          )}
           {role === 'worker' && <WorkerNav pathname={pathname} />}
           {role === 'employer' && <EmployerNav pathname={pathname} />}
           {role === 'admin' && <AdminNav pathname={pathname} />}
@@ -233,12 +395,9 @@ export function NavBar() {
           )}
 
           {isLoggedIn && (
-            <button
-              onClick={handleLogout}
-              className="hidden xl:flex min-h-[40px] items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600"
-            >
-              {t('nav.logout')}
-            </button>
+            <div className="hidden xl:flex">
+              <UserMenu />
+            </div>
           )}
 
           <MobileNav />
@@ -252,7 +411,25 @@ export function NavBar() {
 // Per-role nav variants
 // ---------------------------------------------------------------------------
 
-function PublicNav({ pathname }: { pathname: string }) {
+interface PublicNavProps {
+  pathname: string;
+  activeDropdown: DropdownId | null;
+  registerContainer: (id: DropdownId, node: HTMLElement | null) => void;
+  onOpen: (id: DropdownId) => void;
+  onClose: (id: DropdownId) => void;
+  onToggle: (id: DropdownId) => void;
+  onItemClick: () => void;
+}
+
+function PublicNav({
+  pathname,
+  activeDropdown,
+  registerContainer,
+  onOpen,
+  onClose,
+  onToggle,
+  onItemClick,
+}: PublicNavProps) {
   return (
     <>
       <NavLink href="/" pathname={pathname} exact>
@@ -261,9 +438,39 @@ function PublicNav({ pathname }: { pathname: string }) {
       <NavLink href="/shifts" pathname={pathname}>
         {t('nav.shifts')}
       </NavLink>
-      <Dropdown group={WORKER_GROUP} pathname={pathname} />
-      <Dropdown group={EMPLOYER_GROUP} pathname={pathname} />
-      <Dropdown group={SAFETY_GROUP} pathname={pathname} />
+      <Dropdown
+        id="worker"
+        group={WORKER_GROUP}
+        pathname={pathname}
+        isOpen={activeDropdown === 'worker'}
+        registerContainer={registerContainer}
+        onOpen={onOpen}
+        onClose={onClose}
+        onToggle={onToggle}
+        onItemClick={onItemClick}
+      />
+      <Dropdown
+        id="employer"
+        group={EMPLOYER_GROUP}
+        pathname={pathname}
+        isOpen={activeDropdown === 'employer'}
+        registerContainer={registerContainer}
+        onOpen={onOpen}
+        onClose={onClose}
+        onToggle={onToggle}
+        onItemClick={onItemClick}
+      />
+      <Dropdown
+        id="safety"
+        group={SAFETY_GROUP}
+        pathname={pathname}
+        isOpen={activeDropdown === 'safety'}
+        registerContainer={registerContainer}
+        onOpen={onOpen}
+        onClose={onClose}
+        onToggle={onToggle}
+        onItemClick={onItemClick}
+      />
       <NavLink href="/support" pathname={pathname}>
         Hỗ trợ
       </NavLink>
@@ -407,115 +614,88 @@ function NavButton({
 }
 
 // ---------------------------------------------------------------------------
-// Dropdown — small accessible primitive
+// Dropdown — small, controlled, layout-only primitive (Phase 9W)
 //
-// Phase 9T adds hover-open on the container so the menu opens as soon as
-// the cursor enters the trigger or the menu card. A 150ms close delay
-// (cleared on re-entry) lets the cursor travel from the button down to
-// the menu items without the menu collapsing. Click-toggle, ESC,
-// outside-click, and route-change close are preserved. `onFocus` on the
-// trigger mirrors hover-open for keyboard tab navigation. The mobile
-// drawer (`<MobileNav>`) intentionally does NOT use hover behaviour —
-// touch surfaces stay click/collapsible.
+// The `Dropdown` is a purely controlled component now. The parent
+// `NavBar` owns:
+//   - `activeDropdown` state (single source of truth, exactly one open
+//     at a time),
+//   - the shared 150 ms close timer (cancellation + reschedule on
+//     re-entry),
+//   - the document-level outside-click and ESC handlers,
+//   - the route-change auto-close.
+//
+// This `Dropdown` owns:
+//   - the trigger button + menu markup,
+//   - hover/focus/click triggers that call back into the parent,
+//   - the container ref used by the parent's outside-click test
+//     (registered via `registerContainer`).
+//
+// Behavior contract preserved from Phase 9T:
+//   - Hover-open + 150 ms close delay on `onMouseLeave`.
+//   - Click-toggle on the trigger.
+//   - `onFocus` mirrors hover-open for keyboard tab navigation.
+//   - Item-link click closes the menu immediately.
+//   - The mobile drawer (`<MobileNav>`) intentionally does NOT use this
+//     hover behaviour — touch surfaces stay click-collapsible.
 // ---------------------------------------------------------------------------
 
-function Dropdown({
-  group,
-  pathname,
-}: {
+interface DropdownProps {
+  id: DropdownId;
   group: MenuGroup;
   pathname: string;
-}) {
-  const [open, setOpen] = useState(false);
+  isOpen: boolean;
+  registerContainer: (id: DropdownId, node: HTMLElement | null) => void;
+  onOpen: (id: DropdownId) => void;
+  onClose: (id: DropdownId) => void;
+  onToggle: (id: DropdownId) => void;
+  onItemClick: () => void;
+}
+
+function Dropdown({
+  id,
+  group,
+  pathname,
+  isOpen,
+  registerContainer,
+  onOpen,
+  onClose,
+  onToggle,
+  onItemClick,
+}: DropdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = isAnyPrefixActive(pathname, group.activePrefixes);
 
-  // Cancel any pending hover-close. Used on every re-entry so the
-  // cursor can swing across the trigger or the menu without flicker.
-  function cancelClose() {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }
-
-  // Schedule a close on hover-out. 150ms is long enough to bridge the
-  // gap between the trigger (mt-2 = 8px) and the menu card without
-  // letting the menu linger.
-  function scheduleClose() {
-    cancelClose();
-    closeTimerRef.current = setTimeout(() => {
-      setOpen(false);
-      closeTimerRef.current = null;
-    }, 150);
-  }
-
-  // Cleanup on unmount so a pending timer never fires after the
-  // component is gone.
+  // Register / unregister this dropdown's container with the parent so
+  // its outside-click listener can check against every dropdown at
+  // once. We re-register in a layout-stable effect so the parent's
+  // first outside-click event after mount sees the node.
   useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    };
-  }, []);
-
-  // Close on route change.
-  useEffect(() => {
-    cancelClose();
-    setOpen(false);
-  }, [pathname]);
-
-  // Click-outside dismissal.
-  useEffect(() => {
-    if (!open) return;
-    function handler(event: MouseEvent) {
-      const node = containerRef.current;
-      if (!node) return;
-      if (!node.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
-
-  // Escape dismissal.
-  useEffect(() => {
-    if (!open) return;
-    function handler(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open]);
+    registerContainer(id, containerRef.current);
+    return () => registerContainer(id, null);
+  }, [id, registerContainer]);
 
   return (
     <div
       ref={containerRef}
+      data-nav-dropdown={id}
       className="relative"
-      onMouseEnter={() => {
-        cancelClose();
-        setOpen(true);
-      }}
-      onMouseLeave={scheduleClose}
+      onMouseEnter={() => onOpen(id)}
+      onMouseLeave={() => onClose(id)}
     >
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        onFocus={() => {
-          cancelClose();
-          setOpen(true);
-        }}
-        aria-expanded={open}
+        onClick={() => onToggle(id)}
+        onFocus={() => onOpen(id)}
+        aria-expanded={isOpen}
         aria-haspopup="menu"
-        className={[
-          navLinkClasses(active),
-          'gap-1',
-        ].join(' ')}
+        className={[navLinkClasses(active), 'gap-1'].join(' ')}
       >
         {group.label}
         <svg
           className={[
             'h-3.5 w-3.5 text-gray-400 transition-transform',
-            open ? 'rotate-180' : '',
+            isOpen ? 'rotate-180' : '',
           ].join(' ')}
           viewBox="0 0 20 20"
           fill="currentColor"
@@ -529,7 +709,7 @@ function Dropdown({
         </svg>
       </button>
 
-      {open && (
+      {isOpen && (
         <div
           role="menu"
           aria-label={group.label}
@@ -541,7 +721,7 @@ function Dropdown({
                 <Link
                   href={item.href}
                   role="menuitem"
-                  onClick={() => setOpen(false)}
+                  onClick={() => onItemClick()}
                   className="flex flex-col rounded-lg px-3 py-2 text-sm transition-colors hover:bg-orange-50 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-400"
                 >
                   <span className="font-medium text-gray-900">

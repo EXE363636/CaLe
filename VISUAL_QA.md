@@ -1362,3 +1362,412 @@ Re-run this audit after any change to:
 - `src/app/page.tsx` (hero H1 sizing, CTA widths, mockup panel padding, hero blobs, trust chip row).
 - `src/app/globals.css` (body chrome radial layers, `.bg-grid-soft`, `@keyframes float-blob`, `prefers-reduced-motion: reduce` block).
 - `src/app/worker/dashboard/page.tsx` and `src/app/employer/dashboard/page.tsx` (decorative top-right blob + `isolate` wrapper).
+
+
+## Phase 9U — Mobile-first redesign + production landing
+
+Last reviewed: **2026-05-23, Phase 9U pass after Phase 9T manual screenshot QA at 360 / 390 / 430 px**.
+
+Phase 9T tightened the desktop / tablet experience but a fresh manual review at real phone widths surfaced two hard layout bugs (homepage horizontally clipped; mobile drawer made the page underneath visibly shifted / sliced) plus a long tail of "AI-coded" polish gaps. Phase 9U fixes the layout bugs at the root and rebuilds the homepage on top of a stable mobile-first surface. Run this audit at every checkpoint below before declaring Phase 9U green.
+
+### 1. Mobile homepage — 360 px (no horizontal clipping)
+
+Steps:
+- Hard refresh `/` at 360 × 800 (Chrome DevTools "iPhone SE" or custom device).
+- Scroll top → bottom.
+- Open the body scrollbar inspector and confirm horizontal scroll bar is absent.
+
+Expected:
+- Document never scrolls horizontally. The new `html, body { overflow-x: hidden; width: 100%; }` rule in `globals.css` is the safety net; no descendant absolute element (e.g. the `.float-blob` shapes inside `<HeroBackgroundDecor />`) bleeds past the viewport.
+- Hero H1 reads as the mobile-only headline "Việc ngắn hạn, rõ ca – rõ tiền" — two visual lines, no awkward wrap, no clipping.
+- CTA pair stacks as two full-width pills: "Tìm ca làm ngay" (primary, gradient orange) on top, "Đăng ca cần tuyển" (secondary, ghost) below.
+- Trust chips wrap as two lines max with the tightened mobile padding (`gap-1 px-2.5 text-[11px]`).
+- Hero mockup column shows ONLY the featured-shift card — the two supporting stat cards (reputation chip, sample slot) are `hidden sm:block` and never render at this width.
+
+### 2. Mobile drawer — 390 px (no underlying page shift)
+
+Steps:
+- At 390 × 844, hard refresh `/`. Scroll the homepage halfway down so vertical scroll position is non-zero.
+- Tap the hamburger to open the drawer.
+- Watch the page underneath through the backdrop.
+- Close the drawer (X button, ESC, and backdrop click — try all three over three repetitions).
+
+Expected:
+- Drawer slides in from the right.
+- Backdrop covers the full viewport (`fixed inset-0 bg-black/30`, no `backdrop-blur`).
+- Page underneath does NOT shift, jump, or appear sliced. The new `body.no-scroll` class (toggled by `MobileNav`'s `useEffect`) kills the scroll, and the inline `padding-right` compensates for the disappearing scrollbar gutter so the layout doesn't visibly snap.
+- Vertical scroll position is preserved when the drawer closes.
+- The page is locked from scrolling while the drawer is open (try wheel + touch).
+- On close, `body.no-scroll` and the inline padding both clear automatically. Open / close several times in a row → no leftover lock.
+
+### 3. Mobile hero — 430 px (CTA + chips fit, mockup simplified)
+
+Steps:
+- At 430 × 932, hard refresh `/`.
+- Visually inspect the hero column.
+
+Expected:
+- Hero H1 + subtitle + CTA pair + trust chips all fit in a single composition without forcing the mockup column off-screen.
+- CTAs full-width stacked.
+- Trust chips wrap cleanly on one line with breathing room.
+- Hero mockup shows only the featured-shift card (supporting stats remain `hidden sm:block` at this width — `sm` is 640 px).
+- Hero panel padding is the new `p-3` at base — the inner mockup card never overflows the panel's inner ring.
+
+### 4. Tablet — 768 × 1024 (single column hero, balanced layout)
+
+Steps:
+- At 768 × 1024, hard refresh `/`.
+
+Expected:
+- Hero still single column (the `lg:grid-cols-2` only kicks in at `lg` = 1024 px).
+- Supporting stat cards inside the mockup re-appear (now `sm:block`), since `sm` = 640 px.
+- Trust strip lays out as 2-col (`sm:grid-cols-2`).
+- Audience cards lay out as 2-col (`md:grid-cols-2`).
+- Safety section lays out as 2-col (`sm:grid-cols-2`); 4-col only kicks in at `lg`.
+- How-it-works has visible timeline rule on each column (the orange-gradient vertical line behind the step circles).
+- No horizontal scroll anywhere.
+
+### 5. Desktop — 1366 × 768 (nav not cramped, audience cards substantial, How-it-works reads as timeline, Safety visible, final CTA polished)
+
+Steps:
+- At 1366 × 768, hard refresh `/`.
+- Walk down the page section by section.
+
+Expected:
+- Top nav fits cleanly with no wrapping (`whitespace-nowrap` from Phase 9T holds up). The right cluster has `Đăng nhập`, `Đăng ký`, primary `Đăng ca tuyển` CTA.
+- Hero is two-column with the mockup panel on the right; both `.float-blob` shapes drift gently behind the panel.
+- Trust strip lays out as 4-col with card-like surfaces (white/80 background, soft shadow, `ring-1 ring-orange-100`, gradient icon block).
+- Audience cards: two substantial cards with gradient header strips (worker = amber, employer = orange), large icon blocks, three-bullet body, prominent CTAs ("Đăng ký Người làm" ghost / "Đăng ký Nhà tuyển dụng" gradient).
+- How-it-works: two columns with the timeline-rule vertical bar visible behind each step list. Step number circles ring `ring-4 ring-orange-50`. `.bg-grid-soft` paper texture is faintly visible behind the panels. Section has the `.section-wave` curved separator at the top.
+- Safety section: 4 cards (Verification → `/safety`, Deposit → `/employer/payments`, Reputation → `/worker/reputation-guide`, Dispute → `/disputes`), each with icon block + title + 1-line desc + "→ cta" link. Cards lift on hover via `.motion-lift`.
+- Final CTA band: denser orange gradient (the new `.cta-band`) with the inverted top wave so the section transition reads as designed. Two CTAs feel premium (white primary with `shadow-lg hover:shadow-xl`, ghost secondary with `border-2 border-white`).
+
+### 6. Wide desktop — 1440 × 900 (hero mockup feels right in a wider column)
+
+Steps:
+- At 1440 × 900, hard refresh `/`.
+
+Expected:
+- Hero copy column has comfortable breathing room (still inside `max-w-6xl`).
+- Mockup panel column is wider than at 1366 — the `<FeaturedJobMockup />` content fills the space without looking small. The `.hero-panel`'s warm gradient + dot-grid mask + inset ring + soft shadow read clearly.
+- All sections stay centered (`mx-auto max-w-{5xl|6xl}`); no stretching past the layout container.
+
+### 7. Footer + global
+
+Steps:
+- At any viewport, scroll to the bottom of any page (`/`, `/shifts`, `/about`).
+
+Expected:
+- Footer renders intact (unchanged from Phase 9R).
+- Footer links work.
+- No horizontal scroll regression on any of the verified pages: `/`, `/login`, `/register`, `/shifts`, `/shifts/[id]`, `/worker/dashboard`, `/employer/dashboard`, `/admin/dashboard`, `/about`, `/terms`, `/faq`, `/safety`, `/disputes`, `/support`, `/how-it-works`, `/privacy`, `/employer/payments`, `/employer/reviews`, `/worker/reputation-guide`, `/worker/cancellation-policy`.
+
+### 8. Toast positioning + drawer lock interaction
+
+Steps:
+- Trigger any toast (e.g. logout from a logged-in account, or login with valid credentials) at desktop and at 360 px.
+- Open the mobile drawer while a toast is visible. Toggle drawer open / close several times in a row.
+
+Expected:
+- Toast continues to appear at `top-24` desktop / `top-4` mobile (Phase 9R).
+- Toast doesn't cover the navbar logout / hamburger.
+- Opening the drawer with a toast visible doesn't shift the toast (toast is `position: fixed`, not affected by body scroll lock).
+- Closing the drawer cleanly removes the body scroll lock — the toast and the page beneath both behave normally.
+
+### 9. Reduced-motion
+
+Steps:
+- Toggle OS-level "Reduce motion" on (Windows: Settings → Accessibility → Visual effects → Animation effects off; macOS: System Settings → Accessibility → Display → Reduce motion).
+- Hard refresh `/`. Scroll top → bottom.
+
+Expected:
+- All hero entrance animations land at end state immediately (`.entrance-up`, `.entrance-up-soft`, `.entrance-right` are named in the `prefers-reduced-motion: reduce` block).
+- Floating blobs (`.float-blob`, `.float-soft`) are static.
+- Audience cards, How-it-works steps, Safety cards all render at end state with no transition — no slide, no fade, just laid out correctly.
+- Timeline rule, section wave, audience-card gradient strips, `.cta-band`, `.no-scroll` are static utilities by definition — no-op for motion-sensitive users.
+- Toast / modal animations remain disabled as before.
+
+### 10. Drawer support row
+
+Steps:
+- Open the mobile drawer at any width.
+- Scroll to the bottom of the drawer.
+
+Expected:
+- Above the auth footer (Đăng xuất for logged-in users, or Đăng nhập / Đăng ký for guests) sits a small support row: "Cần hỗ trợ? Liên hệ đội CaLẻ" with an inline life-buoy glyph, linking to `/support`.
+- The row is muted (text-gray-500 default, hover orange-50 background + orange-700 text).
+- It never competes with the primary auth or logout button below it.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/app/globals.css` (root overflow rules, `.no-scroll`, `.section-wave`, `.audience-card-*`, `.timeline-rule`, `.cta-band`, `@keyframes entrance-up-soft`, body radial layers, reduced-motion block).
+- `src/app/layout.tsx` (`min-w-0` discipline on body / main).
+- `src/app/page.tsx` (hero copy swap, audience cards, How-it-works, Safety section, final CTA).
+- `src/components/layout/MobileNav.tsx` (scroll-lock effect, drawer header gradient, tinted section headings, support row).
+- `src/components/layout/NavBar.tsx` (header overflow-x guard).
+- `src/components/landing/FeaturedJobMockup.tsx` (supporting stat cards `hidden sm:block` rule).
+
+
+## Phase 9V — Dropdown layering + hero headline fix
+
+Last reviewed: **2026-05-23, Phase 9V surgical bug-fix pass after Phase 9U manual screenshot QA.**
+
+### Background — what manual QA found
+
+Phase 9U landed the mobile-first redesign, the root-level `overflow-x: hidden` clamp on `html, body`, and a "defensive" `overflow-x-hidden` guard on the sticky `<header>`. A fresh manual screenshot QA at desktop widths (1366 / 1440 / 1536 / 1920) and at phone widths (360 / 390 / 430) flagged two regressions:
+
+1. **Desktop dropdown menus appeared sliced off at the bottom of the header.** Hovering or clicking any of the three grouped triggers (Người lao động ▾ / Nhà tuyển dụng ▾ / An toàn & hướng dẫn ▾) opened a menu that was visibly clipped to the header's bottom edge. Root cause: per CSS spec, `overflow-x: hidden` on `<header>` paired with default `overflow-y: visible` is promoted to implicit `overflow-y: auto`, turning the ~64 px-tall sticky header into a clipping context. The dropdown's `absolute left-0 top-full mt-2 w-72` extends ~280–320 px DOWNWARD from inside the header, so it got cropped. The actual horizontal-overflow safety net is the root-level `html, body { overflow-x: hidden; width: 100% }` in `globals.css` — the header's `overflow-x-hidden` was redundant and introduced this regression.
+2. **Hero headline "động" overlapped with the line above.** Tailwind v4's `text-6xl` ships with `font-size: 3.75rem; line-height: 1`. `line-height: 1` is too tight for Vietnamese — combining diacritics (e.g. "động" stacks tone marks both above and below the base character) collide between consecutive lines at `font-extrabold tracking-tight`. The long accent phrase ("cho người lao động linh hoạt") was also wide enough at `text-6xl` + `tracking-tight` that it could wrap inside the `lg:grid-cols-2` copy column at `lg`, producing a third visual line that crashed into line 1's descenders.
+
+Phase 9V's fixes target both root causes surgically. No new dependencies, no schema bump, no business-logic changes, no portal layer for the dropdown, no z-index changes, no new utilities in `globals.css`.
+
+### A. Dropdown layering — checkpoints
+
+Steps:
+- Hard refresh `/` at 1366 × 768, 1440 × 900, 1536 × 864, and 1920 × 1080.
+- For each viewport, hover the trigger of all three desktop dropdowns (Người lao động ▾, Nhà tuyển dụng ▾, An toàn & hướng dẫn ▾). Then click the same trigger.
+- Walk the cursor down from the trigger into the menu items and pick one.
+- Press ESC. Hover trigger again. Click outside the menu.
+- Navigate to another route. Watch the dropdown auto-close.
+
+Expected:
+1. The menu appears fully visible BELOW the trigger button — no clipping at the header's bottom edge. The four menu items are all rendered and reachable. The menu reaches its natural ~280–320 px height regardless of header height.
+2. Menu items remain on top of any hero content — hovering the menu does NOT make it pass behind the `<HeroBackgroundDecor />` blobs. The Phase 9U z-index pattern is preserved: header `z-30`, dropdown menu `z-40`, decorative blobs `-z-0`.
+3. Phase 9T dropdown contract is intact — hover-open with the 150 ms close delay (cursor can travel from trigger to menu without flicker), click-toggle, ESC-close, outside-click-close, and route-change-close all behave exactly as before.
+4. Header still has no horizontal scroll. The root-level `html, body { overflow-x: hidden }` clamp in `globals.css` is the sole safety net; the header's own `overflow-x-hidden` (Phase 9U) was removed because it was redundant and was the actual cause of the clipping.
+
+### B. Hero headline — checkpoints
+
+Steps:
+- Hard refresh `/` at 360 × 800, 390 × 844, 430 × 932 (mobile), 1366 × 768, and 1440 × 900 (desktop).
+- Visually inspect the hero H1 at each viewport.
+- Resize the desktop viewport from 1024 px upward to confirm the H1 never wraps unpredictably.
+
+Expected:
+1. **Mobile (360 / 390 / 430 px).** The mobile-only headline ("Việc ngắn hạn, / rõ ca – rõ tiền") fits cleanly with no overlap. The Phase 9U `<span className="sm:hidden">` / `<span className="hidden sm:inline">` swap is preserved, so the desktop accent line never shows at these widths. `leading-tight` (1.25) gives the diacritics enough vertical room.
+2. **Desktop (1366 / 1440 px).** The desktop title ("Việc làm ngắn hạn / cho người lao động linh hoạt") reads as two visually distinct lines — the dot-below diacritic of "động" no longer collides with the descenders of "ngắn hạn" above it. The accent phrase "cho người lao động linh hoạt" sits on a single line at `lg:text-5xl` (was `lg:text-6xl` before Phase 9V). No third visual line, no diacritic collision.
+3. **Width constraint.** The H1 stays inside `lg:max-w-xl` (36 rem / 576 px) and does not visually creep toward the mockup column on the right. The hero panel column remains untouched.
+4. **Animation preserved.** The `entrance-up` animation still plays on first paint with `--entrance-delay: 80ms`. The gradient accent span (`bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent`) on `landing.hero.titleAccent` / `landing.hero.titleAccent.mobile` is unchanged.
+
+Final desktop H1 className (for reference):
+
+```
+entrance-up mt-4 text-3xl font-extrabold tracking-tight leading-tight text-balance text-gray-900 sm:text-4xl lg:text-5xl lg:max-w-xl
+```
+
+The three Phase 9V guards (`leading-tight`, `lg:text-5xl`, `lg:max-w-xl`) must stay together. A multi-line comment above the H1 in `src/app/page.tsx` documents this so future phases don't drop them.
+
+### Z-index map (preserved — do not change)
+
+| Layer                           | z-index    |
+| ------------------------------- | ---------- |
+| page content                    | (none)     |
+| `<header>` sticky nav           | `z-30`     |
+| Desktop dropdown menu           | `z-40`     |
+| Mobile drawer backdrop          | `z-40`     |
+| Mobile drawer panel             | `z-50`     |
+| Toast host                      | `z-[110]`  |
+| Modal overlay                   | `z-[100]`  |
+
+The dropdown sits above the header background because `z-40 > z-30` and the menu is a descendant of a `position: relative` container inside the header. Now that the header is no longer a clipping context, the menu visually escapes the header's bottom edge as designed.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/NavBar.tsx` — particularly the `<header>` className. **Do not** add `overflow-x-hidden`, `overflow-y-hidden`, or any `overflow` rule on the header. The clipping bug returns the moment the header has its own clip.
+- `src/app/page.tsx` — particularly the H1 className. The three Phase 9V guards (`leading-tight`, `lg:text-5xl`, `lg:max-w-xl`) must remain together. If the desktop title copy gets longer, prefer breaking it across two `<span className="block">` elements rather than dropping `lg:max-w-xl`.
+- `src/app/globals.css` — particularly the root `html, body { overflow-x: hidden; width: 100% }` rule. That rule is now the sole horizontal-overflow safety net for the entire app; removing it would expose the header's lack of a clip and any future absolute-positioned descendant could push the body wider than the viewport.
+
+
+## Phase 9W — Dropdown single-open + mobile full-screen menu
+
+Last reviewed: **2026-05-23, Phase 9W surgical bug-fix pass after Phase 9V manual screenshot QA.**
+
+### Background — what manual QA found
+
+Phase 9V landed two surgical fixes (header `overflow-x-hidden` removal so the dropdown menu is no longer clipped at the header's bottom edge, plus `leading-tight` + `lg:text-5xl` + `lg:max-w-xl` on the hero H1 for Vietnamese diacritic safety). A fresh manual screenshot QA pass at desktop widths (1366 / 1440 / 1536 / 1920) and at phone widths (360 / 390 / 430) flagged two follow-up issues that Phase 9V did not cover:
+
+1. **Two desktop dropdowns can be visible at once on a fast cursor sweep.** Hovering "Người lao động ▾" and then quickly moving the cursor onto "Nhà tuyển dụng ▾" produced a brief window where BOTH menus rendered, overlapping. Root cause: each `<Dropdown>` owned its own local `open` boolean and its own `closeTimerRef`. The first dropdown's pending 150 ms close timer kept its `open=true` while the second dropdown set its own `open=true` on hover-enter. Two menus co-existed for up to 150 ms. The bug was structural — there was no shared coordinator that ensured at most one dropdown was open at any time.
+2. **Mobile drawer was a 320 px right-side panel; the hero showed through on the left ~10% of the viewport.** `MobileNav.tsx` declared the drawer as `fixed inset-y-0 right-0 z-50 w-80 max-w-[90vw]`. At 360 / 390 / 430 px viewport widths, 320 px is ~74–89% of viewport width, leaving ~10% on the left where the dim `bg-black/30` backdrop revealed the hero copy underneath. Combined with the user reading "drawer slid in from the right" as "page got cut off", this read as broken on mobile.
+
+Phase 9W's fixes target both root causes:
+
+- **Bug A** — lifted single-source-of-truth `activeDropdown` state into `NavBar`, single shared close timer ref, controlled `Dropdown` component with no local state. Outside-click + ESC + route-change handlers also moved up to `NavBar`. See the dropdown control contract table in `HANDOFF.md` Section 5, item 39.
+- **Bug B** — drawer wrapper className changed from `fixed inset-y-0 right-0 z-50 w-80 max-w-[90vw]` to `fixed inset-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw] z-50`. At `< sm` the drawer covers the entire viewport with `bg-white`; at `sm+` it reverts to a right-side panel.
+
+No business-logic changes, no schema bump (still v4), no new dependencies, no new utilities in `globals.css`, no portal layer for the dropdown, no z-index changes.
+
+### A. Dropdown single-open — checkpoints
+
+Steps:
+- Hard refresh `/` at 1366 × 768, 1440 × 900, 1536 × 864, and 1920 × 1080.
+- Move the cursor across the three desktop dropdown triggers (Người lao động ▾ → Nhà tuyển dụng ▾ → An toàn & hướng dẫn ▾) FAST — faster than the 150 ms hover-grace timer.
+- Move the cursor from a trigger button DOWN through the 8 px gap (`mt-2` between trigger and menu) into the menu itself.
+- Click a trigger while its menu is already open.
+- Tab to a trigger from the keyboard.
+- Press ESC. Click outside any menu. Click a menu item link.
+
+Expected:
+1. **Fast A → B sweep.** Hover "Người lao động ▾". Then quickly move the cursor onto "Nhà tuyển dụng ▾" before the 150 ms close timer fires. Only B should be visible. Repeat A ↔ B ↔ C rapidly. **At any instant, only one panel is on screen — never two overlapping.** The previous Phase 9T window where both menus showed simultaneously is gone.
+2. **Trigger → menu travel.** Move the cursor from trigger A's button straight down through the 8 px `mt-2` gap into A's menu items. **A stays open** the entire time — the 150 ms grace timer protects the gap so the menu does not collapse mid-travel.
+3. **Click toggle.** With menu A open, click trigger A. **Menu A closes immediately** (no timer for click). Click trigger A again. Menu A opens. The toggle path bypasses the close timer entirely.
+4. **Keyboard tab.** Tab into trigger B from the previous nav item. **Menu B opens via `onFocus`.** This mirrors hover behaviour for keyboard users.
+5. **ESC.** With any menu open, press ESC. **The active menu closes** and the cancel-pending-timer call ensures no stale 150 ms close fires afterwards.
+6. **Outside click.** With any menu open, click on the page body outside both the trigger and the menu container. **The active menu closes.** A single document-level `mousedown` listener at the parent checks every registered dropdown container — clicks landing inside any of them keep the menu open.
+7. **Item link click.** Click any item link inside an open menu. **Menu closes immediately and route navigates** — `onClick` calls the parent's `onItemClick` which does `cancelClose() + setActiveDropdown(null)`.
+8. **Phase 9V regression preserved.** The dropdown menu is NOT clipped at the header's bottom edge. The Phase 9V removal of `overflow-x-hidden` from `<header>` is intact, and the menu's `absolute left-0 top-full z-40 mt-2` continues to escape the header's bottom edge. Header `z-30`, dropdown menu `z-40` — preserved.
+
+### B. Mobile full-screen drawer — checkpoints
+
+Steps:
+- Hard refresh `/` at 360 × 800, 390 × 844, and 430 × 932.
+- Tap the hamburger to open the drawer.
+- Visually inspect every edge of the screen: the drawer should COMPLETELY cover the hero. No hero text should be visible on the left, top, bottom, or right.
+- Try to scroll the body. Try to swipe horizontally.
+- If the drawer's content is taller than the viewport, scroll inside the drawer.
+- Tap the close button. Press ESC. Tap a link inside the drawer. Trigger a route change.
+- Resize the viewport up to 768 px (`sm` breakpoint) and reopen the drawer.
+
+Expected:
+1. **Full-screen coverage at `< sm`.** At 360 / 390 / 430 px, opening the drawer covers the entire viewport with the opaque `bg-white` surface. **No hero text is visible behind it on any edge.** The previous symptom where ~10% of the viewport on the left showed the hero through the dim `bg-black/30` backdrop is gone — root cause was the 320 px panel; root fix is `inset-0` at `< sm`.
+2. **Body scroll lock.** Phase 9U's `useEffect([open])` block toggling `body.no-scroll` + writing the scrollbar-gutter width into `body.style.paddingRight` is preserved unchanged. The page underneath does not shift when the drawer opens or closes; horizontal swipes and vertical scroll on the body are blocked while the drawer is open.
+3. **Internal scrolling.** The drawer's `<nav className="flex-1 overflow-y-auto ...">` is unchanged. Long content (logged-in worker section with five sections × 4–5 links) scrolls inside the drawer; the brand header and the auth/logout footer stay pinned.
+4. **Close button reachable.** The close button stays at the top-right of the drawer header at all viewport sizes. Its `min-h-[44px] min-w-[44px]` tap target is preserved.
+5. **Close paths preserved.** ESC closes (Phase 9U `useEffect([open])` keydown listener). Tapping any link calls `setOpen(false)` before navigating. A pathname change auto-closes via the existing `useEffect([pathname])`. The dim backdrop click closes too. All four paths from Phase 9U are intact.
+6. **Tablet panel mode at `sm+`.** At 768 px, the drawer reverts to the right-side panel format via `sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw]`. The dim `fixed inset-0 z-40 bg-black/30` backdrop covers the rest of the viewport. The slide-in transition (`translate-x-full` → `translate-x-0`) reads as a panel sliding over the page rather than the full-screen slide it does at `< sm`.
+7. **Hamburger toggle.** The hamburger button (`xl:hidden` wrapper) stays visible above the drawer at every `< xl` width, and tapping it again from the open state closes the drawer. The button's icon swaps between `≡` and `×` based on `open` state.
+
+### Z-index map (preserved — do not change)
+
+| Layer                           | z-index    |
+| ------------------------------- | ---------- |
+| page content                    | (none)     |
+| `<header>` sticky nav           | `z-30`     |
+| Desktop dropdown menu           | `z-40`     |
+| Mobile drawer backdrop          | `z-40`     |
+| Mobile drawer panel             | `z-50`     |
+| Toast host                      | `z-[110]`  |
+| Modal overlay                   | `z-[100]`  |
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/NavBar.tsx` — particularly the dropdown coordinator (`activeDropdown` state, `closeTimerRef`, `cancelClose` / `openDropdown` / `scheduleCloseDropdown` / `toggleDropdown` / `closeNow`, ESC / outside-click / route-change handlers, container registry) or the controlled `Dropdown` component contract. Adding a fourth dropdown means extending the `DropdownId` union AND adding a `<Dropdown id="..." />` instance in `<PublicNav>` — nothing else has to change.
+- `src/components/layout/MobileNav.tsx` — particularly the drawer wrapper className. The `fixed inset-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw]` chain is what gives full-screen coverage at `< sm` and right-side panel at `sm+`. **Do not** drop `inset-0` from the mobile branch (the hero will peek through again) and **do not** drop `sm:left-auto` from the tablet branch (the panel will hug the left edge).
+
+
+## Phase 9X — Mobile drawer portal + authenticated user menu + canonical z-index map
+
+Last reviewed: **2026-05-23, Phase 9X portal + UserMenu pass — NEEDS MANUAL VISUAL QA**.
+
+This phase replaces three connected fixes plus polish + overlay coordination + docs:
+
+- The mobile drawer was visibly clipped to the navbar strip at `< sm` despite the Phase 9W full-screen className. Root cause was the `<header>`'s `backdrop-filter` containing-block trap on its `position: fixed` descendants. The drawer is now portaled to `document.body` via `createPortal`, escaping the header entirely. Drawer panel `z-[80]`, backdrop `z-[70]` (bumped from `z-50` / `z-40`).
+- A new `<UserMenu />` component owns the authenticated avatar dropdown for the desktop nav. It replaces the raw "Đăng xuất" button; the logout sequence (clear toasts + scoped success toast + `router.push('/login')`) moved into the new component. Lives in `src/components/layout/UserMenu.tsx`.
+- The mobile drawer now opens with a user summary card (avatar `lg`, name, role, email, trust chip) at the top for `isLoggedIn` users. Guests are unchanged.
+- A canonical z-index map is recorded below and in `HANDOFF.md` item 40.
+
+No business-logic changes, no schema bump (still v4), no new dependencies, no new utilities in `globals.css`, no `backdrop-blur` on toast/modal backdrops, locked light theme preserved, mock / localStorage only.
+
+### A. Mobile drawer portal — checkpoints
+
+Steps:
+- Hard refresh `/` at 360 × 800, 390 × 844, and 430 × 932 with a clean `localStorage` (so the seed homepage hero is visible).
+- Tap the hamburger.
+- Inspect every edge of the screen.
+- Open the browser devtools and confirm the drawer DOM lives under `<body>` directly — not under `<header>`.
+
+Expected:
+1. **Full-viewport coverage.** The drawer's opaque `bg-white` surface covers the entire screen. The hero copy / featured-job mockup / final CTA underneath is **completely hidden** on every edge. The previous Phase 9W symptom where the hero peeked through everywhere below the navbar (because `fixed inset-0` resolved against the header's box, not the viewport) is gone.
+2. **DOM placement.** The drawer panel and backdrop are direct children of `<body>` via `createPortal`. The hamburger trigger button stays inline inside `<header>`. Inspector should show the drawer NOT nested under `<header>`.
+3. **z-index layering.** Drawer panel `z-[80]`, backdrop `z-[70]`. Both sit above the navbar (z-30), nav guest dropdowns (z-40), notification bell panel (z-50), and user menu panel (z-40), and below modal overlay (z-[100]) and toast host (z-[110]).
+4. **Phase 9U body scroll lock preserved.** The page underneath does not shift when the drawer opens or closes. `body.no-scroll` toggles correctly. The scrollbar gutter is compensated via `padding-right` on `<body>`.
+5. **Close paths.** ESC, route change, link click, close button, backdrop click — all close the drawer. The `mounted` SSR guard prevents the portaled overlay from rendering during the first server pass / hydration; the trigger renders immediately so first-paint never lacks a hamburger button.
+6. **Tablet+ behavior unchanged.** At `sm+` (≥ 640 px), the drawer reverts to the right-side panel via `sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw]`. The dim backdrop covers the rest of the viewport.
+
+### B. Authenticated user menu — checkpoints
+
+Steps:
+- Log in as a worker (e.g. seed account `worker@cale.vn`), then as an employer, then as the admin.
+- Hard refresh `/worker/dashboard` at 1366 × 768 and 1440 × 900. Repeat for `/employer/dashboard` and `/admin/dashboard`.
+- Hover the user-menu trigger in the right cluster. Move the cursor down through the 8 px `mt-2` gap into the panel.
+- Click the trigger.
+- Tab into the trigger from the keyboard.
+- Click each shortcut link in turn. Press ESC. Click outside the panel. Trigger a route change.
+- Open both the notification bell and the user menu at the same time.
+
+Expected:
+1. **Trigger composition.** `<UserAvatar size="sm">` + truncated name (`max-w-[10rem]`) + role label (worker → "Người làm", employer → "Nhà tuyển dụng", admin → "Quản trị viên") + chevron. Below `xl` the trigger does not render; the entire authenticated nav collapses into the mobile drawer.
+2. **Panel composition.** `absolute right-0 top-full z-40 mt-2 w-72 rounded-xl border border-gray-200 bg-white p-2 shadow-xl ring-1 ring-black/5`. The summary card sits at the top on the warm gradient strip; below it a thin `border-t border-gray-100` divider; the role-aware shortcut list; another thin divider; the red Đăng xuất button.
+3. **Trust chip.** Worker → `Điểm uy tín: X/100` (green ≥80, amber 50–79, neutral <50). Employer → `Doanh nghiệp đã xác minh` (green) or `Cá nhân / Freelance` (neutral). Admin → `Quản trị viên` (green).
+4. **Hover-open + 150 ms close grace timer.** Cursor travels from trigger to panel without the panel collapsing mid-travel — same Phase 9T/9W behavior. Click toggles immediately, bypassing the timer.
+5. **Keyboard tab.** Tabbing into the trigger opens the panel via `onFocus`. ESC closes it.
+6. **Outside click + route change.** Clicking outside the container OR navigating to a new route closes the panel.
+7. **Link click closes immediately.** Clicking any shortcut link closes the panel before navigating. Modal deep links (`/worker/dashboard?modal=reputation`, `/employer/dashboard?modal=pending`) ride the existing `useModalFromQuery` hook and open the matching modal on arrival.
+8. **Logout.** The Đăng xuất button calls `logout()`, clears the toast store, pushes the `feedback.auth.logout.success` toast with `scope: 'auth'`, closes the panel, and `router.push('/login')`. Phase 9R behavior preserved.
+9. **Co-existence with notification bell.** Both can be open at once on logged-in pages — they are side-by-side affordances. Opening one does NOT close the other. Each closes on ESC, on outside click of its OWN container, and on route change. (The user menu does not pollute the bell's outside-click test, and vice versa.)
+
+### C. Mobile authenticated drawer — checkpoints
+
+Steps:
+- Log in as a worker, employer, then admin.
+- Hard refresh `/` at 360 / 390 / 430 px.
+- Tap the hamburger.
+
+Expected:
+1. **User summary card at the top.** First element inside the drawer body is a card with `<UserAvatar size="lg">`, name, role label, email, and the same trust chip as the desktop user menu, all on the warm gradient strip (`bg-gradient-to-r from-orange-50 via-amber-50 to-white`) inside an `border-orange-100` ring with `shadow-sm`.
+2. **Grouped sections unchanged.** Phase 9T/9U section structure renders as before below the summary card.
+3. **Footer auth actions unchanged.** Logged-in users see the red Đăng xuất button in the footer (Phase 9R cleanup behavior preserved). Guests see Đăng nhập / Đăng ký buttons and the drawer header is the brand block alone — no user summary card.
+4. **NotificationBell stays in navbar.** No "Thông báo" link inside the drawer body — the bell is already reachable in the navbar's right cluster at `< xl` for logged-in users.
+
+### D. Overlay coordination summary
+
+| Layer                              | z-index    |
+| ---------------------------------- | ---------- |
+| page content                       | (none)     |
+| `<header>` sticky nav              | `z-30`     |
+| Desktop nav dropdown menu (guest)  | `z-40`     |
+| Notification bell dropdown panel   | `z-50`     |
+| User menu dropdown panel           | `z-40`     |
+| Mobile drawer backdrop             | `z-[70]`   |
+| Mobile drawer panel                | `z-[80]`   |
+| Modal overlay                      | `z-[100]`  |
+| Toast host                         | `z-[110]`  |
+
+Coordination rules:
+- **Nav guest dropdowns**: managed by NavBar's `activeDropdown` coordinator (Phase 9W). Only one open at a time. Single shared 150 ms close timer.
+- **User menu**: independent, single-instance, never co-mountable with nav guest dropdowns (different auth states).
+- **Notification bell**: independent, can co-exist with `<UserMenu>` (both are right-cluster on auth nav). Opening one does NOT close the other.
+- **Mobile drawer**: portal-mounted to `document.body`, sits above all in-page content. Body is scroll-locked while open.
+
+### E. Product UI polish — checkpoints
+
+- `<header>` has `shadow-sm` alongside `border-b border-orange-100 bg-white/95 backdrop-blur-sm`. Visual: a hint of depth lifts the sticky nav off the page; the underline border still defines the bottom edge.
+- User menu items use `hover:bg-orange-50 hover:text-orange-700`, matching the nav guest dropdown items.
+- Section dividers in the user menu are thin `border-t border-gray-100` strips between the summary card and the link list, between the link list and the logout button.
+- Homepage hero, audience cards, How-it-works, Safety section, dashboards untouched. Phase 9U landed those.
+
+### F. Viewports the user should re-screenshot
+
+Mobile drawer portal: **360, 390, 430 px**.
+User menu desktop: **1366, 1440 px**.
+Tablet drawer panel mode: **768 px**.
+
+Manual checks:
+1. **Mobile drawer at 360 px shows zero hero behind.** The opaque `bg-white` drawer must completely cover the hero copy on every edge. If any portion of the hero is visible through the drawer or the dim backdrop, the portal is not in effect.
+2. **User menu opens cleanly at 1366 px.** Hover the trigger in the right cluster; the panel should appear directly below, anchored to the right (`right-0`), with the summary card at the top and the shortcut list + logout button below. Hover travel from trigger to panel must not collapse the menu.
+3. **Mobile authenticated menu shows user summary card at top.** Log in as a worker, open the mobile drawer at 390 px. The first element inside the drawer body must be the warm-gradient summary card with avatar + name + role + email + reputation chip.
+4. **Notification bell + user menu co-exist.** On `/worker/dashboard` at 1440 px, click the bell, then click the user menu trigger. Both panels should be visible simultaneously. Closing one (via ESC or outside-click on its own container) must not close the other.
+5. **Phase 9V `<header>` rule preserved.** No `overflow-x-hidden` on `<header>`. Desktop nav guest dropdowns (visible on `/` while logged out) still escape the header's bottom edge as designed.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/UserMenu.tsx` — hover/focus/click behavior, trust chip resolution, role-aware item lists.
+- `src/components/layout/MobileNav.tsx` — particularly the `createPortal(overlay, document.body)` call, the `mounted` SSR guard, the drawer/backdrop z-index values, the `UserSummaryCard` placement.
+- `src/components/layout/NavBar.tsx` — the `<UserMenu />` mount point, the `<header>`'s `shadow-sm` + `backdrop-blur-sm` chain. Any addition of `transform`, `filter`, `perspective`, `will-change` (or another `backdrop-filter` rule) to `<header>` will re-trigger the containing-block trap; the portal in `<MobileNav>` is the safety net but the new desktop user-menu panel is NOT portaled, so its `z-40` could become trapped if `<header>`'s containing-block context regresses.

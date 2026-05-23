@@ -47,6 +47,40 @@ export const vi: Record<string, string> = {
   'nav.schedule': 'Lịch cá nhân',
   'nav.employerSchedule': 'Lịch tuyển dụng',
 
+  // Phase 9X — user menu (authenticated avatar dropdown).
+  'nav.userMenu.openLabel': 'Mở menu tài khoản',
+  'nav.userMenu.closeLabel': 'Đóng menu tài khoản',
+  'nav.userMenu.account': 'Tài khoản',
+  'nav.userMenu.shortcuts': 'Truy cập nhanh',
+  'nav.userMenu.support': 'Hỗ trợ',
+
+  // Worker shortcuts
+  'nav.userMenu.worker.dashboard': 'Tổng quan',
+  'nav.userMenu.worker.profile': 'Hồ sơ cá nhân',
+  'nav.userMenu.worker.schedule': 'Lịch cá nhân',
+  'nav.userMenu.worker.applications': 'Việc đã ứng tuyển',
+  'nav.userMenu.worker.reputation': 'Điểm uy tín',
+
+  // Employer shortcuts
+  'nav.userMenu.employer.dashboard': 'Tổng quan nhà tuyển dụng',
+  'nav.userMenu.employer.postShift': 'Đăng ca tuyển',
+  'nav.userMenu.employer.schedule': 'Lịch tuyển dụng',
+  'nav.userMenu.employer.profile': 'Hồ sơ doanh nghiệp',
+  'nav.userMenu.employer.pending': 'Quản lý ứng viên',
+  'nav.userMenu.employer.payments': 'Thanh toán & đặt cọc',
+
+  // Admin shortcuts
+  'nav.userMenu.admin.dashboard': 'Tổng quan admin',
+  'nav.userMenu.admin.users': 'Người dùng',
+  'nav.userMenu.admin.shifts': 'Ca làm',
+  'nav.userMenu.admin.disputes': 'Tranh chấp',
+
+  // Trust chips
+  'nav.userMenu.chip.reputation': 'Điểm uy tín: {score}/100',
+  'nav.userMenu.chip.verifiedBusiness': 'Doanh nghiệp đã xác minh',
+  'nav.userMenu.chip.individualEmployer': 'Cá nhân / Freelance',
+  'nav.userMenu.chip.admin': 'Quản trị viên',
+
   // -------------------------------------------------------------------------
   // Buttons
   // -------------------------------------------------------------------------
@@ -533,6 +567,13 @@ export const vi: Record<string, string> = {
   'landing.hero.titleAccent': 'cho người lao động linh hoạt',
   'landing.hero.subtitle':
     'Nền tảng kết nối nhà tuyển dụng với người lao động linh hoạt tại Việt Nam. Đặt cọc minh bạch, đánh giá hai chiều, không cần tải ứng dụng.',
+  // Phase 9U — mobile-specific hero copy. The desktop title is too
+  // long for 360 / 390 / 430 px viewports and wraps badly. Mobile
+  // gets a punchier two-line headline + a single-sentence subcopy.
+  'landing.hero.title.mobile': 'Việc ngắn hạn,',
+  'landing.hero.titleAccent.mobile': 'rõ ca – rõ tiền',
+  'landing.hero.subtitle.mobile':
+    'Tìm ca làm linh hoạt hoặc tuyển người làm cho ca trống — tất cả minh bạch.',
   'landing.hero.trustHint':
     'Miễn phí đăng ký · Người làm không đặt cọc · Toàn bộ thanh toán giả lập trong MVP.',
 
@@ -591,6 +632,32 @@ export const vi: Record<string, string> = {
 
   'landing.finalCta.title': 'Bắt đầu ngay hôm nay',
   'landing.finalCta.subtitle': 'Đăng ký miễn phí, không cần đặt cọc.',
+
+  // Phase 9U — homepage section additions (safety strip, audience
+  // card details, mobile-specific copy).
+  'landing.audience.worker.eyebrow': 'Dành cho người làm',
+  'landing.audience.employer.eyebrow': 'Dành cho nhà tuyển dụng',
+  'landing.howItWorks.eyebrow': 'Quy trình',
+  'landing.safety.eyebrow': 'An toàn & minh bạch',
+  'landing.safety.title': 'Cách chúng tôi giữ ca làm an toàn',
+  'landing.safety.lead':
+    'Bốn cơ chế nền tảng giúp người làm và nhà tuyển dụng yên tâm trên từng ca.',
+  'landing.safety.verify.title': 'Xác minh hai chiều',
+  'landing.safety.verify.desc':
+    'Số điện thoại, CMND/CCCD và doanh nghiệp đều được xác minh trước khi giao ca.',
+  'landing.safety.verify.cta': 'Tìm hiểu xác minh',
+  'landing.safety.deposit.title': 'Đặt cọc minh bạch',
+  'landing.safety.deposit.desc':
+    'Nhà tuyển dụng đặt cọc trước khi đăng ca. Tiền chỉ giải ngân khi ca hoàn tất.',
+  'landing.safety.deposit.cta': 'Cách tính đặt cọc',
+  'landing.safety.reputation.title': 'Điểm uy tín hai chiều',
+  'landing.safety.reputation.desc':
+    'Hệ thống điểm 0–100 ghi nhận hành vi của cả hai phía sau mỗi ca làm.',
+  'landing.safety.reputation.cta': 'Xem cách chấm điểm',
+  'landing.safety.dispute.title': 'Xử lý tranh chấp',
+  'landing.safety.dispute.desc':
+    'Quy trình rõ ràng và đội hỗ trợ độc lập khi xảy ra mâu thuẫn về ca làm.',
+  'landing.safety.dispute.cta': 'Quy trình tranh chấp',
 
   // -------------------------------------------------------------------------
   // Auth pages

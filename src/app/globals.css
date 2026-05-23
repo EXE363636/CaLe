@@ -57,6 +57,42 @@ html,
 body {
   background: var(--background);
   color: var(--foreground);
+
+  /* Phase 9U — root-level horizontal overflow clamp.
+   *
+   * Manual screenshot QA at 360 / 390 / 430 px caught the homepage
+   * showing horizontal scroll: any descendant absolute element (e.g.
+   * the Phase 9T hero blobs at `-right-20`, `-left-16`) could spill
+   * past the viewport, give the body a horizontal scroll bar, and
+   * read as "the page is sliced in half" once the mobile drawer
+   * opened on top.
+   *
+   * We protect at the root rather than rely on per-section
+   * `overflow-hidden` so a future decorative blob added on any page
+   * cannot regress the bug. Vertical scroll behaviour is untouched
+   * (`overflow-y` defaults to `auto`/`visible`). */
+  overflow-x: hidden;
+  /* `max-width: 100vw` would double-clip in Safari when a vertical
+   * scrollbar is present; `width: 100%` is enough because the
+   * `overflow-x: hidden` already prevents content from forcing the
+   * box wider. */
+  width: 100%;
+}
+
+/* Phase 9U — body scroll lock helper class.
+ *
+ * Toggled by the mobile drawer (`<MobileNav>`) when the drawer is
+ * open so the page underneath can't be scrolled and the
+ * already-clamped horizontal overflow can't peek through. We compensate
+ * for the disappearing scrollbar via inline `padding-right` on the
+ * body so the layout doesn't jump. */
+body.no-scroll {
+  overflow: hidden;
+  /* `position: fixed` would also work but reflows the page; class +
+   * `overflow: hidden` is the cheapest non-jumping option in Chrome /
+   * Safari / Firefox and keeps the scroll position intact when the
+   * drawer closes. */
+  touch-action: none;
 }
 
 /* Calm warm-cream surface — Phase 9G visual cleanup, Phase 9T depth pass.
@@ -85,6 +121,11 @@ body {
       ellipse 700px 480px at 100% 20%,
       rgba(252, 211, 77, 0.14) 0%,
       rgba(252, 211, 77, 0) 65%
+    ),
+    radial-gradient(
+      ellipse 520px 360px at 50% 110%,
+      rgba(254, 215, 170, 0.18) 0%,
+      rgba(254, 215, 170, 0) 70%
     ),
     linear-gradient(180deg, #fff7ed 0%, #fff7ed 18%, #fafaf7 60%, #f8fafc 100%);
   background-repeat: no-repeat;
@@ -202,6 +243,7 @@ body {
   .toast-progress,
   .toast-shake,
   .entrance-up,
+  .entrance-up-soft,
   .entrance-right,
   .float-soft,
   .float-blob {
@@ -211,6 +253,7 @@ body {
    * fade/slide, but the layout still stabilises correctly. */
   .reveal,
   .entrance-up,
+  .entrance-up-soft,
   .entrance-right {
     opacity: 1;
     transform: none;
@@ -442,4 +485,129 @@ summary::-webkit-details-marker {
     transparent 1px
   );
   background-size: 16px 16px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9U — homepage redesign atmosphere + section dividers
+ *
+ * The Phase 9U redesign rebuilt the landing page around a clearer
+ * worker / employer split, a richer hero, a NEW safety section, and a
+ * timeline-feel How-it-works block. These utilities support that:
+ *
+ *   - `.section-wave` paints a soft top-edge curved separator on a
+ *     section so adjacent surfaces blend rather than butt-edge into
+ *     each other. Pure CSS — no SVG asset, no JS, no extra request.
+ *     Lives on a `::before` so the section content sits above it.
+ *
+ *   - `.audience-card-emp` / `.audience-card-wrk` give the two
+ *     audience cards a subtle warm gradient header strip. Worker side
+ *     leans amber, employer side leans deep orange so the two read as
+ *     distinct surfaces without losing the brand identity.
+ *
+ *   - `.timeline-rule` is the vertical connector behind the steps in
+ *     "Cách hoạt động". The number circles sit on top of it via a
+ *     positive `z-index` on the circle.
+ *
+ *   - `.cta-band` is the polish layer for the final CTA section: a
+ *     denser orange gradient + a curved top wave + a slightly deeper
+ *     shadow. Non-essential on small screens so we keep the wave
+ *     subtle there.
+ *
+ *   - `.entrance-up-soft` is a calmer cousin of `.entrance-up` for
+ *     scroll-revealed cards (audience cards, safety cards, etc.) —
+ *     same translate amplitude but a slower duration and a gentler
+ *     ease so a stagger reads as graceful rather than snappy.
+ * ------------------------------------------------------------------------- */
+
+.section-wave {
+  position: relative;
+}
+.section-wave::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -1px;
+  height: 28px;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 100% 100% at 50% 0%,
+      rgba(255, 247, 237, 0.95) 0%,
+      rgba(255, 247, 237, 0) 70%
+    );
+  /* Soft inverse curve sweeping down so the section visibly "lifts"
+   * out of the page chrome above it. */
+  border-top-left-radius: 50% 100%;
+  border-top-right-radius: 50% 100%;
+}
+
+.audience-card-emp {
+  background-image:
+    linear-gradient(180deg, rgba(251, 146, 60, 0.10) 0%, rgba(251, 146, 60, 0) 80px),
+    linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+}
+.audience-card-wrk {
+  background-image:
+    linear-gradient(180deg, rgba(252, 211, 77, 0.16) 0%, rgba(252, 211, 77, 0) 80px),
+    linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+}
+
+.timeline-rule {
+  position: relative;
+}
+.timeline-rule::before {
+  content: "";
+  position: absolute;
+  left: 15px;     /* aligns to the centre of the 32px (h-8 w-8) number */
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: linear-gradient(180deg,
+    rgba(251, 146, 60, 0.35) 0%,
+    rgba(251, 146, 60, 0.10) 100%);
+  pointer-events: none;
+}
+
+.cta-band {
+  position: relative;
+  isolation: isolate;
+  background-image:
+    radial-gradient(
+      ellipse 800px 320px at 20% 0%,
+      rgba(255, 255, 255, 0.18) 0%,
+      rgba(255, 255, 255, 0) 60%
+    ),
+    linear-gradient(135deg, #f97316 0%, #fb923c 50%, #f59e0b 100%);
+}
+.cta-band::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 32px;
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 0%,
+    rgba(255, 247, 237, 0.85) 0%,
+    rgba(255, 247, 237, 0) 70%
+  );
+  border-bottom-left-radius: 50% 100%;
+  border-bottom-right-radius: 50% 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes entrance-up-soft {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.entrance-up-soft {
+  opacity: 0;
+  animation: entrance-up-soft 640ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--entrance-delay, 0ms);
 }

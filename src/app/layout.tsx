@@ -28,10 +28,18 @@ export default function RootLayout({
       lang="vi"
       className={`${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans text-slate-900">
+      {/* Phase 9U — `overflow-x: hidden` and `width: 100%` are applied
+          on `html, body` in `globals.css`. We pair that with
+          `min-w-0` here so any flex / grid descendant whose intrinsic
+          minimum content width exceeds the viewport (long Vietnamese
+          labels, monospace timestamps, the hero mockup at 360 px) can
+          shrink instead of forcing the body wider. The combination is
+          what kills the "page looks sliced in half when the drawer
+          opens" symptom from manual screenshot QA. */}
+      <body className="min-w-0 min-h-full flex flex-col font-sans text-slate-900">
         <AppHydrator>
           <NavBar />
-          <main className="flex-1">
+          <main className="min-w-0 flex-1">
             {children}
           </main>
           <Footer />

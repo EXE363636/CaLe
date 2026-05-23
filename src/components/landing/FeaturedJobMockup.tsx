@@ -111,12 +111,18 @@ export function FeaturedJobMockup() {
         {/* Supporting stats — decorative only, marked aria-hidden. They
             live in their own group with subtle muted styling so they
             don't compete with the primary card. No hover lift, no focus
-            ring, no pointer cursor. */}
+            ring, no pointer cursor.
+
+            Phase 9U — hidden below `sm` (mobile). Manual screenshot QA
+            at 360 / 390 / 430 px showed these two cards fighting the
+            featured card for breathing room and pushing the hero
+            taller than the viewport. The featured card alone reads
+            cleaner on mobile; the stats stay on tablet and up. */}
         <div
           className="contents"
           aria-hidden="true"
         >
-          <div className="rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm">
+          <div className="hidden rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm sm:block">
             <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
               {t('landing.hero.featured.repLabel')}
             </p>
@@ -126,7 +132,7 @@ export function FeaturedJobMockup() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm">
+          <div className="hidden rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm sm:block">
             <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
               {t('landing.hero.featured.upcomingLabel')}
             </p>
