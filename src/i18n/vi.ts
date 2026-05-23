@@ -629,6 +629,7 @@ export const vi: Record<string, string> = {
   'landing.howItWorks.worker.step1': 'Tạo hồ sơ và xác minh số điện thoại',
   'landing.howItWorks.worker.step2': 'Tìm và ứng tuyển ca làm phù hợp',
   'landing.howItWorks.worker.step3': 'Làm việc, check-in/out và nhận tiền',
+  'landing.howItWorks.viewGuide': 'Xem hướng dẫn chi tiết',
 
   'landing.finalCta.title': 'Bắt đầu ngay hôm nay',
   'landing.finalCta.subtitle': 'Đăng ký miễn phí, không cần đặt cọc.',
@@ -1009,6 +1010,221 @@ export const vi: Record<string, string> = {
     'Điểm uy tín có thể điều chỉnh trực tiếp trong tab Người dùng.',
   'help.adminDashboard.item4':
     'Trạng thái ca tự cập nhật — thời điểm cuối hiển thị trên tab Ca làm.',
+
+  // -------------------------------------------------------------------------
+  // Phase 9Y — richer help content + /user-guide CTA on every dashboard.
+  //
+  // Pattern: `help.<surface>.section.<sectionKey>.heading` and
+  // `help.<surface>.section.<sectionKey>.itemN`. Five surfaces upgraded
+  // (worker dashboard, worker schedule, employer dashboard, employer
+  // schedule, admin dashboard). The lighter flat-`item1..item4` keys
+  // above are preserved for `/employer/shifts/new` and any other future
+  // single-purpose surface that doesn't need grouped sections.
+  // -------------------------------------------------------------------------
+  'help.viewFullGuide': 'Xem hướng dẫn chi tiết',
+
+  // Worker dashboard sections
+  'help.workerDashboard.section.purpose.heading': 'Trang này dùng để',
+  'help.workerDashboard.section.purpose.item1':
+    'Trang Tổng quan hiển thị toàn bộ hoạt động của bạn — ca sắp tới, đơn ứng tuyển, điểm uy tín, hạn mức huỷ và thông báo.',
+  'help.workerDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
+  'help.workerDashboard.section.numbers.item1':
+    'Điểm uy tín 0–100. Bắt đầu 100. Mỗi ca hoàn thành +5. Vắng mặt không báo trước −20. Huỷ trong 24 giờ −10. Dưới 50 bị hạn chế ứng tuyển.',
+  'help.workerDashboard.section.numbers.item2':
+    'Hạn mức huỷ tuần: 3 lượt mặc định. Đạt điểm uy tín cao thì được nâng (4–5 lượt/tuần).',
+  'help.workerDashboard.section.numbers.item3':
+    'Tổng thu nhập: tổng tiền của các ca đã hoàn thành và đã thanh toán (mô phỏng MVP).',
+  'help.workerDashboard.section.numbers.item4':
+    'Ca đã hoàn thành: số ca có trạng thái "Đã xác nhận".',
+  'help.workerDashboard.section.actions.heading': 'Thao tác chính',
+  'help.workerDashboard.section.actions.item1':
+    'Bấm ô "Điểm uy tín" để xem dòng thời gian cộng/trừ điểm và lịch sử quản trị viên điều chỉnh (nếu có).',
+  'help.workerDashboard.section.actions.item2':
+    'Bấm ô "Hạn mức huỷ tuần" để xem usage 7 và 30 ngày kèm tier điểm uy tín hiện tại.',
+  'help.workerDashboard.section.actions.item3':
+    'Trong "Ca làm sắp tới", đến giờ ca thì bấm "Check-in", kết thúc ca bấm "Check-out".',
+  'help.workerDashboard.section.actions.item4':
+    'Đơn bị từ chối gần đây hiện kèm lý do — đọc kỹ trước khi ứng tuyển ca mới.',
+  'help.workerDashboard.section.mistakes.heading': 'Lỗi thường gặp',
+  'help.workerDashboard.section.mistakes.item1':
+    'Không thể ứng tuyển nếu chưa xác minh số điện thoại — vào Hồ sơ để bật xác minh.',
+  'help.workerDashboard.section.mistakes.item2':
+    'Không thể ứng tuyển ca trùng lịch cá nhân hoặc trùng ca đã duyệt — kiểm tra Lịch cá nhân trước.',
+  'help.workerDashboard.section.mistakes.item3':
+    'Huỷ ca trong vòng 3 giờ phải được nhà tuyển dụng duyệt — đơn vẫn giữ chỗ cho tới lúc đó.',
+
+  // Worker schedule sections
+  'help.workerSchedule.section.purpose.heading': 'Trang này dùng để',
+  'help.workerSchedule.section.purpose.item1':
+    'Đánh dấu thời gian bận để tránh ứng tuyển trùng giờ. Có thể là giờ học, ca làm khác, hoặc việc cá nhân.',
+  'help.workerSchedule.section.numbers.heading': 'Các con số / trạng thái quan trọng',
+  'help.workerSchedule.section.numbers.item1':
+    'Mỗi khung bận có ngày + giờ bắt đầu + giờ kết thúc. Hệ thống không cho ứng tuyển ca trùng giờ với khung bận trong cùng ngày.',
+  'help.workerSchedule.section.numbers.item2':
+    'Ca làm đã được duyệt cũng tự động tính là khung bận.',
+  'help.workerSchedule.section.actions.heading': 'Thao tác chính',
+  'help.workerSchedule.section.actions.item1':
+    'Bấm vào ô trống trong tuần/ngày để thêm khung bận với giờ tự điền.',
+  'help.workerSchedule.section.actions.item2':
+    'Bấm vào khung bận hiện có để chỉnh sửa hoặc xoá.',
+  'help.workerSchedule.section.actions.item3':
+    'Bấm "Tuỳ chỉnh khung giờ" để thay đổi dải giờ hiển thị (mặc định 07:00–21:00, 120 phút/slot).',
+  'help.workerSchedule.section.mistakes.heading': 'Lỗi thường gặp',
+  'help.workerSchedule.section.mistakes.item1':
+    'Không thể tạo khung bận trùng giờ với ca đã được duyệt — sẽ báo lỗi.',
+  'help.workerSchedule.section.mistakes.item2':
+    'Ngày phải nhập theo dd/mm/yyyy. Giờ phải nhập 24 giờ HH:mm.',
+
+  // Employer dashboard sections
+  'help.employerDashboard.section.purpose.heading': 'Trang này dùng để',
+  'help.employerDashboard.section.purpose.item1':
+    'Trang Tổng quan hiển thị toàn bộ ca bạn đã đăng — ca đang tuyển, đơn chờ duyệt, ca đã hoàn thành và thanh toán giả lập.',
+  'help.employerDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
+  'help.employerDashboard.section.numbers.item1':
+    'Ca đang hoạt động: ca có trạng thái "Đang tuyển", "Đã đủ người", "Đang diễn ra", "Chờ xác nhận".',
+  'help.employerDashboard.section.numbers.item2':
+    'Đơn chờ duyệt: số đơn ứng tuyển ở trạng thái "Chờ duyệt" trên các ca của bạn.',
+  'help.employerDashboard.section.numbers.item3':
+    'Tổng đã đặt cọc / đã thanh toán: tổng tiền cọc và tổng tiền đã giải ngân (mô phỏng MVP).',
+  'help.employerDashboard.section.numbers.item4':
+    'Lượt boost: 1 lượt được tặng mỗi khi đánh dấu vắng mặt; dùng để đẩy ca lên đầu danh sách.',
+  'help.employerDashboard.section.actions.heading': 'Thao tác chính',
+  'help.employerDashboard.section.actions.item1':
+    'Bấm "Đăng ca mới" để tạo ca và mô phỏng đặt cọc.',
+  'help.employerDashboard.section.actions.item2':
+    'Bấm vào ô số liệu để xem danh sách chi tiết tương ứng (ca đã đăng / đơn chờ duyệt / thanh toán).',
+  'help.employerDashboard.section.actions.item3':
+    'Trong "Đơn chờ duyệt", bấm vào người làm để xem hồ sơ trước khi duyệt.',
+  'help.employerDashboard.section.actions.item4':
+    'Bấm "Xem lịch tuyển dụng" để xem các ca theo tuần.',
+  'help.employerDashboard.section.mistakes.heading': 'Lỗi thường gặp',
+  'help.employerDashboard.section.mistakes.item1':
+    'Ca chỉ công khai sau khi bấm "Xác nhận đã thanh toán" (mô phỏng đặt cọc) — trước đó ca ở trạng thái "Bản nháp".',
+  'help.employerDashboard.section.mistakes.item2':
+    'Từ chối đơn bắt buộc nhập lý do — người làm sẽ thấy lý do trên Tổng quan của họ.',
+  'help.employerDashboard.section.mistakes.item3':
+    'Không thể huỷ ca trong vòng 6 giờ trước giờ bắt đầu nếu đã có người ứng tuyển hoặc được duyệt.',
+
+  // Employer schedule sections
+  'help.employerSchedule.section.purpose.heading': 'Trang này dùng để',
+  'help.employerSchedule.section.purpose.item1':
+    'Xem các ca đã đăng theo tuần để dễ theo dõi lịch tuyển dụng.',
+  'help.employerSchedule.section.numbers.heading': 'Các con số / trạng thái quan trọng',
+  'help.employerSchedule.section.numbers.item1':
+    'Mỗi ca trên lịch có chip màu theo trạng thái: xanh (Đang tuyển), vàng (Đã đủ người / Chờ xác nhận), xanh lá (Đã hoàn thành), đỏ gạch (Đã huỷ / Hết hạn).',
+  'help.employerSchedule.section.numbers.item2':
+    'Số người trên chip hiển thị filled/total — ví dụ 2/3 nghĩa là đã có 2 trong 3 vị trí.',
+  'help.employerSchedule.section.actions.heading': 'Thao tác chính',
+  'help.employerSchedule.section.actions.item1':
+    'Bấm vào ca trên lịch để vào trang quản lý chi tiết.',
+  'help.employerSchedule.section.actions.item2':
+    'Bấm "◀ Tuần trước" / "Tuần sau ▶" để di chuyển. "Tuần này" đưa về tuần hiện tại.',
+  'help.employerSchedule.section.actions.item3':
+    'Bấm "Tuỳ chỉnh khung giờ" để thay đổi dải giờ hiển thị.',
+  'help.employerSchedule.section.mistakes.heading': 'Lỗi thường gặp',
+  'help.employerSchedule.section.mistakes.item1':
+    'Trạng thái ca tự cập nhật theo thời gian thật — không cần thao tác thủ công ở đây.',
+
+  // Admin dashboard sections
+  'help.adminDashboard.section.purpose.heading': 'Trang này dùng để',
+  'help.adminDashboard.section.purpose.item1':
+    'Trang quản trị toàn hệ thống — theo dõi người dùng, ca làm, tranh chấp và xử lý ngoại lệ.',
+  'help.adminDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
+  'help.adminDashboard.section.numbers.item1':
+    'Tổng người làm / nhà tuyển dụng / ca: số liệu cộng dồn từ toàn bộ dữ liệu hệ thống.',
+  'help.adminDashboard.section.numbers.item2':
+    'Ca tranh chấp: ca có "Trạng thái thanh toán" = "Đang tranh chấp".',
+  'help.adminDashboard.section.numbers.item3':
+    'Tranh chấp đang mở: số tranh chấp ở trạng thái "Đang xem xét".',
+  'help.adminDashboard.section.actions.heading': 'Thao tác chính',
+  'help.adminDashboard.section.actions.item1':
+    'Bấm vào ô số liệu để chuyển nhanh sang tab tương ứng (ví dụ "Workers" → tab Người dùng đã lọc sẵn).',
+  'help.adminDashboard.section.actions.item2':
+    'Trong tab "Người dùng" bấm "Điều chỉnh điểm uy tín" để gán điểm 0–100 với lý do.',
+  'help.adminDashboard.section.actions.item3':
+    'Trong tab "Ca làm" bấm "Override (khẩn cấp)" để thay đổi trạng thái thanh toán khi xử lý ngoại lệ.',
+  'help.adminDashboard.section.actions.item4':
+    'Trong tab "Tranh chấp" bấm "Giải quyết" để chọn "Thanh toán" hoặc "Hoàn tiền" theo hồ sơ.',
+  'help.adminDashboard.section.mistakes.heading': 'Lỗi thường gặp',
+  'help.adminDashboard.section.mistakes.item1':
+    'Override khẩn cấp chỉ dùng khi cần thiết — luôn ghi rõ lý do, đã có nhật ký.',
+  'help.adminDashboard.section.mistakes.item2':
+    'Không thể tự khoá tài khoản admin của chính bạn.',
+  'help.adminDashboard.section.mistakes.item3':
+    'Không thể khoá quản trị viên cuối cùng đang hoạt động.',
+
+  // -------------------------------------------------------------------------
+  // Phase 9Y — empty-state copy upgrades + HelpHint hint strings
+  // -------------------------------------------------------------------------
+  // Worker dashboard empty states
+  'worker.dashboard.empty.applications.title':
+    'Bạn chưa ứng tuyển ca nào.',
+  'worker.dashboard.empty.applications.description':
+    'Khi bạn ứng tuyển một ca, đơn của bạn sẽ hiển thị ở đây trong khi chờ nhà tuyển dụng duyệt.',
+  'worker.dashboard.empty.applications.cta': 'Khám phá ca làm',
+  'worker.dashboard.empty.completed.title':
+    'Bạn chưa có ca hoàn thành nào.',
+  'worker.dashboard.empty.completed.description':
+    'Hoàn thành ca đầu tiên để xem chi tiết tại đây.',
+  'worker.dashboard.empty.completed.cta': 'Tìm ca làm',
+  'worker.dashboard.empty.income.title': 'Bạn chưa có thu nhập.',
+  'worker.dashboard.empty.income.description':
+    'Hoàn thành các ca làm và đợi nhà tuyển dụng xác nhận để nhận thanh toán (giả lập trong MVP).',
+  'worker.dashboard.empty.income.cta': 'Tìm ca làm ngay',
+  'worker.dashboard.empty.upcoming.descriptionRich':
+    'Vào "Tìm ca làm" để xem các ca đang tuyển và ứng tuyển ca đầu tiên. Hệ thống chỉ hiện các ca đã được nhà tuyển dụng đặt cọc.',
+
+  // Employer dashboard empty states
+  'employer.dashboard.empty.upcoming.descriptionRich':
+    'Bấm "Đăng ca mới" để tạo ca và mô phỏng đặt cọc. Ca chỉ công khai sau khi đặt cọc thành công.',
+  'employer.dashboard.empty.pending.title':
+    'Chưa có đơn ứng tuyển nào chờ duyệt.',
+  'employer.dashboard.empty.pending.description':
+    'Đơn ứng tuyển mới sẽ hiển thị ở đây. Bạn có thể kiểm tra mô tả ca, lương, thời gian để thu hút thêm ứng viên.',
+  'employer.dashboard.empty.pending.cta': 'Đăng ca mới',
+
+  // Employer manage shift empty state
+  'employer.manageShift.empty.applicants.title':
+    'Chưa có ai ứng tuyển ca này.',
+  'employer.manageShift.empty.applicants.description':
+    'Hãy kiểm tra tiêu đề, mô tả, lương và yêu cầu — ca rõ ràng và mức lương cạnh tranh thường nhận đơn nhanh hơn.',
+
+  // HelpPopover descriptions — Phase 9Y-Fix-3.
+  // Now rendered inside each stat detail modal's title slot, not on
+  // the dashboard tile. Wording trimmed to the canonical phrasing
+  // requested by the Phase 9Y-Fix-3 spec.
+  'hint.worker.reputation':
+    'Điểm phản ánh độ tin cậy của bạn dựa trên lịch sử nhận ca, hoàn thành ca và huỷ ca.',
+  'hint.worker.cancelQuota':
+    'Số lần bạn còn có thể huỷ ca trong tuần theo quy định điểm uy tín.',
+  'hint.worker.totalEarnings':
+    'Tổng tiền công từ các ca đã hoàn thành và được xác nhận thanh toán.',
+  'hint.worker.completedShifts':
+    'Số ca bạn đã hoàn thành và được xác nhận trên hệ thống.',
+
+  // Employer stat modal descriptions
+  'hint.employer.activeShifts':
+    'Các ca đã đăng, đã đặt cọc và đang trong quá trình tuyển hoặc làm việc.',
+  'hint.employer.postedShifts':
+    'Tổng số ca bạn đã tạo trên hệ thống, gồm cả nháp, đang tuyển, đã đầy, đã hoàn thành và đã huỷ.',
+  'hint.employer.completedShifts':
+    'Ca đã được xác nhận hoàn thành sau khi người làm check-in/check-out và bạn xác nhận.',
+  'hint.employer.totalDeposited':
+    'Tổng tiền công đang được giữ trong hệ thống cho các ca đã đặt cọc.',
+  'hint.employer.totalPaidOut':
+    'Tổng tiền đã giải ngân cho người làm sau khi ca hoàn thành.',
+  'hint.employer.pendingApps':
+    'Số đơn ứng tuyển đang chờ bạn duyệt hoặc từ chối.',
+
+  // HelpPopover descriptions — employer manage shift applicant statuses
+  'hint.employer.statusApproved':
+    'Bạn đã chấp nhận ứng viên này. Họ sẽ check-in khi đến giờ ca.',
+  'hint.employer.statusCompleted':
+    'Bạn đã xác nhận ứng viên hoàn thành ca này. Tiền công đã được giải ngân (mô phỏng).',
+
+  // HelpPopover description — admin override button
+  'hint.admin.override':
+    'Chỉ dùng khi cần xử lý ngoại lệ. Thao tác này có thể ảnh hưởng trực tiếp đến trạng thái ca hoặc người dùng. Mọi lần override đều được ghi vào nhật ký.',
 
   // -------------------------------------------------------------------------
   // Phase 6 — employer types

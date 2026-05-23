@@ -418,6 +418,19 @@ export default function LandingPage() {
               </div>
             </Reveal>
           </div>
+
+          {/* Phase 9Y — link into the long-form public guide. The "Cách
+              hoạt động" section above gives the 3-step skeleton; the
+              guide page (/user-guide) carries the full 9-step worker
+              + 9-step employer timeline plus an FAQ. */}
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/user-guide"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-5 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              {t('landing.howItWorks.viewGuide')} <ArrowRightIcon />
+            </Link>
+          </div>
         </div>
       </section>
 

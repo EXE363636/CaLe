@@ -121,6 +121,7 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       { href: '/safety', label: 'An toàn & xác minh' },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/disputes', label: 'Xử lý tranh chấp' },
+      { href: '/user-guide', label: 'Hướng dẫn sử dụng' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
     ],
   },
@@ -142,6 +143,7 @@ const WORKER_SECTIONS: DrawerSection[] = [
     links: [
       { href: '/worker/reputation-guide', label: 'Điểm uy tín' },
       { href: '/worker/cancellation-policy', label: 'Quy định huỷ ca' },
+      { href: '/user-guide', label: 'Hướng dẫn sử dụng' },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
     ],
@@ -164,6 +166,7 @@ const EMPLOYER_SECTIONS: DrawerSection[] = [
     links: [
       { href: '/employer/payments', label: 'Đặt cọc & thanh toán' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
+      { href: '/user-guide', label: 'Hướng dẫn sử dụng' },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
     ],

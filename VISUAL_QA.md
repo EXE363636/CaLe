@@ -1771,3 +1771,491 @@ Re-run this audit after any change to:
 - `src/components/layout/UserMenu.tsx` — hover/focus/click behavior, trust chip resolution, role-aware item lists.
 - `src/components/layout/MobileNav.tsx` — particularly the `createPortal(overlay, document.body)` call, the `mounted` SSR guard, the drawer/backdrop z-index values, the `UserSummaryCard` placement.
 - `src/components/layout/NavBar.tsx` — the `<UserMenu />` mount point, the `<header>`'s `shadow-sm` + `backdrop-blur-sm` chain. Any addition of `transform`, `filter`, `perspective`, `will-change` (or another `backdrop-filter` rule) to `<header>` will re-trigger the containing-block trap; the portal in `<MobileNav>` is the safety net but the new desktop user-menu panel is NOT portaled, so its `z-40` could become trapped if `<header>`'s containing-block context regresses.
+
+
+## Phase 9Y — User guidance + contextual help
+
+Last reviewed: **2026-05-23, Phase 9Y user guidance + contextual help pass — NEEDS MANUAL VISUAL QA**.
+
+This phase adds a public long-form guide route, threads it into the
+navigation surfaces, enriches the per-dashboard help modals with grouped
+sections + a deep link, polishes empty states with guiding CTAs, and
+introduces a small contextual `<HelpHint>` primitive for "(?)" tooltips
+on labels that need just one sentence of explanation.
+
+No business-logic / store / persistence changes. Schema unchanged at
+v4. Route count: 27 → **28** (one new static `/user-guide`).
+
+### A. Public guide page `/user-guide` — checkpoints
+
+Steps:
+- Hard refresh `/user-guide` at 360, 768, and 1366 px viewports with a
+  clean `localStorage`.
+- Read the hero copy. Tab through the page to inspect every focusable
+  affordance.
+- Open and close every FAQ `<details>` entry. Confirm the chevron
+  rotates.
+
+Expected:
+1. **Hero header** — `<InfoPage>` shell rendered: orange eyebrow
+   "Hướng dẫn sử dụng" → bold title "Cách dùng CaLẻ / ShiftNow" →
+   substantial intro paragraph. Two-paragraph hero summary explaining
+   what CaLẻ / ShiftNow is and that the MVP is mock-only.
+2. **Two-column timeline at `md+`** — at 1366 px the worker (left) and
+   employer (right) columns sit side-by-side inside `md:grid-cols-2`.
+   Each column is a vertical timeline of 9 numbered step cards
+   (`<StepCard n title body />`). Number badge is the same orange-
+   gradient circle used on the homepage `<StepNumber>` so the surfaces
+   feel like one product.
+3. **Single-column timeline at `< md`** — at 768 px the layout
+   collapses to a single column with the worker timeline first then
+   the employer timeline below. Each step card stays readable; the
+   number badge stays anchored to the left.
+4. **Step content matches actual flows** — worker step 5 mentions all
+   five apply-time gates (phone-verified, reputation ≥ 50, no time
+   conflict, no schedule conflict, not full, not already applied);
+   worker step 9 lists the +5 / −20 / −10 / threshold-50 reputation
+   rules; employer step 4 lists the trust-tier deposit ratios
+   (low 100% / medium 70% / high 50%); employer step 8 mentions the
+   no-show boost-credit. None of this reads as generic AI filler.
+5. **FAQ accordion** — five entries on native `<details>` /
+   `<summary>`. Clicking the summary expands the answer. Custom
+   chevron rotates 180° on `group-open`. No JS — works with
+   JavaScript disabled.
+6. **CTA row at the bottom** — two buttons: "Tìm ca làm ngay" →
+   `/shifts` (primary orange gradient), "Đăng ca tuyển" →
+   `/register?role=employer` (secondary white-bordered). Both
+   `min-h-[44px]` tap targets, both reachable by tab.
+7. **Server rendering** — `View Source` shows the full content in the
+   initial HTML (no `'use client'` boundary on this page). The FAQ
+   accordion works without JS.
+
+### B. Navigation wiring — checkpoints
+
+Steps:
+- At 1366 px: hover the desktop nav `An toàn & hướng dẫn ▾` trigger.
+  Confirm `Hướng dẫn sử dụng` is the 5th item and the trigger lights
+  up when on `/user-guide`.
+- At 360 px: open the mobile drawer. Walk every drawer tree (guest,
+  logged-in worker, logged-in employer). Confirm `Hướng dẫn sử dụng`
+  appears in the appropriate `Hướng dẫn` / `Hướng dẫn & hỗ trợ`
+  section. Log in as admin and confirm the drawer admin tree does NOT
+  carry the link.
+- Scroll the footer at any width. `Pháp lý & hỗ trợ` column should now
+  carry 5 links with `Hướng dẫn sử dụng` as the FIRST item.
+
+Expected:
+1. Desktop nav `An toàn & hướng dẫn ▾` shows 5 items: Cách hoạt động,
+   An toàn & xác minh, Câu hỏi thường gặp, Xử lý tranh chấp, Hướng
+   dẫn sử dụng (in that order). Trigger highlights when pathname is
+   `/user-guide` (Phase 9W active-prefixes match).
+2. Mobile drawer guest tree `Hướng dẫn & hỗ trợ` section: 6 items
+   (Cách hoạt động, An toàn & xác minh, Câu hỏi thường gặp, Xử lý
+   tranh chấp, Hướng dẫn sử dụng, Liên hệ hỗ trợ).
+3. Mobile drawer worker tree `Hướng dẫn` section: 5 items (Điểm uy
+   tín, Quy định huỷ ca, Hướng dẫn sử dụng, Câu hỏi thường gặp, Liên
+   hệ hỗ trợ).
+4. Mobile drawer employer tree `Hướng dẫn` section: 5 items (Đặt cọc
+   & thanh toán, Đánh giá sau ca, Hướng dẫn sử dụng, Câu hỏi thường
+   gặp, Liên hệ hỗ trợ).
+5. Mobile drawer admin tree `Hướng dẫn` section: still 2 items
+   (Chính sách xử lý tranh chấp, Liên hệ hỗ trợ). The user-guide
+   link is intentionally NOT here.
+6. Footer `Pháp lý & hỗ trợ` column at every breakpoint: 5 items
+   ordered Hướng dẫn sử dụng → Điều khoản → Chính sách → Tranh chấp
+   → Liên hệ.
+7. Tapping any of the above navigates to `/user-guide` and the page
+   loads without errors.
+
+### C. Homepage CTA — checkpoints
+
+Steps:
+- Hard refresh `/` at 360 / 1366 px.
+- Scroll to the "Cách hoạt động" section.
+- Inspect the area below the two step columns.
+
+Expected:
+1. After the two existing step columns (worker + employer) inside the
+   `Cách hoạt động` section, a single centered pill link reads "Xem
+   hướng dẫn chi tiết →".
+2. The pill uses the rest of the homepage's pill aesthetic — `min-h-
+   [44px] rounded-full border-orange-200 bg-white/80 text-orange-700`
+   with a hover state and `focus-visible:ring-2 ring-orange-400`.
+3. Clicking the pill navigates to `/user-guide`.
+4. The pill renders below the two step columns at all widths — at
+   `< md` the columns are single-column stacked and the CTA still
+   sits centered below.
+5. NO duplicate "How it works" section was created; the CTA is
+   additive inside the existing section.
+
+### D. Help modal upgrades — checkpoints
+
+Steps:
+- Log in to each role and visit each of the 5 upgraded surfaces:
+  - Worker dashboard (`/worker/dashboard`)
+  - Worker schedule (`/worker/schedule`)
+  - Employer dashboard (`/employer/dashboard`)
+  - Employer schedule (`/employer/schedule`)
+  - Admin dashboard (`/admin/dashboard`)
+- On each surface, open the "Hướng dẫn sử dụng" button.
+- Verify the modal contents.
+- Click the "Xem hướng dẫn chi tiết →" CTA.
+- Reopen the modal, click "Đã hiểu" close button.
+- Repeat for `/employer/shifts/new` to confirm the legacy flat-bullet
+  shape is preserved.
+
+Expected:
+1. **Modal opens** with the existing portal-mounted overlay (Phase 9H);
+   uniform `bg-slate-900/60` backdrop, panel centered, `max-w-lg`
+   width, no banding artefacts.
+2. **Intro paragraph** sits below the modal title (`help.<surface>.intro`
+   already in place from Phase 9F).
+3. **Four grouped sections** rendered in this order, each with an
+   uppercase orange heading + bullet list:
+   - "Trang này dùng để" (1 bullet)
+   - "Các con số / trạng thái quan trọng" (3–5 bullets)
+   - "Thao tác chính" (3–6 bullets)
+   - "Lỗi thường gặp" (2–3 bullets)
+   Section heading style: `text-xs font-semibold uppercase tracking-
+   wide text-orange-700`. Bullet items use the same orange dot from
+   the existing flat-bullet path.
+4. **Footer** is a `flex justify-between` row at `sm+`:
+   - Bottom-left: "Xem hướng dẫn chi tiết →" CTA, orange ghost button
+     styled to match the existing close button. Clicking navigates to
+     `/user-guide` AND closes the modal.
+   - Bottom-right: "Đã hiểu" primary close button, unchanged from
+     Phase 9F.
+   At `< sm` the footer stacks vertically with the close button on
+   top so the primary close action stays reachable.
+5. **`/employer/shifts/new` legacy shape preserved** — opening its
+   help modal still renders the original flat bullet list (4 items),
+   no section headings, no CTA in the footer. The close button sits
+   right-aligned alone.
+6. ESC, click-outside, and the close button all dismiss the modal.
+7. Body scroll-lock applies while the modal is open and is restored
+   on close.
+
+### E. Empty state QA — checkpoints
+
+Steps:
+- Wipe `localStorage` so seed data fully resets, then individually
+  trigger each empty-state surface:
+  - Log in as a worker with no upcoming shifts → land on
+    `/worker/dashboard`.
+  - Same worker with no `Pending` applications → "Đơn đã ứng tuyển"
+    section.
+  - Same worker, click "Ca đã hoàn thành" stat tile → completed-shifts
+    modal.
+  - Same worker, click "Tổng thu nhập" stat tile → income modal.
+  - Log in as an employer with no posted shifts → land on
+    `/employer/dashboard`.
+  - Same employer, click "Đơn chờ duyệt" stat tile → pending-applicants
+    modal.
+  - As employer, post a shift, simulate deposit, then visit
+    `/employer/shifts/[id]` before any worker has applied → "Đơn ứng
+    tuyển" section.
+
+Expected:
+1. **Worker dashboard "Ca làm sắp tới"** — warm-tone EmptyState card.
+   Title: "Bạn chưa có ca làm nào sắp tới." Description: mentions
+   `/shifts` and the deposit-only-shows rule. CTA "Tìm ca làm" → `/shifts`.
+2. **Worker dashboard "Đơn đã ứng tuyển"** — warm-tone EmptyState
+   (was subtle). Title: "Bạn chưa ứng tuyển ca nào." Description:
+   explains where applications appear after applying. CTA "Khám phá
+   ca làm" → `/shifts`.
+3. **Worker completed-shifts modal** — warm EmptyState. Title: "Bạn
+   chưa có ca hoàn thành nào." CTA "Tìm ca làm" → `/shifts`. Click
+   the CTA closes the modal then navigates.
+4. **Worker income modal** — warm EmptyState. Title: "Bạn chưa có
+   thu nhập." Description mentions the MVP simulation. CTA "Tìm ca
+   làm ngay" → `/shifts`. Click the CTA closes the modal then
+   navigates.
+5. **Employer dashboard "Ca làm sắp tới"** — copy upgraded:
+   "Bấm 'Đăng ca mới' để tạo ca và mô phỏng đặt cọc. Ca chỉ công
+   khai sau khi đặt cọc thành công." CTA "Đăng ca mới" →
+   `/employer/shifts/new`.
+6. **Employer pending-applicants modal** — warm EmptyState. Title:
+   "Chưa có đơn ứng tuyển nào chờ duyệt." Description: encourages
+   the employer to inspect the shift posting. CTA "Đăng ca mới" →
+   `/employer/shifts/new`. Click the CTA closes the modal first.
+7. **Employer manage shift `/employer/shifts/[id]`** — warm
+   EmptyState. Title: "Chưa có ai ứng tuyển ca này." Description:
+   suggests checking title/description/wage/requirements. NO CTA
+   (per-shift surface, no useful cross-link).
+
+### F. `<HelpHint>` QA — checkpoints
+
+Steps:
+- Hard refresh `/worker/dashboard`, `/employer/dashboard`,
+  `/employer/shifts/[id]` (with at least one Approved applicant), and
+  `/admin/dashboard` (Shifts tab).
+- Hover each instrumented label / button.
+- Tab to the `?` glyph (or to the surrounding focusable ancestor
+  where applicable).
+- Try ESC.
+
+Expected:
+1. **Worker dashboard StatTile labels** — Điểm uy tín, Hạn mức huỷ
+   tuần, Tổng thu nhập, Ca đã hoàn thành. Each label has a small `?`
+   glyph after the text. Hovering anywhere over the StatTile flips
+   `group-hover:block` and reveals the tooltip with the matching hint
+   copy (`hint.worker.*`). Tab to the StatTile `<button>` and the
+   tooltip appears via `group-focus-within:block`. Tooltip stays for
+   as long as the parent has hover or focus.
+2. **Employer dashboard StatTile labels** — Đơn chờ duyệt, Tổng đã
+   đặt cọc, Tổng đã thanh toán. Same hover / focus behavior. Tooltip
+   text matches `hint.employer.*`.
+3. **Employer manage shift applicant statuses** — `<HelpHint>` is a
+   sibling of the Approved (`Đã duyệt`) and Confirmed (`Đã hoàn
+   thành`) badges. Hovering the surrounding row reveals the tooltip
+   for the relevant status. Other statuses (Pending, CheckedIn,
+   CheckedOut, etc.) have no hint — verified by checking that no `?`
+   glyph appears on those rows.
+4. **Admin dashboard Override button** — `<HelpHint>` sits next to
+   the "Override (khẩn cấp)" button on each ShiftRow. Hovering the
+   button or the glyph reveals the tooltip with `hint.admin.override`
+   copy.
+5. ESC has no effect — `<HelpHint>` is a plain hover element with no
+   state. The tooltip dismisses by losing hover or focus.
+6. Click the `?` glyph — nothing happens. Glyph is `role="img"` with
+   `cursor-help`; no click action.
+
+### G. QA fix-up — StatTile tooltip clipping (2026-05-24)
+
+A follow-on review (review pass after the initial Phase 9Y push) found
+that hovering the `(?)` glyph on the worker / employer dashboard
+`StatTile` cards surfaced a tooltip cropped to the card edges. Root
+cause: the card's `baseClasses` carried `relative overflow-hidden` so
+the `before:` pseudo-element accent bar would clip cleanly to the
+`rounded-2xl` corner. The HelpHint component is intentionally
+portal-less (so it can render server-side and nest inside `<button>`
+ancestors), and its `absolute top-full` tooltip layer therefore got
+clipped by any `overflow-hidden` ancestor — which the StatTile
+violated. Affected: 4 worker tiles (Điểm uy tín / Hạn mức huỷ / Tổng
+thu nhập / Ca đã hoàn thành), 3 employer tiles (Đơn chờ duyệt / Tổng
+đã đặt cọc / Tổng đã thanh toán) — 7 of 12 instrumented hint sites.
+
+Fix: dropped `overflow-hidden` from the card's `baseClasses` and moved
+the corner clip onto the accent bar itself
+(`before:rounded-t-2xl`). The card looks identical at rest; the
+tooltip can now extend below the card without being cropped.
+
+QA at 360 / 768 / 1366 px:
+
+1. Hover any of the 7 instrumented stat tiles. The `(?)` glyph is
+   visible inside the label row.
+2. The tooltip below the glyph appears in full, with all ~25–35
+   words of `hint.worker.*` / `hint.employer.*` text legible.
+3. The tooltip extends below the card border without being clipped.
+4. The card's top-edge orange/amber/emerald accent bar still tucks
+   inside the rounded corner — no visual change at rest.
+5. Tab focus on the StatTile button still surfaces the tooltip via
+   `group-focus-within:block`.
+
+The 2 remaining HelpHint sites (employer manage-shift status badges
++ admin Override button) are not inside any `overflow-hidden`
+ancestor, so they were already fine.
+
+### H. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/ui/PageHelpButton.tsx` — particularly the
+  `PageHelpButtonProps` API (`sections`, `cta`), the grouped-section
+  render path, or the footer flex layout.
+- `src/components/ui/HelpHint.tsx` — particularly the trigger
+  composition (must remain non-focusable so it can nest inside
+  `<button>` ancestors), the tooltip layer's `group-hover:block` /
+  `group-focus-within:block` rules, or the `z-20` value.
+- `src/app/user-guide/page.tsx` — particularly the worker / employer
+  step content (must match the actual product flows referenced from
+  HANDOFF.md Sections 4–5).
+- `src/components/layout/NavBar.tsx` — particularly `SAFETY_GROUP`'s
+  5 items + `activePrefixes`.
+- `src/components/layout/MobileNav.tsx` — particularly the four
+  drawer trees (`PUBLIC_SECTIONS`, `WORKER_SECTIONS`,
+  `EMPLOYER_SECTIONS`, `ADMIN_SECTIONS`) and which trees carry the
+  `Hướng dẫn sử dụng` link (admin tree must NOT).
+- `src/components/layout/Footer.tsx` — particularly `LEGAL_COLUMN`'s
+  link order (Hướng dẫn sử dụng must be FIRST).
+- The 5 dashboard help-modal call sites
+  (`src/app/worker/dashboard/page.tsx`,
+  `src/app/worker/schedule/page.tsx`,
+  `src/app/employer/dashboard/page.tsx`,
+  `src/app/employer/schedule/page.tsx`,
+  `src/app/admin/dashboard/page.tsx`).
+- The empty-state copy for any of the eight surfaces listed in
+  Section E.
+
+
+## Phase 9Y-Fix — Contextual help redesigned as click/tap popover
+
+Last reviewed: **2026-05-24, Phase 9Y-Fix click/tap popover redesign — NEEDS MANUAL VISUAL QA**.
+
+This phase replaces the Phase 9Y hover-only `<HelpHint>` (a non-focusable `<span>` trigger that revealed a Tailwind `group-hover` tooltip layer) with a real click/tap popover (`<HelpPopover>`) backed by the existing portaled `<Modal>` primitive. Three problems drove the change:
+
+1. The hover tooltip text was clipped inside the dashboard stat cards because the card carried `overflow-hidden`. Phase 9Y QA fix-up dropped that `overflow-hidden`, but readability on narrow viewports still suffered.
+2. Touch devices have no hover, so mobile users could not reveal the hint at all.
+3. The white-on-gray tooltip looked like a native browser `title=` tooltip rather than a CaLẻ-styled surface.
+
+The new `<HelpPopover>` ships as a real `<button>` trigger that opens the existing `<Modal>` (already portaled to `document.body` since Phase 9H), so the popover is automatically immune to clipping ancestors and the user gets ESC + outside-click + close-button + "Xem hướng dẫn chi tiết →" footer link to `/user-guide`.
+
+### A. Worker dashboard stat tiles
+
+Open `/worker/dashboard` as any seed worker. Verify all 4 stat tiles:
+
+1. **"Điểm uy tín"** — `?` glyph sits inline with the label text (small circular orange-bordered button, 16×16). Glyph is vertically aligned with the label baseline; no awkward shift.
+2. **"Ca đã hoàn thành"** — same alignment.
+3. **"Tổng thu nhập"** — same alignment, even though the value is a long VND number (e.g. `2.840.000 ₫`).
+4. **"Hạn mức huỷ tuần"** — same alignment, with the suffix "còn lại" still readable.
+
+Click / tap each `?` glyph:
+
+5. A centered modal opens with the stat label as title, a 1–3 sentence description, and a footer with "Xem hướng dẫn chi tiết →" link + "Đã hiểu" close button.
+6. The modal is NOT clipped by the stat card; it floats over the page (Modal is portaled to `body`).
+7. ESC dismisses the modal.
+8. Clicking outside the panel (on the dark backdrop) dismisses the modal.
+9. The "Đã hiểu" button dismisses the modal.
+10. The "Xem hướng dẫn chi tiết →" link navigates to `/user-guide` AND closes the modal.
+
+Confirm tile click separation:
+
+11. Click anywhere on the stat tile body (the value, the icon area, the empty space between label and value). The tile's detail modal opens — same behaviour as before Phase 9Y-Fix.
+12. Click the `?` glyph specifically. ONLY the help popover opens. The tile's detail modal does NOT also open. (`HelpPopover` calls `stopPropagation()` + `preventDefault()` on its trigger.)
+13. Tab through the dashboard with the keyboard. The stat tile shows a focus ring (from the absolutely-positioned overlay anchor's `focus-visible:ring`). Tab again — focus moves into the help button. Press Enter — popover opens. Press ESC — popover closes and focus returns to the trigger.
+
+### B. Employer dashboard stat tiles
+
+Open `/employer/dashboard` as any seed employer. The 6-tile grid is at `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6`. Verify all 6 tiles now carry a `?` glyph (Phase 9Y-Fix added 3 new hints — activeShifts, postedShifts, completedShifts):
+
+1. **Ca đang hoạt động** (NEW hint) — popover explains "Các ca đã đăng, đã đặt cọc và đang trong quá trình tuyển hoặc làm việc…"
+2. **Đơn chờ duyệt** — popover explains "Số đơn ứng tuyển đang chờ bạn duyệt hoặc từ chối."
+3. **Ca đã đăng** (NEW hint) — popover explains "Tổng số ca bạn đã tạo trên hệ thống…"
+4. **Ca đã hoàn thành** (NEW hint) — popover explains "Ca đã được xác nhận hoàn thành sau khi người làm check-in/check-out…"
+5. **Tổng đã đặt cọc** — popover explains "Tổng tiền công đang được giữ trong hệ thống…"
+6. **Tổng đã thanh toán** — popover explains "Tổng tiền đã giải ngân cho người làm sau khi ca hoàn thành…"
+
+Same QA steps as worker dashboard — tap glyph, popover not clipped, ESC dismisses, tile body click still opens detail modal.
+
+At `< sm` (the `grid-cols-2` viewport), check that the label row does NOT wrap awkwardly when the `?` glyph is added next to a long label like "Tổng đã thanh toán". The label uses `inline-flex items-center gap-1` so the glyph sits inline with the last word of the label.
+
+### C. Employer manage shift — applicant status
+
+Open `/employer/shifts/[id]` as the shift's owner. For an applicant in the `Approved` or `Confirmed` state:
+
+1. The status badge (e.g. green `Đã duyệt`) has a `?` glyph next to it.
+2. Click the glyph — a small modal opens with title "Đã duyệt" / "Đã xác nhận" and description from `hint.employer.statusApproved` / `hint.employer.statusCompleted`.
+3. ESC + close button dismiss.
+4. The badge layout is `inline-flex items-center gap-1`, so adding the `?` doesn't break the row alignment.
+
+Other application statuses (Pending, Rejected, CheckedIn, CheckedOut, etc.) have no `?` glyph — verified by visual scan.
+
+### D. Admin dashboard Override button
+
+Open `/admin/dashboard` as the seed admin. In the Shifts tab, expand any shift row:
+
+1. The `Override (khẩn cấp)` button is followed by a `?` glyph.
+2. Click the glyph — popover opens with title "Override (khẩn cấp)" + description from `hint.admin.override`.
+3. ESC + close button dismiss.
+4. Clicking the override button itself still opens the inline override editor — no regression.
+
+### E. Mobile QA (touch)
+
+This is the primary regression target — Phase 9Y's hover-only model failed entirely on touch.
+
+At 360 / 390 / 430 px (real device or Chrome DevTools mobile emulation):
+
+1. The `?` glyph is finger-tappable. The hit area is small (16×16 visual) but the surrounding label is part of a 36-px tall row, so a thumb tap reliably lands on the glyph.
+2. Tap the glyph. The Modal opens centered over the page; backdrop is `bg-slate-900/60` (no `backdrop-blur`).
+3. Body scroll locks while the modal is open (inherited from Modal's body-overflow-hidden hook).
+4. Tap "Đã hiểu" — modal closes, body scroll restored, page scroll position preserved.
+5. Tap outside the panel — modal closes.
+6. Tap "Xem hướng dẫn chi tiết →" — navigates to `/user-guide` and modal closes.
+7. The popover footer stacks vertically on mobile (`flex-col-reverse` for `< sm`) with the link button above the close button.
+
+### F. No native tooltip regression
+
+7. Confirm no `title=` attribute on any `?` glyph. Hovering on desktop should NOT surface a yellow native browser tooltip — only the click popover.
+8. The popover panel uses CaLẻ identity (white panel, orange-bordered `?` trigger, orange `Đã hiểu` primary button, soft shadow, rounded `rounded-2xl` corners) — not a black/native look.
+
+### G. Nested-button HTML check
+
+9. Open DevTools Elements panel and inspect a stat tile in either dashboard. Confirm the structure:
+   - Outer `<div>` (card)
+   - First child: `<button>` (overlay anchor, `absolute inset-0`)
+   - Second child: `<div>` (content layer, `pointer-events-none`)
+     - Label `<p>` containing `<span>` (label text) + `<span class="pointer-events-auto">` (popover wrapper) > `<button>` (HelpPopover trigger)
+10. Verify NO `<button>` is nested inside another `<button>`. Browsers render this as invalid HTML in the DOM but React would not warn at hydration; the visual symptom is bizarre click behaviour. The Phase 9Y-Fix overlay-anchor refactor avoids this entirely.
+
+### H. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/ui/HelpPopover.tsx` — particularly the trigger's `stopPropagation` / `preventDefault` calls, the modal `max-w-md` size, or the footer layout.
+- The StatTile definitions in `src/app/worker/dashboard/page.tsx` and `src/app/employer/dashboard/page.tsx` — particularly the overlay anchor `<button class="absolute inset-0 z-0">` pattern and the `pointer-events-none` / `pointer-events-auto` z-stack.
+- `src/i18n/vi.ts` — particularly the `hint.*` block (worker / employer / admin descriptions).
+- `src/components/ui/Modal.tsx` — any change to portal target, body scroll lock, or backdrop styling will affect HelpPopover behaviour identically.
+
+
+## Phase 9Y-Fix-3 — Help moved out of stat tiles into detail modals
+
+Last reviewed: **2026-05-24, Phase 9Y-Fix-3 — NEEDS MANUAL VISUAL QA**.
+
+Phase 9Y-Fix put a click-to-open `<HelpPopover>` next to every stat tile label. Manual QA flagged the inline `?` glyph as "still cluttered" on the dashboard overview at the 6-tile employer grid density. Phase 9Y-Fix-3 pulls the glyph out of the tiles entirely and surfaces the same explanation **inside each tile's detail modal**, anchored next to the modal title. The dashboard reads as a clean status board; the help is one click away (the same click the user was already going to make to drill into the metric).
+
+### A. Worker dashboard overview is clean
+
+Open `/worker/dashboard`. Verify the 4 stat tiles:
+
+1. No `?` glyph on Điểm uy tín / Ca đã hoàn thành / Tổng thu nhập / Hạn mức huỷ tuần.
+2. Each tile shows label + decorative right-side icon + big value + (on hover) "Xem chi tiết →" caret. Nothing else.
+3. Click any tile body. The corresponding detail modal opens.
+4. In the modal title row, a small orange-bordered `?` sits inline to the right of the title. Click / tap it.
+5. A second smaller modal stacks above the detail modal with title and description. ESC dismisses. "Đã hiểu" dismisses. "Xem hướng dẫn chi tiết →" navigates to `/user-guide` and dismisses both modals.
+6. Tab through the dashboard. Each tile is a single focusable element with a focus ring around the entire card; pressing Enter opens the detail modal. Inside the detail modal, tabbing reaches the title's `?` button.
+
+### B. Employer dashboard overview is clean
+
+Open `/employer/dashboard`. Verify the 6 stat tiles:
+
+1. No `?` glyph on Ca đang hoạt động / Đơn chờ duyệt / Ca đã đăng / Ca đã hoàn thành / Tổng đã đặt cọc / Tổng đã thanh toán.
+2. Same clean card structure as worker. The 6-tile grid at `lg:grid-cols-6` no longer has 6 tiny `?` markers competing for attention.
+3. Click each tile body. Each opens its own detail modal:
+   - **Ca đang hoạt động** → `ShiftListModal` with title "Ca đang hoạt động" + `?` next to title (popover description: "Các ca đã đăng, đã đặt cọc và đang trong quá trình tuyển hoặc làm việc.")
+   - **Đơn chờ duyệt** → pending-applicants modal with `?` (description: "Số đơn ứng tuyển đang chờ bạn duyệt hoặc từ chối.")
+   - **Ca đã đăng** → posted-shifts ShiftListModal with `?` (description: "Tổng số ca bạn đã tạo trên hệ thống, gồm cả nháp, đang tuyển, đã đầy, đã hoàn thành và đã huỷ.")
+   - **Ca đã hoàn thành** → completed-shifts ShiftListModal with `?` (description: "Ca đã được xác nhận hoàn thành sau khi người làm check-in/check-out và bạn xác nhận.")
+   - **Tổng đã đặt cọc / đã thanh toán** → shared payments modal. Help anchored next to title with the deposit explanation (the body itself already covers the payout half).
+
+### C. Modal title alignment
+
+7. The `?` glyph in the modal title row is vertically aligned with the title text via `inline-flex items-center gap-1.5`. No baseline drift, no overlap with the close button (which sits on the far right of the same flex row).
+8. On `< sm` widths (mobile), the title row still fits within the modal panel. The `?` does not cause line-wrap of the title.
+9. The popover that opens on top of the detail modal stacks correctly: detail modal at `z-[100]`, popover modal also at `z-[100]` but rendered later in DOM order so it visually sits above. The first ESC dismisses the popover; a second ESC dismisses the detail modal.
+
+### D. Non-stat HelpPopover sites still work
+
+Audited per Phase 9Y-Fix-3 spec section D — neither was clipped or visually broken; both kept.
+
+10. `/employer/shifts/[id]` — Approved / Confirmed status badges still carry an inline `?` next to the badge. Click opens the popover. Layout is fine because each badge sits on its own row with `inline-flex items-center gap-1`.
+11. `/admin/dashboard` Shifts tab — the Override button row still carries an inline `?`. Click opens the popover. Layout is fine because the action row is a flex-wrap row and the `?` aligns with the row baseline.
+
+### E. Mobile QA
+
+At 360 / 390 / 430 px:
+
+12. Stat tile grid is the same clean 2-column or 1-column layout. No `?` markers visible.
+13. Tap any tile. Detail modal opens centered, body scroll locks.
+14. Tap the `?` in the modal title. The help popover stacks above. Tap "Đã hiểu" to dismiss the popover; the detail modal remains open behind it.
+15. Tap outside the popover (on the dim part of the screen) — popover dismisses; detail modal remains.
+16. No native `title=` tooltip ever surfaces.
+
+### F. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/ui/Modal.tsx` — particularly the `titleAccessory` slot rendering.
+- `src/app/worker/dashboard/page.tsx` — StatTile signature (no `hint` prop) or any of the 4 detail modals' `titleAccessory` props.
+- `src/app/employer/dashboard/page.tsx` — same, plus the `<ShiftListModal>` helper signature (must forward `titleAccessory`).
+- `src/i18n/vi.ts` — the `hint.*` block (worker / employer / admin descriptions).
+- `src/components/ui/HelpPopover.tsx` — popover trigger or modal body.

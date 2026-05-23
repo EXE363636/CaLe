@@ -71,6 +71,7 @@ const EMPLOYER_COLUMN: Column = {
 const LEGAL_COLUMN: Column = {
   heading: 'Pháp lý & hỗ trợ',
   links: [
+    { label: 'Hướng dẫn sử dụng', href: '/user-guide' },
     { label: 'Điều khoản sử dụng', href: '/terms' },
     { label: 'Chính sách bảo mật', href: '/privacy' },
     { label: 'Chính sách xử lý tranh chấp', href: '/disputes' },

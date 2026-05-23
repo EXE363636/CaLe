@@ -31,4 +31,7 @@ export { StarRating } from './StarRating';
 export { Reveal } from './Reveal';
 
 export { PageHelpButton } from './PageHelpButton';
-export type { PageHelpButtonProps } from './PageHelpButton';
+export type { PageHelpButtonProps, PageHelpSection } from './PageHelpButton';
+
+export { HelpPopover } from './HelpPopover';
+export type { HelpPopoverProps } from './HelpPopover';

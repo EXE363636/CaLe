@@ -9,7 +9,7 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { Badge, Button, EmptyState } from '@/components/ui';
+import { Badge, Button, EmptyState, HelpPopover } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
@@ -308,7 +308,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         </h2>
 
         {shiftApps.length === 0 ? (
-          <EmptyState title="Chưa có đơn ứng tuyển nào." />
+          <EmptyState
+            tone="warm"
+            title={t('employer.manageShift.empty.applicants.title')}
+            description={t('employer.manageShift.empty.applicants.description')}
+          />
         ) : (
           <div className="flex flex-col gap-3">
             {shiftApps.map((app) => {
@@ -325,9 +329,23 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                   <WorkerSummaryRow
                     worker={worker}
                     statusSlot={
-                      <Badge tone={badgeToneForApp(app.status)}>
-                        {t(`application.status.${app.status}`)}
-                      </Badge>
+                      <span className="inline-flex items-center gap-1">
+                        <Badge tone={badgeToneForApp(app.status)}>
+                          {t(`application.status.${app.status}`)}
+                        </Badge>
+                        {app.status === 'Approved' && (
+                          <HelpPopover
+                            title={t('application.status.Approved')}
+                            description={t('hint.employer.statusApproved')}
+                          />
+                        )}
+                        {app.status === 'Confirmed' && (
+                          <HelpPopover
+                            title={t('application.status.Confirmed')}
+                            description={t('hint.employer.statusCompleted')}
+                          />
+                        )}
+                      </span>
                     }
                     onViewProfile={() => setProfileWorker(worker)}
                     actions={

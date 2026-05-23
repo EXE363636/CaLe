@@ -9,7 +9,7 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { Card, Badge, Button, EmptyState, Modal, PageHelpButton } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
@@ -368,12 +368,39 @@ function WorkerDashboardContent() {
             <PageHelpButton
               title={t('help.workerDashboard.title')}
               intro={t('help.workerDashboard.intro')}
-              items={[
-                t('help.workerDashboard.item1'),
-                t('help.workerDashboard.item2'),
-                t('help.workerDashboard.item3'),
-                t('help.workerDashboard.item4'),
+              sections={[
+                {
+                  heading: t('help.workerDashboard.section.purpose.heading'),
+                  items: [t('help.workerDashboard.section.purpose.item1')],
+                },
+                {
+                  heading: t('help.workerDashboard.section.numbers.heading'),
+                  items: [
+                    t('help.workerDashboard.section.numbers.item1'),
+                    t('help.workerDashboard.section.numbers.item2'),
+                    t('help.workerDashboard.section.numbers.item3'),
+                    t('help.workerDashboard.section.numbers.item4'),
+                  ],
+                },
+                {
+                  heading: t('help.workerDashboard.section.actions.heading'),
+                  items: [
+                    t('help.workerDashboard.section.actions.item1'),
+                    t('help.workerDashboard.section.actions.item2'),
+                    t('help.workerDashboard.section.actions.item3'),
+                    t('help.workerDashboard.section.actions.item4'),
+                  ],
+                },
+                {
+                  heading: t('help.workerDashboard.section.mistakes.heading'),
+                  items: [
+                    t('help.workerDashboard.section.mistakes.item1'),
+                    t('help.workerDashboard.section.mistakes.item2'),
+                    t('help.workerDashboard.section.mistakes.item3'),
+                  ],
+                },
               ]}
+              cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
             <Link href="/shifts">
               <Button size="sm" variant="primary">
@@ -462,7 +489,7 @@ function WorkerDashboardContent() {
               <EmptyState
                 tone="warm"
                 title={t('worker.dashboard.noUpcomingShifts')}
-                description={t('worker.dashboard.noUpcomingShifts.hint')}
+                description={t('worker.dashboard.empty.upcoming.descriptionRich')}
                 action={
                   <Link href="/shifts">
                     <Button size="sm" variant="primary">
@@ -498,8 +525,16 @@ function WorkerDashboardContent() {
             </h2>
             {pending.length === 0 ? (
               <EmptyState
-                title={t('worker.dashboard.noApplications')}
-                description={t('worker.dashboard.noApplications.hint')}
+                tone="warm"
+                title={t('worker.dashboard.empty.applications.title')}
+                description={t('worker.dashboard.empty.applications.description')}
+                action={
+                  <Link href="/shifts">
+                    <Button size="sm" variant="primary">
+                      {t('worker.dashboard.empty.applications.cta')}
+                    </Button>
+                  </Link>
+                }
               />
             ) : (
               <div className="flex flex-col gap-3">
@@ -672,6 +707,12 @@ function WorkerDashboardContent() {
         open={statDetail === 'reputation'}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.reputationScore')}
+        titleAccessory={
+          <HelpPopover
+            title={t('worker.dashboard.stats.reputationScore')}
+            description={t('hint.worker.reputation')}
+          />
+        }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-3 ring-1 ring-orange-100">
@@ -823,6 +864,12 @@ function WorkerDashboardContent() {
         open={statDetail === 'quota'}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.cancelQuota')}
+        titleAccessory={
+          <HelpPopover
+            title={t('worker.dashboard.cancelQuota')}
+            description={t('hint.worker.cancelQuota')}
+          />
+        }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <p>{t('worker.dashboard.quotaModal.intro')}</p>
@@ -917,6 +964,12 @@ function WorkerDashboardContent() {
         open={statDetail === 'income'}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.totalEarnings')}
+        titleAccessory={
+          <HelpPopover
+            title={t('worker.dashboard.stats.totalEarnings')}
+            description={t('hint.worker.totalEarnings')}
+          />
+        }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-3 ring-1 ring-orange-100">
@@ -934,9 +987,18 @@ function WorkerDashboardContent() {
             </p>
           </div>
           {completedShifts.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-xs text-gray-500">
-              {t('worker.dashboard.incomeModal.empty')}
-            </div>
+            <EmptyState
+              tone="warm"
+              title={t('worker.dashboard.empty.income.title')}
+              description={t('worker.dashboard.empty.income.description')}
+              action={
+                <Link href="/shifts" onClick={() => setStatDetail(null)}>
+                  <Button size="sm" variant="primary">
+                    {t('worker.dashboard.empty.income.cta')}
+                  </Button>
+                </Link>
+              }
+            />
           ) : (
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -1011,6 +1073,12 @@ function WorkerDashboardContent() {
         open={statDetail === 'completed'}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.completedShifts')}
+        titleAccessory={
+          <HelpPopover
+            title={t('worker.dashboard.stats.completedShifts')}
+            description={t('hint.worker.completedShifts')}
+          />
+        }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-50/40 px-4 py-3 ring-1 ring-emerald-100">
@@ -1022,9 +1090,18 @@ function WorkerDashboardContent() {
             </p>
           </div>
           {completedShifts.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-xs text-gray-500">
-              {t('worker.dashboard.completedModal.empty')}
-            </div>
+            <EmptyState
+              tone="warm"
+              title={t('worker.dashboard.empty.completed.title')}
+              description={t('worker.dashboard.empty.completed.description')}
+              action={
+                <Link href="/shifts" onClick={() => setStatDetail(null)}>
+                  <Button size="sm" variant="primary">
+                    {t('worker.dashboard.empty.completed.cta')}
+                  </Button>
+                </Link>
+              }
+            />
           ) : (
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -1142,11 +1219,18 @@ function WorkerDashboardContent() {
 // ---------------------------------------------------------------------------
 
 /**
- * Phase 9 visual polish + Phase 9F interactivity: stat tile with optional
- * `onClick` so a tile can scroll, navigate, or open a modal. When
- * `onClick` is provided the tile renders as a `<button>` with hover lift,
- * focus ring, "→" indicator and `aria-label`. Otherwise it renders as a
- * plain `<div>`.
+ * Phase 9 visual polish + Phase 9F interactivity. Stat tile with
+ * optional `onClick` so a tile can scroll, navigate, or open a modal.
+ *
+ * Phase 9Y-Fix-3: contextual help has been pulled OUT of the stat tile
+ * entirely. The `?` glyph used to live next to the label (Phase 9Y-Fix
+ * popover, Phase 9Y hover hint) but manual QA flagged that even a small
+ * inline glyph cluttered the dashboard overview. Help is now rendered
+ * inside the corresponding stat detail modal — see the matching
+ * `<Modal titleAccessory={<HelpPopover ... />} />` blocks below. The
+ * tile is therefore back to a clean `<button>`-as-card structure when
+ * interactive, with no inline help instrumentation and no nested-button
+ * concerns.
  */
 type Tone = 'brand' | 'neutral' | 'good' | 'warn' | 'bad';
 type IconName = 'star' | 'check' | 'wallet' | 'calendar' | 'briefcase' | 'users' | 'shield';
@@ -1182,9 +1266,14 @@ function StatTile({
     warn: 'text-amber-600',
     bad: 'text-red-600',
   };
+
+  // `before:rounded-t-2xl` keeps the corner clip on the accent bar so
+  // we don't need `overflow-hidden` on the card. (Carried over from
+  // the Phase 9Y QA fix-up — still useful in case any descendants ever
+  // overflow the rounded corner.)
   const baseClasses = [
-    'relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
-    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
+    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
+    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:rounded-t-2xl',
     toneRing[tone],
   ].join(' ');
 
@@ -1223,7 +1312,7 @@ function StatTile({
         type="button"
         onClick={onClick}
         aria-label={ariaLabel ?? label}
-        className={['group', baseClasses, interactiveClasses].join(' ')}
+        className={[baseClasses, interactiveClasses].join(' ')}
       >
         {body}
       </button>

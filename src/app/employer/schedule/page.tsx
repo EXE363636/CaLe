@@ -322,11 +322,32 @@ function SchedulePageContent() {
           <PageHelpButton
             title={t('help.employerSchedule.title')}
             intro={t('help.employerSchedule.intro')}
-            items={[
-              t('help.employerSchedule.item1'),
-              t('help.employerSchedule.item2'),
-              t('help.employerSchedule.item3'),
+            sections={[
+              {
+                heading: t('help.employerSchedule.section.purpose.heading'),
+                items: [t('help.employerSchedule.section.purpose.item1')],
+              },
+              {
+                heading: t('help.employerSchedule.section.numbers.heading'),
+                items: [
+                  t('help.employerSchedule.section.numbers.item1'),
+                  t('help.employerSchedule.section.numbers.item2'),
+                ],
+              },
+              {
+                heading: t('help.employerSchedule.section.actions.heading'),
+                items: [
+                  t('help.employerSchedule.section.actions.item1'),
+                  t('help.employerSchedule.section.actions.item2'),
+                  t('help.employerSchedule.section.actions.item3'),
+                ],
+              },
+              {
+                heading: t('help.employerSchedule.section.mistakes.heading'),
+                items: [t('help.employerSchedule.section.mistakes.item1')],
+              },
             ]}
+            cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
           />
         </div>
       </header>

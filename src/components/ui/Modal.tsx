@@ -32,6 +32,13 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /**
+   * Phase 9Y-Fix-3: optional slot rendered inline next to the title.
+   * Typical use: a `<HelpPopover>` glyph that explains the metric the
+   * modal is detailing. Sits inside the same flex row as the title
+   * + close button so it stays vertically aligned with the title text.
+   */
+  titleAccessory?: ReactNode;
   children: ReactNode;
   /** Extra classes on the inner panel. */
   className?: string;
@@ -41,6 +48,7 @@ export function Modal({
   open,
   onClose,
   title,
+  titleAccessory,
   children,
   className = '',
 }: ModalProps) {
@@ -112,12 +120,15 @@ export function Modal({
           {/* Header */}
           <div className="mb-4 flex items-start justify-between gap-4">
             {title && (
-              <h2
-                id="modal-title"
-                className="text-lg font-semibold text-gray-900"
-              >
-                {title}
-              </h2>
+              <div className="inline-flex items-center gap-1.5">
+                <h2
+                  id="modal-title"
+                  className="text-lg font-semibold text-gray-900"
+                >
+                  {title}
+                </h2>
+                {titleAccessory}
+              </div>
             )}
             <button
               onClick={onClose}

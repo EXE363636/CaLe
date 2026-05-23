@@ -1,42 +1,81 @@
 'use client';
 
 /**
- * PageHelpButton — Phase 9F.
+ * PageHelpButton — Phase 9F (flat items) + Phase 9Y (sections + CTA).
  *
  * Small "Hướng dẫn sử dụng" button that opens a Modal with concise,
  * surface-specific instructions. Used to give first-time users a quick
  * orientation without cluttering the page chrome.
  *
- * The button is keyboard-accessible (focus ring, Enter/Space activate via
- * native <button>); the Modal primitive handles ESC-to-close and click-
- * outside dismissal.
+ * Two content shapes are supported:
  *
- * Pure presentational — no store reads, no router. The caller passes the
- * title and an array of bullet items (already-translated strings).
+ *   - Phase 9F (`items`): a flat array of bullet items. Lighter, used
+ *     on single-purpose surfaces like `/employer/shifts/new` where the
+ *     page already has obvious affordances.
+ *   - Phase 9Y (`sections`): grouped sections (`heading` + bullet list).
+ *     Used on dashboards where help content covers purpose / numbers /
+ *     actions / common mistakes.
+ *
+ * When both are passed, `sections` wins; `items` is preserved for
+ * backwards-compat callers that haven't migrated yet.
+ *
+ * Phase 9Y also adds an optional `cta` link rendered at the bottom-left
+ * of the modal footer. Typical use: surfaces a `/user-guide` deep link
+ * so first-time users can read the long-form walk-through.
+ *
+ * The button is keyboard-accessible (focus ring, Enter/Space activate
+ * via native <button>); the Modal primitive handles ESC-to-close and
+ * click-outside dismissal.
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button, Modal } from '@/components/ui';
 import { t } from '@/i18n/vi';
+
+export interface PageHelpSection {
+  /** Section heading — already translated by the caller. */
+  heading: string;
+  /** Bullet items inside the section — already translated. */
+  items: string[];
+}
 
 export interface PageHelpButtonProps {
   /** Modal title — already translated by the caller. */
   title: string;
-  /** Bullet items — already translated. Each renders as a list row. */
-  items: string[];
-  /** Optional intro paragraph above the bullet list. */
+  /** Optional intro paragraph above the bullet list / sections. */
   intro?: string;
+  /**
+   * Flat list of bullet items — original Phase 9F path. Ignored when
+   * `sections` is also provided.
+   */
+  items?: string[];
+  /**
+   * Phase 9Y — richer, grouped help content. When provided, renders
+   * grouped sections instead of a single bullet list.
+   */
+  sections?: PageHelpSection[];
+  /**
+   * Phase 9Y — optional CTA link rendered at the bottom-left of the
+   * modal footer (e.g. "Xem hướng dẫn chi tiết → /user-guide").
+   */
+  cta?: { label: string; href: string };
   /** Optional className for the trigger button. */
   className?: string;
 }
 
 export function PageHelpButton({
   title,
-  items,
   intro,
+  items,
+  sections,
+  cta,
   className = '',
 }: PageHelpButtonProps) {
   const [open, setOpen] = useState(false);
+
+  // Phase 9Y — `sections` wins when both shapes are present.
+  const useSections = sections !== undefined && sections.length > 0;
 
   return (
     <>
@@ -69,24 +108,69 @@ export function PageHelpButton({
       </Button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={title}>
-        <div className="flex flex-col gap-3 text-sm text-gray-700">
+        <div className="flex flex-col gap-4 text-sm text-gray-700">
           {intro && <p className="text-gray-700">{intro}</p>}
-          <ul className="flex flex-col gap-2">
-            {items.map((item, idx) => (
-              <li key={idx} className="flex gap-2">
-                <span
-                  aria-hidden="true"
-                  className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500"
-                />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-2 flex justify-end">
+
+          {useSections ? (
+            <div className="flex flex-col gap-4">
+              {sections!.map((section) => (
+                <section key={section.heading}>
+                  <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-orange-700">
+                    {section.heading}
+                  </h3>
+                  <ul className="flex flex-col gap-1.5">
+                    {section.items.map((item, idx) => (
+                      <li key={idx} className="flex gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500"
+                        />
+                        <span className="text-[13px] leading-relaxed text-gray-700">
+                          {item}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {(items ?? []).map((item, idx) => (
+                <li key={idx} className="flex gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500"
+                  />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Footer — Phase 9Y: CTA on the left, close button on the
+              right. When no CTA is provided we fall back to the original
+              right-aligned close button. */}
+          <div
+            className={[
+              'mt-2 flex items-center gap-2',
+              cta ? 'flex-col-reverse sm:flex-row sm:justify-between' : 'justify-end',
+            ].join(' ')}
+          >
+            {cta && (
+              <Link
+                href={cta.href}
+                onClick={() => setOpen(false)}
+                className="inline-flex min-h-[40px] w-full items-center justify-center gap-1 rounded-lg border border-orange-200 bg-white px-3 text-sm font-semibold text-orange-700 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:w-auto"
+              >
+                {cta.label} →
+              </Link>
+            )}
             <Button
               variant="primary"
               size="sm"
               onClick={() => setOpen(false)}
+              className={cta ? 'w-full sm:w-auto' : ''}
             >
               {t('help.btn.close')}
             </Button>

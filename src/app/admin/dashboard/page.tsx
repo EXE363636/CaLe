@@ -9,7 +9,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useAdminStore } from '@/stores/adminStore';
-import { Card, Button, Badge, Input, Textarea, PageHelpButton } from '@/components/ui';
+import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
@@ -138,12 +138,38 @@ function AdminDashboardContent() {
             <PageHelpButton
               title={t('help.adminDashboard.title')}
               intro={t('help.adminDashboard.intro')}
-              items={[
-                t('help.adminDashboard.item1'),
-                t('help.adminDashboard.item2'),
-                t('help.adminDashboard.item3'),
-                t('help.adminDashboard.item4'),
+              sections={[
+                {
+                  heading: t('help.adminDashboard.section.purpose.heading'),
+                  items: [t('help.adminDashboard.section.purpose.item1')],
+                },
+                {
+                  heading: t('help.adminDashboard.section.numbers.heading'),
+                  items: [
+                    t('help.adminDashboard.section.numbers.item1'),
+                    t('help.adminDashboard.section.numbers.item2'),
+                    t('help.adminDashboard.section.numbers.item3'),
+                  ],
+                },
+                {
+                  heading: t('help.adminDashboard.section.actions.heading'),
+                  items: [
+                    t('help.adminDashboard.section.actions.item1'),
+                    t('help.adminDashboard.section.actions.item2'),
+                    t('help.adminDashboard.section.actions.item3'),
+                    t('help.adminDashboard.section.actions.item4'),
+                  ],
+                },
+                {
+                  heading: t('help.adminDashboard.section.mistakes.heading'),
+                  items: [
+                    t('help.adminDashboard.section.mistakes.item1'),
+                    t('help.adminDashboard.section.mistakes.item2'),
+                    t('help.adminDashboard.section.mistakes.item3'),
+                  ],
+                },
               ]}
+              cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
             <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-3 py-1 text-xs font-semibold text-orange-700 shadow-sm">
               <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -918,6 +944,10 @@ function ShiftRow({ shift, employerName }: { shift: Shift; employerName: string 
             <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
               {t('admin.shifts.override')}
             </Button>
+            <HelpPopover
+              title={t('admin.shifts.override')}
+              description={t('hint.admin.override')}
+            />
           </>
         )}
       </div>

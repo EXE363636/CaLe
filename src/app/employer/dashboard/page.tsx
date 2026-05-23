@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,7 +8,7 @@ import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { Card, Badge, Button, EmptyState, Modal, PageHelpButton } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
@@ -141,12 +141,39 @@ function EmployerDashboardContent() {
             <PageHelpButton
               title={t('help.employerDashboard.title')}
               intro={t('help.employerDashboard.intro')}
-              items={[
-                t('help.employerDashboard.item1'),
-                t('help.employerDashboard.item2'),
-                t('help.employerDashboard.item3'),
-                t('help.employerDashboard.item4'),
+              sections={[
+                {
+                  heading: t('help.employerDashboard.section.purpose.heading'),
+                  items: [t('help.employerDashboard.section.purpose.item1')],
+                },
+                {
+                  heading: t('help.employerDashboard.section.numbers.heading'),
+                  items: [
+                    t('help.employerDashboard.section.numbers.item1'),
+                    t('help.employerDashboard.section.numbers.item2'),
+                    t('help.employerDashboard.section.numbers.item3'),
+                    t('help.employerDashboard.section.numbers.item4'),
+                  ],
+                },
+                {
+                  heading: t('help.employerDashboard.section.actions.heading'),
+                  items: [
+                    t('help.employerDashboard.section.actions.item1'),
+                    t('help.employerDashboard.section.actions.item2'),
+                    t('help.employerDashboard.section.actions.item3'),
+                    t('help.employerDashboard.section.actions.item4'),
+                  ],
+                },
+                {
+                  heading: t('help.employerDashboard.section.mistakes.heading'),
+                  items: [
+                    t('help.employerDashboard.section.mistakes.item1'),
+                    t('help.employerDashboard.section.mistakes.item2'),
+                    t('help.employerDashboard.section.mistakes.item3'),
+                  ],
+                },
               ]}
+              cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
             <Link href="/employer/schedule">
               <Button size="sm" variant="secondary">
@@ -238,7 +265,7 @@ function EmployerDashboardContent() {
               <EmptyState
                 tone="warm"
                 title={t('employer.dashboard.noShifts')}
-                description={t('employer.dashboard.noShifts.hint')}
+                description={t('employer.dashboard.empty.upcoming.descriptionRich')}
                 action={
                   <Link href="/employer/shifts/new">
                     <Button size="sm" variant="primary">
@@ -327,6 +354,12 @@ function EmployerDashboardContent() {
         open={statDetail === 'payments'}
         onClose={() => setStatDetail(null)}
         title={t('employer.payments.title')}
+        titleAccessory={
+          <HelpPopover
+            title={t('employer.payments.title')}
+            description={t('hint.employer.totalDeposited')}
+          />
+        }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <p>{t('employer.payments.intro')}</p>
@@ -424,6 +457,12 @@ function EmployerDashboardContent() {
         open={statDetail === 'posted'}
         onClose={() => setStatDetail(null)}
         title={t('employer.detail.posted.title')}
+        titleAccessory={
+          <HelpPopover
+            title={t('employer.detail.posted.title')}
+            description={t('hint.employer.postedShifts')}
+          />
+        }
         intro={t('employer.detail.posted.intro')}
         emptyText={t('employer.detail.posted.empty')}
         shifts={[...myShifts].sort((a, b) =>
@@ -436,6 +475,12 @@ function EmployerDashboardContent() {
         open={statDetail === 'active'}
         onClose={() => setStatDetail(null)}
         title={t('employer.detail.active.title')}
+        titleAccessory={
+          <HelpPopover
+            title={t('employer.detail.active.title')}
+            description={t('hint.employer.activeShifts')}
+          />
+        }
         intro={t('employer.detail.active.intro')}
         emptyText={t('employer.detail.active.empty')}
         shifts={[...activeShifts].sort((a, b) =>
@@ -448,6 +493,12 @@ function EmployerDashboardContent() {
         open={statDetail === 'completed'}
         onClose={() => setStatDetail(null)}
         title={t('employer.detail.completed.title')}
+        titleAccessory={
+          <HelpPopover
+            title={t('employer.detail.completed.title')}
+            description={t('hint.employer.completedShifts')}
+          />
+        }
         intro={t('employer.detail.completed.intro')}
         emptyText={t('employer.detail.completed.empty')}
         shifts={[...completedShifts].sort((a, b) =>
@@ -460,13 +511,31 @@ function EmployerDashboardContent() {
         open={statDetail === 'pending'}
         onClose={() => setStatDetail(null)}
         title={t('employer.detail.pending.title')}
+        titleAccessory={
+          <HelpPopover
+            title={t('employer.detail.pending.title')}
+            description={t('hint.employer.pendingApps')}
+          />
+        }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <p>{t('employer.detail.pending.intro')}</p>
           {pendingApps.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
-              {t('employer.detail.pending.empty')}
-            </div>
+            <EmptyState
+              tone="warm"
+              title={t('employer.dashboard.empty.pending.title')}
+              description={t('employer.dashboard.empty.pending.description')}
+              action={
+                <Link
+                  href="/employer/shifts/new"
+                  onClick={() => setStatDetail(null)}
+                >
+                  <Button size="sm" variant="primary">
+                    {t('employer.dashboard.empty.pending.cta')}
+                  </Button>
+                </Link>
+              }
+            />
           ) : (
             <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
               {pendingApps.map((a) => {
@@ -571,6 +640,7 @@ function ShiftListModal({
   open,
   onClose,
   title,
+  titleAccessory,
   intro,
   emptyText,
   shifts,
@@ -578,12 +648,13 @@ function ShiftListModal({
   open: boolean;
   onClose: () => void;
   title: string;
+  titleAccessory?: ReactNode;
   intro: string;
   emptyText: string;
   shifts: Shift[];
 }) {
   return (
-    <Modal open={open} onClose={onClose} title={title}>
+    <Modal open={open} onClose={onClose} title={title} titleAccessory={titleAccessory}>
       <div className="flex flex-col gap-3 text-sm text-gray-700">
         <p>{intro}</p>
         {shifts.length === 0 ? (
@@ -657,6 +728,11 @@ function ShiftListModal({
 
 // ---------------------------------------------------------------------------
 // Helpers — kept in sync with the worker dashboard StatTile.
+// Phase 9Y-Fix-3: simplified back to a `<button>`-as-card when
+// interactive. The Phase 9Y-Fix overlay-anchor pattern (introduced to
+// allow a HelpPopover next to the label without nesting `<button>`s)
+// is no longer needed because help has moved into the corresponding
+// detail modal's title slot.
 // ---------------------------------------------------------------------------
 
 type Tone = 'brand' | 'neutral' | 'good' | 'warn' | 'bad';
@@ -693,11 +769,13 @@ function StatTile({
     warn: 'text-amber-600',
     bad: 'text-red-600',
   };
+
   const baseClasses = [
-    'relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
-    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
+    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
+    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:rounded-t-2xl',
     toneRing[tone],
   ].join(' ');
+
   const interactiveClasses = onClick
     ? 'motion-lift cursor-pointer hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
     : '';
@@ -733,7 +811,7 @@ function StatTile({
         type="button"
         onClick={onClick}
         aria-label={ariaLabel ?? label}
-        className={['group', baseClasses, interactiveClasses].join(' ')}
+        className={[baseClasses, interactiveClasses].join(' ')}
       >
         {body}
       </button>
