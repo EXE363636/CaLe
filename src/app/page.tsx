@@ -73,6 +73,20 @@ function HeroBackgroundDecor() {
         className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent via-orange-50/60 to-orange-100/80"
         style={{ borderTopLeftRadius: '50% 100%', borderTopRightRadius: '50% 100%' }}
       />
+
+      {/* Phase 9T — two soft animated gradient blobs around the
+          mockup column. Hidden below `lg` so the small viewport stays
+          calm and the H1 + CTAs own the screen. `float-blob` drifts
+          them ~16 px on a 16–22s loop; `prefers-reduced-motion: reduce`
+          stops the animation. Both layers are blurred + low-alpha so
+          they read as ambient warmth, never as chrome competing with
+          the featured-job card. */}
+      <div
+        className="float-blob absolute -right-20 top-12 hidden h-72 w-72 rounded-full bg-orange-200/40 blur-3xl lg:block"
+      />
+      <div
+        className="float-blob float-blob-slow absolute -left-16 bottom-24 hidden h-56 w-56 rounded-full bg-amber-200/35 blur-3xl lg:block"
+      />
     </div>
   );
 }
@@ -118,7 +132,7 @@ export default function LandingPage() {
               {t('landing.hero.badge')}
             </span>
             <h1
-              className="entrance-up mt-4 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl"
+              className="entrance-up mt-4 text-3xl font-extrabold tracking-tight text-balance text-gray-900 sm:text-4xl lg:text-6xl"
               style={{ ['--entrance-delay' as string]: '80ms' } as React.CSSProperties}
             >
               {t('landing.hero.title')}
@@ -138,31 +152,50 @@ export default function LandingPage() {
             >
               <Link
                 href="/register?role=employer"
-                className="motion-press inline-flex min-h-[52px] items-center justify-center rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 px-7 text-base font-semibold text-white shadow-md transition-shadow hover:shadow-lg hover:from-orange-500 hover:to-orange-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                className="motion-press inline-flex min-h-[52px] w-full items-center justify-center rounded-xl bg-gradient-to-b from-orange-500 to-orange-600 px-7 text-base font-semibold text-white shadow-md transition-shadow hover:shadow-lg hover:from-orange-500 hover:to-orange-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:w-auto"
               >
                 {t('landing.cta.employer')}
               </Link>
               <Link
                 href="/shifts"
-                className="motion-press inline-flex min-h-[52px] items-center justify-center rounded-xl border border-orange-300 bg-white/80 px-7 text-base font-semibold text-orange-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                className="motion-press inline-flex min-h-[52px] w-full items-center justify-center rounded-xl border border-orange-300 bg-white/80 px-7 text-base font-semibold text-orange-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 sm:w-auto"
               >
                 {t('landing.cta.worker')}
               </Link>
             </div>
-            <p
-              className="entrance-up mt-4 text-xs text-gray-500"
-              style={{ ['--entrance-delay' as string]: '320ms' } as React.CSSProperties}
+
+            {/* Phase 9T — trust chips reinforcing the platform's safety
+                story right under the CTAs. Three rounded pills with a
+                check prefix. `flex-wrap` lets them stack cleanly at
+                narrow widths without pushing the hero too tall. */}
+            <div
+              className="entrance-up mt-4 flex flex-wrap justify-center gap-2 lg:justify-start"
+              style={{ ['--entrance-delay' as string]: '360ms' } as React.CSSProperties}
             >
-              {t('landing.hero.trustHint')}
-            </p>
+              {[
+                'Người làm không đặt cọc',
+                'Nhà tuyển dụng đặt cọc tiền công',
+                'Điểm uy tín minh bạch',
+              ].map((chip) => (
+                <span
+                  key={chip}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1 text-xs font-medium text-gray-700 ring-1 ring-orange-200"
+                >
+                  <CheckIcon />
+                  {chip}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* Mockup column — Phase 9G: wrapped in `.hero-panel` so the
               right side reads as a real designed surface (warm gradient,
               dot-grid, inset ring, soft shadow) rather than the previous
-              cluster of floating icons against beige. */}
+              cluster of floating icons against beige. Phase 9T tightens
+              the panel padding so the inner mockup never overflows the
+              360 px viewport. */}
           <div className="lg:pl-6">
-            <div className="hero-panel p-6 sm:p-7 lg:p-8">
+            <div className="hero-panel p-4 sm:p-6 lg:p-8">
               <FeaturedJobMockup />
             </div>
           </div>

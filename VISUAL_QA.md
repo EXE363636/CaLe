@@ -1233,3 +1233,132 @@ Re-run this audit after any change to:
 - `src/components/layout/NavBar.tsx` (groups, dropdown primitive, active matching).
 - `src/components/layout/MobileNav.tsx` (drawer sections, role gating).
 - Any new top-level route that should appear in the navbar — add it to one of the three constants (`WORKER_GROUP`, `EMPLOYER_GROUP`, `SAFETY_GROUP`) or to the role-aware `Nav` variants.
+
+
+## Phase 9T — Responsive polish, nav UX, admin cleanup, richer atmosphere
+
+Last reviewed: **2026-05-23, Phase 9T pass after Phase 9S manual QA**.
+
+### 1. Mobile homepage at 360 / 390 / 430 px
+
+Steps:
+- Hard-refresh `/` at 360, 390, and 430 px (Chrome DevTools device toolbar, all three iPhone-class widths).
+
+Expected:
+- Hero H1 reads on a single visual block with no clipping at 360 px (`text-3xl` base + `text-balance`).
+- Hero CTA pair stacks vertically as two full-width pills (`w-full sm:w-auto`) — no overflow, no horizontal scroll.
+- `<FeaturedJobMockup />` panel uses `p-4` at base, `p-6` at `sm`, `p-8` at `lg` — the inner mockup card stays inside the panel and inside the viewport.
+- Trust chip row wraps cleanly across two lines on the smallest phones; the hero stays a reasonable height.
+- No horizontal scroll on the document at any of the three widths.
+
+### 2. Mobile drawer density
+
+Steps:
+- At any `< xl` width, click the hamburger to open the drawer.
+
+Expected:
+- Sections sit closer together (`gap-2`) with a thin `border-t` divider between them, so the four grouped sections (Public) or two grouped sections (worker / employer / admin) read as a dense product nav rather than a sparse list.
+- Logged-in users see meaningful sections (5 primary + 4 guidance for worker / employer; 2 + 2 for admin). No fake placeholder links.
+- The drawer's vertical layout stays scrollable; the auth footer (Đăng xuất or Đăng nhập / Đăng ký) stays pinned to the bottom.
+
+### 3. Desktop nav text doesn't wrap
+
+Steps:
+- Open `/` (logged out) at exactly 1280 px, then 1366, then 1440, then 1920 px wide.
+- Open `/employer/dashboard` (logged in as an employer) at the same widths.
+
+Expected:
+- All nav links — including `Hỗ trợ`, `Tổng quan admin`, `Lịch tuyển dụng`, `Hồ sơ doanh nghiệp` — stay on a single line. `whitespace-nowrap` is in `navLinkClasses()`.
+- Below `xl` (`< 1280 px`) the desktop nav strip is hidden and the hamburger drives the entire navigation. The brand block + bell + hamburger remain.
+- No layout shift between `xl` and `2xl`.
+
+### 4. No duplicate "Tìm ca làm" CTA confusion
+
+Steps:
+- Open `/` logged out at `xl+`.
+
+Expected:
+- Centre nav has a single `Tìm ca làm` link (workers' path).
+- Right cluster has `Đăng nhập` · `Đăng ký` · primary orange CTA `Đăng ca tuyển` (`→ /register?role=employer`).
+- The orange CTA reads clearly as the employer-side primary action; there is no second "find a shift" button competing with the centre link.
+
+### 5. Dropdown opens on hover AND click
+
+Steps:
+- Hover over `Người lao động ▾` on the desktop nav. Move the cursor down through the empty 8 px gap into the menu card. Move out of the menu and wait.
+- Click `Nhà tuyển dụng ▾`. Click outside.
+- Tab through the nav from the brand block.
+- Press ESC while a menu is open.
+
+Expected:
+- Hovering opens the menu immediately.
+- Moving from trigger → menu items does **not** close the menu (150 ms grace timer).
+- Moving fully out of the container closes the menu after 150 ms.
+- Click toggles the menu open/closed regardless of hover state.
+- Tab focus on a trigger button opens the menu (parity for keyboard users via `onFocus`).
+- ESC closes any open menu.
+- Outside-click closes any open menu.
+- Route change closes any open menu.
+- Mobile drawer is unaffected — sections stay click/collapsible only.
+
+### 6. Admin top nav simplified
+
+Steps:
+- Log in as `admin@cale.vn` / `demo`. Look at the top nav at `xl+`.
+- Open the mobile drawer at `< xl` and inspect the `Chính` section.
+
+Expected:
+- Top nav reads exactly: `Trang chủ` · `Tổng quan admin` · `Hỗ trợ` (plus bell + logout).
+- The `Người dùng` / `Ca làm` / `Tranh chấp` deep links from Phase 9S are gone.
+- Mobile drawer `Chính` group has only `Trang chủ` and `Tổng quan admin`. The `Hướng dẫn` group still carries `Chính sách xử lý tranh chấp` and `Liên hệ hỗ trợ`.
+- Admin still reaches the user / shift / dispute panels via the dashboard's own tab system (which is the canonical control).
+
+### 7. Background / motion richer but readable
+
+Steps:
+- Hard refresh `/`, `/worker/dashboard`, `/employer/dashboard`, `/admin/dashboard`. Scroll each page top → bottom.
+- Open a help modal on the dashboards (worker, employer).
+- Open a stat-detail modal (worker reputation, employer payments).
+- Open the cancel-application dialog.
+
+Expected:
+- Hero (`/`) shows two soft drifting `.float-blob` shapes around the mockup column on `lg+`. The mockup stays the focal point; the blobs are blurred + low-alpha and never compete for attention. On `< lg` they're hidden.
+- Body chrome reveals warmth in both the top-left and the bottom-right corners (the new second radial ellipse), but the surface stays calm — no banding, no shimmer.
+- Worker / employer dashboards show a single decorative top-right blob behind every card (`-z-10` inside an `isolate` wrapper). Cards stay legible.
+- Modal backdrops (slate-900/60) sit cleanly over the body chrome — no banding artefact, no flicker. (No `backdrop-blur` was added on toast / modal backdrops, per the Phase 9G fix.)
+- Toasts continue to work as in Phase 9R (5 s default, dedupe shake, no banding).
+
+### 8. No horizontal scroll across primary routes
+
+Steps:
+- At 360 px and 768 px, hard-refresh each of: `/`, `/login`, `/register`, `/shifts`, `/worker/dashboard`, `/employer/dashboard`, `/admin/dashboard`, `/about`, `/terms`.
+
+Expected:
+- Document never scrolls horizontally on any of those routes.
+- The navbar doesn't wrap onto a second row — at `< xl` the desktop nav is hidden and the hamburger covers it.
+- Footer renders intact at the bottom (unchanged from Phase 9R).
+- Toast host (top-right) doesn't cover the hamburger or the brand at any width.
+- Dropdowns / mobile drawer remain usable.
+
+### 9. Reduced-motion safe
+
+Steps:
+- Toggle OS-level "Reduce motion" on (Windows: Settings → Accessibility → Visual effects → Animation effects off; macOS: System Settings → Accessibility → Display → Reduce motion).
+- Hard refresh `/`, `/worker/dashboard`, `/employer/dashboard`.
+
+Expected:
+- The two homepage hero blobs are static (`.float-blob` is named in the `prefers-reduced-motion: reduce` block).
+- Existing Phase 9D `.float-soft` motifs on the calendar pages stay static (already covered before Phase 9T).
+- Entrance / reveal / toast animations all settle to end state immediately (covered by the existing reduced-motion block).
+- Dashboard decorative blobs are static (they're `pointer-events-none` divs without animation — no-op for motion-sensitive users by design).
+- All layouts render correctly with no missing content; only the motion is degraded.
+
+### Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/NavBar.tsx` (breakpoints, hover-open dropdown timer, right CTA, admin nav links).
+- `src/components/layout/MobileNav.tsx` (drawer wrapper breakpoint, section spacing, divider, admin Chính group).
+- `src/app/page.tsx` (hero H1 sizing, CTA widths, mockup panel padding, hero blobs, trust chip row).
+- `src/app/globals.css` (body chrome radial layers, `.bg-grid-soft`, `@keyframes float-blob`, `prefers-reduced-motion: reduce` block).
+- `src/app/worker/dashboard/page.tsx` and `src/app/employer/dashboard/page.tsx` (decorative top-right blob + `isolate` wrapper).

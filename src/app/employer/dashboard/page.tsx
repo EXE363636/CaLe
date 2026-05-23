@@ -108,7 +108,13 @@ function EmployerDashboardContent() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="relative isolate mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Phase 9T — subtle decorative warmth anchored to the top-right
+          of the dashboard. See worker dashboard for rationale. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
+      />
       {/* Welcome strip — Phase 9D entrance-up on first paint. */}
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start gap-4">

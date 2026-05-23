@@ -330,7 +330,18 @@ function WorkerDashboardContent() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="relative isolate mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Phase 9T — subtle decorative warmth anchored to the top-right
+          of the dashboard, behind every card. Same principle as the
+          homepage hero blobs: low alpha, blurred, pointer-events-none,
+          aria-hidden. The layout doesn't move; only the surface gains
+          a hint of depth so the page no longer reads as "white cards on
+          gray". `isolate` on the wrapper keeps the `-z-10` blob below
+          the cards without bleeding under the rest of the page. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
+      />
       {/* Welcome card — soft gradient strip with avatar fallback + quick stats peek */}
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start gap-4">

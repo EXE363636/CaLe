@@ -1,11 +1,12 @@
 'use client';
 
 /**
- * MobileNav (Phase 9S rewrite).
+ * MobileNav (Phase 9S rewrite, Phase 9T tightening).
  *
- * Hamburger drawer for `< lg` viewports. Mirrors the desktop nav's
- * grouped structure so users see the same product-level shape on
- * small screens. Sections:
+ * Hamburger drawer for `< xl` viewports (Phase 9T bumped from `< lg` so
+ * the long Vietnamese labels stay on one line in the desktop bar).
+ * Mirrors the desktop nav's grouped structure so users see the same
+ * product-level shape on small screens. Sections:
  *
  *   - Chính (top-level: Trang chủ, Tìm ca làm)
  *   - Người lao động (the four worker links)
@@ -20,6 +21,13 @@
  * click. Notification bell stays in the desktop NavBar — it's already
  * accessible there. Logout button is preserved in the drawer footer
  * for logged-in users.
+ *
+ * Phase 9T also drops the admin `?tab=` deep links from the Chính
+ * group; the admin dashboard's own tab system already covers those
+ * surfaces and duplicating them here read as a half-broken second
+ * navigation primitive in QA. The drawer keeps a thin divider between
+ * sections (`border-t`) so the grouped sections feel substantial even
+ * on narrow phones where the drawer can otherwise read as sparse.
  */
 
 import { useState, useEffect, useRef, type ReactNode } from 'react';
@@ -128,9 +136,6 @@ const ADMIN_SECTIONS: DrawerSection[] = [
     links: [
       { href: '/', label: 'Trang chủ' },
       { href: '/admin/dashboard', label: 'Tổng quan admin' },
-      { href: '/admin/dashboard?tab=users', label: 'Người dùng' },
-      { href: '/admin/dashboard?tab=shifts', label: 'Ca làm' },
-      { href: '/admin/dashboard?tab=disputes', label: 'Tranh chấp' },
     ],
   },
   {
@@ -209,7 +214,7 @@ export function MobileNav() {
   }, [open]);
 
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       {/* Hamburger button */}
       <button
         onClick={() => setOpen((v) => !v)}
@@ -260,14 +265,21 @@ export function MobileNav() {
           </button>
         </div>
 
-        {/* Sections */}
+        {/* Sections — Phase 9T: tighter `gap-2` between sections plus a
+            thin divider so the drawer reads as denser product nav rather
+            than four loose card sections floating in white space. */}
         <nav
           className="flex-1 overflow-y-auto px-3 py-3"
           aria-label="Mobile navigation"
         >
-          <ul className="flex flex-col gap-4">
-            {sections.map((section) => (
-              <li key={section.heading}>
+          <ul className="flex flex-col gap-2">
+            {sections.map((section, idx) => (
+              <li
+                key={section.heading}
+                className={
+                  idx > 0 ? 'border-t border-gray-100 pt-2' : undefined
+                }
+              >
                 <DrawerSectionView
                   heading={section.heading}
                   links={section.links}

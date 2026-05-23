@@ -59,20 +59,18 @@ body {
   color: var(--foreground);
 }
 
-/* Calm warm-cream surface — Phase 9G visual cleanup.
+/* Calm warm-cream surface — Phase 9G visual cleanup, Phase 9T depth pass.
  *
  * The previous layered radial-blob recipe felt cluttered and
  * inconsistent against modal backdrops (the `background-attachment:
  * fixed` made `backdrop-blur` sample bands of varying brightness).
  *
- * We collapse the body chrome to two layers:
- *   - one large diagonal mesh wash anchored to the top-left so the
- *     warm tint reads on first paint without taking over the page,
- *   - one soft linear gradient running cream → slate down the page
- *     so cards still pop against an off-white surface lower down.
- *
- * No corner blobs. No `background-attachment: fixed` (it caused the
- * help-modal banding artefact reported in Phase 9G manual QA). */
+ * Phase 9G collapsed the recipe to one large diagonal mesh wash + a
+ * cream→slate linear. Phase 9T adds a small, low-alpha second ellipse
+ * anchor on the bottom-right so the warmth has a hint of depth on
+ * tall pages without taking over. Still no `background-attachment:
+ * fixed` — that combination caused the help-modal banding artefact
+ * reported in Phase 9G manual QA. */
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -82,6 +80,11 @@ body {
       ellipse 1200px 720px at 0% -10%,
       rgba(253, 186, 116, 0.22) 0%,
       rgba(253, 186, 116, 0) 60%
+    ),
+    radial-gradient(
+      ellipse 700px 480px at 100% 20%,
+      rgba(252, 211, 77, 0.14) 0%,
+      rgba(252, 211, 77, 0) 65%
     ),
     linear-gradient(180deg, #fff7ed 0%, #fff7ed 18%, #fafaf7 60%, #f8fafc 100%);
   background-repeat: no-repeat;
@@ -200,7 +203,8 @@ body {
   .toast-shake,
   .entrance-up,
   .entrance-right,
-  .float-soft {
+  .float-soft,
+  .float-blob {
     animation: none;
   }
   /* Reduced-motion users see the reveal end-state immediately — no
@@ -381,4 +385,61 @@ summary::-webkit-details-marker {
   pointer-events: none;
   mask-image: radial-gradient(ellipse at 50% 30%, black 50%, transparent 90%);
   -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 50%, transparent 90%);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9T — richer atmosphere utilities
+ *
+ * Three additions, all CSS-only, all `prefers-reduced-motion: reduce`-safe.
+ *
+ *   - `@keyframes float-blob` + `.float-blob`: a slow ~16s drift loop
+ *     using `translate3d` + a hairline rotation, suitable for the
+ *     decorative gradient blobs we drop behind the homepage hero
+ *     mockup. Amplitude stays under 16 px so the motion reads as
+ *     ambient warmth, never as "this page is loading". The class is
+ *     intentionally separate from `.float-soft` (Phase 9D) — `.float-
+ *     soft` is for the small motif glyphs / preview cards (4 px on a
+ *     8–11s loop), `.float-blob` is for blurred shape decor where a
+ *     larger amplitude reads better.
+ *
+ *   - `.bg-grid-soft`: low-alpha dot grid, smaller spacing than
+ *     `.bg-dot-grid`, intended for dashboard / panel surfaces where
+ *     the existing 22px grid would feel too heavy. Two opt-in calls
+ *     so far (worker + employer dashboards) — leave this open for
+ *     other surfaces that want a hint of paper texture.
+ *
+ *   - The reduced-motion block above already names `.float-blob` so
+ *     motion-sensitive users see a static blob, never a drifting one.
+ * ------------------------------------------------------------------------- */
+
+@keyframes float-blob {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(8px, -12px, 0) rotate(1.5deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+.float-blob {
+  animation: float-blob 16s ease-in-out infinite;
+  will-change: transform;
+}
+.float-blob.float-blob-slow {
+  animation-duration: 22s;
+}
+
+/* Smaller, lower-alpha cousin of `.bg-dot-grid`. Designed for use as
+ * a low-key paper texture on dashboard panels: 16px grid (vs 22px on
+ * the hero) and 0.06 alpha (vs 0.10) so it sits well under text and
+ * cards. Apply on a wrapper or absolute decorative div — never on the
+ * card itself, otherwise text legibility suffers. */
+.bg-grid-soft {
+  background-image: radial-gradient(
+    rgba(249, 115, 22, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
 }

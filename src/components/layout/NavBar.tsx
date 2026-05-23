@@ -1,14 +1,17 @@
 'use client';
 
 /**
- * NavBar (Phase 9S rewrite).
+ * NavBar (Phase 9T refinement of the Phase 9S rewrite).
  *
  * A real product nav with:
  *   - Brand block (CaLẻ / ShiftNow) plus a small "by CaLedo Tech" subtitle.
  *   - Public guest nav with grouped dropdowns:
  *       Trang chủ · Tìm ca làm · Người lao động ▾ · Nhà tuyển dụng ▾ ·
  *       An toàn & hướng dẫn ▾ · Hỗ trợ
- *     Right side: Đăng nhập · Đăng ký · primary CTA "Tìm ca làm ngay".
+ *     Right side: Đăng nhập · Đăng ký · primary CTA "Đăng ca tuyển"
+ *     (Phase 9T: the right CTA targets employers so the worker side
+ *     uses the middle "Tìm ca làm" link and the right CTA balances
+ *     the audiences without two competing "find a shift" buttons).
  *   - Role-aware nav for logged-in worker / employer / admin.
  *   - Active-state highlighting via path-prefix matching so any sub-route
  *     (e.g. `/worker/profile/edit`) keeps the parent menu lit.
@@ -16,9 +19,17 @@
  *   - Mobile hamburger delegates to the redesigned `<MobileNav>`.
  *
  * No third-party dropdown library — the dropdown is a small in-component
- * primitive built on `<details>` semantics with click-outside / route-
- * change auto-close. Keyboard-accessible: native `<button>` for the
- * trigger, `<Link>` for items, focus rings on both.
+ * primitive built on a button + popover with click-outside / route-
+ * change auto-close. Phase 9T adds hover-open with a 150ms close delay so
+ * the cursor can travel from the trigger to the menu without the menu
+ * collapsing. Click-toggle, ESC, outside-click, and route-change close
+ * remain. Keyboard-accessible: native `<button>` for the trigger,
+ * `<Link>` for items, focus rings on both, `onFocus` on the trigger
+ * mirrors hover-open for keyboard users.
+ *
+ * Phase 9T also bumps the desktop-nav breakpoint from `lg` to `xl` so
+ * the long Vietnamese labels never wrap or compete with the brand at
+ * common laptop widths. Below `xl` the hamburger drives the entire nav.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -182,11 +193,12 @@ export function NavBar() {
           </span>
         </Link>
 
-        {/* Desktop nav — gated by role. Hidden below `lg` so the nav
-            doesn't crowd the brand on tablet widths; mobile drawer
-            covers small viewports. */}
+        {/* Desktop nav — gated by role. Hidden below `xl` (Phase 9T:
+            bumped from `lg`) so the long Vietnamese labels stay on
+            one line at common laptop widths and the hamburger drawer
+            covers everything narrower. */}
         <nav
-          className="ml-2 hidden flex-1 items-center justify-center gap-1 lg:flex"
+          className="ml-2 hidden flex-1 items-center justify-center gap-1 xl:flex"
           aria-label="Main navigation"
         >
           {role === null && <PublicNav pathname={pathname} />}
@@ -200,18 +212,22 @@ export function NavBar() {
           {isLoggedIn && <NotificationBell />}
 
           {role === null && (
-            <div className="hidden items-center gap-1 lg:flex">
+            <div className="hidden items-center gap-1 xl:flex">
               <NavButton href="/login" pathname={pathname}>
                 {t('nav.login')}
               </NavButton>
               <NavButton href="/register" pathname={pathname}>
                 {t('nav.register')}
               </NavButton>
+              {/* Phase 9T — the middle nav already carries "Tìm ca làm"
+                  for workers, so this primary CTA is dedicated to the
+                  employer side. Two clear paths, no duplicate "find a
+                  shift" CTA fighting itself for attention. */}
               <Link
-                href="/shifts"
-                className="ml-1 inline-flex min-h-[40px] items-center rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 px-4 text-sm font-semibold text-white shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1"
+                href="/register?role=employer"
+                className="ml-1 inline-flex min-h-[40px] items-center whitespace-nowrap rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 px-4 text-sm font-semibold text-white shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1"
               >
-                Tìm ca làm ngay
+                Đăng ca tuyển
               </Link>
             </div>
           )}
@@ -219,7 +235,7 @@ export function NavBar() {
           {isLoggedIn && (
             <button
               onClick={handleLogout}
-              className="hidden lg:flex min-h-[40px] items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600"
+              className="hidden xl:flex min-h-[40px] items-center rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-red-600"
             >
               {t('nav.logout')}
             </button>
@@ -305,11 +321,17 @@ function EmployerNav({ pathname }: { pathname: string }) {
   );
 }
 
+// Phase 9T — admin top nav simplification.
+//
+// The previous Phase 9S build duplicated the admin dashboard's own tab
+// system in the top nav via `?tab=...` deep links (`Người dùng`, `Ca làm`,
+// `Tranh chấp`). In manual QA those links read as a separate, half-broken
+// navigation primitive — they didn't change the URL the user could see
+// against, didn't visually feel different from the dashboard's own
+// pill-style tabs, and adding them at the top forced the rest of the nav
+// to compete for room. We keep only `Trang chủ`, `Tổng quan admin`, and
+// `Hỗ trợ` here and let the dashboard's tab system do its job.
 function AdminNav({ pathname }: { pathname: string }) {
-  // The admin dashboard's tab system already covers users/shifts/disputes.
-  // We deep-link to those tabs from the navbar via `?tab=` query — the
-  // existing `useModalFromQuery`-style handler in `/admin/dashboard`
-  // already reads this param.
   return (
     <>
       <NavLink href="/" pathname={pathname} exact>
@@ -317,15 +339,6 @@ function AdminNav({ pathname }: { pathname: string }) {
       </NavLink>
       <NavLink href="/admin/dashboard" pathname={pathname}>
         Tổng quan admin
-      </NavLink>
-      <NavLink href="/admin/dashboard?tab=users" pathname={pathname}>
-        Người dùng
-      </NavLink>
-      <NavLink href="/admin/dashboard?tab=shifts" pathname={pathname}>
-        Ca làm
-      </NavLink>
-      <NavLink href="/admin/dashboard?tab=disputes" pathname={pathname}>
-        Tranh chấp
       </NavLink>
       <NavLink href="/support" pathname={pathname}>
         Hỗ trợ
@@ -340,7 +353,10 @@ function AdminNav({ pathname }: { pathname: string }) {
 
 function navLinkClasses(active: boolean): string {
   return [
-    'rounded-lg px-3 py-2 text-sm font-medium transition-colors min-h-[40px] flex items-center',
+    // Phase 9T — `whitespace-nowrap` prevents long Vietnamese labels
+    // (Hỗ trợ, Tổng quan admin, Lịch tuyển dụng…) from wrapping onto
+    // two lines at narrow desktop widths.
+    'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors min-h-[40px] flex items-center',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
     active
       ? 'bg-orange-50 text-orange-700'
@@ -392,6 +408,15 @@ function NavButton({
 
 // ---------------------------------------------------------------------------
 // Dropdown — small accessible primitive
+//
+// Phase 9T adds hover-open on the container so the menu opens as soon as
+// the cursor enters the trigger or the menu card. A 150ms close delay
+// (cleared on re-entry) lets the cursor travel from the button down to
+// the menu items without the menu collapsing. Click-toggle, ESC,
+// outside-click, and route-change close are preserved. `onFocus` on the
+// trigger mirrors hover-open for keyboard tab navigation. The mobile
+// drawer (`<MobileNav>`) intentionally does NOT use hover behaviour —
+// touch surfaces stay click/collapsible.
 // ---------------------------------------------------------------------------
 
 function Dropdown({
@@ -403,10 +428,40 @@ function Dropdown({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const active = isAnyPrefixActive(pathname, group.activePrefixes);
+
+  // Cancel any pending hover-close. Used on every re-entry so the
+  // cursor can swing across the trigger or the menu without flicker.
+  function cancelClose() {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }
+
+  // Schedule a close on hover-out. 150ms is long enough to bridge the
+  // gap between the trigger (mt-2 = 8px) and the menu card without
+  // letting the menu linger.
+  function scheduleClose() {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => {
+      setOpen(false);
+      closeTimerRef.current = null;
+    }, 150);
+  }
+
+  // Cleanup on unmount so a pending timer never fires after the
+  // component is gone.
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   // Close on route change.
   useEffect(() => {
+    cancelClose();
     setOpen(false);
   }, [pathname]);
 
@@ -433,10 +488,22 @@ function Dropdown({
   }, [open]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div
+      ref={containerRef}
+      className="relative"
+      onMouseEnter={() => {
+        cancelClose();
+        setOpen(true);
+      }}
+      onMouseLeave={scheduleClose}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onFocus={() => {
+          cancelClose();
+          setOpen(true);
+        }}
         aria-expanded={open}
         aria-haspopup="menu"
         className={[
