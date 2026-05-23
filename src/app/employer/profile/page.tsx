@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { Card, Button, Input, Textarea } from '@/components/ui';
 import { Badge } from '@/components/ui';
+import { EmployerFeedbackList } from '@/components/user/EmployerFeedbackList';
 import { formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 
@@ -76,6 +77,19 @@ function EmployerProfileContent() {
       ) : (
         <EditForm employer={employer} onCancel={() => setEditing(false)} onSave={handleSave} />
       )}
+
+      {/* Phase 9I — worker feedback panel: show what people who've worked
+          for this business have said. Same component used inside the
+          public `EmployerProfileModal` so trust signals stay consistent. */}
+      <Card className="mt-6">
+        <h2 className="mb-3 font-semibold text-gray-900">
+          {t('employer.profile.workerFeedback.title')}
+        </h2>
+        <p className="mb-3 text-xs text-gray-500">
+          {t('employer.profile.workerFeedback.intro')}
+        </p>
+        <EmployerFeedbackList employerId={employer.id} limit={5} />
+      </Card>
     </div>
   );
 }

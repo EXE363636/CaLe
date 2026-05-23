@@ -66,15 +66,81 @@
     "createdAt": "2026-02-20T11:00:00.000Z",
     "fullName": "Nguyễn Văn An",
     "avatarUrl": "",
-    "bio": "Sinh viên năm 3, đại học Bách Khoa, làm thêm linh hoạt.",
+    "bio": "Người lao động linh hoạt, làm thêm theo lịch học và lịch cá nhân.",
     "skills": ["phục vụ", "thu ngân", "tiếng Anh giao tiếp"],
     "preferredJobTypes": ["Phục vụ", "Thu ngân"],
     "preferredLocations": ["Quận 1, TP.HCM", "Quận 3, TP.HCM"],
     "verifications": ["phone", "id", "student"],
     "reputationScore": 95,
     "completedShiftCount": 12,
-    "ratingsReceived": [],
-    "cancellationHistory": [],
+    "ratingsReceived": [
+      {
+        "id": "rating-w1-001",
+        "shiftId": "shift-010",
+        "applicationId": "app-100",
+        "fromUserId": "employer-001",
+        "toUserId": "worker-001",
+        "stars": 5,
+        "feedback": "An làm việc nhanh và lịch sự với khách.",
+        "createdAt": "2026-03-12T22:30:00.000Z"
+      },
+      {
+        "id": "rating-w1-002",
+        "shiftId": "shift-011",
+        "applicationId": "app-101",
+        "fromUserId": "employer-002",
+        "toUserId": "worker-001",
+        "stars": 5,
+        "feedback": "Pha chế nhanh, sạch sẽ, đáng tin cậy.",
+        "createdAt": "2026-03-25T18:00:00.000Z"
+      },
+      {
+        "id": "rating-w1-003",
+        "shiftId": "shift-012",
+        "applicationId": "app-102",
+        "fromUserId": "employer-001",
+        "toUserId": "worker-001",
+        "stars": 4,
+        "feedback": "Tốt, cần chủ động hơn trong giờ cao điểm.",
+        "createdAt": "2026-04-08T14:30:00.000Z"
+      },
+      {
+        "id": "rating-w1-004",
+        "shiftId": "shift-013",
+        "applicationId": "app-103",
+        "fromUserId": "employer-002",
+        "toUserId": "worker-001",
+        "stars": 5,
+        "feedback": "Rất hài lòng, sẽ thuê lại.",
+        "createdAt": "2026-04-22T19:00:00.000Z"
+      },
+      {
+        "id": "rating-w1-005",
+        "shiftId": "shift-014",
+        "applicationId": "app-104",
+        "fromUserId": "employer-001",
+        "toUserId": "worker-001",
+        "stars": 5,
+        "feedback": "Đúng giờ và chuyên nghiệp.",
+        "createdAt": "2026-05-05T22:00:00.000Z"
+      }
+    ],
+    "cancellationHistory": [
+      {
+        "id": "cancel-w1-001",
+        "shiftId": "shift-015",
+        "cancelledAt": "2026-04-02T08:00:00.000Z",
+        "type": "OnTime",
+        "reasonNote": "Trùng lịch học."
+      },
+      {
+        "id": "cancel-w1-002",
+        "shiftId": "shift-016",
+        "cancelledAt": "2026-04-18T22:00:00.000Z",
+        "type": "LateCancel",
+        "reasonNote": "Bị ốm đột xuất, đã báo nhà tuyển dụng."
+      }
+    ],
     "noShowCount": 0
   },
   {
@@ -94,7 +160,48 @@
     "verifications": ["phone", "id", "student"],
     "reputationScore": 100,
     "completedShiftCount": 18,
-    "ratingsReceived": [],
+    "ratingsReceived": [
+      {
+        "id": "rating-001",
+        "shiftId": "shift-007",
+        "applicationId": "app-009",
+        "fromUserId": "employer-001",
+        "toUserId": "worker-002",
+        "stars": 5,
+        "feedback": "Bạn Hà rất chuyên nghiệp, lịch sự với khách. Sẽ thuê lại.",
+        "createdAt": "2026-04-26T22:30:00.000Z"
+      },
+      {
+        "id": "rating-004",
+        "shiftId": "shift-007",
+        "applicationId": "app-010",
+        "fromUserId": "employer-002",
+        "toUserId": "worker-002",
+        "stars": 5,
+        "feedback": "Rất hài lòng.",
+        "createdAt": "2026-04-15T19:30:00.000Z"
+      },
+      {
+        "id": "rating-w2-001",
+        "shiftId": "shift-016",
+        "applicationId": "app-110",
+        "fromUserId": "employer-002",
+        "toUserId": "worker-002",
+        "stars": 5,
+        "feedback": "Pha chế chuẩn vị, khách khen nhiều.",
+        "createdAt": "2026-04-04T11:30:00.000Z"
+      },
+      {
+        "id": "rating-w2-002",
+        "shiftId": "shift-017",
+        "applicationId": "app-111",
+        "fromUserId": "employer-001",
+        "toUserId": "worker-002",
+        "stars": 5,
+        "feedback": "Làm việc đáng tin cậy.",
+        "createdAt": "2026-04-30T22:30:00.000Z"
+      }
+    ],
     "cancellationHistory": [],
     "noShowCount": 0
   },
@@ -115,7 +222,18 @@
     "verifications": ["phone"],
     "reputationScore": 80,
     "completedShiftCount": 5,
-    "ratingsReceived": [],
+    "ratingsReceived": [
+      {
+        "id": "rating-w3-001",
+        "shiftId": "shift-018",
+        "applicationId": "app-120",
+        "fromUserId": "employer-002",
+        "toUserId": "worker-003",
+        "stars": 4,
+        "feedback": "Bốc xếp khoẻ, cần cẩn thận hơn với hàng dễ vỡ.",
+        "createdAt": "2026-04-12T17:00:00.000Z"
+      }
+    ],
     "cancellationHistory": [],
     "noShowCount": 0
   },
@@ -129,14 +247,25 @@
     "createdAt": "2026-03-12T16:45:00.000Z",
     "fullName": "Phạm Thị Chi",
     "avatarUrl": "",
-    "bio": "Sinh viên truyền thông, thích các công việc sự kiện.",
+    "bio": "Yêu thích các công việc sự kiện, năng động và linh hoạt.",
     "skills": ["MC sự kiện", "phát tờ rơi", "hỗ trợ khách"],
     "preferredJobTypes": ["Hỗ trợ sự kiện", "Phát tờ rơi"],
     "preferredLocations": ["Quận Hoàn Kiếm, Hà Nội", "Quận Đống Đa, Hà Nội"],
     "verifications": ["phone"],
     "reputationScore": 75,
     "completedShiftCount": 4,
-    "ratingsReceived": [],
+    "ratingsReceived": [
+      {
+        "id": "rating-w4-001",
+        "shiftId": "shift-019",
+        "applicationId": "app-130",
+        "fromUserId": "employer-003",
+        "toUserId": "worker-004",
+        "stars": 4,
+        "feedback": "Năng nổ, biết hỗ trợ khách.",
+        "createdAt": "2026-04-18T19:00:00.000Z"
+      }
+    ],
     "cancellationHistory": [],
     "noShowCount": 0
   },
@@ -157,7 +286,18 @@
     "verifications": ["phone", "id"],
     "reputationScore": 60,
     "completedShiftCount": 8,
-    "ratingsReceived": [],
+    "ratingsReceived": [
+      {
+        "id": "rating-002",
+        "shiftId": "shift-007",
+        "applicationId": "app-010",
+        "fromUserId": "employer-001",
+        "toUserId": "worker-005",
+        "stars": 4,
+        "feedback": "Bạn Duy làm tốt, cần cải thiện thêm tốc độ phục vụ.",
+        "createdAt": "2026-04-26T22:30:00.000Z"
+      }
+    ],
     "cancellationHistory": [
       {
         "id": "cancel-001",

@@ -416,6 +416,254 @@ These were caught during manual QA. Read the affected file's history before "sim
     - **Constraints honored** — no new dependencies, no external image assets, no new animation library, no business logic / store / type / persistence changes, no new seed data, no server fetching. All routes existed before this phase. Mock / localStorage only. Schema unchanged at v3. Route count unchanged at 15.
     - **Files changed:** `src/components/landing/FeaturedJobMockup.tsx` (new), `src/app/page.tsx` (removed dead `HeroMockup` function, imported `FeaturedJobMockup`, added `HeroBackgroundDecor` with curved wash + motif icons, swapped mockup column source), `src/i18n/vi.ts` (new `landing.hero.featured.*` keys), `VISUAL_QA.md` (Phase 9E section + updated remaining-limitations note).
 
+23. **Product UX refinements pass** *(2026-05-23, Phase 9F)*. Wide-scope copy, interaction, and rule cleanup. No business logic / store / type / persistence changes; one domain-module behavior split (employer cancel deadline) and one new lib helper file. Mock / localStorage only. Route count unchanged at 15. Schema unchanged at v3.
+    - **Inclusive copy** — `vi.ts` only, user-facing strings:
+      - `landing.hero.badge` "Sinh viên · Linh hoạt · Tin cậy" → "Linh hoạt · Tin cậy · Minh bạch"
+      - `landing.hero.title` "Việc làm thêm ngắn hạn" → "Việc làm ngắn hạn"
+      - `landing.hero.titleAccent` "cho mọi sinh viên" → "cho người lao động linh hoạt"
+      - `landing.hero.subtitle` "với sinh viên và người tìm việc linh hoạt … không cần ứng dụng tải về" → "với người lao động linh hoạt … không cần tải ứng dụng"
+      - `auth.side.join.desc` "cả sinh viên tìm việc lẫn quán/sự kiện" → "cả người tìm việc linh hoạt lẫn quán/sự kiện cần người làm linh hoạt"
+      - `site.description` dropped "sinh viên và" → "người lao động linh hoạt"
+      - **Preserved:** `btn.uploadStudentCard` and `verification.student` (these refer to the student-card verification artefact for one user group, not the platform's overall audience). Seed user bios untouched (mock data).
+    - **Tổng quan rename**:
+      - `nav.dashboard` "Bảng điều khiển" → "Tổng quan"
+      - `worker.dashboard.title` → "Tổng quan người lao động"
+      - `employer.dashboard.title` → "Tổng quan nhà tuyển dụng"
+      - `admin.dashboard.title` "Quản trị hệ thống" → "Tổng quan quản trị"
+      - `admin.dashboard.eyebrow` → "Tổng quan admin"
+      - Route paths and file structure unchanged.
+    - **Clickable stat tiles** (worker / employer / admin):
+      - `StatTile` (worker + employer copies) gained `onClick` + `ariaLabel` props. When provided the tile renders as a `<button>` with `motion-lift`, `cursor-pointer`, `focus-visible:ring-2`, hover-shown "Xem chi tiết →" indicator. Otherwise it renders as a plain `<div>` (no behavior change for non-interactive use).
+      - **Worker dashboard:**
+        - Reputation tile → opens new modal showing the +5 / −10 / −20 explanation + current score.
+        - Completed-shifts and earnings tiles → smooth-scroll to the existing `worker-upcoming-section`.
+        - Cancel-quota tile → opens new modal showing weekly + monthly usage + reputation-tier bonus rules.
+      - **Employer dashboard:**
+        - Active / posted shifts tiles → smooth-scroll to `employer-active-shifts`.
+        - Pending-applicants tile → smooth-scroll to `employer-pending-apps`.
+        - Completed / deposited / paid-out tiles → open new payments-summary modal listing the four key metrics + an MVP disclaimer.
+      - **Admin dashboard:**
+        - `AnalyticsPanel` `StatCard` gained `onClick` + `ariaLabel`. Each stat now jumps to the right tab + applies an initial filter:
+          - Total users → Users tab, filter `'all'`
+          - Workers → Users tab, filter `'worker'`
+          - Employers → Users tab, filter `'employer'`
+          - Total shifts → Shifts tab, filter `'all'`
+          - Active shifts → Shifts tab, filter `'active'`
+          - Completed shifts → Shifts tab, filter `'completed'`
+          - Disputed payments → Shifts tab, filter `'disputed'`
+          - Open disputes → Disputes tab
+        - `UsersPanel` and `ShiftsPanel` accept new `initialFilter` props so the deeplink lands users on the right slice.
+      - All scroll/modal targets are existing surfaces — no new pages, no new fake data. Pure UI navigation + presentation.
+    - **Hourly wage formatter + Vietnamese words**:
+      - New file `src/lib/numberVN.ts` exporting `formatNumberVNInput`, `parseVNNumberInput`, `numberToVietnameseWords`, `numberToVietnameseCurrency`. Pure TS, no dependencies. Range 0..999_999_999 with sentinel "số quá lớn" outside. Handles Vietnamese euphony rules (mười lăm not mười năm, mốt after mươi).
+      - `ShiftForm` hourly-wage `Input` replaced with a hand-rolled controlled text input that renders `35.000` while typing `35000`, internal canonical value stays `number`. Helper text below the field reads the current value as words: `"35000"` → `"(ba mươi lăm nghìn VNĐ)"`. When empty, the helper line shows the new `form.hourlyWage.hint` copy.
+      - Validation logic untouched — submit still requires `hourlyWage > 0`.
+    - **`TimeFieldVN` deletion fix**:
+      - The Phase 9C smart formatter was too aggressive on backspace — typing `14:00` then deleting from the right would re-insert the colon and trap the caret around `:`.
+      - New `handleChange` detects deletion direction by comparing previous visible text length with new raw input length. When deleting, the formatter is bypassed and the user's raw input (sanitized to digits + `:`) is preserved. Forward typing keeps the existing smart auto-format.
+      - Now flows naturally: `14:00` → `14:0` → `14:` → `14` → `1` → empty.
+      - Blur-time finalizer unchanged: `3` → `03:00`, `13` → `13:00`, `13:` → `13:00`, `13:4` → `13:40`. Invalid input still surfaces `error.timeInvalid`.
+    - **Employer cancellation deadline** — domain change in `src/domain/timeGates.ts`:
+      - Split the unified 24-hour `withinEditCancelWindow` into `EDIT_DEADLINE_HOURS = 24` and `CANCEL_DEADLINE_HOURS = 6`. New helper `withinShiftDeadline(now, shift, deadlineMs)` parameterized by the deadline.
+      - `canEditShift` still uses 24h (Req 25.1).
+      - `canCancelShift` now uses **6h** (Phase 9F) — employers can cancel a shift up until 6 hours before start, regardless of whether anyone has applied or been approved.
+      - Backwards-compatible alias `EDIT_CANCEL_DEADLINE_HOURS` kept as an export so any external import doesn't break.
+      - i18n updated: `shift.error.TOO_LATE` body changed to "Không thể huỷ ca trong vòng 6 giờ trước khi ca bắt đầu." Two new keys for clarity: `shift.error.TOO_LATE_CANCEL` (alias) and `shift.error.TOO_LATE_EDIT` (24h message).
+      - Worker cancellation rules untouched (Phase 2 / 3): the 3h `requiresEmployerApprovalToCancel` gate + the 24h `classifyCancellation` reputation rule both remain.
+      - No persistence schema bump.
+    - **Page help guides** — new primitive `src/components/ui/PageHelpButton.tsx`:
+      - Ghost-style button labeled "Hướng dẫn sử dụng" with a question-mark glyph, opens existing `Modal` primitive with surface-specific bullet items.
+      - 6 surfaces wired: worker dashboard, worker schedule, employer dashboard, employer schedule, `/employer/shifts/new`, admin dashboard.
+      - Accessible: native `<button>` + ESC-to-close from `Modal` + focus ring.
+      - Keys: `help.btn.{label,aria,close}` + `help.{workerDashboard,workerSchedule,employerDashboard,employerSchedule,shiftCreate,adminDashboard}.{title,intro,item1..item4}`.
+    - **Admin sort controls**:
+      - Replaced single sort hint ("Sắp xếp theo điểm uy tín ↓") with a `<select>` dropdown (Tên / Vai trò / Điểm uy tín / Trạng thái / Ngày tham gia) + asc/desc toggle button.
+      - Sort applies to derived `useMemo` array; existing role-filter chips and reputation-adjustment row state untouched.
+      - i18n: `admin.user.sortField`, `admin.user.sortField.{name,role,reputation,status,joined}`, `admin.user.sortDir.{asc,desc,toAsc,toDesc}`.
+      - `ShiftsPanel` gained four filter chips (Tất cả / Đang hoạt động / Đã hoàn thành / Tranh chấp) so the deeplink from analytics tiles renders the right slice.
+    - **Visual polish on stat cards** — hover lift, focus ring, "Xem chi tiết →" hover-revealed indicator on every interactive tile. Non-interactive tiles unchanged.
+    - **Constraints honored** — no new dependencies (`numberVN.ts` is pure TS), no external UI library, no backend / server logic, no schema bump. All Zustand selectors remain stable raw-array reads with `useMemo` derivations. Apply-time worker conflict logic + worker cancellation rules untouched.
+    - **Files changed:** `src/i18n/vi.ts` (inclusive-copy + Tổng quan + new error / sort / help / payments / quota-modal keys), `src/lib/numberVN.ts` (new), `src/domain/timeGates.ts` (split edit/cancel deadlines, new constants), `src/components/ui/PageHelpButton.tsx` (new), `src/components/ui/index.ts` (re-export), `src/components/ui/TimeFieldVN.tsx` (deletion-direction handling), `src/components/forms/ShiftForm.tsx` (formatted wage input + Vietnamese words helper), `src/app/worker/dashboard/page.tsx` (interactive StatTiles + reputation/quota modals + help button + section anchor), `src/app/employer/dashboard/page.tsx` (interactive StatTiles + payments modal + help button + section anchors), `src/app/admin/dashboard/page.tsx` (interactive StatCards + jumpToTab handlers + sort dropdown + filter chips on Shifts tab + help button), `src/app/worker/schedule/page.tsx` (help button), `src/app/employer/schedule/page.tsx` (help button), `src/app/employer/shifts/new/page.tsx` (help button).
+
+24. **Phase 9F UX bug fixes + visual cleanup pass** *(2026-05-23, Phase 9G)*. Targeted bug fixes against the four issues surfaced by manual browser QA after Phase 9F shipped, plus a visual direction reset: the chrome was carrying too many decorative blobs and the help-modal backdrop was rendering banding artefacts. No new dependencies, no schema bump (still v3), no business logic changes outside the cancel rule. Mock / localStorage only. Route count unchanged at 15.
+    - **A. Employer cancellation rule — applicant-aware exception** (`src/stores/shiftStore.ts`):
+      - Phase 9F switched the employer cancel deadline from 24h to a flat 6h. Manual QA showed that broke the common case "I posted a shift, nobody applied, I want to cancel right before it starts" — the employer had no way out.
+      - New `cancel()` rule:
+        1. After the shift's start datetime → blocked unconditionally with `TOO_LATE_STARTED`.
+        2. Less than 6 hours before start AND the shift has any active applicant (status in `Pending | Approved | CancellationRequested | CheckedIn | CheckedOut`) → blocked with `TOO_LATE_HAS_APPLICANTS`.
+        3. Less than 6 hours before start AND zero active applicants → **allowed** (the new exception).
+        4. More than 6 hours before start → allowed.
+      - `CancelError` union expanded from `'NOT_FOUND' | 'TOO_LATE'` to `'NOT_FOUND' | 'TOO_LATE_STARTED' | 'TOO_LATE_HAS_APPLICANTS'`. The store no longer calls `canCancelShift` from `domain/timeGates`; that helper is kept for back-compat (it wasn't time-only any more, so a domain export couldn't satisfy the new contract without dragging applicationStore into the domain layer — kept the rule inline).
+      - i18n: new `shift.error.TOO_LATE_STARTED` ("Không thể huỷ ca sau khi ca đã bắt đầu.") and `shift.error.TOO_LATE_HAS_APPLICANTS` ("Không thể huỷ ca trong vòng 6 giờ trước khi ca bắt đầu vì ca đã có người ứng tuyển hoặc được duyệt."). The legacy `shift.error.TOO_LATE` / `shift.error.TOO_LATE_CANCEL` keys remain so older code paths still resolve.
+      - Worker cancellation rules untouched — no changes to `cancelByWorker`, `quotaUsage`, the 3h employer-approval gate, or the `classifyCancellation` 24h reputation rule.
+      - `app/employer/shifts/[id]/page.tsx` updated to map the new error codes onto the localized strings.
+    - **B. Help-modal visual fix** (`src/components/ui/Modal.tsx`):
+      - Manual QA showed "white content in the middle, dark/gray blocks on both sides" — the `backdrop-blur-sm` + body's `background-attachment: fixed` warm gradient combined to make the blur sample bands of varying brightness, producing diagonal artefacts.
+      - Backdrop now uses solid `bg-slate-900/60` with **no `backdrop-blur`**. Outer wrapper switched to `fixed inset-0 overflow-y-auto` with the panel centered inside a `flex min-h-full items-center justify-center p-4 sm:p-6` so tall help-style content can scroll naturally.
+      - Default panel widened from `max-w-md` → `max-w-lg` (callers can still override via `className`).
+      - Added body `overflow: hidden` scroll-lock while the modal is open, restored on unmount.
+      - Animations preserved (`modal-panel-anim`, `modal-backdrop-anim`).
+    - **C. Worker dashboard stat-tile behavior** (`src/app/worker/dashboard/page.tsx`):
+      - "Tổng thu nhập" tile previously scrolled to upcoming shifts (a different, unrelated section). Now opens a dedicated `IncomeDetailModal`:
+        - Shows total earnings, completed-paid count, recent 5 confirmed shifts with payouts, and a short MVP disclaimer ("Thu nhập được tính từ các ca đã hoàn thành và đã thanh toán trong bản MVP.").
+        - Empty state: friendly "Chưa có thu nhập…" copy.
+      - "Ca đã hoàn thành" tile now opens a `CompletedShiftsModal` with the same 5 most-recent confirmed shifts (date + location). No fake data; uses live `useApplicationStore` payouts and the existing `worker.completedShiftCount` counter.
+      - `statDetail` state union extended from `'reputation' | 'quota' | null` to `'reputation' | 'quota' | 'income' | 'completed' | null`.
+      - i18n additions: `worker.dashboard.incomeModal.{totalLabel,completedCount,recentTitle,empty,disclaimer}` + `worker.dashboard.completedModal.{totalLabel,recentTitle,empty}`.
+    - **D. Visual / background cleanup** (`src/app/globals.css`, `src/app/page.tsx`, `src/app/worker/schedule/page.tsx`, `src/app/employer/schedule/page.tsx`):
+      - `globals.css` body chrome collapsed from "3 corner radial blobs + linear gradient with `background-attachment: fixed`" to "1 large diagonal mesh wash anchored top-left + 1 cream→slate linear gradient, normal scroll attachment". This kills the modal-banding root cause and gives a calmer first-paint surface.
+      - `.hero-decor` reduced from 3 overlapping radials to a single warm wash anchored top-right + a soft fade-out at the bottom.
+      - New `.hero-panel` utility — designed surface (warm radial + dot-grid mask + inset orange ring + soft warm shadow) wrapping `<FeaturedJobMockup />` so the right column reads as an intentional product hero, not floating cards on beige.
+      - `.bg-dot-grid` alpha lowered from `0.18` → `0.10` (paper texture, not active chrome).
+      - Removed the four floating motif icons (phone / calendar / shield / map-pin) from `HeroBackgroundDecor` per "stop adding random blobs". Curved bottom wash kept.
+      - Removed the two floating blurred orange/amber circles behind `/worker/schedule` and `/employer/schedule`. The body's calmer chrome now carries that surface treatment without competing with the calendar grid.
+      - The final-CTA orange section's two white/amber blur blobs were kept — they sit inside an explicit gradient panel and contribute to the band, not to the body chrome.
+      - Motion utilities (`motion-lift`, `motion-press`, `entrance-up`, `entrance-right`, `reveal`, `float-soft`) all preserved. `prefers-reduced-motion: reduce` block unchanged.
+    - **Files changed (Phase 9G):** `src/stores/shiftStore.ts` (new `CancelError` union, applicant-aware `cancel()` rule, dropped `canCancelShift` import), `src/components/ui/Modal.tsx` (no backdrop-blur, `max-w-lg` default, scroll-lock, `min-h-full` flex-centered scroll wrapper), `src/i18n/vi.ts` (new `shift.error.TOO_LATE_STARTED` / `TOO_LATE_HAS_APPLICANTS` + worker income/completed modal keys), `src/app/employer/shifts/[id]/page.tsx` (error-code mapping), `src/app/worker/dashboard/page.tsx` (income + completed modals, extended `statDetail` state), `src/app/globals.css` (calmer body chrome + new `.hero-panel` utility + reduced `.hero-decor` and `.bg-dot-grid`), `src/app/page.tsx` (`HeroBackgroundDecor` simplified to bottom wash only, mockup wrapped in `.hero-panel`), `src/app/worker/schedule/page.tsx` (removed decor blobs), `src/app/employer/schedule/page.tsx` (removed decor blobs), `HANDOFF.md`, `VISUAL_QA.md`.
+
+25. **Phase 9H modal portal + stat-card detail bug fixes** *(2026-05-23, Phase 9H)*. Targeted bug fixes against two manual-QA findings against Phase 9G:
+    1. The help-guide modal looked "trapped inside the page section" — the overlay only covered the section, not the viewport. Root cause: `Modal` rendered in-tree, so any ancestor with `transform`, `filter`, `overflow: hidden`, or its own stacking context (the gradient hero, `.hero-panel`, schedule containers) clipped the fixed overlay.
+    2. Worker / employer stat-card detail modals carried thin content. Worker reputation and quota modals showed only abstract rules; employer tiles still scrolled to anchors that didn't always exist on the dashboard.
+    - **A. Modal portal** (`src/components/ui/Modal.tsx`):
+      - Switched the overlay to render via `createPortal(overlay, document.body)`. SSR-safe — the portal is gated on a `useEffect`-set `mounted` flag so the server renders `null` and the first hydrated render matches.
+      - Bumped overlay z-index from `z-50` → `z-[100]` so the modal sits above the sticky NavBar (`z-30`), MobileNav drawer (`z-50`), and Toast host (`z-50`).
+      - All other 9G fixes preserved: solid `bg-slate-900/60` backdrop with no `backdrop-blur`, `max-w-lg` default panel, `flex min-h-full items-center justify-center` scroll wrapper, body scroll-lock, ESC + click-outside + close-button + focus trap intact.
+      - The change is fully transparent to all callers (`PageHelpButton`, worker stat detail modals, employer payments modal, the new Phase 9H detail modals, `CancelApplicationDialog`, `EmployerFeedbackForm`, etc.). No call site touched.
+    - **B. Worker stat-card detail enrichment** (`src/app/worker/dashboard/page.tsx`):
+      - **Reputation modal** now shows: current score in a tone-coded hero strip (good/warn/bad), the existing rules summary, two side-by-side stat tiles (`completedShiftCount` + `ratingsReceived.length`), and the most-recent 5 cancellation records from `worker.cancellationHistory` with `LateCancel` (−10) / `OnTime` (0) badges. When `cancellationHistory` is empty we render a clear MVP note instead of inventing fake events.
+      - **Cancellation-quota modal** now shows the existing weekly/monthly remaining lines plus the most-recent 5 cancellation records with shift title + date + LateCancel/OnTime classification, plus an empty-state copy when no history exists.
+      - **Income modal** now adds time-range (`HH:mm–HH:mm`) and location to each recent payout row; everything else preserved.
+      - **Completed-shifts modal** now adds time-range + location to each row, plus an "Đã xác nhận" badge and an optional payout amount when `payoutAmount > 0`.
+      - Removed the orphan `scrollToId` helper.
+      - i18n additions: `worker.dashboard.reputationModal.{currentLabel,bandGood,bandWarn,bandBad,completedLabel,ratingsLabel,recentTitle,noHistory,lateCancel,onTimeCancel}`, `worker.dashboard.quotaModal.{recentTitle,empty,unknownShift}`, `worker.dashboard.completedModal.confirmedBadge`.
+    - **C. Employer stat-card detail enrichment** (`src/app/employer/dashboard/page.tsx`):
+      - Replaced the `scrollToId(...)` shortcuts on all six tiles with proper detail modals, controlled by a single `statDetail` state (`'posted' | 'active' | 'pending' | 'completed' | 'payments' | null`).
+      - **Posted-shifts modal** lists every shift the employer has ever posted (Draft/Published/FullyBooked/InProgress/AwaitingConfirmation/Completed/Cancelled), sorted descending by start datetime. Each row shows title, date, time-range, location, status badge, deposit total, position counter, and a "Xem chi tiết →" link to `/employer/shifts/[id]`. Truncated to 12 with a note when more exist.
+      - **Active-shifts modal** lists shifts in `Published | FullyBooked | InProgress | AwaitingConfirmation`, sorted ascending so the next-up shift is first.
+      - **Completed-shifts modal** lists `Completed` shifts, sorted descending. Same row template as the other shift lists.
+      - **Pending-applicants modal** lists every `Pending` application across the employer's shifts with worker name, shift title, date, and a "Xem chi tiết" link to the manage page.
+      - **Payments modal** keeps the existing 4-cell summary and now adds a "Recent payouts" list of the most-recent 5 completed shifts contributing to `totalPaidOut` (title, date, time-range, deposit amount), plus an empty-state copy.
+      - Extracted a shared `<ShiftListModal>` helper at the bottom of the file for the three list-style modals.
+      - Removed the orphan `scrollToId` helper. The `id="employer-active-shifts"` / `id="employer-pending-apps"` anchors on the dashboard sections are kept (harmless, future deeplinks may still want them) but no longer driven by tile clicks.
+      - i18n additions: `employer.payments.{recentTitle,empty}`, `employer.detail.{positionsLabel,truncated,posted.{title,intro,empty},active.{title,intro,empty},completed.{title,intro,empty},pending.{title,intro,empty}}`.
+    - **D. Modal visual consistency.** Every modal in the workspace now portal-mounts above the viewport with the same backdrop, panel width, padding, animations, and close button, since they all share the `Modal` primitive. No call site needed any per-modal fix; the portal change cascaded.
+    - **Constraints honored** — no new dependencies (`createPortal` is part of React DOM, already in the bundle), no schema bump (still v3), no business logic changes, no new seed data, no server fetching. Worker / employer cancellation rules from Phase 9G unchanged. Mock / localStorage only.
+    - **Files changed (Phase 9H):** `src/components/ui/Modal.tsx` (portal mount, `mounted` SSR guard, `z-[100]`), `src/app/worker/dashboard/page.tsx` (richer reputation + quota + income + completed modals, dropped orphan `scrollToId`), `src/app/employer/dashboard/page.tsx` (six tile-detail modals replacing scroll shortcuts, shared `ShiftListModal`, dropped orphan `scrollToId`), `src/i18n/vi.ts` (worker reputation/quota/completed + employer detail keys), `HANDOFF.md`, `VISUAL_QA.md`.
+
+26. **Phase 9I demo data consistency + richer detail modals + employer rating visibility** *(2026-05-23, Phase 9I)*. Targeted fixes against three manual-QA findings against Phase 9H:
+    1. Worker dashboard showed `Ca đã hoàn thành: 12` but the modal listed "no completed shifts" because seed data only had one Confirmed application backing the count.
+    2. Worker reputation showed 95/100 but the modal couldn't explain why — there were no positive events or denormalized ratings.
+    3. Employer ratings/reviews existed in `ratings.json` but the worker → employer feedback slice (`employerFeedback`) was seeded empty so no review was visible anywhere.
+    - **A. Seed data enrichment** (mock-only — no business logic changes):
+      - `src/data/seed/users.json` — `worker-001` got 5 denormalized `ratingsReceived` entries (4×5★ + 1×4★) backing the 95/100 score; `worker-002` got 4 entries; `worker-003` and `worker-004` got 1 each. `worker-001` also got one `OnTime` cancellation history entry. `worker-005` keeps its existing `LateCancel` + 1 NoShow. Bios neutralised: removed the `"sinh viên"` framing left over from before Phase 9F's inclusive-copy pass.
+      - `src/data/seed/shifts.json` — 5 new `Completed` shifts (`shift-010`..`shift-014`) across both `employer-001` and `employer-002`, all with `escrowStatus: 'Released'` and realistic deposit totals.
+      - `src/data/seed/applications.json` — 7 new `Confirmed` applications (`app-100`..`app-104` for `worker-001`, `app-110`/`app-111` for `worker-002`) with `checkInAt`/`checkOutAt`/`confirmedAt` timestamps + `payoutAmount` so the income / completed modals show real recent rows. Older 7 confirmed shifts on `worker-001` (12 − 5) and 14 on `worker-002` (18 − 4) intentionally don't have detail rows — the modal calls these out as "X ca cũ hơn không có dữ liệu chi tiết trong bản MVP".
+      - `src/data/seed/ratings.json` — synced with the worker `ratingsReceived` arrays so `applicationStore.ratings` slice and `Worker.ratingsReceived` agree.
+      - `src/data/seed/employerFeedback.json` — **new** seed file (6 entries) so worker → employer reviews are visible immediately on a fresh reseed. `employer-001` gets 3 reviews (avg 4.7), `employer-002` gets 3 reviews (avg 5.0), `employer-003` has none yet.
+      - `src/data/persistence.ts` — imports the new `employerFeedback.json` seed; `seedSnapshot.employerFeedback` now returns the seeded array (was `[]`); `SCHEMA_VERSION` bumped from **3 → 4** so existing localStorage demos auto-pick up the richer data on next load. The Phase 9I bump is the only schema change in this phase; the persisted shape itself is unchanged (no new keys, no field migrations).
+    - **B. Worker stat-card detail enrichment** (`src/app/worker/dashboard/page.tsx`):
+      - **Reputation modal** now renders a derived **score timeline** computed from observable events (Confirmed applications → +5 each, `LateCancel` records → −10 each, aggregated `noShowCount` → −20 × N). Each row shows the event label, the source shift title (when resolvable), the date, and a tone-coded delta badge. An MVP disclaimer line clarifies the data is mock and explains how the real system updates the score. Empty state preserved when no events exist.
+      - **Completed-shifts modal** rows now show employer name, time-range, location, the worker's own rating from that shift (★ + comment, when available), and the payout. Recent-title now reads `"Hiển thị 5 ca gần nhất trong tổng số 12 ca đã hoàn thành"` so the count + list count match. When `completedShiftCount > Confirmed application count`, an italic "Còn X ca cũ hơn không có dữ liệu chi tiết trong bản MVP" footer prevents the perceived inconsistency.
+      - **Income modal** rows now show employer name in addition to the prior date / time / location / payout.
+      - **Quota modal** unchanged from Phase 9H (already shows recent cancellation history with classifications).
+      - i18n additions: `worker.dashboard.completedModal.{noRating,legacyNote}` (with new `{shown}/{total}` placeholder for `recentTitle`), `worker.dashboard.reputationModal.{eventCompleted,eventLateCancel,eventNoShow,timelineNote}` (replacing the old empty-history copy).
+    - **C. Employer rating / review visibility**:
+      - `src/components/user/EmployerTrustPanel.tsx` — **new** small inline trust strip rendered on `/shifts/[id]` directly under the employer name. Shows average stars + review count + verification badge + last-review excerpt + "Xem hồ sơ →" link. Pure client component reading `useEmployerFeedbackStore` with stable selectors and a `useMemo`-derived avg/count/recent triple. Falls back to "Chưa có đánh giá" when the employer has none.
+      - `src/app/shifts/[id]/page.tsx` — imports the new panel and renders it whenever the shift's employer record resolves. Existing `EmployerProfileModal` still opens via the employer-name button or the new "Xem hồ sơ →" link.
+      - `src/app/employer/profile/page.tsx` — added a "Đánh giá từ người làm" `Card` section using the existing `<EmployerFeedbackList employerId={employer.id} />` so the employer sees their own incoming feedback in the same component shape workers see.
+      - The existing `EmployerProfileModal` (Phase 6) and `AdminUserProfileModal` already mount `EmployerFeedbackList` — they automatically pick up the seeded feedback without modification.
+      - i18n additions: `employer.trust.{noReviews,viewProfile}`, `employer.profile.workerFeedback.{title,intro}`, `common.reviews`.
+    - **D. Employer dashboard pending-applicants modal** — added reputation badge (color-tinted by score band), verification chips (phone / id / student), and completed-shift count to each pending-application row. Surfacing the same trust signals workers see on the employer side keeps the symmetry. i18n: `employer.detail.pending.{repBadge,completedShifts}`.
+    - **Constraints honored** — no new dependencies, no business logic changes, no new types, no new stores, mock / localStorage only. The single schema bump (3 → 4) is the smallest possible: it forces a reseed from the bundled JSON and changes nothing else. No worker / employer cancellation rule changes. Build still 15 routes, tests still 8.
+    - **Files changed (Phase 9I):** `src/data/seed/users.json` (denormalized ratings + neutralised bios), `src/data/seed/shifts.json` (5 new Completed shifts), `src/data/seed/applications.json` (7 new Confirmed applications), `src/data/seed/ratings.json` (synced with users), `src/data/seed/employerFeedback.json` (new), `src/data/persistence.ts` (import new seed, `SCHEMA_VERSION` 3 → 4), `src/components/user/EmployerTrustPanel.tsx` (new), `src/app/shifts/[id]/page.tsx` (renders trust panel), `src/app/employer/profile/page.tsx` (worker-feedback card), `src/app/worker/dashboard/page.tsx` (rep timeline + enriched completed/income modals + completed-modal title with `{shown}/{total}` + legacy-note footer), `src/app/employer/dashboard/page.tsx` (pending modal trust badges), `src/i18n/vi.ts` (rep timeline keys + completed modal updates + employer trust keys + pending modal keys + `common.reviews`), `HANDOFF.md`, `VISUAL_QA.md`.
+
+27. **Phase 9J admin reputation form guidance + admin adjustment history visibility** *(2026-05-23, Phase 9J)*. Two follow-ups against Phase 9I manual QA:
+    1. The admin reputation form let admins type any number — there was no inline cue that the valid range is 0–100 and the inline error only fired after submit.
+    2. When an admin adjusted a worker's score, the worker reputation modal didn't surface the adjustment as its own row — admin records lived inside `cancellationHistory` but the timeline only consumed `LateCancel` entries from that slice.
+    - **A. Admin reputation form guidance** (`src/app/admin/dashboard/page.tsx`):
+      - The "Điểm uy tín mới" `Input` now carries `placeholder="0–100"`, `hint="Nhập điểm từ 0 đến 100."`, and live `error` text "Điểm uy tín phải nằm trong khoảng 0–100." when the typed value drops out of range. `min={0}`, `max={100}`, `step={1}` were already in place; native browser validation pairs with the inline message. Width bumped from `w-32` → `w-40` so the placeholder doesn't clip.
+      - The submit-time guard (which also fires `INVALID_SCORE` from the store) is unchanged. Reason input still required.
+      - i18n additions: `admin.user.newScore.placeholder`, `admin.user.newScore.hint`. The legacy `admin.user.scoreOutOfRange` key was reworded to match the new "0–100 range" copy.
+    - **B. Admin adjustment surfaced on the worker timeline** (`src/app/worker/dashboard/page.tsx`):
+      - `repTimeline` derivation now parses `cancellationHistory` records prefixed with `[Admin set X → Y]` (the format `adminStore.adjustReputation` writes) and emits a distinct admin event row instead of the routine LateCancel/OnTime branch.
+      - Each admin row shows: an "Admin" tinted badge, the label "Quản trị viên điều chỉnh điểm: X → Y", the admin's reason as the sublabel, the adjustment date, and the actual delta (`Y − X`) on a tone-coded badge (positive → green, negative → red, zero → amber).
+      - Row chrome switches to indigo border + indigo-tinted background so admin entries don't visually mix with shift-driven events.
+      - Quota modal now filters `[Admin set ...]` synthetic records out of the recent-cancellation list, so admin overrides don't pollute the worker's own cancellation log.
+      - i18n additions: `worker.dashboard.reputationModal.{eventAdminAdjust,eventAdminBy,adminBadge}`.
+    - **C. Admin user profile modal — adjustment history block** (`src/components/user/AdminUserProfileModal.tsx`):
+      - New `<AdminAdjustmentHistoryList>` section under the Worker body. Reads the same `[Admin set X → Y] reason` records out of `cancellationHistory`, renders them sorted descending with old → new score, reason quote, and date.
+      - Empty state: "Chưa có lịch sử điều chỉnh điểm bởi quản trị viên." when no adjustment exists.
+      - i18n: `admin.user.adjustmentHistory.{title,empty}`.
+    - **D. End-to-end consistency** — when an admin presses "Lưu" in the form: `adminStore.adjustReputation` writes the new score via `userStore.updateUser` (the user list re-sorts immediately), appends the synthetic record to `cancellationHistory`, and pushes a `ReputationAdjusted` notification to the worker. Worker dashboard, worker reputation modal, admin user profile modal, and the notification feed all reflect the change without a refresh.
+    - **Constraints honored** — no new dependencies, no schema bump (still v4), no business logic changes, no new types or stores. `adminStore.adjustReputation` semantics unchanged. Mock / localStorage only.
+    - **Files changed (Phase 9J):** `src/app/admin/dashboard/page.tsx` (form guidance + live error), `src/app/worker/dashboard/page.tsx` (admin row in `repTimeline` + indigo styling + quota-modal filter), `src/components/user/AdminUserProfileModal.tsx` (admin adjustment history list), `src/i18n/vi.ts` (new placeholder/hint/event/badge/section keys), `HANDOFF.md`, `VISUAL_QA.md`.
+
+28. **Phase 9L notification deep links + contextual modal opening** *(2026-05-23, Phase 9L)*. Manual QA found that clicking a notification often landed the worker on a generic page (e.g. `/worker/profile`) instead of the actual context. Phase 9L makes notification links contextual:
+    - **A. Query-param convention.** Each notification's `link` now embeds a `?modal=...` (worker / employer dashboards) or `?tab=...&filter=...` (admin dashboard) hint so the destination page can open the matching modal / tab on arrival. Format documented inline in the relevant store comments.
+    - **B. New shared hook** `src/lib/useModalFromQuery.ts` — reads `searchParams.get('modal')` exactly once on mount, fires the page-supplied `onMatch(value)` callback, then `router.replace(pathname)` strips the param so refreshing or closing the modal doesn't reopen it. A `useRef` guard makes the effect idempotent across the post-replace re-render. Pages pass an `allowed` array so unknown values are silently dropped.
+    - **C. Worker dashboard** (`src/app/worker/dashboard/page.tsx`) — wires the hook with `['reputation', 'quota', 'income', 'completed']`. Notifications that target one of those modals open it on arrival; users can still dismiss with ESC / overlay click and the URL stays clean.
+    - **D. Employer dashboard** (`src/app/employer/dashboard/page.tsx`) — same treatment with `['posted', 'active', 'pending', 'completed', 'payments']`.
+    - **E. Admin dashboard** (`src/app/admin/dashboard/page.tsx`) — adds an inline `useEffect` that reads `?tab=` + optional `?filter=` once, switches the active tab, and seeds the appropriate `usersInitialFilter` / `shiftsInitialFilter` before stripping the params. Valid tab values: `analytics | users | shifts | disputes`. Valid filter values per tab: users → `all | worker | employer | admin`; shifts → `all | active | completed | disputed`. Disputes tab takes no filter.
+    - **F. Updated notification links at creation sites:**
+      - `adminStore.adjustReputation` → `ReputationAdjusted` notification now links to `/worker/dashboard?modal=reputation` (was `/worker/profile`).
+      - `applicationStore.approve` → `ApplicationApproved` notification now links to `/shifts/{shiftId}` so workers see the shift they were approved for (was `/worker/dashboard`).
+      - `applicationStore.confirmCompletion` → `ShiftCompletedConfirmed` notification now links to `/worker/dashboard?modal=income` (was `/worker/dashboard`, opens the income detail modal showing the new payout).
+      - `applicationStore.approveCancellationRequest` → `CancellationApproved` notification now links to `/worker/dashboard?modal=quota` (was `/worker/dashboard`).
+      - `applicationStore.markNoShow` (worker recipient) → `NoShow` notification now links to `/worker/dashboard?modal=reputation` (was `/worker/profile`, opens the reputation timeline showing the −20 event).
+      - All other notification kinds already pointed at the right place: `ApplicationReceived` → `/employer/shifts/{id}`, `CancellationRequested`/`WorkerCancelled`/`LateCancel`/`NoShow` (employer recipient) → `/employer/shifts/{id}`, `ShiftCancelled` (worker recipient) → `/worker/dashboard`, `ApplicationRejected` → `/worker/dashboard`, `EmployerFeedbackReceived` → `/employer/profile`, `CancellationRejected` → `/worker/dashboard`. Those were left untouched.
+    - **G. Fallback safety.** Notifications without `link` still render as a button instead of a `<Link>` (existing `NotificationBell` behaviour), so missing or unknown `?modal=` values never break the click. The query-param hooks silently drop unknown values and clean the URL.
+    - **Constraints honored** — no new dependencies, no schema bump (still v4), no business logic / store mutator-signature changes, no new types. Notification shape unchanged — we only updated the `link` field at creation time. Mock / localStorage only.
+    - **Files changed (Phase 9L):** `src/lib/useModalFromQuery.ts` (new), `src/app/worker/dashboard/page.tsx` (hook wiring), `src/app/employer/dashboard/page.tsx` (hook wiring), `src/app/admin/dashboard/page.tsx` (tab + filter query reader), `src/stores/adminStore.ts` (`ReputationAdjusted` link), `src/stores/applicationStore.ts` (`ApplicationApproved`, `ShiftCompletedConfirmed`, `CancellationApproved`, worker-recipient `NoShow` links), `HANDOFF.md`, `VISUAL_QA.md`.
+
+29. **Phase 9M dashboard notification cards become first-class clickable items** *(2026-05-23, Phase 9M)*. Phase 9L wired notification deep links via `NotificationBell` + dashboard query-param hooks, but the in-page notification side panel on `/worker/dashboard` and `/employer/dashboard` rendered notifications as plain `<p>` text. Result: clicking the "Điểm uy tín đã được cập nhật" card on the worker dashboard did nothing.
+    - **A. New shared component** `src/components/layout/DashboardNotificationCard.tsx`. Used by both the worker and the employer dashboard's right-rail notification list.
+    - **B. Click behavior** mirrors `NotificationBell`:
+      - Always calls `onRead(notification.id)` so the unread dot disappears even when the click doesn't navigate.
+      - When `notification.link` exists:
+        - If the link's pathname matches the current page (`usePathname()`) **and** carries a `?modal=<value>` query the page can handle (passed in via `samePageModalAllowed`), the card calls `onSamePageModal(value)` instead of routing — opening the modal in-place without the brief query-string flicker `router.push` would otherwise produce.
+        - Otherwise it falls back to `router.push(notification.link)`. Cross-route deep links pick up `?modal=` / `?tab=` automatically via the existing `useModalFromQuery` hook on the destination page.
+      - When `notification.link` is unset, the card stays interactive (button still focusable) and only calls `onRead`. No router move.
+    - **C. Affordance:**
+      - Renders as a native `<button>` so keyboard `Enter` / `Space` activate the click. Native `focus-visible:ring-2 focus-visible:ring-orange-400` for keyboard users.
+      - Hover background flips from the default unread `bg-orange-50` to a slightly stronger `bg-orange-100/60` when actionable.
+      - Hover-revealed "Xem chi tiết →" affordance appears only when the card has a `link` so non-actionable rows don't suggest navigation. Affordance also reveals on `:focus-visible` for keyboard users.
+      - Cursor toggles between `cursor-pointer` (actionable) and `cursor-default` (no link).
+    - **D. Worker dashboard wiring** (`src/app/worker/dashboard/page.tsx`):
+      - Added `markRead` selector (alongside the existing `markAllRead`).
+      - Replaced the plain `<li>` rows with `<DashboardNotificationCard>`, passing `samePageModalAllowed=['reputation','quota','income','completed']` and an `onSamePageModal` that flips `statDetail`. `ReputationAdjusted`/`ShiftCompletedConfirmed`/`CancellationApproved` notifications therefore open the matching detail modal directly when clicked from the dashboard.
+    - **E. Employer dashboard wiring** (`src/app/employer/dashboard/page.tsx`):
+      - Same treatment with `samePageModalAllowed=['posted','active','pending','completed','payments']`. `ApplicationReceived` and the other employer notifications still route to `/employer/shifts/{id}` (cross-route) via `router.push`.
+    - **F. i18n** — single new key `notification.viewDetail` ("Xem chi tiết") for the affordance label.
+    - **G. Constraints honored** — no new dependencies, no schema bump (still v4), no notification business-logic changes (creation sites and `notification.link` values unchanged from Phase 9L). `NotificationBell` behavior unchanged.
+    - **Files changed (Phase 9M):** `src/components/layout/DashboardNotificationCard.tsx` (new), `src/app/worker/dashboard/page.tsx` (`markRead` selector + card wiring), `src/app/employer/dashboard/page.tsx` (`markRead` selector + card wiring), `src/i18n/vi.ts` (`notification.viewDetail`), `HANDOFF.md`, `VISUAL_QA.md`.
+
+30. **Phase 9N NotificationBell same-page deep-link fix + shared notification action** *(2026-05-23, Phase 9N)*. Manual QA found the global `NotificationBell` dropdown still failed to open the right modal when the user was already on the destination dashboard. Root cause: `NotificationBell` rendered each notification with `<Link href={notification.link}>`, so a same-page link like `/worker/dashboard?modal=reputation` triggered a router push to the same path. The page didn't remount, the `useModalFromQuery` hook (Phase 9L) had already fired its one-shot mount effect, and nothing opened. Phase 9M's `DashboardNotificationCard` used a same-page callback to side-step this, but the bell didn't share that path.
+    - **A. New shared helper** `src/lib/notificationAction.ts`:
+      - `handleNotificationClick(notification, ctx)` — single click handler used by both the bell and the in-page card. Always marks the notification read, then:
+        - If `notification.link` is unset → done.
+        - Parses the link. If its pathname matches the current `pathname` AND it carries a `?modal=...` (or `?tab=...` for admin), dispatches a window-level `cale:open-dashboard-modal` `CustomEvent` with `{ pathname, modal, tab, filter }` so the page can flip its local state without a router round-trip.
+        - Otherwise calls `router.push(notification.link)`. The destination page handles the deep link via its `useModalFromQuery` hook (Phase 9L).
+      - `useDashboardModalEvents(expectedPath, onMatch)` — companion subscriber. Listens on the window for the same custom event and fires `onMatch(detail)` when the event's `detail.pathname` matches the dashboard's own path. Cleans up the listener on unmount.
+    - **B. NotificationBell refactor** (`src/components/layout/NotificationBell.tsx`):
+      - Replaced the prior split between `<Link>` (for linked notifications) and `<button>` (for un-linked) with a single `<button>` per row.
+      - Added `useRouter()` selector. Click handler now calls `handleNotificationClick(n, { markRead, router, pathname })` and closes the dropdown.
+      - Removed the now-unused `next/link` import.
+      - Behavior on `/worker/dashboard` clicking a `?modal=reputation` notification: helper fires the custom event → dashboard's `useDashboardModalEvents` subscriber sees it → `setStatDetail('reputation')` → reputation modal opens immediately. URL stays clean. Notification marked read. Dropdown closes.
+    - **C. DashboardNotificationCard refactor** (`src/components/layout/DashboardNotificationCard.tsx`):
+      - Dropped the bespoke `samePageModalAllowed` / `onSamePageModal` prop pair from Phase 9M. Card now delegates to `handleNotificationClick` for symmetry with the bell.
+      - Same affordance and accessibility: native `<button>`, focus-visible orange ring, hover background, `aria-label`, hover-revealed "Xem chi tiết →" indicator only when actionable.
+    - **D. Worker dashboard subscription** (`src/app/worker/dashboard/page.tsx`):
+      - `useDashboardModalEvents('/worker/dashboard', detail => …)` translates `detail.modal ∈ {reputation, quota, income, completed}` into `setStatDetail(detail.modal)`. The mount-time `useModalFromQuery` hook (Phase 9L) is preserved for cross-route arrivals.
+      - Updated `<DashboardNotificationCard>` instantiation — no more allow-list prop.
+    - **E. Employer dashboard subscription** (`src/app/employer/dashboard/page.tsx`):
+      - Same wiring. `detail.modal ∈ {posted, active, pending, completed, payments}` flips `statDetail`.
+    - **F. Admin dashboard subscription** (`src/app/admin/dashboard/page.tsx`):
+      - `useDashboardModalEvents('/admin/dashboard', detail => …)` honours `detail.tab ∈ {analytics, users, shifts, disputes}` and per-tab `detail.filter`. Uses the same validation logic as the mount-time `searchParams` reader so behavior is identical between cross-route deep links and same-page bell clicks.
+    - **G. Same-page-vs-cross-route routing decision matrix** lives in `notificationAction.ts` — a single place to update if a future notification kind needs new handling.
+    - **H. Data-consistency principle (HANDOFF Section 8 rules):** added a new bullet — "Stat metrics ↔ detail modals must derive from the same store data." The principle was implicit since Phase 9I but is now stated explicitly.
+    - **Constraints honored** — no new dependencies (`window.dispatchEvent` is a browser primitive), no schema bump (still v4), no business-logic changes, no notification-creation-site changes (links unchanged from Phase 9L). `markRead` semantics unchanged.
+    - **Files changed (Phase 9N):** `src/lib/notificationAction.ts` (new), `src/components/layout/NotificationBell.tsx` (uses shared helper, `<button>` rows), `src/components/layout/DashboardNotificationCard.tsx` (uses shared helper, dropped Phase 9M props), `src/app/worker/dashboard/page.tsx` (event subscription), `src/app/employer/dashboard/page.tsx` (event subscription), `src/app/admin/dashboard/page.tsx` (event subscription), `HANDOFF.md` (Section 8 principle + this entry), `VISUAL_QA.md`.
+
 ---
 
 ## 5b. Phase 2 ✅ Completed — Safer Worker Cancellation Flow
@@ -604,5 +852,6 @@ Read these before making changes. Each rule has bitten the project at least once
 - **Do not regress the bug fixes in section 5.** Especially: don't put non-primitive computed selectors back into Zustand, don't remove the dark-mode lockout, don't drop the admin lockout guards, don't re-introduce the dual-source-of-truth `currentUserId` + `useCurrentRole()` pattern in NavBar.
 - **Read `node_modules/next/dist/docs/`** before writing Next.js code (per workspace AGENTS.md). Next 16 has breaking changes from older versions.
 - **Tailwind v4 is configured in CSS**, not `tailwind.config.ts`. The conventions live in the header comment of `src/app/globals.css`.
+- **Stat metrics ↔ detail modals must derive from the same store data.** *(Phase 9N principle)* If a dashboard tile shows `Ca đã hoàn thành: 12`, the corresponding detail modal must either render rows derived from the same query (`useApplicationStore` Confirmed apps in this case) or label any gap explicitly ("Còn X ca cũ hơn không có dữ liệu chi tiết trong bản MVP"). Do not hardcode demo records that aren't reachable from a generic selector — every worker / employer should see consistent numbers regardless of which seed user they're logged in as.
 
 That's it. Good luck.

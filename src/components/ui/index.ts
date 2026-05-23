@@ -29,3 +29,6 @@ export { EmptyState } from './EmptyState';
 export { StarRating } from './StarRating';
 
 export { Reveal } from './Reveal';
+
+export { PageHelpButton } from './PageHelpButton';
+export type { PageHelpButtonProps } from './PageHelpButton';

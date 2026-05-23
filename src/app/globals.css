@@ -59,22 +59,33 @@ body {
   color: var(--foreground);
 }
 
-/* Soft warm gradient + faint radial blobs sitting behind the app chrome.
- * Phase 9C: anchors strengthened so the warmth is visible immediately
- * after a hard refresh, even on the dashboards where most cards are
- * white. Alpha values raised from ~0.10 to ~0.16 on the corner blobs
- * and the linear top stop pushed further toward orange-50 so the first
- * 1/3 of the viewport reads as warmly tinted, not slate-on-slate. */
+/* Calm warm-cream surface — Phase 9G visual cleanup.
+ *
+ * The previous layered radial-blob recipe felt cluttered and
+ * inconsistent against modal backdrops (the `background-attachment:
+ * fixed` made `backdrop-blur` sample bands of varying brightness).
+ *
+ * We collapse the body chrome to two layers:
+ *   - one large diagonal mesh wash anchored to the top-left so the
+ *     warm tint reads on first paint without taking over the page,
+ *   - one soft linear gradient running cream → slate down the page
+ *     so cards still pop against an off-white surface lower down.
+ *
+ * No corner blobs. No `background-attachment: fixed` (it caused the
+ * help-modal banding artefact reported in Phase 9G manual QA). */
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image:
-    radial-gradient(at 8% 4%, rgba(251, 146, 60, 0.18) 0, transparent 48%),
-    radial-gradient(at 92% 6%, rgba(253, 186, 116, 0.16) 0, transparent 52%),
-    radial-gradient(at 96% 92%, rgba(254, 215, 170, 0.18) 0, transparent 58%),
-    linear-gradient(180deg, #ffedd5 0%, #fff7ed 22%, #f8fafc 55%, #f8fafc 100%);
-  background-attachment: fixed;
+    radial-gradient(
+      ellipse 1200px 720px at 0% -10%,
+      rgba(253, 186, 116, 0.22) 0%,
+      rgba(253, 186, 116, 0) 60%
+    ),
+    linear-gradient(180deg, #fff7ed 0%, #fff7ed 18%, #fafaf7 60%, #f8fafc 100%);
+  background-repeat: no-repeat;
+  background-attachment: scroll;
 }
 
 /* ----------------------------------------------------------------------------
@@ -153,14 +164,19 @@ body {
 }
 
 /* ----------------------------------------------------------------------------
- * Decorative class — used only on the landing hero. Encapsulates the warm
- * orange→amber radial blob so the page markup stays clean.
+ * Decorative class — used only on the landing hero. Phase 9G: collapsed
+ * to a single soft warm wash so the hero reads as a clean surface, not a
+ * confetti of radial blobs. The featured-job mockup (right column)
+ * supplies the visual focus.
  * ------------------------------------------------------------------------- */
 .hero-decor {
   background-image:
-    radial-gradient(at 20% 10%, rgba(251, 146, 60, 0.18) 0, transparent 55%),
-    radial-gradient(at 85% 25%, rgba(252, 211, 77, 0.18) 0, transparent 55%),
-    radial-gradient(at 50% 90%, rgba(253, 186, 116, 0.15) 0, transparent 60%);
+    radial-gradient(
+      ellipse 900px 520px at 80% 0%,
+      rgba(253, 186, 116, 0.28) 0%,
+      rgba(253, 186, 116, 0) 60%
+    ),
+    linear-gradient(180deg, rgba(255, 247, 237, 0) 0%, rgba(255, 247, 237, 0.55) 100%);
 }
 
 /* ----------------------------------------------------------------------------
@@ -260,12 +276,58 @@ summary::-webkit-details-marker {
 }
 
 /* Subtle dot-grid pattern — used as a behind-hero decoration. CSS-only,
- * no SVG asset, so the bundle stays small. Layered at low opacity so
+ * no SVG asset, so the bundle stays small. Phase 9G: alpha lowered so
  * the grid reads as paper texture, not active chrome. */
 .bg-dot-grid {
   background-image: radial-gradient(
-    rgba(249, 115, 22, 0.18) 1px,
+    rgba(249, 115, 22, 0.10) 1px,
     transparent 1px
   );
   background-size: 22px 22px;
+}
+
+/* ----------------------------------------------------------------------------
+ * Hero panel — strong, designed surface behind the featured-job mockup.
+ *
+ * Phase 9G: the hero used to rely on multiple floating SVG motifs to
+ * carry visual weight; manual QA called that out as cheap/cluttered.
+ * Replacing them with a single intentional panel lifts the right column
+ * into a real product hero. The panel has:
+ *
+ *   - a soft amber/orange gradient sweep (top-right anchor),
+ *   - a faint dot-grid texture overlaid at low alpha,
+ *   - a subtle inset ring so the edge reads as designed, not stamped.
+ *
+ * The mockup card (`<FeaturedJobMockup />`) sits on top via z-index.
+ * ------------------------------------------------------------------------- */
+.hero-panel {
+  position: relative;
+  border-radius: 24px;
+  background-image:
+    radial-gradient(
+      ellipse 600px 420px at 100% 0%,
+      rgba(251, 146, 60, 0.22) 0%,
+      rgba(251, 146, 60, 0) 65%
+    ),
+    radial-gradient(
+      ellipse 500px 400px at 0% 100%,
+      rgba(252, 211, 77, 0.18) 0%,
+      rgba(252, 211, 77, 0) 60%
+    ),
+    linear-gradient(135deg, #fff7ed 0%, #ffedd5 60%, #fef3c7 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 146, 60, 0.18),
+    0 24px 60px -28px rgba(251, 146, 60, 0.35);
+}
+.hero-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: radial-gradient(rgba(249, 115, 22, 0.10) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.5;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at 50% 30%, black 50%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 30%, black 50%, transparent 90%);
 }

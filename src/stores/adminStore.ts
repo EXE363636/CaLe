@@ -175,7 +175,10 @@ export const useAdminStore = create<AdminStore>(() => ({
       body:
         `Điểm uy tín của bạn đã được điều chỉnh từ ${oldScore} thành ${finalScore}. ` +
         `Lý do: ${trimmedReason}`,
-      link: '/worker/profile',
+      // Phase 9L — deep-link to the worker dashboard with the reputation
+      // detail modal pre-opened so the worker sees the admin adjustment
+      // row immediately.
+      link: '/worker/dashboard?modal=reputation',
     });
 
     return { ok: true, value: refreshed };

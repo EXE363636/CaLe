@@ -23,7 +23,7 @@ import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 
-import { Button, Input, TimeFieldVN } from '@/components/ui';
+import { Button, Input, PageHelpButton, TimeFieldVN } from '@/components/ui';
 import { CalendarShell } from '@/components/calendar/CalendarShell';
 import { MiniMonthCalendar } from '@/components/calendar/MiniMonthCalendar';
 import { CalendarLegend } from '@/components/calendar/CalendarLegend';
@@ -301,25 +301,34 @@ function SchedulePageContent() {
 
   return (
     <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Phase 9D — subtle decorative blobs behind the schedule view. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden"
-      >
-        <div className="float-soft float-soft-slow absolute -top-32 -right-24 h-72 w-72 rounded-full bg-orange-200/40 blur-3xl" />
-        <div className="float-soft absolute -top-12 -left-32 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
-      </div>
+      {/* Phase 9G — removed the floating blurred orange/amber circles
+          that previously sat behind the schedule. They added clutter
+          without conveying anything; the body's calm warm-cream chrome
+          is enough surface treatment for the calendar grid. */}
 
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
-          {t('nav.employerSchedule')}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-          {t('employerSchedule.page.title')}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-gray-600">
-          {t('employerSchedule.page.subtitle')}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+              {t('nav.employerSchedule')}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {t('employerSchedule.page.title')}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-gray-600">
+              {t('employerSchedule.page.subtitle')}
+            </p>
+          </div>
+          <PageHelpButton
+            title={t('help.employerSchedule.title')}
+            intro={t('help.employerSchedule.intro')}
+            items={[
+              t('help.employerSchedule.item1'),
+              t('help.employerSchedule.item2'),
+              t('help.employerSchedule.item3'),
+            ]}
+          />
+        </div>
       </header>
 
       <CalendarShell sidebar={sidebar} toolbar={toolbar} body={body} />

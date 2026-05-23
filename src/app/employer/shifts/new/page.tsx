@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
-import { Button } from '@/components/ui';
+import { Button, PageHelpButton } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
   trustForEmployer,
@@ -69,15 +69,29 @@ function NewShiftContent() {
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Hero header — Phase 9 polish */}
       <header className="mb-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
-          {t('employer.dashboard.title')}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-          {t('btn.postShift')}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {t('shifts.new.subtitle')}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+              {t('employer.dashboard.title')}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {t('btn.postShift')}
+            </h1>
+            <p className="mt-1 text-sm text-gray-500">
+              {t('shifts.new.subtitle')}
+            </p>
+          </div>
+          <PageHelpButton
+            title={t('help.shiftCreate.title')}
+            intro={t('help.shiftCreate.intro')}
+            items={[
+              t('help.shiftCreate.item1'),
+              t('help.shiftCreate.item2'),
+              t('help.shiftCreate.item3'),
+              t('help.shiftCreate.item4'),
+            ]}
+          />
+        </div>
       </header>
 
       {/* Phase 6: trust tier + deposit ratio explainer. Visible from the

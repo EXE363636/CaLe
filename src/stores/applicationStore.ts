@@ -555,7 +555,9 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       kind: 'ApplicationApproved',
       title: 'Đơn ứng tuyển đã được duyệt',
       body: `Bạn đã được nhận vào ca "${shift.title}".`,
-      link: '/worker/dashboard',
+      // Phase 9L — link to the specific shift detail so the worker can
+      // immediately review what they were approved for.
+      link: `/shifts/${shift.id}`,
     });
 
     return { ok: true, value: updated };
@@ -661,7 +663,9 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       body:
         `Nhà tuyển dụng đã chấp nhận yêu cầu huỷ ca "${shift.title}" của bạn.` +
         (cls === 'LateCancel' ? ' Điểm uy tín giảm 10.' : ''),
-      link: '/worker/dashboard',
+      // Phase 9L — open the cancellation-quota modal so the worker can
+      // immediately see the impact on their weekly/monthly window.
+      link: '/worker/dashboard?modal=quota',
     });
 
     return { ok: true, value: updated };
@@ -763,7 +767,9 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       kind: 'ShiftCompletedConfirmed',
       title: 'Ca làm đã được xác nhận',
       body: `Ca "${shift.title}" đã được xác nhận hoàn thành. Tiền công đã chuyển.`,
-      link: '/worker/dashboard',
+      // Phase 9L — open the income detail modal so the worker sees the
+      // payout reflected on their dashboard right away.
+      link: '/worker/dashboard?modal=income',
     });
 
     return { ok: true, value: updated };
@@ -853,7 +859,9 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       kind: 'NoShow',
       title: 'Bạn bị đánh dấu vắng mặt',
       body: `Bạn không tới ca "${shift.title}". Điểm uy tín giảm 20.`,
-      link: '/worker/profile',
+      // Phase 9L — open the reputation detail modal so the worker can
+      // see the −20 event on their score timeline.
+      link: '/worker/dashboard?modal=reputation',
     });
 
     return { ok: true, value: updated };

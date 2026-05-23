@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { handleNotificationClick } from '@/lib/notificationAction';
 import { t } from '@/i18n/vi';
 import type { Notification } from '@/types';
 
@@ -31,6 +31,7 @@ export function NotificationBell() {
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const allNotifications = useNotificationStore((s) => s.notifications);
@@ -136,8 +137,12 @@ export function NotificationBell() {
                 <li key={n.id}>
                   <NotificationItem
                     notification={n}
-                    onRead={() => {
-                      markRead(n.id);
+                    onActivate={() => {
+                      handleNotificationClick(n, {
+                        markRead,
+                        router,
+                        pathname,
+                      });
                       setOpen(false);
                     }}
                   />
@@ -153,10 +158,10 @@ export function NotificationBell() {
 
 function NotificationItem({
   notification,
-  onRead,
+  onActivate,
 }: {
   notification: Notification;
-  onRead: () => void;
+  onActivate: () => void;
 }) {
   const content = (
     <div
@@ -175,16 +180,18 @@ function NotificationItem({
     </div>
   );
 
-  if (notification.link) {
-    return (
-      <Link href={notification.link} onClick={onRead} className="block">
-        {content}
-      </Link>
-    );
-  }
-
+  // Phase 9N: a single `<button>` for both "has link" and "no link"
+  // notifications. The shared `handleNotificationClick` helper either
+  // dispatches a same-page event, calls `router.push`, or just marks
+  // read — depending on the link target. Avoids the prior split between
+  // `<Link>` and `<button>` that bypassed our same-page handoff.
   return (
-    <button onClick={onRead} className="w-full text-left">
+    <button
+      type="button"
+      onClick={onActivate}
+      className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-inset"
+      aria-label={notification.title}
+    >
       {content}
     </button>
   );

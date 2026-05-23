@@ -22,7 +22,7 @@ export const vi: Record<string, string> = {
   'site.name': 'CaLẻ / ShiftNow',
   'site.tagline': 'Nền tảng ca làm ngắn hạn tại Việt Nam',
   'site.description':
-    'Kết nối nhà tuyển dụng cần người làm tạm thời với sinh viên và người tìm việc linh hoạt.',
+    'Kết nối nhà tuyển dụng cần người làm tạm thời với người lao động linh hoạt tại Việt Nam.',
 
   // -------------------------------------------------------------------------
   // Roles
@@ -36,7 +36,7 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'nav.home': 'Trang chủ',
   'nav.shifts': 'Tìm ca làm',
-  'nav.dashboard': 'Bảng điều khiển',
+  'nav.dashboard': 'Tổng quan',
   'nav.profile': 'Hồ sơ',
   'nav.login': 'Đăng nhập',
   'nav.register': 'Đăng ký',
@@ -152,6 +152,8 @@ export const vi: Record<string, string> = {
   'notification.kind.ReputationAdjusted': 'Điều chỉnh điểm uy tín',
   'notification.kind.EmployerFeedbackReceived': 'Đánh giá từ người làm',
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
+  // Phase 9M — affordance label on dashboard notification cards.
+  'notification.viewDetail': 'Xem chi tiết',
 
   // -------------------------------------------------------------------------
   // Verification statuses
@@ -183,6 +185,8 @@ export const vi: Record<string, string> = {
   'form.startTime': 'Giờ bắt đầu',
   'form.endTime': 'Giờ kết thúc',
   'form.hourlyWage': 'Lương theo giờ (₫)',
+  'form.hourlyWage.hint':
+    'Ví dụ: 35000 sẽ hiển thị thành 35.000. Hệ thống sẽ đọc thành chữ bên dưới.',
   'form.positionsTotal': 'Số lượng người cần',
   'form.bio': 'Giới thiệu bản thân',
   'form.skills': 'Kỹ năng',
@@ -265,9 +269,30 @@ export const vi: Record<string, string> = {
     'Không thể tạm khoá quản trị viên đang hoạt động cuối cùng.',
   'admin.user.currentAccount': 'Tài khoản hiện tại',
   'admin.user.sortBy.reputation': 'Sắp xếp theo điểm uy tín ↓',
+  'admin.user.sortField': 'Sắp xếp theo',
+  'admin.user.sortField.name': 'Tên',
+  'admin.user.sortField.role': 'Vai trò',
+  'admin.user.sortField.reputation': 'Điểm uy tín',
+  'admin.user.sortField.status': 'Trạng thái',
+  'admin.user.sortField.joined': 'Ngày tham gia',
+  'admin.user.sortDir.asc': 'Tăng dần',
+  'admin.user.sortDir.desc': 'Giảm dần',
+  'admin.user.sortDir.toAsc': 'Đổi sang tăng dần',
+  'admin.user.sortDir.toDesc': 'Đổi sang giảm dần',
+  'admin.shifts.filter.all': 'Tất cả',
+  'admin.shifts.filter.active': 'Đang hoạt động',
+  'admin.shifts.filter.completed': 'Đã hoàn thành',
+  'admin.shifts.filter.disputed': 'Tranh chấp',
   'admin.user.currentScore': 'Điểm hiện tại',
   'admin.user.newScore': 'Điểm uy tín mới',
-  'admin.user.scoreOutOfRange': 'Điểm uy tín phải là số nguyên từ 0 đến 100.',
+  'admin.user.newScore.placeholder': '0–100',
+  'admin.user.newScore.hint': 'Nhập điểm từ 0 đến 100.',
+  'admin.user.scoreOutOfRange': 'Điểm uy tín phải nằm trong khoảng 0–100.',
+  'admin.user.reasonNote.placeholder': 'Ví dụ: bù điểm sau khi gỡ tranh chấp',
+  'admin.user.reasonNote.hint': 'Mô tả ngắn lý do điều chỉnh (lưu vào lịch sử).',
+  'admin.user.adjustmentHistory.title': 'Lịch sử điều chỉnh điểm',
+  'admin.user.adjustmentHistory.empty':
+    'Chưa có lịch sử điều chỉnh điểm bởi quản trị viên.',
 
   // -------------------------------------------------------------------------
   // Admin user-profile modal (Phase 4)
@@ -386,8 +411,25 @@ export const vi: Record<string, string> = {
   // Shift / store action errors
   // -------------------------------------------------------------------------
   'shift.error.NOT_FOUND': 'Không tìm thấy ca làm.',
+  // Phase 9F: cancel and edit have separate windows now (cancel = 6h,
+  // edit = 24h). The legacy `shift.error.TOO_LATE` key is preserved as
+  // an alias for `TOO_LATE_CANCEL` since the only existing call site is
+  // the employer cancel flow.
+  // Phase 9G: applicant-aware cancel rule. Cancel is now blocked only
+  // when the shift has active applicants AND is within 6h of start, or
+  // when the shift has already started. New explicit error codes
+  // surface the precise reason; the legacy `TOO_LATE` key now points
+  // at the "has applicants" case since that's the most common block.
   'shift.error.TOO_LATE':
-    'Không thể thực hiện thao tác này trong vòng 24 giờ trước khi ca bắt đầu.',
+    'Không thể huỷ ca trong vòng 6 giờ trước khi ca bắt đầu vì ca đã có người ứng tuyển hoặc được duyệt.',
+  'shift.error.TOO_LATE_CANCEL':
+    'Không thể huỷ ca trong vòng 6 giờ trước khi ca bắt đầu vì ca đã có người ứng tuyển hoặc được duyệt.',
+  'shift.error.TOO_LATE_HAS_APPLICANTS':
+    'Không thể huỷ ca trong vòng 6 giờ trước khi ca bắt đầu vì ca đã có người ứng tuyển hoặc được duyệt.',
+  'shift.error.TOO_LATE_STARTED':
+    'Không thể huỷ ca sau khi ca đã bắt đầu.',
+  'shift.error.TOO_LATE_EDIT':
+    'Không thể chỉnh sửa ca trong vòng 24 giờ trước khi ca bắt đầu.',
   'shift.cancelled.banner':
     'Ca làm này đã bị huỷ. Người làm có liên quan đã được thông báo.',
   'application.error.APPLICATION_NOT_FOUND': 'Không tìm thấy đơn ứng tuyển.',
@@ -396,11 +438,11 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Landing page
   // -------------------------------------------------------------------------
-  'landing.hero.badge': 'Sinh viên · Linh hoạt · Tin cậy',
-  'landing.hero.title': 'Việc làm thêm ngắn hạn',
-  'landing.hero.titleAccent': 'cho mọi sinh viên',
+  'landing.hero.badge': 'Linh hoạt · Tin cậy · Minh bạch',
+  'landing.hero.title': 'Việc làm ngắn hạn',
+  'landing.hero.titleAccent': 'cho người lao động linh hoạt',
   'landing.hero.subtitle':
-    'Nền tảng kết nối nhà tuyển dụng với sinh viên và người tìm việc linh hoạt tại Việt Nam. Đặt cọc minh bạch, đánh giá hai chiều, không cần ứng dụng tải về.',
+    'Nền tảng kết nối nhà tuyển dụng với người lao động linh hoạt tại Việt Nam. Đặt cọc minh bạch, đánh giá hai chiều, không cần tải ứng dụng.',
   'landing.hero.trustHint':
     'Miễn phí đăng ký · Người làm không đặt cọc · Toàn bộ thanh toán giả lập trong MVP.',
 
@@ -479,7 +521,7 @@ export const vi: Record<string, string> = {
     'Đăng nhập để tiếp tục quản lý ca làm, đơn ứng tuyển và lịch cá nhân của bạn.',
   'auth.side.join': 'Tham gia CaLẻ / ShiftNow',
   'auth.side.join.desc':
-    'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả sinh viên tìm việc lẫn quán/sự kiện cần người làm linh hoạt.',
+    'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người làm linh hoạt.',
   'auth.side.benefit1': 'Thanh toán minh bạch',
   'auth.side.benefit1.desc': 'Nhà tuyển dụng đặt cọc trước, tiền chỉ giải ngân khi hoàn thành.',
   'auth.side.benefit2': 'Không phí ẩn',
@@ -492,13 +534,72 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Worker dashboard
   // -------------------------------------------------------------------------
-  'worker.dashboard.title': 'Bảng điều khiển',
+  'worker.dashboard.title': 'Tổng quan người lao động',
   'worker.dashboard.welcome': 'Xin chào',
   'worker.dashboard.welcome.veteran':
     'Bạn đã hoàn thành {count} ca. Tiếp tục giữ phong độ nhé!',
   'worker.dashboard.welcome.newcomer': 'Sẵn sàng cho ca làm đầu tiên?',
   'worker.dashboard.cancelQuota': 'Hạn mức huỷ tuần',
   'worker.dashboard.cancelQuota.weekHint': 'còn lại',
+  'worker.dashboard.reputationCurrent':
+    'Điểm uy tín hiện tại của bạn: {score} / 100.',
+  'worker.dashboard.quotaModal.intro':
+    'Mỗi người lao động có hạn mức huỷ ca trong 7 ngày và 30 ngày gần nhất. Vượt hạn mức sẽ bị chặn huỷ tạm thời.',
+  'worker.dashboard.quotaModal.bonus':
+    'Điểm uy tín cao giúp bạn được nâng hạn mức: ≥80 → +1 tuần / +2 tháng, ≥95 → +2 tuần / +4 tháng.',
+
+  'worker.dashboard.incomeModal.totalLabel': 'Tổng thu nhập đến nay',
+  'worker.dashboard.incomeModal.completedCount':
+    'Từ {count} ca đã hoàn thành và đã thanh toán.',
+  'worker.dashboard.incomeModal.recentTitle': 'Ca gần đây nhất',
+  'worker.dashboard.incomeModal.empty':
+    'Bạn chưa có thu nhập nào. Hoàn thành ca làm đầu tiên để xem chi tiết.',
+  'worker.dashboard.incomeModal.disclaimer':
+    'Thu nhập được tính từ các ca đã hoàn thành và đã thanh toán trong bản MVP. Mọi giao dịch đều giả lập.',
+  'worker.dashboard.completedModal.totalLabel': 'Tổng số ca đã hoàn thành',
+  'worker.dashboard.completedModal.recentTitle':
+    'Hiển thị {shown} ca gần nhất trong tổng số {total} ca đã hoàn thành',
+  'worker.dashboard.completedModal.empty':
+    'Bạn chưa hoàn thành ca nào. Bấm "Tìm ca làm" để bắt đầu.',
+  'worker.dashboard.completedModal.confirmedBadge': 'Đã xác nhận',
+  'worker.dashboard.completedModal.noRating': 'Chưa có đánh giá',
+  'worker.dashboard.completedModal.legacyNote':
+    'Còn {count} ca cũ hơn không có dữ liệu chi tiết trong bản MVP.',
+
+  // Phase 9H + 9I — richer worker stat-card detail modals.
+  'worker.dashboard.reputationModal.currentLabel': 'Điểm uy tín hiện tại',
+  'worker.dashboard.reputationModal.bandGood':
+    'Điểm tốt — bạn được ưu tiên xét duyệt và mở rộng hạn mức huỷ ca.',
+  'worker.dashboard.reputationModal.bandWarn':
+    'Điểm trung bình — vẫn ứng tuyển được, nhưng hãy giữ phong độ để tăng điểm.',
+  'worker.dashboard.reputationModal.bandBad':
+    'Điểm thấp — hiện tại bạn tạm thời không thể ứng tuyển ca mới (cần ≥ 50).',
+  'worker.dashboard.reputationModal.completedLabel': 'Ca đã hoàn thành',
+  'worker.dashboard.reputationModal.ratingsLabel': 'Đánh giá đã nhận',
+  'worker.dashboard.reputationModal.recentTitle': 'Lịch sử cộng/trừ điểm gần đây',
+  'worker.dashboard.reputationModal.timelineNote':
+    'Dữ liệu mô phỏng trong MVP. Trong hệ thống thật, điểm uy tín tự động cập nhật từ điểm danh, đánh giá, huỷ ca và tranh chấp.',
+  'worker.dashboard.reputationModal.noHistory':
+    'Chưa có sự kiện nào ảnh hưởng đến điểm uy tín. Hoàn thành ca để cộng +5 điểm cho mỗi ca.',
+  'worker.dashboard.reputationModal.eventCompleted':
+    '+5 Hoàn thành ca đúng cam kết',
+  'worker.dashboard.reputationModal.eventLateCancel':
+    '−10 Huỷ ca trong vòng 24 giờ',
+  'worker.dashboard.reputationModal.eventNoShow':
+    '−20 Vắng mặt không báo trước (×{count})',
+  'worker.dashboard.reputationModal.eventAdminAdjust':
+    'Quản trị viên điều chỉnh điểm: {old} → {new}',
+  'worker.dashboard.reputationModal.eventAdminBy': 'Điều chỉnh bởi quản trị viên',
+  'worker.dashboard.reputationModal.adminBadge': 'Admin',
+  'worker.dashboard.reputationModal.baseLabel': 'Điểm khởi tạo (MVP)',
+  'worker.dashboard.reputationModal.baseSublabel':
+    'Mọi người lao động bắt đầu với 100 điểm, sau đó cộng/trừ theo sự kiện.',
+  'worker.dashboard.reputationModal.lateCancel': 'Huỷ trễ',
+  'worker.dashboard.reputationModal.onTimeCancel': 'Huỷ đúng hạn',
+  'worker.dashboard.quotaModal.recentTitle': 'Lịch sử huỷ gần đây',
+  'worker.dashboard.quotaModal.empty':
+    'Bạn chưa huỷ ca nào trong khoảng thời gian gần đây.',
+  'worker.dashboard.quotaModal.unknownShift': 'Ca làm (không còn dữ liệu)',
   'worker.dashboard.stats.completedShifts': 'Ca đã hoàn thành',
   'worker.dashboard.stats.totalEarnings': 'Tổng thu nhập',
   'worker.dashboard.stats.reputationScore': 'Điểm uy tín',
@@ -517,7 +618,7 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Employer dashboard
   // -------------------------------------------------------------------------
-  'employer.dashboard.title': 'Bảng điều khiển',
+  'employer.dashboard.title': 'Tổng quan nhà tuyển dụng',
   'employer.dashboard.welcome.active':
     'Bạn đang có {count} ca làm hoạt động. Theo dõi trạng thái và đơn ứng tuyển bên dưới.',
   'employer.dashboard.welcome.idle':
@@ -535,6 +636,43 @@ export const vi: Record<string, string> = {
     'Đăng ca mới chỉ mất vài phút. Hệ thống sẽ tự động giữ tiền đặt cọc và xử lý đơn ứng tuyển.',
   'employer.dashboard.applicants': 'Đơn chờ duyệt',
   'employer.dashboard.pendingApps': 'Đơn ứng tuyển chờ duyệt ({count})',
+
+  'employer.payments.title': 'Tóm tắt thanh toán',
+  'employer.payments.intro':
+    'Tóm tắt số tiền đặt cọc và đã thanh toán cho các ca làm của bạn.',
+  'employer.payments.disclaimer':
+    'Tất cả thanh toán trong MVP đều giả lập. Không có giao dịch thật xảy ra.',
+  'employer.payments.recentTitle': 'Ca đã thanh toán gần đây',
+  'employer.payments.empty':
+    'Chưa có ca nào hoàn thành. Khi worker hoàn thành ca, khoản đặt cọc sẽ chuyển sang đã thanh toán.',
+
+  // Phase 9H — employer stat-tile detail modals.
+  'employer.detail.positionsLabel': 'vị trí đã duyệt',
+  'employer.detail.truncated':
+    'Đang hiển thị 12 ca gần nhất. Còn {count} ca cũ hơn — xem trong lịch.',
+  'employer.detail.posted.title': 'Tất cả ca đã đăng',
+  'employer.detail.posted.intro':
+    'Toàn bộ ca làm bạn đã đăng, gồm cả nháp, đã đăng, đã đầy, đã hoàn thành và đã huỷ.',
+  'employer.detail.posted.empty':
+    'Bạn chưa đăng ca nào. Bấm "Đăng ca mới" để bắt đầu.',
+  'employer.detail.active.title': 'Ca đang hoạt động',
+  'employer.detail.active.intro':
+    'Ca đang nhận ứng tuyển hoặc đang trong tiến độ thực hiện.',
+  'employer.detail.active.empty':
+    'Hiện không có ca nào đang hoạt động.',
+  'employer.detail.completed.title': 'Ca đã hoàn thành',
+  'employer.detail.completed.intro':
+    'Ca đã được người làm hoàn thành và bạn đã xác nhận thanh toán.',
+  'employer.detail.completed.empty':
+    'Bạn chưa có ca nào hoàn thành.',
+  'employer.detail.pending.title': 'Đơn ứng tuyển chờ duyệt',
+  'employer.detail.pending.intro':
+    'Người làm đã gửi đơn và đang chờ bạn duyệt hoặc từ chối.',
+  'employer.detail.pending.empty':
+    'Hiện không có đơn nào chờ duyệt.',
+  'employer.detail.pending.repBadge': 'Uy tín {score}/100',
+  'employer.detail.pending.completedShifts':
+    '{count} ca đã hoàn thành',
   'employer.applicant.viewProfile': 'Xem hồ sơ',
   'employer.applicant.fullProfile': 'Hồ sơ người làm',
   'employer.applicant.completedShifts': 'Ca hoàn thành',
@@ -551,8 +689,8 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Admin dashboard
   // -------------------------------------------------------------------------
-  'admin.dashboard.title': 'Quản trị hệ thống',
-  'admin.dashboard.eyebrow': 'Bảng điều khiển admin',
+  'admin.dashboard.title': 'Tổng quan quản trị',
+  'admin.dashboard.eyebrow': 'Tổng quan admin',
   'admin.dashboard.subtitle':
     'Theo dõi người dùng, ca làm, tranh chấp và các điều chỉnh thủ công. Override chỉ dùng khi cần xử lý ngoại lệ.',
   'admin.dashboard.badge': 'Chế độ admin',
@@ -631,11 +769,89 @@ export const vi: Record<string, string> = {
   'common.hours': 'giờ',
   'common.positions': 'người',
   'common.stars': 'sao',
+  'common.reviews': 'đánh giá',
   'common.sessionExpired': 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
   'common.suspended': 'Tài khoản đã bị tạm khoá.',
   'common.restoredSeedData': 'Đã khôi phục dữ liệu mẫu.',
   'common.pageNotFound': 'Trang không tồn tại.',
   'common.backToHome': 'Về trang chủ',
+
+  // -------------------------------------------------------------------------
+  // Help guides (Phase 9F)
+  // -------------------------------------------------------------------------
+  'help.btn.label': 'Hướng dẫn sử dụng',
+  'help.btn.aria': 'Mở hướng dẫn sử dụng trang này',
+  'help.btn.close': 'Đã hiểu',
+
+  'help.workerDashboard.title': 'Hướng dẫn — Tổng quan người lao động',
+  'help.workerDashboard.intro':
+    'Đây là trang tổng quan các hoạt động của bạn trên CaLẻ / ShiftNow.',
+  'help.workerDashboard.item1':
+    'Bấm vào ô "Điểm uy tín" để xem chi tiết cách điểm được cộng/trừ.',
+  'help.workerDashboard.item2':
+    'Bấm vào ô "Hạn mức huỷ tuần" để xem hạn mức huỷ ca theo tuần và tháng.',
+  'help.workerDashboard.item3':
+    'Phần "Ca làm sắp tới" cho phép bạn check-in/check-out đúng giờ.',
+  'help.workerDashboard.item4':
+    'Đơn bị từ chối gần đây hiện kèm lý do từ nhà tuyển dụng.',
+
+  'help.workerSchedule.title': 'Hướng dẫn — Lịch cá nhân',
+  'help.workerSchedule.intro':
+    'Đánh dấu thời gian bận để hệ thống không cho ứng tuyển trùng giờ.',
+  'help.workerSchedule.item1':
+    'Bấm vào ô trống trong tuần/ngày để thêm khung giờ bận.',
+  'help.workerSchedule.item2':
+    'Ca làm đã được duyệt cũng tự động tính là thời gian bận.',
+  'help.workerSchedule.item3':
+    'Bạn không thể tạo lịch cá nhân trùng giờ với ca đã được duyệt.',
+  'help.workerSchedule.item4':
+    'Bấm vào ô lịch hiện có để chỉnh sửa hoặc xoá.',
+
+  'help.employerDashboard.title': 'Hướng dẫn — Tổng quan nhà tuyển dụng',
+  'help.employerDashboard.intro':
+    'Theo dõi ca làm, đơn ứng tuyển và thanh toán giả lập của bạn.',
+  'help.employerDashboard.item1':
+    'Bấm "Đăng ca mới" để tạo ca và đặt cọc theo mức tin cậy.',
+  'help.employerDashboard.item2':
+    'Các ô số liệu có thể bấm để cuộn nhanh đến phần tương ứng.',
+  'help.employerDashboard.item3':
+    'Đơn ứng tuyển chờ duyệt nằm dưới phần "Ca đang hoạt động".',
+  'help.employerDashboard.item4':
+    'Bấm "Xem lịch tuyển dụng" để xem lịch ca theo tuần.',
+
+  'help.employerSchedule.title': 'Hướng dẫn — Lịch tuyển dụng',
+  'help.employerSchedule.intro':
+    'Xem các ca làm bạn đã đăng theo dạng lịch tuần / ngày / agenda.',
+  'help.employerSchedule.item1':
+    'Bấm vào ca trên lịch để vào trang quản lý chi tiết.',
+  'help.employerSchedule.item2':
+    'Trạng thái ca tự cập nhật theo thời gian, tiền cọc và đơn ứng tuyển.',
+  'help.employerSchedule.item3':
+    'Bấm "Tuỳ chỉnh khung giờ" để mở rộng dải giờ hiển thị.',
+
+  'help.shiftCreate.title': 'Hướng dẫn — Đăng ca mới',
+  'help.shiftCreate.intro':
+    'Hoàn thành thông tin ca làm và mô phỏng đặt cọc theo mức tin cậy.',
+  'help.shiftCreate.item1':
+    'Lương theo giờ nhập số nguyên — hệ thống tự đọc thành chữ Việt.',
+  'help.shiftCreate.item2':
+    'Tỷ lệ đặt cọc dựa trên mức tin cậy: cao 50%, trung bình 70%, thấp 100%.',
+  'help.shiftCreate.item3':
+    'Bấm "Xác nhận đã thanh toán" để mô phỏng đặt cọc — không có giao dịch thật.',
+  'help.shiftCreate.item4':
+    'Sau khi đặt cọc, ca sẽ chuyển sang trạng thái "Đã đăng" công khai.',
+
+  'help.adminDashboard.title': 'Hướng dẫn — Tổng quan quản trị',
+  'help.adminDashboard.intro':
+    'Theo dõi người dùng, ca làm, tranh chấp và override khẩn cấp.',
+  'help.adminDashboard.item1':
+    'Bấm vào ô số liệu để chuyển nhanh sang tab tương ứng.',
+  'help.adminDashboard.item2':
+    'Override escrow chỉ dùng khi cần xử lý ngoại lệ — đã có ghi chú.',
+  'help.adminDashboard.item3':
+    'Điểm uy tín có thể điều chỉnh trực tiếp trong tab Người dùng.',
+  'help.adminDashboard.item4':
+    'Trạng thái ca tự cập nhật — thời điểm cuối hiển thị trên tab Ca làm.',
 
   // -------------------------------------------------------------------------
   // Phase 6 — employer types
@@ -697,6 +913,13 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'employerFeedback.title': 'Đánh giá từ người làm',
   'employerFeedback.empty': 'Chưa có đánh giá nào từ người làm.',
+  // Phase 9I — employer trust signals + profile-page worker feedback panel.
+  'employer.trust.noReviews':
+    'Chưa có đánh giá nào — đây có thể là nhà tuyển dụng mới.',
+  'employer.trust.viewProfile': 'Xem hồ sơ',
+  'employer.profile.workerFeedback.title': 'Đánh giá từ người làm',
+  'employer.profile.workerFeedback.intro':
+    'Phản hồi từ những người đã hoàn thành ca làm cho doanh nghiệp của bạn.',
   'employerFeedback.formIntro':
     'Đánh giá nhà tuyển dụng giúp cộng đồng người làm yên tâm hơn khi ứng tuyển.',
   'employerFeedback.tagsLabel': 'Đánh giá nhanh (tuỳ chọn)',

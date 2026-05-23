@@ -4,6 +4,11 @@ import { useState } from 'react';
 import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { formatVND } from '@/lib/format';
+import {
+  formatNumberVNInput,
+  numberToVietnameseCurrency,
+  parseVNNumberInput,
+} from '@/lib/numberVN';
 import { hoursBetween, calculateDeposit } from '@/domain/deposit';
 import { isRequired } from '@/lib/validate';
 
@@ -204,17 +209,61 @@ export function ShiftForm({
           required
         />
 
-        {/* Hourly wage */}
-        <Input
-          label={t('form.hourlyWage')}
-          type="number"
-          min={0}
-          step={1000}
-          value={values.hourlyWage === 0 ? '' : values.hourlyWage}
-          onChange={(e) => set('hourlyWage', Number(e.target.value))}
-          error={errors.hourlyWage}
-          required
-        />
+        {/* Hourly wage — Phase 9F formatted input + Vietnamese words helper */}
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="shift-hourly-wage"
+            className="text-sm font-medium text-gray-700"
+          >
+            {t('form.hourlyWage')}
+            <span className="ml-1 text-red-500">*</span>
+          </label>
+          <input
+            id="shift-hourly-wage"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="0"
+            value={formatNumberVNInput(values.hourlyWage)}
+            onChange={(e) => {
+              const parsed = parseVNNumberInput(e.target.value);
+              set('hourlyWage', Number.isFinite(parsed) ? parsed : 0);
+            }}
+            aria-invalid={!!errors.hourlyWage}
+            aria-describedby={
+              errors.hourlyWage
+                ? 'shift-hourly-wage-error'
+                : 'shift-hourly-wage-hint'
+            }
+            className={[
+              'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
+              'min-h-[44px] transition-colors duration-150',
+              'placeholder:font-sans placeholder:text-gray-400',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1',
+              errors.hourlyWage
+                ? 'border-red-400 bg-red-50 focus-visible:ring-red-400'
+                : 'border-gray-300 bg-white hover:border-gray-400',
+            ].join(' ')}
+          />
+          {errors.hourlyWage ? (
+            <p
+              id="shift-hourly-wage-error"
+              role="alert"
+              className="text-xs text-red-600"
+            >
+              {errors.hourlyWage}
+            </p>
+          ) : (
+            <p
+              id="shift-hourly-wage-hint"
+              className="text-xs text-gray-500"
+            >
+              {values.hourlyWage > 0
+                ? `(${numberToVietnameseCurrency(values.hourlyWage)})`
+                : t('form.hourlyWage.hint')}
+            </p>
+          )}
+        </div>
 
         {/* Positions total — Phase 6 fix: keep as a controlled string so
             the field can be temporarily empty while editing. */}

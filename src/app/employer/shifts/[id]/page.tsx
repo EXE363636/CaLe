@@ -136,14 +136,16 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
     const result = cancelShift(shift.id);
     if (!result.ok) {
-      // Map the two possible store errors to localized messages. The store
-      // never deletes a shift, so we just keep the confirm bar open and let
-      // the employer dismiss it explicitly.
-      setCancelError(
-        result.error === 'TOO_LATE'
-          ? t('shift.error.TOO_LATE')
-          : t('shift.error.NOT_FOUND'),
-      );
+      // Phase 9G — distinguish the three failure modes so the employer
+      // sees a precise reason. `NOT_FOUND` is rare (only if the shift
+      // was deleted between render and click).
+      const errorKey =
+        result.error === 'TOO_LATE_HAS_APPLICANTS'
+          ? 'shift.error.TOO_LATE_HAS_APPLICANTS'
+          : result.error === 'TOO_LATE_STARTED'
+            ? 'shift.error.TOO_LATE_STARTED'
+            : 'shift.error.NOT_FOUND';
+      setCancelError(t(errorKey));
       setCancelLoading(false);
       return;
     }

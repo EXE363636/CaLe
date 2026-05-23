@@ -22,7 +22,7 @@ import {
 import { transitionEscrow } from '@/domain/escrow';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
-import { canCancelShift, canEditShift } from '@/domain/timeGates';
+import { canEditShift } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
 import type { Result, Shift, ShiftStatus } from '@/types';
 
@@ -65,7 +65,10 @@ export type ShiftEditablePatch = Partial<
   >
 >;
 
-export type CancelError = 'NOT_FOUND' | 'TOO_LATE';
+export type CancelError =
+  | 'NOT_FOUND'
+  | 'TOO_LATE_STARTED'
+  | 'TOO_LATE_HAS_APPLICANTS';
 export type EditError = 'NOT_FOUND' | 'TOO_LATE' | 'POSITIONS_BELOW_FILLED';
 
 interface ShiftStore {
@@ -243,7 +246,52 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
   cancel(shiftId, when) {
     const shift = get().getById(shiftId);
     if (!shift) return { ok: false, error: 'NOT_FOUND' };
-    if (!canCancelShift(when ?? nowIso(), shift)) return { ok: false, error: 'TOO_LATE' };
+
+    // Phase 9G: applicant-aware cancellation rule.
+    //
+    //   - After shift start  → blocked unconditionally (TOO_LATE_STARTED).
+    //   - Within 6h before start AND shift has any active applicant  → blocked
+    //     (TOO_LATE_HAS_APPLICANTS).
+    //   - Within 6h before start AND zero active applicants  → allowed.
+    //   - More than 6h before start → allowed.
+    //
+    // "Active applicant" = any application in a state that still occupies
+    // a slot or expects employer action: Pending, Approved,
+    // CancellationRequested, CheckedIn, CheckedOut. Rejected /
+    // CancelledByWorker / NoShow / Confirmed are skipped — those workers
+    // have already exited the lifecycle.
+    const at = when ?? nowIso();
+    const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
+    const nowMs = new Date(at).getTime();
+
+    if (Number.isFinite(startMs) && Number.isFinite(nowMs)) {
+      if (nowMs >= startMs) {
+        return { ok: false, error: 'TOO_LATE_STARTED' };
+      }
+      const sixHoursMs = 6 * 60 * 60 * 1000;
+      if (startMs - nowMs < sixHoursMs) {
+        const apps = useApplicationStore.getState().applications;
+        const hasActive = apps.some(
+          (a) =>
+            a.shiftId === shiftId &&
+            (a.status === 'Pending' ||
+              a.status === 'Approved' ||
+              a.status === 'CancellationRequested' ||
+              a.status === 'CheckedIn' ||
+              a.status === 'CheckedOut'),
+        );
+        if (hasActive) {
+          return { ok: false, error: 'TOO_LATE_HAS_APPLICANTS' };
+        }
+      }
+    }
+
+    // Terminal states are still off-limits — `Cancelled` / `Completed`
+    // shouldn't be re-cancelled. The pre-9G `canCancelShift` enforced
+    // this; we keep the equivalent guard inline here.
+    if (shift.status === 'Cancelled' || shift.status === 'Completed') {
+      return { ok: false, error: 'TOO_LATE_STARTED' };
+    }
 
     const next = patchShift(get().shifts, shiftId, {
       status: 'Cancelled',

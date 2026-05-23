@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,11 +8,16 @@ import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { Card, Badge, Button, EmptyState } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, Modal, PageHelpButton } from '@/components/ui';
+import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
+import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
-import { formatVND } from '@/lib/format';
+import { useModalFromQuery } from '@/lib/useModalFromQuery';
+import { useDashboardModalEvents } from '@/lib/notificationAction';
+import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
+import type { Shift } from '@/types';
 
 export default function EmployerDashboardPage() {
   return (
@@ -37,8 +42,49 @@ function EmployerDashboardContent() {
     [allNotifications, currentUserId],
   );
   const markAllRead = useNotificationStore((s) => s.markAllRead);
+  const markRead = useNotificationStore((s) => s.markRead);
 
   const employer = asEmployer(users.find((u) => u.id === currentUserId));
+
+  // Phase 9H — stat-tile detail modals. Replaces the previous
+  // `scrollToId(...)` shortcuts with proper modal lists so every tile
+  // surfaces useful data even when the relevant section isn't on the
+  // dashboard (e.g. completed shifts live on the schedule, not here).
+  type StatDetail =
+    | 'posted'
+    | 'active'
+    | 'pending'
+    | 'completed'
+    | 'payments'
+    | null;
+  const [statDetail, setStatDetail] = useState<StatDetail>(null);
+
+  // Phase 9L — open a stat-detail modal when arriving with a `?modal=...`
+  // query param (notification deep links).
+  useModalFromQuery(
+    ['posted', 'active', 'pending', 'completed', 'payments'] as const,
+    (m) =>
+      setStatDetail(
+        m as 'posted' | 'active' | 'pending' | 'completed' | 'payments',
+      ),
+  );
+
+  // Phase 9N — same-page modal handoff (see worker dashboard for rationale).
+  useDashboardModalEvents('/employer/dashboard', (detail) => {
+    const allowed = [
+      'posted',
+      'active',
+      'pending',
+      'completed',
+      'payments',
+    ] as const;
+    if (
+      detail.modal &&
+      (allowed as readonly string[]).includes(detail.modal)
+    ) {
+      setStatDetail(detail.modal as (typeof allowed)[number]);
+    }
+  });
 
   const myShifts = useMemo(
     () => (employer ? shifts.filter((s) => s.employerId === employer.id) : []),
@@ -86,6 +132,16 @@ function EmployerDashboardContent() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <PageHelpButton
+              title={t('help.employerDashboard.title')}
+              intro={t('help.employerDashboard.intro')}
+              items={[
+                t('help.employerDashboard.item1'),
+                t('help.employerDashboard.item2'),
+                t('help.employerDashboard.item3'),
+                t('help.employerDashboard.item4'),
+              ]}
+            />
             <Link href="/employer/schedule">
               <Button size="sm" variant="secondary">
                 {t('employer.dashboard.viewSchedule')}
@@ -100,43 +156,57 @@ function EmployerDashboardContent() {
         </div>
       </header>
 
-      {/* Stats — Phase 9 polish: StatTile with semantic accent strips */}
+      {/* Stats — Phase 9H: each tile opens a dedicated detail modal
+          (no more scroll-to-section, which was misleading when the
+          target section wasn't actually on the dashboard). */}
       <section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile
           label={t('employer.dashboard.stats.activeShifts')}
           value={String(activeShifts.length)}
           tone="brand"
           icon="briefcase"
+          onClick={() => setStatDetail('active')}
+          ariaLabel="Xem chi tiết ca đang hoạt động"
         />
         <StatTile
           label={t('employer.dashboard.applicants')}
           value={String(pendingApps.length)}
           tone={pendingApps.length > 0 ? 'warn' : 'neutral'}
           icon="users"
+          onClick={() => setStatDetail('pending')}
+          ariaLabel="Xem chi tiết đơn ứng tuyển chờ duyệt"
         />
         <StatTile
           label={t('employer.dashboard.stats.postedShifts')}
           value={String(myShifts.length)}
           tone="neutral"
           icon="check"
+          onClick={() => setStatDetail('posted')}
+          ariaLabel="Xem chi tiết ca đã đăng"
         />
         <StatTile
           label={t('employer.dashboard.stats.completedShifts')}
           value={String(completedShifts.length)}
           tone="good"
           icon="check"
+          onClick={() => setStatDetail('completed')}
+          ariaLabel="Xem chi tiết ca đã hoàn thành"
         />
         <StatTile
           label={t('employer.dashboard.stats.totalDeposited')}
           value={formatVND(totalDeposited)}
           tone="neutral"
           icon="wallet"
+          onClick={() => setStatDetail('payments')}
+          ariaLabel="Xem tóm tắt thanh toán"
         />
         <StatTile
           label={t('employer.dashboard.stats.totalPaidOut')}
           value={formatVND(totalPaidOut)}
           tone="brand"
           icon="wallet"
+          onClick={() => setStatDetail('payments')}
+          ariaLabel="Xem tóm tắt thanh toán"
         />
       </section>
 
@@ -144,7 +214,7 @@ function EmployerDashboardContent() {
         {/* Main */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Active shifts */}
-          <section>
+          <section id="employer-active-shifts">
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
                 {t('employer.dashboard.upcomingShifts')}
@@ -184,7 +254,7 @@ function EmployerDashboardContent() {
 
           {/* Pending applications */}
           {pendingApps.length > 0 && (
-            <section>
+            <section id="employer-pending-apps">
               <h2 className="mb-3 text-lg font-semibold text-gray-900">
                 {t('employer.dashboard.pendingApps').replace('{count}', String(pendingApps.length))}
               </h2>
@@ -231,9 +301,11 @@ function EmployerDashboardContent() {
                 <li className="px-4 py-6 text-center text-sm text-gray-400">{t('common.noData')}</li>
               ) : (
                 notifications.slice(0, 10).map((n) => (
-                  <li key={n.id} className={['px-4 py-3 text-sm', !n.read ? 'bg-orange-50' : ''].join(' ')}>
-                    <p className="font-medium text-gray-900">{n.title}</p>
-                    <p className="mt-0.5 text-xs text-gray-600">{n.body}</p>
+                  <li key={n.id}>
+                    <DashboardNotificationCard
+                      notification={n}
+                      onRead={markRead}
+                    />
                   </li>
                 ))
               )}
@@ -241,7 +313,339 @@ function EmployerDashboardContent() {
           </Card>
         </aside>
       </div>
+
+      {/* Phase 9H — payments summary modal. Lists the actual shifts
+          contributing to the deposit and payout totals so employers
+          aren't staring at two opaque sums. */}
+      <Modal
+        open={statDetail === 'payments'}
+        onClose={() => setStatDetail(null)}
+        title={t('employer.payments.title')}
+      >
+        <div className="flex flex-col gap-3 text-sm text-gray-700">
+          <p>{t('employer.payments.intro')}</p>
+          <dl className="grid grid-cols-2 gap-3 rounded-xl bg-orange-50 p-4 text-xs">
+            <div>
+              <dt className="text-orange-700">
+                {t('employer.dashboard.stats.totalDeposited')}
+              </dt>
+              <dd className="mt-1 text-base font-bold text-gray-900">
+                {formatVND(totalDeposited)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-orange-700">
+                {t('employer.dashboard.stats.totalPaidOut')}
+              </dt>
+              <dd className="mt-1 text-base font-bold text-orange-600">
+                {formatVND(totalPaidOut)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-orange-700">
+                {t('employer.dashboard.stats.completedShifts')}
+              </dt>
+              <dd className="mt-1 text-base font-bold text-emerald-600">
+                {completedShifts.length}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-orange-700">
+                {t('employer.dashboard.stats.activeShifts')}
+              </dt>
+              <dd className="mt-1 text-base font-bold text-gray-900">
+                {activeShifts.length}
+              </dd>
+            </div>
+          </dl>
+
+          {/* Recent payouts: the most-recent completed shifts that
+              contributed to `totalPaidOut`. */}
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              {t('employer.payments.recentTitle')}
+            </p>
+            {completedShifts.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
+                {t('employer.payments.empty')}
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {[...completedShifts]
+                  .sort((a, b) => b.date.localeCompare(a.date))
+                  .slice(0, 5)
+                  .map((shift) => (
+                    <li
+                      key={shift.id}
+                      className="flex items-start justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-gray-900">
+                          {shift.title}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                          {formatDateVN(shift.date)} •{' '}
+                          {formatTimeVN(shift.startTime)}–
+                          {formatTimeVN(shift.endTime)}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold text-orange-600">
+                        {formatVND(shift.depositAmount)}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+
+          <p className="text-xs text-gray-500">
+            {t('employer.payments.disclaimer')}
+          </p>
+          <div className="mt-1 flex justify-end">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => setStatDetail(null)}
+            >
+              {t('help.btn.close')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Phase 9H — posted-shifts modal */}
+      <ShiftListModal
+        open={statDetail === 'posted'}
+        onClose={() => setStatDetail(null)}
+        title={t('employer.detail.posted.title')}
+        intro={t('employer.detail.posted.intro')}
+        emptyText={t('employer.detail.posted.empty')}
+        shifts={[...myShifts].sort((a, b) =>
+          `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`),
+        )}
+      />
+
+      {/* Phase 9H — active-shifts modal */}
+      <ShiftListModal
+        open={statDetail === 'active'}
+        onClose={() => setStatDetail(null)}
+        title={t('employer.detail.active.title')}
+        intro={t('employer.detail.active.intro')}
+        emptyText={t('employer.detail.active.empty')}
+        shifts={[...activeShifts].sort((a, b) =>
+          `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
+        )}
+      />
+
+      {/* Phase 9H — completed-shifts modal */}
+      <ShiftListModal
+        open={statDetail === 'completed'}
+        onClose={() => setStatDetail(null)}
+        title={t('employer.detail.completed.title')}
+        intro={t('employer.detail.completed.intro')}
+        emptyText={t('employer.detail.completed.empty')}
+        shifts={[...completedShifts].sort((a, b) =>
+          `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`),
+        )}
+      />
+
+      {/* Phase 9H — pending-applicants modal */}
+      <Modal
+        open={statDetail === 'pending'}
+        onClose={() => setStatDetail(null)}
+        title={t('employer.detail.pending.title')}
+      >
+        <div className="flex flex-col gap-3 text-sm text-gray-700">
+          <p>{t('employer.detail.pending.intro')}</p>
+          {pendingApps.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
+              {t('employer.detail.pending.empty')}
+            </div>
+          ) : (
+            <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
+              {pendingApps.map((a) => {
+                const shift = shifts.find((s) => s.id === a.shiftId);
+                const w = users.find((u) => u.id === a.workerId);
+                const worker = w?.role === 'worker' ? w : null;
+                const wName = worker?.fullName ?? 'Người làm';
+                return (
+                  <li
+                    key={a.id}
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-gray-900">
+                          {wName}
+                        </p>
+                        <p className="truncate text-xs text-gray-500">
+                          {shift?.title ?? ''}
+                          {shift && (
+                            <>
+                              {' • '}
+                              {formatDateVN(shift.date)}
+                            </>
+                          )}
+                        </p>
+                        {worker && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={[
+                                'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                worker.reputationScore >= 80
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : worker.reputationScore >= 50
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : 'bg-red-50 text-red-700',
+                              ].join(' ')}
+                            >
+                              {t('employer.detail.pending.repBadge').replace(
+                                '{score}',
+                                String(worker.reputationScore),
+                              )}
+                            </span>
+                            {worker.verifications.includes('phone') && (
+                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                                {t('verification.phone')}
+                              </span>
+                            )}
+                            {worker.verifications.includes('id') && (
+                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                                {t('verification.id')}
+                              </span>
+                            )}
+                            {worker.verifications.includes('student') && (
+                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+                                {t('verification.student')}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-gray-400">
+                              {t('employer.detail.pending.completedShifts').replace(
+                                '{count}',
+                                String(worker.completedShiftCount),
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <Link
+                        href={`/employer/shifts/${a.shiftId}`}
+                        onClick={() => setStatDetail(null)}
+                      >
+                        <Badge tone="warning">{t('btn.viewDetail')}</Badge>
+                      </Link>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="mt-1 flex justify-end">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => setStatDetail(null)}
+            >
+              {t('help.btn.close')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 9H — shared shift-list modal used by posted / active / completed
+// employer stat tiles. Each row links to the manage page so the employer
+// can take action without losing the dashboard context.
+// ---------------------------------------------------------------------------
+
+function ShiftListModal({
+  open,
+  onClose,
+  title,
+  intro,
+  emptyText,
+  shifts,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  intro: string;
+  emptyText: string;
+  shifts: Shift[];
+}) {
+  return (
+    <Modal open={open} onClose={onClose} title={title}>
+      <div className="flex flex-col gap-3 text-sm text-gray-700">
+        <p>{intro}</p>
+        {shifts.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-500">
+            {emptyText}
+          </div>
+        ) : (
+          <ul className="flex max-h-80 flex-col gap-2 overflow-y-auto">
+            {shifts.slice(0, 12).map((shift) => (
+              <li
+                key={shift.id}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-900">
+                      {shift.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-gray-500">
+                      {formatDateVN(shift.date)} •{' '}
+                      {formatTimeVN(shift.startTime)}–
+                      {formatTimeVN(shift.endTime)}
+                    </p>
+                    {shift.location && (
+                      <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                        {shift.location}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <ShiftStatusBadge status={shift.status} />
+                    <span className="text-[11px] font-semibold text-orange-600">
+                      {formatVND(shift.depositAmount)}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-gray-500">
+                    {shift.positionsFilled}/{shift.positionsTotal}{' '}
+                    {t('employer.detail.positionsLabel')}
+                  </span>
+                  <Link
+                    href={`/employer/shifts/${shift.id}`}
+                    onClick={onClose}
+                    className="text-[11px] font-medium text-orange-600 hover:underline"
+                  >
+                    {t('btn.viewDetail')} →
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {shifts.length > 12 && (
+          <p className="text-[11px] text-gray-500">
+            {t('employer.detail.truncated').replace(
+              '{count}',
+              String(shifts.length - 12),
+            )}
+          </p>
+        )}
+        <div className="mt-1 flex justify-end">
+          <Button size="sm" variant="primary" onClick={onClose}>
+            {t('help.btn.close')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -258,12 +662,16 @@ function StatTile({
   suffix,
   tone = 'neutral',
   icon,
+  onClick,
+  ariaLabel,
 }: {
   label: string;
   value: string;
   suffix?: string;
   tone?: Tone;
   icon?: IconName;
+  onClick?: () => void;
+  ariaLabel?: string;
 }) {
   const toneRing: Record<Tone, string> = {
     brand: 'before:bg-orange-500',
@@ -279,14 +687,17 @@ function StatTile({
     warn: 'text-amber-600',
     bad: 'text-red-600',
   };
-  return (
-    <div
-      className={[
-        'relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm',
-        'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
-        toneRing[tone],
-      ].join(' ')}
-    >
+  const baseClasses = [
+    'relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
+    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
+    toneRing[tone],
+  ].join(' ');
+  const interactiveClasses = onClick
+    ? 'motion-lift cursor-pointer hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
+    : '';
+
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
           {label}
@@ -299,8 +710,31 @@ function StatTile({
           <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
         )}
       </p>
-    </div>
+      {onClick && (
+        <span
+          aria-hidden="true"
+          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        >
+          Xem chi tiết →
+        </span>
+      )}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel ?? label}
+        className={['group', baseClasses, interactiveClasses].join(' ')}
+      >
+        {body}
+      </button>
+    );
+  }
+
+  return <div className={baseClasses}>{body}</div>;
 }
 
 function TileIcon({ name }: { name: IconName }) {

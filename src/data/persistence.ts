@@ -28,6 +28,7 @@ import type {
 import applicationsSeed from './seed/applications.json';
 import boostLedgerSeed from './seed/boostLedger.json';
 import disputesSeed from './seed/disputes.json';
+import employerFeedbackSeed from './seed/employerFeedback.json';
 import notificationsSeed from './seed/notifications.json';
 import ratingsSeed from './seed/ratings.json';
 import shiftsSeed from './seed/shifts.json';
@@ -38,7 +39,7 @@ import usersSeed from './seed/users.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -108,8 +109,10 @@ export function seedSnapshot(): Snapshot {
     boostLedger: boostLedgerSeed as unknown as BoostCreditLedgerEntry[],
     // Phase 5: schedule blocks start empty — workers add their own.
     scheduleBlocks: [],
-    // Phase 6: employer feedback starts empty — workers leave their own.
-    employerFeedback: [],
+    // Phase 6: employer feedback seeded (Phase 9I) so worker → employer
+    // reviews are visible on the shift detail and employer profile right
+    // after a fresh reseed; new feedback still gets appended at runtime.
+    employerFeedback: employerFeedbackSeed as unknown as EmployerFeedback[],
   };
 }
 

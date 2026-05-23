@@ -204,7 +204,68 @@ function WorkerBody({ worker }: { worker: Worker }) {
           </ul>
         )}
       </Section>
+
+      {/* Phase 9J — admin adjustment history. Parsed out of
+          `cancellationHistory` (where `adminStore.adjustReputation`
+          appends synthetic records prefixed with `[Admin set X → Y]`).
+          Read-only — admins use the Users tab inline form to make new
+          adjustments. */}
+      <Section title={t('admin.user.adjustmentHistory.title')}>
+        <AdminAdjustmentHistoryList worker={worker} />
+      </Section>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Admin adjustment history (Phase 9J)
+// ---------------------------------------------------------------------------
+
+function AdminAdjustmentHistoryList({ worker }: { worker: Worker }) {
+  const entries = worker.cancellationHistory
+    .filter((r) => r.reasonNote?.startsWith('[Admin set'))
+    .map((r) => {
+      const match = /^\[Admin set (\d+)\s*→\s*(\d+)\]\s*(.*)$/.exec(
+        r.reasonNote ?? '',
+      );
+      return {
+        id: r.id,
+        at: r.cancelledAt,
+        oldScore: match ? Number(match[1]) : 0,
+        newScore: match ? Number(match[2]) : 0,
+        reason: match ? match[3].trim() : (r.reasonNote ?? ''),
+      };
+    })
+    .sort((a, b) => b.at.localeCompare(a.at));
+
+  if (entries.length === 0) {
+    return (
+      <p className="text-sm italic text-gray-400">
+        {t('admin.user.adjustmentHistory.empty')}
+      </p>
+    );
+  }
+  return (
+    <ul className="flex flex-col gap-2">
+      {entries.map((e) => (
+        <li
+          key={e.id}
+          className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3 py-2"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-indigo-800">
+              {e.oldScore} → {e.newScore}
+            </span>
+            <span className="text-[11px] text-gray-500">
+              {formatDateVN(e.at)}
+            </span>
+          </div>
+          {e.reason && (
+            <p className="mt-1 text-xs text-gray-700">&ldquo;{e.reason}&rdquo;</p>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

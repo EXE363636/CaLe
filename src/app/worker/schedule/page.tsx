@@ -49,6 +49,7 @@ import {
   EmptyState,
   Input,
   Modal,
+  PageHelpButton,
   Textarea,
   TimeFieldVN,
 } from '@/components/ui';
@@ -521,30 +522,35 @@ function SchedulePageContent() {
 
   return (
     <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Phase 9D — subtle decorative blob behind the entire schedule view
-          so the page reads as a designed surface rather than a bare grid.
-          Pointer-events disabled and aria-hidden so the decoration never
-          intercepts clicks or keyboard nav. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px] overflow-hidden"
-      >
-        <div className="float-soft float-soft-slow absolute -top-32 -right-24 h-72 w-72 rounded-full bg-orange-200/40 blur-3xl" />
-        <div className="float-soft absolute -top-12 -left-32 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
-      </div>
+      {/* Phase 9G — removed the floating blurred orange/amber circles
+          that previously sat behind the schedule. The body's calm
+          warm-cream chrome already provides surface treatment for the
+          calendar grid; the extra blobs added clutter without value. */}
 
-      {/* Phase 9B/9C hero header — gradient strip with the page title and a
-          short subtitle so the page reads as a polished product surface. */}
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
-          {t('nav.schedule')}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
-          {t('schedule.page.title')}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-gray-600">
-          {t('schedule.page.subtitle')}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+              {t('nav.schedule')}
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+              {t('schedule.page.title')}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-gray-600">
+              {t('schedule.page.subtitle')}
+            </p>
+          </div>
+          <PageHelpButton
+            title={t('help.workerSchedule.title')}
+            intro={t('help.workerSchedule.intro')}
+            items={[
+              t('help.workerSchedule.item1'),
+              t('help.workerSchedule.item2'),
+              t('help.workerSchedule.item3'),
+              t('help.workerSchedule.item4'),
+            ]}
+          />
+        </div>
       </header>
 
       <CalendarShell sidebar={sidebar} toolbar={toolbar} body={body} />

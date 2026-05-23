@@ -25,8 +25,23 @@ export const CHECK_IN_EARLY_MINUTES = 30;
 /** A worker may check in at most this many minutes after the shift starts. */
 export const CHECK_IN_LATE_MINUTES = 15;
 
-/** Employers can edit or cancel a shift only this many hours before start. */
-export const EDIT_CANCEL_DEADLINE_HOURS = 24;
+/** Employers can edit a shift only this many hours before start. */
+export const EDIT_DEADLINE_HOURS = 24;
+
+/**
+ * Phase 9F: employers can cancel a shift up until this many hours before
+ * start. Looser than the edit window because an outright cancel is the
+ * least surprising action a worker can receive — they get the slot back
+ * cleanly, no half-edited details.
+ */
+export const CANCEL_DEADLINE_HOURS = 6;
+
+/**
+ * Backwards-compatible alias kept so existing imports / call sites that
+ * referenced the unified deadline don't break. Equal to
+ * {@link EDIT_DEADLINE_HOURS} (24h) — the historical value.
+ */
+export const EDIT_CANCEL_DEADLINE_HOURS = EDIT_DEADLINE_HOURS;
 
 /**
  * Worker cancellation auto-approval threshold (Phase 2).
@@ -43,7 +58,8 @@ const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 
 const CHECK_IN_EARLY_MS = CHECK_IN_EARLY_MINUTES * MS_PER_MINUTE;
 const CHECK_IN_LATE_MS = CHECK_IN_LATE_MINUTES * MS_PER_MINUTE;
-const EDIT_CANCEL_DEADLINE_MS = EDIT_CANCEL_DEADLINE_HOURS * MS_PER_HOUR;
+const EDIT_DEADLINE_MS = EDIT_DEADLINE_HOURS * MS_PER_HOUR;
+const CANCEL_DEADLINE_MS = CANCEL_DEADLINE_HOURS * MS_PER_HOUR;
 const WORKER_CANCEL_APPROVAL_MS = WORKER_CANCEL_APPROVAL_HOURS * MS_PER_HOUR;
 
 // ---------------------------------------------------------------------------
@@ -138,12 +154,17 @@ export function shouldMarkNoShow(
 // ---------------------------------------------------------------------------
 
 /**
- * Internal: shared 24-hour deadline check used by both edit and cancel.
- *
- * Returns `true` iff `shiftStart − now ≥ 24h` and the shift is not in a
- * terminal lifecycle state (`Cancelled` or `Completed`).
+ * Internal: shared "is the shift in a non-terminal state with `now`
+ * earlier than `(start − deadlineMs)`" predicate used by both edit and
+ * cancel gates. Phase 9F split the unified 24h deadline into:
+ *   - 24h for edits  (`canEditShift`)
+ *   - 6h  for cancels (`canCancelShift`)
  */
-function withinEditCancelWindow(nowIso: string, shift: Shift): boolean {
+function withinShiftDeadline(
+  nowIso: string,
+  shift: Shift,
+  deadlineMs: number,
+): boolean {
   if (shift.status === 'Cancelled' || shift.status === 'Completed') {
     return false;
   }
@@ -152,27 +173,35 @@ function withinEditCancelWindow(nowIso: string, shift: Shift): boolean {
   const start = shiftStartMs(shift);
   if (Number.isNaN(now) || Number.isNaN(start)) return false;
 
-  return start - now >= EDIT_CANCEL_DEADLINE_MS;
+  return start - now >= deadlineMs;
 }
 
 /**
  * Predicate: may the employer edit this shift right now?
  *
  * `true` iff there are at least 24h until the shift starts and the shift is
- * not already cancelled or completed (Req 25.1).
+ * not already cancelled or completed (Req 25.1). Edit deadline is
+ * intentionally stricter than cancel deadline because a late edit could
+ * surprise approved workers; a late cancel just frees their slot.
  */
 export function canEditShift(nowIso: string, shift: Shift): boolean {
-  return withinEditCancelWindow(nowIso, shift);
+  return withinShiftDeadline(nowIso, shift, EDIT_DEADLINE_MS);
 }
 
 /**
  * Predicate: may the employer cancel this shift right now?
  *
- * Same gate as {@link canEditShift}: at least 24h until start and not
- * already cancelled or completed (Req 25.3).
+ * Phase 9F — `true` iff there are at least 6 hours until the shift starts
+ * and the shift is not already cancelled or completed. Within the 6-hour
+ * window the cancel button is hidden / disabled and the page surfaces
+ * `shift.error.TOO_LATE_CANCEL` instead of letting the store apply a
+ * silent no-op.
+ *
+ * Independent from the worker's late-cancel reputation rule (24h) and
+ * the `requiresEmployerApprovalToCancel` 3h gate.
  */
 export function canCancelShift(nowIso: string, shift: Shift): boolean {
-  return withinEditCancelWindow(nowIso, shift);
+  return withinShiftDeadline(nowIso, shift, CANCEL_DEADLINE_MS);
 }
 
 // ---------------------------------------------------------------------------

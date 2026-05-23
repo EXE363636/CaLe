@@ -12,6 +12,7 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
+import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { t } from '@/i18n/vi';
@@ -148,6 +149,17 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         )}
       </p>
 
+      {/* Phase 9I — quick employer trust signal so workers see the
+          rating + verification status before opening the full profile
+          modal. Pure presentation; clicking "Xem hồ sơ" still opens the
+          existing `EmployerProfileModal`. */}
+      {employer && (
+        <EmployerTrustPanel
+          employer={employer}
+          onOpenProfile={() => setEmployerModalOpen(true)}
+        />
+      )}
+
       {/* Key info grid */}
       <div className="mt-5 grid grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-4">
         <InfoItem label="Ngày làm" value={formatDateVN(shift.date)} />
@@ -222,7 +234,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
         {currentUser?.role === 'employer' && (
           <p className="text-sm text-gray-500">
-            Bạn là nhà tuyển dụng. Quản lý ca tại bảng điều khiển.
+            Bạn là nhà tuyển dụng. Quản lý ca tại trang tổng quan của bạn.
           </p>
         )}
 

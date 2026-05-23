@@ -167,7 +167,36 @@ export const TimeFieldVN = forwardRef<HTMLInputElement, TimeFieldVNProps>(
     }, [value]);
 
     function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-      const next = smartFormat(e.target.value);
+      const raw = e.target.value;
+
+      // Phase 9F deletion fix: detect when the user is deleting (raw is
+      // shorter than the previous visible text) and let them through
+      // without re-applying the smart formatter, which would otherwise
+      // re-insert a colon they're trying to remove and trap the caret.
+      const isDeleting = raw.length < text.length;
+      if (isDeleting) {
+        // Strip non-digits/non-colon characters but otherwise preserve
+        // exactly what the user is left with after their backspace.
+        // This lets `14:00` → `14:0` → `14:` → `14` → `1` → `` flow
+        // naturally end-to-end.
+        const sanitized = raw.replace(/[^\d:]/g, '');
+        setText(sanitized);
+        setInternalError(null);
+
+        // Only emit canonical when a complete HH:mm survived deletion
+        // (rare but possible if the user deleted the colon and re-typed
+        // it). Otherwise clear the canonical so callers know we're
+        // mid-edit.
+        if (sanitized === '') {
+          onChange('');
+        } else if (sanitized.length === 5 && HHMM_RE.test(sanitized)) {
+          onChange(sanitized);
+        }
+        return;
+      }
+
+      // Forward typing path — keep Phase 9C smart auto-format.
+      const next = smartFormat(raw);
       if (next === null) {
         setInternalError(t('error.timeInvalid'));
         return;

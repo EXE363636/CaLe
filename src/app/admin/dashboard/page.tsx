@@ -1,18 +1,20 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useAdminStore } from '@/stores/adminStore';
-import { Card, Button, Badge, Input, Textarea } from '@/components/ui';
+import { Card, Button, Badge, Input, Textarea, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
+import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { formatVND, formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Dispute, EscrowStatus, Shift, User } from '@/types';
@@ -30,14 +32,92 @@ export default function AdminDashboardPage() {
 function AdminDashboardContent() {
   useLifecycleSync();
   const [tab, setTab] = useState<Tab>('analytics');
+  // Phase 9F — when the analytics StatTiles fire, they switch to a tab
+  // and seed an initial filter so the panel renders the right slice.
+  const [usersInitialFilter, setUsersInitialFilter] = useState<
+    'all' | 'worker' | 'employer' | 'admin'
+  >('all');
+  const [shiftsInitialFilter, setShiftsInitialFilter] = useState<
+    'all' | 'active' | 'completed' | 'disputed'
+  >('all');
+
+  // Phase 9L — notification deep links may arrive with `?tab=...` and
+  // optionally `?filter=...`. Apply once on mount and strip the params
+  // so refreshing or switching tabs doesn't keep snapping back.
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const handledQuery = useRef(false);
+  useEffect(() => {
+    if (handledQuery.current) return;
+    const qTab = searchParams.get('tab');
+    const qFilter = searchParams.get('filter');
+    if (!qTab && !qFilter) return;
+    handledQuery.current = true;
+
+    const validTabs: readonly Tab[] = ['analytics', 'users', 'shifts', 'disputes'];
+    if (qTab && (validTabs as readonly string[]).includes(qTab)) {
+      setTab(qTab as Tab);
+    }
+    if (qFilter) {
+      if ((qTab ?? 'users') === 'users') {
+        const allowed = ['all', 'worker', 'employer', 'admin'] as const;
+        if ((allowed as readonly string[]).includes(qFilter)) {
+          setUsersInitialFilter(qFilter as (typeof allowed)[number]);
+        }
+      } else if (qTab === 'shifts') {
+        const allowed = ['all', 'active', 'completed', 'disputed'] as const;
+        if ((allowed as readonly string[]).includes(qFilter)) {
+          setShiftsInitialFilter(qFilter as (typeof allowed)[number]);
+        }
+      }
+    }
+    router.replace(pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Phase 9N — listen for the in-page modal/tab event so a notification
+  // click from the global bell while already on `/admin/dashboard` still
+  // switches tab + filter without a router round-trip.
+  useDashboardModalEvents('/admin/dashboard', (detail) => {
+    const validTabs: readonly Tab[] = [
+      'analytics',
+      'users',
+      'shifts',
+      'disputes',
+    ];
+    if (detail.tab && (validTabs as readonly string[]).includes(detail.tab)) {
+      setTab(detail.tab as Tab);
+      if (detail.filter) {
+        if ((detail.tab ?? 'users') === 'users') {
+          const allowed = ['all', 'worker', 'employer', 'admin'] as const;
+          if ((allowed as readonly string[]).includes(detail.filter)) {
+            setUsersInitialFilter(detail.filter as (typeof allowed)[number]);
+          }
+        } else if (detail.tab === 'shifts') {
+          const allowed = ['all', 'active', 'completed', 'disputed'] as const;
+          if ((allowed as readonly string[]).includes(detail.filter)) {
+            setShiftsInitialFilter(detail.filter as (typeof allowed)[number]);
+          }
+        }
+      }
+    }
+  });
+
+  function jumpToUsers(filter: typeof usersInitialFilter) {
+    setUsersInitialFilter(filter);
+    setTab('users');
+  }
+  function jumpToShifts(filter: typeof shiftsInitialFilter) {
+    setShiftsInitialFilter(filter);
+    setTab('shifts');
+  }
+  function jumpToDisputes() {
+    setTab('disputes');
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Phase 9C: gradient hero header so the admin surface reads as a
-          polished product page, not a raw control panel. The visual
-          treatment matches the worker/employer dashboards (warm gradient
-          + uppercase eyebrow + bold title + subtitle) but the right edge
-          carries a "hệ thống / admin" badge to keep the tone serious. */}
       <header className="mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -51,12 +131,24 @@ function AdminDashboardContent() {
               {t('admin.dashboard.subtitle')}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-3 py-1 text-xs font-semibold text-orange-700 shadow-sm">
-            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
-            </svg>
-            {t('admin.dashboard.badge')}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <PageHelpButton
+              title={t('help.adminDashboard.title')}
+              intro={t('help.adminDashboard.intro')}
+              items={[
+                t('help.adminDashboard.item1'),
+                t('help.adminDashboard.item2'),
+                t('help.adminDashboard.item3'),
+                t('help.adminDashboard.item4'),
+              ]}
+            />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-3 py-1 text-xs font-semibold text-orange-700 shadow-sm">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
+              </svg>
+              {t('admin.dashboard.badge')}
+            </span>
+          </div>
         </div>
       </header>
 
@@ -76,9 +168,15 @@ function AdminDashboardContent() {
         </TabButton>
       </div>
 
-      {tab === 'analytics' && <AnalyticsPanel />}
-      {tab === 'users' && <UsersPanel />}
-      {tab === 'shifts' && <ShiftsPanel />}
+      {tab === 'analytics' && (
+        <AnalyticsPanel
+          onJumpToUsers={jumpToUsers}
+          onJumpToShifts={jumpToShifts}
+          onJumpToDisputes={jumpToDisputes}
+        />
+      )}
+      {tab === 'users' && <UsersPanel initialFilter={usersInitialFilter} />}
+      {tab === 'shifts' && <ShiftsPanel initialFilter={shiftsInitialFilter} />}
       {tab === 'disputes' && <DisputesPanel />}
     </div>
   );
@@ -110,7 +208,15 @@ function TabButton({
 // Analytics tab
 // ---------------------------------------------------------------------------
 
-function AnalyticsPanel() {
+function AnalyticsPanel({
+  onJumpToUsers,
+  onJumpToShifts,
+  onJumpToDisputes,
+}: {
+  onJumpToUsers: (filter: 'all' | 'worker' | 'employer' | 'admin') => void;
+  onJumpToShifts: (filter: 'all' | 'active' | 'completed' | 'disputed') => void;
+  onJumpToDisputes: () => void;
+}) {
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
   const disputes = useApplicationStore((s) => s.disputes);
@@ -126,14 +232,55 @@ function AnalyticsPanel() {
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <StatCard label="Tổng người dùng" value={String(users.length)} />
-      <StatCard label={t('admin.analytics.totalWorkers')} value={String(workerCount)} />
-      <StatCard label={t('admin.analytics.totalEmployers')} value={String(employerCount)} />
-      <StatCard label={t('admin.analytics.totalShifts')} value={String(shifts.length)} />
-      <StatCard label="Ca đang hoạt động" value={String(activeShifts)} />
-      <StatCard label={t('admin.analytics.completedShifts')} value={String(completedShifts)} />
-      <StatCard label="Thanh toán đang tranh chấp" value={String(disputedPayments)} highlight />
-      <StatCard label={t('admin.analytics.activeDisputes')} value={String(openDisputes)} />
+      <StatCard
+        label="Tổng người dùng"
+        value={String(users.length)}
+        onClick={() => onJumpToUsers('all')}
+        ariaLabel="Xem toàn bộ người dùng"
+      />
+      <StatCard
+        label={t('admin.analytics.totalWorkers')}
+        value={String(workerCount)}
+        onClick={() => onJumpToUsers('worker')}
+        ariaLabel="Lọc người lao động trong tab Người dùng"
+      />
+      <StatCard
+        label={t('admin.analytics.totalEmployers')}
+        value={String(employerCount)}
+        onClick={() => onJumpToUsers('employer')}
+        ariaLabel="Lọc nhà tuyển dụng trong tab Người dùng"
+      />
+      <StatCard
+        label={t('admin.analytics.totalShifts')}
+        value={String(shifts.length)}
+        onClick={() => onJumpToShifts('all')}
+        ariaLabel="Xem toàn bộ ca làm trong tab Ca làm"
+      />
+      <StatCard
+        label="Ca đang hoạt động"
+        value={String(activeShifts)}
+        onClick={() => onJumpToShifts('active')}
+        ariaLabel="Lọc ca đang hoạt động"
+      />
+      <StatCard
+        label={t('admin.analytics.completedShifts')}
+        value={String(completedShifts)}
+        onClick={() => onJumpToShifts('completed')}
+        ariaLabel="Lọc ca đã hoàn thành"
+      />
+      <StatCard
+        label="Thanh toán đang tranh chấp"
+        value={String(disputedPayments)}
+        highlight
+        onClick={() => onJumpToShifts('disputed')}
+        ariaLabel="Lọc ca có thanh toán tranh chấp"
+      />
+      <StatCard
+        label={t('admin.analytics.activeDisputes')}
+        value={String(openDisputes)}
+        onClick={onJumpToDisputes}
+        ariaLabel="Mở tab Tranh chấp"
+      />
     </div>
   );
 }
@@ -142,13 +289,24 @@ function StatCard({
   label,
   value,
   highlight,
+  onClick,
+  ariaLabel,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  onClick?: () => void;
+  ariaLabel?: string;
 }) {
-  return (
-    <Card className="p-4">
+  const baseClasses = [
+    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
+    onClick
+      ? 'motion-lift cursor-pointer hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
+      : '',
+  ].join(' ');
+
+  const body = (
+    <>
       <p className="text-xs text-gray-500">{label}</p>
       <p
         className={[
@@ -158,43 +316,99 @@ function StatCard({
       >
         {value}
       </p>
-    </Card>
+      {onClick && (
+        <span
+          aria-hidden="true"
+          className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        >
+          Xem chi tiết →
+        </span>
+      )}
+    </>
   );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel ?? label}
+        className={baseClasses}
+      >
+        {body}
+      </button>
+    );
+  }
+  return <div className={baseClasses}>{body}</div>;
 }
 
 // ---------------------------------------------------------------------------
 // Users tab
 // ---------------------------------------------------------------------------
 
-function UsersPanel() {
+function UsersPanel({
+  initialFilter = 'all',
+  helpButton,
+}: {
+  initialFilter?: 'all' | 'worker' | 'employer' | 'admin';
+  helpButton?: React.ReactNode;
+}) {
   const users = useUserStore((s) => s.users);
   const suspend = useAdminStore((s) => s.suspend);
   const reactivate = useAdminStore((s) => s.reactivate);
   const currentAdminId = useAuthStore((s) => s.currentUserId);
 
-  const [filter, setFilter] = useState<'all' | 'worker' | 'employer' | 'admin'>('all');
+  const [filter, setFilter] = useState<'all' | 'worker' | 'employer' | 'admin'>(
+    initialFilter,
+  );
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
 
+  // Phase 9F — explicit sort field + direction. `joinedAt` falls back to
+  // `id` because the user record has no createdAt; the id ordering is
+  // stable across reloads since seed data uses zero-padded suffixes.
+  type SortField = 'name' | 'role' | 'reputation' | 'status' | 'joined';
+  const [sortField, setSortField] = useState<SortField>('reputation');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
   const filtered = useMemo(() => {
     const base = filter === 'all' ? users : users.filter((u) => u.role === filter);
-    // Sort: workers by reputation score desc so reputation adjustments
-    // visibly re-order the list. Non-workers fall back to role + name order.
-    return [...base].sort((a, b) => {
-      const ra = a.role === 'worker' ? a.reputationScore : -1;
-      const rb = b.role === 'worker' ? b.reputationScore : -1;
-      if (ra !== rb) return rb - ra;
-      // Tie-break by role weight (worker first, then employer, then admin)
-      const weight = (role: typeof a.role) =>
-        role === 'worker' ? 0 : role === 'employer' ? 1 : 2;
-      const wa = weight(a.role);
-      const wb = weight(b.role);
-      if (wa !== wb) return wa - wb;
-      // Final tie-break by id for stability
+    const sorted = [...base];
+
+    function compare(a: typeof users[number], b: typeof users[number]): number {
+      switch (sortField) {
+        case 'name': {
+          const an = (a.role === 'worker' ? a.fullName : a.role === 'employer' ? a.companyName : a.fullName) ?? '';
+          const bn = (b.role === 'worker' ? b.fullName : b.role === 'employer' ? b.companyName : b.fullName) ?? '';
+          return an.localeCompare(bn, 'vi');
+        }
+        case 'role': {
+          const w = (r: typeof a.role) => (r === 'worker' ? 0 : r === 'employer' ? 1 : 2);
+          return w(a.role) - w(b.role);
+        }
+        case 'reputation': {
+          const ra = a.role === 'worker' ? a.reputationScore : -1;
+          const rb = b.role === 'worker' ? b.reputationScore : -1;
+          return ra - rb;
+        }
+        case 'status': {
+          // Active first when ascending; suspended first when descending.
+          return Number(!!a.suspended) - Number(!!b.suspended);
+        }
+        case 'joined':
+        default:
+          return a.id.localeCompare(b.id);
+      }
+    }
+
+    sorted.sort((a, b) => {
+      const cmp = compare(a, b);
+      if (cmp !== 0) return sortDir === 'asc' ? cmp : -cmp;
       return a.id.localeCompare(b.id);
     });
-  }, [users, filter]);
+    return sorted;
+  }, [users, filter, sortField, sortDir]);
 
   // Profile modal subject — resolved from the live user list so suspend /
   // reactivate / reputation-adjust actions taken from the row are
@@ -253,8 +467,42 @@ function UsersPanel() {
         </div>
       )}
 
-      {/* Sort hint */}
-      <p className="text-xs text-gray-500">{t('admin.user.sortBy.reputation')}</p>
+      {/* Sort controls — Phase 9F */}
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="font-medium text-gray-700">
+            {t('admin.user.sortField')}
+          </span>
+          <select
+            value={sortField}
+            onChange={(e) => setSortField(e.target.value as typeof sortField)}
+            className="min-h-[44px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          >
+            <option value="name">{t('admin.user.sortField.name')}</option>
+            <option value="role">{t('admin.user.sortField.role')}</option>
+            <option value="reputation">
+              {t('admin.user.sortField.reputation')}
+            </option>
+            <option value="status">{t('admin.user.sortField.status')}</option>
+            <option value="joined">{t('admin.user.sortField.joined')}</option>
+          </select>
+        </label>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+          className="border border-gray-300 bg-white"
+          aria-label={
+            sortDir === 'asc'
+              ? t('admin.user.sortDir.toDesc')
+              : t('admin.user.sortDir.toAsc')
+          }
+        >
+          {sortDir === 'asc'
+            ? `${t('admin.user.sortDir.asc')} ↑`
+            : `${t('admin.user.sortDir.desc')} ↓`}
+        </Button>
+      </div>
 
       <ul className="flex flex-col gap-2">
         {filtered.map((user) => (
@@ -419,20 +667,39 @@ function UserRow({
       </div>
 
       {/* Reputation adjust form — admin sets the FINAL score in [0, 100],
-          not a delta. Reason is required. */}
+          not a delta. Reason is required.
+
+          Phase 9K layout fix: switched from a single `flex flex-wrap`
+          row (which left the score and reason inputs misaligned because
+          the score field's hint text added extra vertical space below
+          it) to a clean 2-column responsive grid. Each column owns its
+          input + hint/error so column heights stay aligned.
+            * mobile  (`grid-cols-1`) — score above reason, both full-width
+            * sm+     (`grid-cols-2`) — side-by-side, balanced
+          Both inputs carry hint text so the columns feel symmetric.
+          The submit/cancel buttons live in a separate row below. */}
       {adjusting && user.role === 'worker' && (
-        <div className="mt-4 flex flex-col gap-2 rounded-lg border border-gray-100 p-3">
+        <div className="mt-4 flex flex-col gap-3 rounded-lg border border-gray-100 p-4">
           <p className="text-xs text-gray-500">
             {t('admin.user.currentScore')}: <strong>{currentScore}</strong>
           </p>
-          <div className="flex flex-wrap items-end gap-2">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
             <Input
               label={t('admin.user.newScore')}
               type="number"
               min={0}
               max={100}
               step={1}
+              placeholder={t('admin.user.newScore.placeholder')}
+              hint={t('admin.user.newScore.hint')}
               value={Number.isFinite(newScore) ? newScore : ''}
+              error={
+                !Number.isNaN(newScore) &&
+                Number.isFinite(newScore) &&
+                (newScore < 0 || newScore > 100)
+                  ? t('admin.user.scoreOutOfRange')
+                  : undefined
+              }
               onChange={(e) => {
                 const raw = e.target.value;
                 if (raw === '') {
@@ -442,14 +709,14 @@ function UserRow({
                 const parsed = Number(raw);
                 setNewScore(parsed);
               }}
-              className="w-32"
               required
             />
             <Input
               label={t('form.reasonNote')}
+              placeholder={t('admin.user.reasonNote.placeholder')}
+              hint={t('admin.user.reasonNote.hint')}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="flex-1 min-w-[200px]"
               required
             />
           </div>
@@ -487,19 +754,54 @@ function UserRow({
 // Shifts tab
 // ---------------------------------------------------------------------------
 
-function ShiftsPanel() {
+function ShiftsPanel({
+  initialFilter = 'all',
+}: {
+  initialFilter?: 'all' | 'active' | 'completed' | 'disputed';
+}) {
   const shifts = useShiftStore((s) => s.shifts);
   const lastSyncAt = useShiftStore((s) => s.lastLifecycleSyncAt);
   const users = useUserStore((s) => s.users);
 
-  // Sort by createdAt desc (recent first)
-  const sorted = useMemo(
-    () => [...shifts].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [shifts],
-  );
+  const [filter, setFilter] = useState<typeof initialFilter>(initialFilter);
+
+  // Phase 9F — filter the visible list according to the active chip.
+  // Sort by createdAt desc (recent first) within the filtered slice.
+  const sorted = useMemo(() => {
+    const filtered = shifts.filter((s) => {
+      switch (filter) {
+        case 'active':
+          return ['Published', 'FullyBooked', 'InProgress', 'AwaitingConfirmation'].includes(
+            s.status,
+          );
+        case 'completed':
+          return s.status === 'Completed';
+        case 'disputed':
+          return s.escrowStatus === 'Disputed';
+        case 'all':
+        default:
+          return true;
+      }
+    });
+    return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [shifts, filter]);
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Filter chips — Phase 9F */}
+      <div className="flex flex-wrap gap-2">
+        {(['all', 'active', 'completed', 'disputed'] as const).map((f) => (
+          <Button
+            key={f}
+            size="sm"
+            variant={filter === f ? 'primary' : 'ghost'}
+            onClick={() => setFilter(f)}
+          >
+            {t(`admin.shifts.filter.${f}`)}
+          </Button>
+        ))}
+      </div>
+
       {/* Phase 7: explainer banner — clarifies that statuses move
           automatically and that Override is for exceptional cases. */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">

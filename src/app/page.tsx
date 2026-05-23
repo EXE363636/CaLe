@@ -56,21 +56,12 @@ function CalendarIcon() {
 }
 
 // ---------------------------------------------------------------------------
-// Hero background decoration (Phase 9E)
+// Hero background decoration (Phase 9G — calmer)
 //
-// CSS-only / inline-SVG layer that sits behind the hero copy + featured
-// job mockup. Three jobs:
-//
-//   1. Curved bottom gradient wash — the hero used to cut hard against
-//      the next section. The wash softens the edge so the page reads as
-//      a continuous warm surface.
-//   2. Floating motif icons — phone, calendar pin, shield, location pin —
-//      drift slowly behind the hero on the `.float-soft` loop. Each
-//      sits at a fixed semi-random position on `lg+` and is hidden on
-//      mobile so the small viewport stays clean.
-//   3. All icons are aria-hidden + pointer-events-none.
-//
-// No external image assets, no new dependencies.
+// Replaced the previous "phone / calendar / shield / map-pin" floating
+// motif icons with a single curved bottom wash. Manual QA called the
+// motif icons cheap and cluttered; the wash now does all the work
+// without competing with the featured-job mockup for attention.
 // ---------------------------------------------------------------------------
 
 function HeroBackgroundDecor() {
@@ -82,41 +73,6 @@ function HeroBackgroundDecor() {
         className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent via-orange-50/60 to-orange-100/80"
         style={{ borderTopLeftRadius: '50% 100%', borderTopRightRadius: '50% 100%' }}
       />
-
-      {/* Floating motif icons — desktop only, low alpha. */}
-      <div className="hidden lg:block">
-        <span className="float-soft absolute left-[6%] top-[18%] text-orange-300/70">
-          <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {/* Phone glyph — represents the worker app */}
-            <rect x="6" y="2" width="12" height="20" rx="3" />
-            <path d="M11 18h2" />
-          </svg>
-        </span>
-
-        <span className="float-soft float-soft-slow absolute left-[14%] bottom-[14%] text-amber-300/70">
-          <svg className="h-12 w-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {/* Calendar */}
-            <rect x="3" y="5" width="18" height="16" rx="3" />
-            <path d="M3 10h18M8 3v4M16 3v4" />
-          </svg>
-        </span>
-
-        <span className="float-soft absolute right-[8%] top-[58%] text-orange-300/60">
-          <svg className="h-11 w-11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {/* Shield with check — escrow trust */}
-            <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-        </span>
-
-        <span className="float-soft float-soft-slow absolute right-[18%] top-[16%] text-amber-300/60">
-          <svg className="h-9 w-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {/* Map pin — location */}
-            <path d="M12 21s7-5 7-11a7 7 0 1 0-14 0c0 6 7 11 7 11Z" />
-            <circle cx="12" cy="10" r="2.5" />
-          </svg>
-        </span>
-      </div>
     </div>
   );
 }
@@ -201,10 +157,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Mockup column — Phase 9E client island for the real
-              featured job. */}
+          {/* Mockup column — Phase 9G: wrapped in `.hero-panel` so the
+              right side reads as a real designed surface (warm gradient,
+              dot-grid, inset ring, soft shadow) rather than the previous
+              cluster of floating icons against beige. */}
           <div className="lg:pl-6">
-            <FeaturedJobMockup />
+            <div className="hero-panel p-6 sm:p-7 lg:p-8">
+              <FeaturedJobMockup />
+            </div>
           </div>
         </div>
       </section>
