@@ -201,3 +201,103 @@ export function rangesOverlap(
   }
   return rangesOverlapMinutes(as, ae, bs, be);
 }
+
+// ---------------------------------------------------------------------------
+// Calendar shell helpers (Phase 8)
+// ---------------------------------------------------------------------------
+
+/** A single cell in the mini-month grid. */
+export interface MonthGridCell {
+  /** `YYYY-MM-DD` for this cell. */
+  iso: string;
+  /** True iff this cell's date is inside the requested `(year, month)`. */
+  inMonth: boolean;
+  /** True iff this cell's date matches `todayIso()` (local timezone). */
+  isToday: boolean;
+}
+
+/**
+ * Build the 6×7 = 42-cell mini-month grid for the given year/month.
+ *
+ * The grid is Monday-first to match the rest of this module and is padded
+ * with the trailing days of the previous month and the leading days of the
+ * next month so it always starts on a Monday and ends on a Sunday.
+ *
+ * @param year  Four-digit year (e.g. `2026`).
+ * @param month 1-indexed month (1 = January, 12 = December).
+ */
+export function monthGrid(year: number, month: number): MonthGridCell[] {
+  const firstOfMonth = `${year}-${pad2(month)}-01`;
+  const gridStart = startOfWeek(firstOfMonth);
+  const today = todayIso();
+  const cells: MonthGridCell[] = [];
+  for (let i = 0; i < 42; i += 1) {
+    const iso = addDays(gridStart, i);
+    // `iso` is `YYYY-MM-DD`; characters 5..7 are the month component.
+    const cellMonth = Number(iso.slice(5, 7));
+    cells.push({
+      iso,
+      inMonth: cellMonth === month,
+      isToday: iso === today,
+    });
+  }
+  return cells;
+}
+
+/**
+ * Format a year/month pair as the Vietnamese toolbar header
+ * `"Tháng M / YYYY"` (no zero-padding on the month).
+ *
+ * @param year  Four-digit year.
+ * @param month 1-indexed month.
+ */
+export function formatMonthYearVN(year: number, month: number): string {
+  return `Tháng ${month} / ${year}`;
+}
+
+/**
+ * Lay out events on a single day's vertical timeline for `DayView` /
+ * `WeekView`. Each output entry carries the original `event` plus pixel-free
+ * minute offsets that the renderer can multiply by its row height.
+ *
+ *  - `topMinutes`     = `timeToMinutes(event.startTime) - dayStart`, floored at `0`
+ *                       so events that begin before the visible window stick
+ *                       to the top.
+ *  - `heightMinutes`  = visible duration after clamping both ends into
+ *                       `[dayStart, dayEnd)`.
+ *
+ * Events whose `date` does not match `dayIso`, whose times fail to parse, or
+ * whose visible duration is `≤ 0` are dropped silently.
+ */
+export function dayViewLayout<
+  T extends { date: string; startTime: string; endTime: string },
+>(
+  events: T[],
+  dayIso: string,
+  slotConfig: SlotConfig,
+): Array<{ event: T; topMinutes: number; heightMinutes: number }> {
+  const dayStart = timeToMinutes(slotConfig.dayStart);
+  const dayEnd = timeToMinutes(slotConfig.dayEnd);
+  if (Number.isNaN(dayStart) || Number.isNaN(dayEnd) || dayEnd <= dayStart) {
+    return [];
+  }
+
+  const out: Array<{ event: T; topMinutes: number; heightMinutes: number }> = [];
+  for (const event of events) {
+    if (event.date !== dayIso) continue;
+
+    const s = timeToMinutes(event.startTime);
+    const e = timeToMinutes(event.endTime);
+    if (Number.isNaN(s) || Number.isNaN(e) || e <= s) continue;
+    if (!rangesOverlapMinutes(s, e, dayStart, dayEnd)) continue;
+
+    const clampedStart = Math.max(s, dayStart);
+    const clampedEnd = Math.min(e, dayEnd);
+    const heightMinutes = clampedEnd - clampedStart;
+    if (heightMinutes <= 0) continue;
+
+    const topMinutes = Math.max(0, s - dayStart);
+    out.push({ event, topMinutes, heightMinutes });
+  }
+  return out;
+}

@@ -10,6 +10,7 @@ import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Card, Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftCard } from '@/components/shift/ShiftCard';
+import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { formatVND } from '@/lib/format';
 import { t } from '@/i18n/vi';
 
@@ -22,6 +23,7 @@ export default function EmployerDashboardPage() {
 }
 
 function EmployerDashboardContent() {
+  useLifecycleSync();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
@@ -65,9 +67,14 @@ function EmployerDashboardContent() {
           <p className="text-sm text-gray-500">{t('employer.dashboard.title')}</p>
           <h1 className="text-2xl font-bold text-gray-900">{employer.companyName}</h1>
         </div>
-        <Link href="/employer/shifts/new">
-          <Button variant="primary">{t('btn.postShift')}</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/employer/schedule">
+            <Button variant="secondary">{t('employer.dashboard.viewSchedule')}</Button>
+          </Link>
+          <Link href="/employer/shifts/new">
+            <Button variant="primary">{t('btn.postShift')}</Button>
+          </Link>
+        </div>
       </header>
 
       {/* Stats */}

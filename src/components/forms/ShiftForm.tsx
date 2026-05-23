@@ -29,6 +29,13 @@ interface ShiftFormProps {
   loading?: boolean;
   mode?: 'create' | 'edit';
   className?: string;
+  /**
+   * Phase 6: minimum value for `positionsTotal` enforced on submit. In
+   * create mode this is always 1; in edit mode the caller supplies the
+   * already-approved count so the worker can't shrink the slot below
+   * confirmed assignments.
+   */
+  minPositions?: number;
 }
 
 const JOB_TYPE_OPTIONS = [
@@ -66,12 +73,21 @@ export function ShiftForm({
   loading = false,
   mode = 'create',
   className = '',
+  minPositions = 1,
 }: ShiftFormProps) {
   const [values, setValues] = useState<ShiftFormValues>({
     ...DEFAULT_VALUES,
     ...initialValues,
   });
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Phase 6: keep `positionsTotal` editable as a string so the user can
+  // briefly clear the field while typing without it snapping back to 0.
+  // The committed numeric value lives in `values.positionsTotal`; the
+  // input shows `positionsText`.
+  const [positionsText, setPositionsText] = useState<string>(
+    String(initialValues?.positionsTotal ?? DEFAULT_VALUES.positionsTotal),
+  );
 
   // Live deposit calculation
   const liveDeposit = calculateDeposit(
@@ -97,8 +113,23 @@ export function ShiftForm({
     if (!isRequired(values.startTime).ok) errs.startTime = t('error.required');
     if (!isRequired(values.endTime).ok) errs.endTime = t('error.required');
     if (!values.hourlyWage || values.hourlyWage <= 0) errs.hourlyWage = t('error.wage.invalid');
-    if (!values.positionsTotal || values.positionsTotal < 1)
+
+    // Phase 6: positionsTotal validation — accepts any positive integer
+    // ≥ `minPositions` (1 in create mode; the already-approved count in
+    // edit mode). Empty / non-positive / non-integer / below-min input
+    // all surface a clear Vietnamese error.
+    if (positionsText.trim() === '') {
+      errs.positionsTotal = t('error.positions.required');
+    } else if (
+      !Number.isFinite(values.positionsTotal) ||
+      !Number.isInteger(values.positionsTotal) ||
+      values.positionsTotal < 1
+    ) {
       errs.positionsTotal = t('error.positions.invalid');
+    } else if (values.positionsTotal < minPositions) {
+      errs.positionsTotal = t('error.positions.belowFilled')
+        .replace('{min}', String(minPositions));
+    }
 
     return errs;
   }
@@ -188,13 +219,22 @@ export function ShiftForm({
           required
         />
 
-        {/* Positions total */}
+        {/* Positions total — Phase 6 fix: keep as a controlled string so
+            the field can be temporarily empty while editing. */}
         <Input
           label={t('form.positionsTotal')}
           type="number"
-          min={1}
-          value={values.positionsTotal}
-          onChange={(e) => set('positionsTotal', Number(e.target.value))}
+          min={minPositions}
+          step={1}
+          value={positionsText}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setPositionsText(raw);
+            // Mirror to numeric state. Empty input commits NaN so the
+            // submit-time validator catches it; otherwise parse normally.
+            const parsed = raw === '' ? Number.NaN : Number(raw);
+            set('positionsTotal', parsed);
+          }}
           error={errors.positionsTotal}
           required
         />

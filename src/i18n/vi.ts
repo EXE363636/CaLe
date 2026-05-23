@@ -45,6 +45,7 @@ export const vi: Record<string, string> = {
   'nav.notifications': 'Thông báo',
   'nav.admin': 'Quản trị',
   'nav.schedule': 'Lịch cá nhân',
+  'nav.employerSchedule': 'Lịch tuyển dụng',
 
   // -------------------------------------------------------------------------
   // Buttons
@@ -149,6 +150,7 @@ export const vi: Record<string, string> = {
   'notification.kind.CancellationApproved': 'Yêu cầu huỷ được chấp nhận',
   'notification.kind.CancellationRejected': 'Yêu cầu huỷ bị từ chối',
   'notification.kind.ReputationAdjusted': 'Điều chỉnh điểm uy tín',
+  'notification.kind.EmployerFeedbackReceived': 'Đánh giá từ người làm',
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
 
   // -------------------------------------------------------------------------
@@ -170,6 +172,7 @@ export const vi: Record<string, string> = {
   'form.fullName': 'Họ và tên',
   'form.companyName': 'Tên công ty / cơ sở',
   'form.businessType': 'Loại hình kinh doanh',
+  'form.employerType': 'Loại tài khoản nhà tuyển dụng',
   'form.role': 'Vai trò',
   'form.title': 'Tên ca làm',
   'form.description': 'Mô tả công việc',
@@ -210,6 +213,9 @@ export const vi: Record<string, string> = {
   'error.time.endBeforeStart': 'Giờ kết thúc phải sau giờ bắt đầu.',
   'error.wage.invalid': 'Lương phải là số dương.',
   'error.positions.invalid': 'Số lượng người cần phải ít nhất là 1.',
+  'error.positions.required': 'Vui lòng nhập số lượng người cần.',
+  'error.positions.belowFilled':
+    'Không thể giảm số lượng người xuống dưới {min} (đã có người được duyệt).',
   'error.generic': 'Đã có lỗi xảy ra. Vui lòng thử lại.',
 
   // -------------------------------------------------------------------------
@@ -547,6 +553,119 @@ export const vi: Record<string, string> = {
   'common.restoredSeedData': 'Đã khôi phục dữ liệu mẫu.',
   'common.pageNotFound': 'Trang không tồn tại.',
   'common.backToHome': 'Về trang chủ',
+
+  // -------------------------------------------------------------------------
+  // Phase 6 — employer types
+  // -------------------------------------------------------------------------
+  'employerType.individual': 'Cá nhân / Freelance',
+  'employerType.business': 'Doanh nghiệp',
+  'employerType.individual.hint':
+    'Nhà tuyển dụng cá nhân, không yêu cầu giấy phép kinh doanh.',
+  'employerType.business.hint':
+    'Doanh nghiệp đăng ký, có thể được xác minh để tăng độ uy tín.',
+
+  // -------------------------------------------------------------------------
+  // Phase 6 — deposit ratio explainer
+  // -------------------------------------------------------------------------
+  'deposit.trust.title': 'Tỷ lệ đặt cọc theo độ uy tín',
+  'deposit.trust.low':
+    'Độ uy tín: Thấp. Nhà tuyển dụng mới hoặc chưa xác minh.',
+  'deposit.trust.medium':
+    'Độ uy tín: Trung bình. Đã xác minh hoặc đã hoàn thành ít nhất 3 ca.',
+  'deposit.trust.high':
+    'Độ uy tín: Cao. Đã xác minh và hoàn thành ít nhất 5 ca.',
+  'deposit.trust.label.low': 'Thấp',
+  'deposit.trust.label.medium': 'Trung bình',
+  'deposit.trust.label.high': 'Cao',
+  'deposit.trust.ratio':
+    'Bạn cần đặt cọc {percent}% tổng tiền lương trước khi đăng ca.',
+  'deposit.breakdown.fullWage': 'Tổng tiền lương',
+  'deposit.breakdown.trust': 'Độ uy tín',
+  'deposit.breakdown.ratio': 'Tỷ lệ đặt cọc',
+  'deposit.confirmPaid': 'Xác nhận đã thanh toán',
+
+  // -------------------------------------------------------------------------
+  // Phase 6 — rejection reason dialog
+  // -------------------------------------------------------------------------
+  'reject.dialog.title': 'Từ chối đơn ứng tuyển',
+  'reject.dialog.intro':
+    'Bạn sắp từ chối đơn ứng tuyển của {worker} cho ca "{shift}". Vui lòng cho biết lý do để người làm hiểu rõ.',
+  'reject.dialog.reasonLabel': 'Lý do từ chối',
+  'reject.dialog.reasonPlaceholder':
+    'Ví dụ: Không phù hợp kinh nghiệm, đã đủ người, lịch không khớp...',
+  'reject.dialog.confirm': 'Xác nhận từ chối',
+  'reject.error.reasonRequired': 'Vui lòng nhập lý do từ chối.',
+
+  // -------------------------------------------------------------------------
+  // Phase 6 — worker dashboard additions
+  // -------------------------------------------------------------------------
+  'worker.dashboard.recentlyRejected': 'Đơn bị từ chối gần đây',
+  'worker.dashboard.rejectionReasonLabel': 'Lý do từ chối',
+  'worker.dashboard.feedbackPending': 'Đánh giá nhà tuyển dụng',
+  'worker.dashboard.feedbackBtn': 'Gửi đánh giá',
+  'worker.dashboard.reputationHint.title': 'Cách cải thiện điểm uy tín',
+  'worker.dashboard.reputationHint.gain':
+    'Hoàn thành ca đúng cam kết giúp cải thiện điểm uy tín (+5 điểm mỗi ca).',
+  'worker.dashboard.reputationHint.lose':
+    'Vắng mặt hoặc huỷ sát giờ có thể làm giảm điểm (−20 hoặc −10 điểm).',
+
+  // -------------------------------------------------------------------------
+  // Phase 6 — employer feedback (worker → employer)
+  // -------------------------------------------------------------------------
+  'employerFeedback.title': 'Đánh giá từ người làm',
+  'employerFeedback.empty': 'Chưa có đánh giá nào từ người làm.',
+  'employerFeedback.formIntro':
+    'Đánh giá nhà tuyển dụng giúp cộng đồng người làm yên tâm hơn khi ứng tuyển.',
+  'employerFeedback.tagsLabel': 'Đánh giá nhanh (tuỳ chọn)',
+  'employerFeedback.commentLabel': 'Nhận xét (tuỳ chọn)',
+  'employerFeedback.commentPlaceholder':
+    'Chia sẻ trải nghiệm làm việc với nhà tuyển dụng...',
+  'employerFeedback.tag.PaidOnTime': 'Trả lương đúng cam kết',
+  'employerFeedback.tag.GoodEnvironment': 'Môi trường tốt',
+  'employerFeedback.tag.ClearCommunication': 'Giao tiếp rõ ràng',
+  'employerFeedback.tag.AccurateDescription': 'Công việc đúng mô tả',
+
+  // -------------------------------------------------------------------------
+  // Phase 7 — admin shifts panel polish
+  // -------------------------------------------------------------------------
+  'admin.shifts.autoNote':
+    'Trạng thái ca được hệ thống tự động cập nhật theo thời gian, đặt cọc và tiến độ ứng tuyển. Override chỉ dùng khi cần xử lý ngoại lệ.',
+  'admin.shifts.lastSync': 'Đồng bộ trạng thái lần cuối: {when}',
+  'admin.shifts.override': 'Override (khẩn cấp)',
+
+  // -------------------------------------------------------------------------
+  // Phase 7 — employer schedule
+  // -------------------------------------------------------------------------
+  'employerSchedule.page.title': 'Lịch tuyển dụng',
+  'employerSchedule.page.subtitle':
+    'Xem các ca làm bạn đã đăng theo tuần. Bấm vào ca để vào trang quản lý.',
+  'employerSchedule.empty.weekHint':
+    'Không có ca làm trong tuần này. Bấm "Đăng ca cần tuyển" để thêm ca mới.',
+  'employer.dashboard.viewSchedule': 'Xem lịch tuyển dụng',
+
+  // -------------------------------------------------------------------------
+  // Phase 8 — calendar shell (worker + employer)
+  // -------------------------------------------------------------------------
+  'calendar.view.day': 'Ngày',
+  'calendar.view.week': 'Tuần',
+  'calendar.view.agenda': 'Agenda',
+  'calendar.today': 'Hôm nay',
+  'calendar.prev': 'Trước',
+  'calendar.next': 'Sau',
+  'calendar.miniMonth.aria.prev': 'Tháng trước',
+  'calendar.miniMonth.aria.next': 'Tháng sau',
+  'calendar.legend.title': 'Chú giải',
+  'calendar.legend.worker.personalBusy': 'Lịch bận cá nhân',
+  'calendar.legend.worker.approvedShift': 'Ca đã duyệt',
+  'calendar.legend.worker.pendingShift': 'Ca đang chờ duyệt',
+  'calendar.legend.employer.published': 'Đã đăng',
+  'calendar.legend.employer.fullyBooked': 'Đã đủ vị trí',
+  'calendar.legend.employer.awaiting': 'Chờ xác nhận',
+  'calendar.legend.employer.completed': 'Đã hoàn thành',
+  'calendar.legend.employer.cancelled': 'Đã huỷ',
+  'calendar.legend.employer.expired': 'Đã quá hạn',
+  'calendar.empty.worker': 'Không có lịch bận hoặc ca làm trong khoảng thời gian này.',
+  'calendar.empty.employer': 'Bạn chưa đăng ca làm nào trong khoảng thời gian này.',
 };
 
 // ---------------------------------------------------------------------------

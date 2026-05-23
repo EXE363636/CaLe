@@ -56,6 +56,8 @@ export interface RegisterInput {
   companyName?: string;
   /** Required for `role === 'employer'`. */
   businessType?: string;
+  /** Phase 6: defaults to `'individual'` when omitted. */
+  employerType?: 'individual' | 'business';
 }
 
 interface AuthStore {
@@ -199,6 +201,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         businessType: input.businessType!.trim(),
         verifiedBusiness: false,
         boostCredits: 0,
+        // Phase 6: default to individual / freelance — matches the
+        // register form's default selection.
+        employerType: input.employerType ?? 'individual',
       };
       newUser = employer;
     }

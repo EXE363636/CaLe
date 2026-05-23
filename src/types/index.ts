@@ -66,7 +66,29 @@ export type NotificationKind =
   | 'CancellationApproved'
   | 'CancellationRejected'
   | 'ReputationAdjusted'
+  | 'EmployerFeedbackReceived'
   | 'DisputeResolved';
+
+/**
+ * Phase 6: classification of an employer account. Individual / freelance
+ * employers do not need a registered business; business employers may be
+ * verified for higher trust. The value is mock — there is no real business
+ * verification flow in the MVP.
+ */
+export type EmployerType = 'individual' | 'business';
+
+/**
+ * Phase 6: trust tier derived from `verifiedBusiness` + completed-shifts
+ * history. Drives the employer's deposit ratio when posting a new shift.
+ */
+export type EmployerTrustLevel = 'low' | 'medium' | 'high';
+
+/** Phase 6: optional fixed-vocabulary tags on a worker → employer feedback. */
+export type EmployerFeedbackTag =
+  | 'PaidOnTime'
+  | 'GoodEnvironment'
+  | 'ClearCommunication'
+  | 'AccurateDescription';
 
 // ---------------------------------------------------------------------------
 // Users
@@ -115,6 +137,12 @@ export interface Employer extends BaseUser {
   verifiedBusiness: boolean;
   /** Boost_Credit balance (Req 11.2). */
   boostCredits: number;
+  /**
+   * Phase 6: account classification. Defaults to `'business'` for
+   * pre-Phase-6 records that don't carry the field yet (handled in the
+   * register flow / hydration so existing seed data stays valid).
+   */
+  employerType?: EmployerType;
 }
 
 export interface Admin extends BaseUser {
@@ -177,6 +205,13 @@ export interface Application {
   cancelReason?: 'OnTime' | 'LateCancel';
   /** hourlyWage * hours, snapshotted at approval. */
   payoutAmount?: number;
+
+  /**
+   * Phase 6: required reason supplied by the employer when rejecting a
+   * `Pending` application. Mirrored into the worker's
+   * `ApplicationRejected` notification so they can see why.
+   */
+  rejectionReason?: string;
 
   // -------------------------------------------------------------------------
   // Worker cancellation request (Phase 2)
@@ -254,6 +289,25 @@ export interface BoostCreditLedgerEntry {
   delta: 1 | -1;
   reason: 'NoShowGrant' | 'ShiftRepost';
   shiftId?: string;
+  createdAt: string;
+}
+
+/**
+ * Phase 6: worker-authored feedback on the employer after a confirmed
+ * shift. Mirrors `Rating` (which is employer-authored worker feedback)
+ * with optional fixed-vocabulary tags. Immutable once submitted.
+ */
+export interface EmployerFeedback {
+  id: string;
+  shiftId: string;
+  applicationId: string;
+  /** Worker who left the feedback. */
+  fromUserId: string;
+  /** Employer being reviewed. */
+  toEmployerId: string;
+  stars: 1 | 2 | 3 | 4 | 5;
+  comment?: string;
+  tags: EmployerFeedbackTag[];
   createdAt: string;
 }
 

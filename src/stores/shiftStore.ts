@@ -15,13 +15,19 @@ import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
 import { calculateDeposit, hoursBetween } from '@/domain/deposit';
+import {
+  depositForTrust,
+  trustForEmployer,
+} from '@/domain/employerTrust';
 import { transitionEscrow } from '@/domain/escrow';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
+import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
 import { canCancelShift, canEditShift } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
 import type { Result, Shift, ShiftStatus } from '@/types';
 
-import { useUserStore } from './userStore';
+import { useApplicationStore } from './applicationStore';
+import { asEmployer, useUserStore } from './userStore';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -60,10 +66,12 @@ export type ShiftEditablePatch = Partial<
 >;
 
 export type CancelError = 'NOT_FOUND' | 'TOO_LATE';
-export type EditError = 'NOT_FOUND' | 'TOO_LATE';
+export type EditError = 'NOT_FOUND' | 'TOO_LATE' | 'POSITIONS_BELOW_FILLED';
 
 interface ShiftStore {
   shifts: Shift[];
+  /** Phase 7: ISO timestamp of the last successful lifecycle sync. */
+  lastLifecycleSyncAt: string | null;
 
   // Reads
   list(filter: FilterCriteria): Shift[];
@@ -78,6 +86,15 @@ interface ShiftStore {
   edit(shiftId: string, patch: ShiftEditablePatch, nowIso?: string): Result<Shift, EditError>;
   cancel(shiftId: string, nowIso?: string): Result<Shift, CancelError>;
   useBoostCredit(shiftId: string): void;
+
+  /**
+   * Phase 7: walk the shift list and roll forward any time-driven status
+   * transitions (Published → InProgress, InProgress → AwaitingConfirmation,
+   * etc.). Pure-derivation; never auto-confirms completion or marks
+   * workers as no-show. Returns the IDs that actually changed so callers
+   * can short-circuit re-renders when nothing moved.
+   */
+  syncLifecycle(nowIso?: string): { changedIds: string[]; syncedAt: string };
 
   /** Hydrate the slice from a persisted snapshot. */
   hydrate(shifts: Shift[]): void;
@@ -107,6 +124,7 @@ function patchShift(
 
 export const useShiftStore = create<ShiftStore>((set, get) => ({
   shifts: [],
+  lastLifecycleSyncAt: null,
 
   list(filter) {
     return applyFilters(get().shifts, filter);
@@ -122,7 +140,20 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
 
   create(input) {
     const hours = hoursBetween(input.startTime, input.endTime);
-    const depositAmount = calculateDeposit(input.hourlyWage, hours, input.positionsTotal);
+    const fullWage = calculateDeposit(input.hourlyWage, hours, 1);
+
+    // Phase 6: deposit ratio depends on the employer's trust tier. Tier
+    // is derived from `verifiedBusiness` + completed-shift count using
+    // the live shift list — same source the UI shows in the deposit
+    // breakdown card. Falls back to the full 100% when the employer
+    // record can't be resolved (defensive; should never happen).
+    const employer = asEmployer(useUserStore.getState().findById(input.employerId));
+    const completedCount = get().shifts.filter(
+      (s) => s.employerId === input.employerId && s.status === 'Completed',
+    ).length;
+    const trust = employer ? trustForEmployer(employer, completedCount) : 'low';
+    const depositAmount = depositForTrust(fullWage, input.positionsTotal, trust);
+
     const created = nowIso();
 
     const shift: Shift = {
@@ -192,6 +223,16 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     if (!shift) return { ok: false, error: 'NOT_FOUND' };
     if (!canEditShift(when ?? nowIso(), shift)) return { ok: false, error: 'TOO_LATE' };
 
+    // Phase 6: prevent shrinking `positionsTotal` below the number of
+    // applications already counted as approved/filled. Required so an
+    // employer can't accidentally orphan approved workers.
+    if (
+      patch.positionsTotal !== undefined &&
+      patch.positionsTotal < shift.positionsFilled
+    ) {
+      return { ok: false, error: 'POSITIONS_BELOW_FILLED' };
+    }
+
     const next = patchShift(get().shifts, shiftId, patch);
     set({ shifts: next });
     persist(next);
@@ -228,6 +269,27 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     const next = patchShift(get().shifts, shiftId, { boostedAt: nowIso() });
     set({ shifts: next });
     persist(next);
+  },
+
+  syncLifecycle(when) {
+    // Phase 7: roll any time-driven status transitions forward. Reads
+    // applications via lazy `getState()` so the cycle between
+    // shiftStore and applicationStore stays in method bodies (modules
+    // load fine — runtime calls are deferred until both are wired up).
+    const at = when ?? nowIso();
+    const apps = useApplicationStore.getState().applications;
+    const result = runSyncLifecycle(get().shifts, apps, at);
+
+    // Always stamp `lastLifecycleSyncAt` so the admin UI can show "đồng
+    // bộ lúc …" even when nothing moved. Persist only when the shift
+    // list actually changed to avoid unnecessary localStorage writes.
+    if (result.changedIds.length === 0) {
+      set({ lastLifecycleSyncAt: at });
+    } else {
+      set({ shifts: result.shifts, lastLifecycleSyncAt: at });
+      persist(result.shifts);
+    }
+    return { changedIds: result.changedIds, syncedAt: at };
   },
 
   hydrate(shifts) {

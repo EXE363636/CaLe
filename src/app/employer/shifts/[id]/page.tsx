@@ -15,7 +15,9 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
 import { WorkerProfileModal } from '@/components/user/WorkerProfileModal';
 import { RatingForm } from '@/components/forms/RatingForm';
+import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
 import { shouldMarkNoShow } from '@/domain/timeGates';
+import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Application, ApplicationStatus, Shift, Worker } from '@/types';
@@ -44,6 +46,7 @@ function EmployerShiftDetailInner({ params }: Props) {
 }
 
 function ManageShiftContent({ shift }: { shift: Shift }) {
+  useLifecycleSync();
   const router = useRouter();
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
@@ -67,6 +70,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [profileWorker, setProfileWorker] = useState<Worker | null>(null);
   const [ratingForAppId, setRatingForAppId] = useState<string | null>(null);
+  // Phase 6: rejection-reason dialog state. Holds the application id
+  // currently being rejected; null when the dialog is closed.
+  const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
+  const [rejectError, setRejectError] = useState<string | null>(null);
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
@@ -78,9 +85,26 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   }
 
   function handleReject(appId: string) {
-    setActionLoading(appId);
-    reject(appId);
+    // Phase 6: open the reason dialog instead of rejecting immediately.
+    // The actual `reject(...)` call happens in `handleConfirmReject`.
+    setRejectError(null);
+    setRejectingAppId(appId);
+  }
+
+  function handleConfirmReject(reason: string) {
+    if (!rejectingAppId) return;
+    setActionLoading(rejectingAppId);
+    const result = reject(rejectingAppId, reason);
     setActionLoading(null);
+    if (!result.ok) {
+      setRejectError(
+        result.error === 'REASON_REQUIRED'
+          ? t('reject.error.reasonRequired')
+          : t(`application.error.${result.error}`),
+      );
+      return;
+    }
+    setRejectingAppId(null);
   }
 
   function handleMarkNoShow(appId: string) {
@@ -335,6 +359,34 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         onClose={() => setProfileWorker(null)}
         worker={profileWorker}
       />
+
+      {/* Phase 6: rejection-reason dialog. Resolves the worker + shift
+          from the live applications list so name/title labels stay in
+          sync if anything else changes mid-decision. */}
+      {rejectingAppId &&
+        (() => {
+          const target = applications.find((a) => a.id === rejectingAppId);
+          if (!target) return null;
+          const targetWorker = asWorker(users.find((u) => u.id === target.workerId));
+          return (
+            <RejectApplicationDialog
+              open={true}
+              onClose={() => {
+                setRejectingAppId(null);
+                setRejectError(null);
+              }}
+              workerName={targetWorker?.fullName ?? 'Người làm'}
+              shiftTitle={shift.title}
+              onConfirm={handleConfirmReject}
+              loading={actionLoading === rejectingAppId}
+            />
+          );
+        })()}
+      {rejectError && rejectingAppId === null && (
+        <p role="alert" className="mt-2 text-xs text-red-600">
+          {rejectError}
+        </p>
+      )}
     </div>
   );
 }

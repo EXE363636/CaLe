@@ -19,6 +19,7 @@ import { loadAll } from '@/data/persistence';
 import {
   useApplicationStore,
   useAuthStore,
+  useEmployerFeedbackStore,
   useNotificationStore,
   useScheduleStore,
   useShiftStore,
@@ -45,6 +46,16 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useNotificationStore.getState().hydrate(snapshot.notifications);
     useAuthStore.getState().hydrate(snapshot.auth);
     useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
+    useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
+
+    // Phase 7: roll the shift lifecycle forward once after hydration so
+    // freshly-loaded data reflects any time-driven transitions that
+    // happened while the app was closed (e.g. a Published shift whose
+    // start time has now passed → InProgress / Expired). Page-level
+    // `useEffect` hooks call this again on entry to keep things current
+    // during a single session, but the boot pass ensures the very first
+    // render is consistent. No-op when nothing has moved.
+    useShiftStore.getState().syncLifecycle();
 
     // Validate persisted auth: if currentUserId points to a missing or
     // suspended user, force a logout so navigation/role chrome doesn't

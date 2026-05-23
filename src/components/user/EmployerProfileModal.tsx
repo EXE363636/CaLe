@@ -9,9 +9,10 @@
 import { useMemo } from 'react';
 import { Modal, Badge } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
+import { EmployerFeedbackList } from './EmployerFeedbackList';
 import { useShiftStore } from '@/stores/shiftStore';
 import { t } from '@/i18n/vi';
-import type { Employer } from '@/types';
+import type { Employer, EmployerType } from '@/types';
 
 interface EmployerProfileModalProps {
   open: boolean;
@@ -78,6 +79,10 @@ export function EmployerProfileModal({
           )}
         </div>
 
+        {/* Phase 6: account-type chip — distinguishes individual /
+            freelance employers from registered businesses. */}
+        <EmployerTypeChip type={employer.employerType} />
+
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:grid-cols-4">
           <Stat value={String(posted)} label={t('employer.profile.postedShifts')} />
@@ -109,12 +114,28 @@ export function EmployerProfileModal({
         <Section title={t('employer.profile.email')}>
           <p className="text-sm text-gray-700">{employer.email}</p>
         </Section>
+
+        {/* Phase 6: worker-authored feedback. */}
+        <Section title={t('employerFeedback.title')}>
+          <EmployerFeedbackList employerId={employer.id} />
+        </Section>
       </div>
     </Modal>
   );
 }
 
 // ---------------------------------------------------------------------------
+
+function EmployerTypeChip({ type }: { type: EmployerType | undefined }) {
+  // Default to `'business'` to preserve pre-Phase-6 seed records that
+  // don't carry the field yet.
+  const t0 = type ?? 'business';
+  return (
+    <Badge tone={t0 === 'individual' ? 'info' : 'neutral'}>
+      {t(`employerType.${t0}`)}
+    </Badge>
+  );
+}
 
 function Section({
   title,

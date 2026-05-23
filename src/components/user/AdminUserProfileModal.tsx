@@ -23,6 +23,7 @@ import { Modal, Badge, StarRating } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
 import { VerificationBadge } from './VerificationBadge';
+import { EmployerFeedbackList } from './EmployerFeedbackList';
 import { useShiftStore } from '@/stores/shiftStore';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { averageRating } from '@/domain/rating';
@@ -308,6 +309,11 @@ function EmployerBody({ employer }: { employer: Employer }) {
             {t('employer.profile.noDescription')}
           </p>
         )}
+      </Section>
+
+      {/* Phase 6: worker-authored feedback for the admin's reference. */}
+      <Section title={t('employerFeedback.title')}>
+        <EmployerFeedbackList employerId={employer.id} />
       </Section>
     </div>
   );

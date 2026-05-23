@@ -17,6 +17,7 @@ import type {
   Application,
   BoostCreditLedgerEntry,
   Dispute,
+  EmployerFeedback,
   Notification,
   Rating,
   ScheduleBlock,
@@ -37,7 +38,7 @@ import usersSeed from './seed/users.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -51,6 +52,7 @@ export const STORAGE_KEYS = {
   disputes: 'cale.disputes',
   boostLedger: 'cale.boostLedger',
   scheduleBlocks: 'cale.scheduleBlocks',
+  employerFeedback: 'cale.employerFeedback',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -77,6 +79,8 @@ export interface Snapshot {
   boostLedger: BoostCreditLedgerEntry[];
   /** Phase 5: worker-owned personal busy blocks. */
   scheduleBlocks: ScheduleBlock[];
+  /** Phase 6: worker → employer feedback records. */
+  employerFeedback: EmployerFeedback[];
 }
 
 // ---------------------------------------------------------------------------
@@ -104,6 +108,8 @@ export function seedSnapshot(): Snapshot {
     boostLedger: boostLedgerSeed as unknown as BoostCreditLedgerEntry[],
     // Phase 5: schedule blocks start empty — workers add their own.
     scheduleBlocks: [],
+    // Phase 6: employer feedback starts empty — workers leave their own.
+    employerFeedback: [],
   };
 }
 
@@ -187,6 +193,10 @@ export function loadAll(): Snapshot {
       STORAGE_KEYS.scheduleBlocks,
       seed.scheduleBlocks,
     ),
+    employerFeedback: read<EmployerFeedback[]>(
+      STORAGE_KEYS.employerFeedback,
+      seed.employerFeedback,
+    ),
   };
 }
 
@@ -209,4 +219,5 @@ export function persistAll(snapshot: Snapshot): void {
   write(STORAGE_KEYS.disputes, snapshot.disputes);
   write(STORAGE_KEYS.boostLedger, snapshot.boostLedger);
   write(STORAGE_KEYS.scheduleBlocks, snapshot.scheduleBlocks);
+  write(STORAGE_KEYS.employerFeedback, snapshot.employerFeedback);
 }

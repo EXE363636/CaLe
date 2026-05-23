@@ -7,14 +7,17 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Card, Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
+import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { averageRating } from '@/domain/rating';
+import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Application, Shift } from '@/types';
@@ -28,6 +31,7 @@ export default function WorkerDashboardPage() {
 }
 
 function WorkerDashboardContent() {
+  useLifecycleSync();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
@@ -35,6 +39,8 @@ function WorkerDashboardContent() {
   const checkIn = useApplicationStore((s) => s.checkIn);
   const checkOut = useApplicationStore((s) => s.checkOut);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
+  const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
+  const submitFeedback = useEmployerFeedbackStore((s) => s.submit);
   const allNotifications = useNotificationStore((s) => s.notifications);
   const notifications = useMemo(
     () =>
@@ -48,6 +54,7 @@ function WorkerDashboardContent() {
   const worker = asWorker(users.find((u) => u.id === currentUserId));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Application | null>(null);
+  const [feedbackForAppId, setFeedbackForAppId] = useState<string | null>(null);
 
   // Memo: applications grouped by status
   const myApps = useMemo(
@@ -97,6 +104,30 @@ function WorkerDashboardContent() {
     });
 
   const pending = myApps.filter((a) => a.status === 'Pending');
+  // Phase 6: keep recently-rejected applications visible so the worker
+  // can read the rejection reason. Limit to 5 to avoid dashboard sprawl.
+  const recentlyRejected = useMemo(
+    () =>
+      myApps
+        .filter((a) => a.status === 'Rejected')
+        .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
+        .slice(0, 5),
+    [myApps],
+  );
+  // Phase 6: Confirmed applications that haven't yet received employer
+  // feedback from this worker. The feedback store is the source of truth
+  // for "already submitted" — guards against double-submission.
+  const feedbackPending = useMemo(() => {
+    if (!worker) return [] as Application[];
+    const submittedIds = new Set(
+      allFeedback
+        .filter((f) => f.fromUserId === worker.id)
+        .map((f) => f.applicationId),
+    );
+    return myApps
+      .filter((a) => a.status === 'Confirmed' && !submittedIds.has(a.id))
+      .sort((a, b) => (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''));
+  }, [myApps, allFeedback, worker]);
   const restricted = worker.reputationScore < 50;
 
   function handleCheckIn(appId: string) {
@@ -208,6 +239,105 @@ function WorkerDashboardContent() {
                 })}
               </div>
             )}
+          </section>
+
+          {/* Phase 6: recently-rejected applications. Surfaces the
+              employer's rejection reason so the worker doesn't have to
+              dig through notifications. */}
+          {recentlyRejected.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                {t('worker.dashboard.recentlyRejected')}
+              </h2>
+              <div className="flex flex-col gap-3">
+                {recentlyRejected.map((a) => {
+                  const shift = getShift(a.shiftId);
+                  if (!shift) return null;
+                  return (
+                    <RejectedApplicationCard
+                      key={a.id}
+                      application={a}
+                      shift={shift}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Phase 6: confirmed shifts awaiting worker → employer feedback. */}
+          {feedbackPending.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                {t('worker.dashboard.feedbackPending')}
+              </h2>
+              <div className="flex flex-col gap-3">
+                {feedbackPending.map((a) => {
+                  const shift = getShift(a.shiftId);
+                  if (!shift) return null;
+                  const showForm = feedbackForAppId === a.id;
+                  return (
+                    <Card key={a.id}>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-gray-900">
+                            {shift.title}
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {formatDateVN(shift.date)}
+                          </p>
+                        </div>
+                        {!showForm && (
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => setFeedbackForAppId(a.id)}
+                          >
+                            {t('worker.dashboard.feedbackBtn')}
+                          </Button>
+                        )}
+                      </div>
+                      {showForm && (
+                        <div className="mt-3">
+                          <EmployerFeedbackForm
+                            onSubmit={(input) => {
+                              const result = submitFeedback({
+                                shiftId: shift.id,
+                                applicationId: a.id,
+                                fromUserId: worker.id,
+                                toEmployerId: shift.employerId,
+                                stars: input.stars,
+                                comment: input.comment,
+                                tags: input.tags,
+                              });
+                              if (result.ok) {
+                                setFeedbackForAppId(null);
+                              }
+                            }}
+                          />
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Phase 6: reputation rules note — surfaced on the dashboard
+              so workers see how to recover. */}
+          <section>
+            <Card className="bg-orange-50/40">
+              <p className="text-sm font-semibold text-orange-800">
+                {t('worker.dashboard.reputationHint.title')}
+              </p>
+              <p className="mt-1 text-xs text-orange-700">
+                {t('worker.dashboard.reputationHint.gain')}
+              </p>
+              <p className="mt-1 text-xs text-orange-700">
+                {t('worker.dashboard.reputationHint.lose')}
+              </p>
+            </Card>
           </section>
         </div>
 
@@ -390,6 +520,43 @@ function PendingApplicationCard({
         </span>
         <span className="font-medium text-orange-600">{formatVND(shift.hourlyWage)}/giờ</span>
       </div>
+    </Card>
+  );
+}
+
+function RejectedApplicationCard({
+  application,
+  shift,
+}: {
+  application: Application;
+  shift: Shift;
+}) {
+  return (
+    <Card>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/shifts/${shift.id}`}
+            className="font-semibold text-gray-900 hover:text-orange-600"
+          >
+            {shift.title}
+          </Link>
+          <p className="mt-0.5 text-sm text-gray-500">{shift.location}</p>
+        </div>
+        <Badge tone="danger">{t('application.status.Rejected')}</Badge>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+        <span>{formatDateVN(shift.date)}</span>
+        <span>
+          {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
+        </span>
+      </div>
+      {application.rejectionReason && (
+        <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <span className="font-medium">{t('worker.dashboard.rejectionReasonLabel')}:</span>{' '}
+          {application.rejectionReason}
+        </p>
+      )}
     </Card>
   );
 }

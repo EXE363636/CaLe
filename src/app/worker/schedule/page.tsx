@@ -1,25 +1,37 @@
 'use client';
 
 /**
- * Worker personal schedule page (Phase 5 + Phase 5B).
+ * Worker personal schedule page (Phase 8 calendar shell).
  *
  * Phase 5 introduced one-time `ScheduleBlock` records and the apply-time
- * conflict gate. Phase 5B reshapes this page into a Monday→Sunday weekly
- * timetable so workers can manage busy time the way they think about it
- * (like a school timetable). The list view is preserved at the bottom as
- * a flat fallback.
+ * conflict gate. Phase 5B reshaped the page into a Mon→Sun timetable.
+ * Phase 8 swaps that single grid for the new `CalendarShell` (mini-month
+ * + legend sidebar, top toolbar, Day / Week / Agenda body) and folds the
+ * worker's approved / pending / cancellation-requested shifts onto the
+ * same canvas as their personal busy blocks.
  *
- * Intentional limitations for the MVP:
- *  - One-time blocks only — no recurring weekly schedules.
- *  - No calendar widget, no Google Calendar, no server sync.
- *  - Slot configuration is local UI state only — not persisted.
- *  - localStorage / mock only.
+ * Hard rules (per HANDOFF.md Section 11):
+ *  - Zustand selectors return only stable raw arrays. All `.filter` /
+ *    `.map` derivations live in `useMemo` over those arrays.
+ *  - The schedule store API, `ScheduleBlockDialog` form, and the apply
+ *    conflict gate (`domain/scheduleConflict.ts`) are NOT touched here.
+ *  - localStorage / mock only — no server, no calendar sync.
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+import { CalendarLegend } from '@/components/calendar/CalendarLegend';
+import { CalendarShell } from '@/components/calendar/CalendarShell';
+import {
+  CalendarToolbar,
+  type CalendarView,
+} from '@/components/calendar/CalendarToolbar';
+import { MiniMonthCalendar } from '@/components/calendar/MiniMonthCalendar';
+import { WeekView, type CalendarEvent } from '@/components/calendar/WeekView';
+import { DayView } from '@/components/calendar/DayView';
+import { AgendaView } from '@/components/calendar/AgendaView';
 import { RoleGuard } from '@/components/layout/RoleGuard';
-import { useAuthStore } from '@/stores/authStore';
-import { useScheduleStore } from '@/stores/scheduleStore';
 import {
   Button,
   Card,
@@ -29,35 +41,37 @@ import {
   Textarea,
 } from '@/components/ui';
 import {
-  generateSlots,
-  rangesOverlap,
+  formatMonthYearVN,
   shiftWeek,
   startOfWeek,
   todayIso,
   validateSlotConfig,
-  weekDates,
   type SlotConfig,
-  type TimeSlot,
 } from '@/domain/week';
-import { formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
-import type { ScheduleBlock } from '@/types';
+import { formatDateVN, formatTimeVN } from '@/lib/format';
+import { useApplicationStore } from '@/stores/applicationStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useScheduleStore } from '@/stores/scheduleStore';
+import { useShiftStore } from '@/stores/shiftStore';
+import type { Application, ScheduleBlock, Shift, ShiftStatus } from '@/types';
 
-const WEEKDAY_LABELS: readonly string[] = [
-  'Thứ Hai',
-  'Thứ Ba',
-  'Thứ Tư',
-  'Thứ Năm',
-  'Thứ Sáu',
-  'Thứ Bảy',
-  'Chủ Nhật',
-];
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
 
 const DEFAULT_SLOT_CONFIG: SlotConfig = {
   dayStart: '07:00',
   dayEnd: '21:00',
   slotMinutes: 120,
 };
+
+/** Shifts in any of these statuses are not surfaced on the worker calendar. */
+const TERMINAL_SHIFT_STATUSES: ReadonlySet<ShiftStatus> = new Set([
+  'Cancelled',
+  'Completed',
+  'Expired',
+]);
 
 interface ModalSeed {
   /** When provided, edit mode. */
@@ -70,6 +84,26 @@ interface ModalSeed {
   } | null;
 }
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+/** Add `n` whole days to a `YYYY-MM-DD` string, anchored at local midnight. */
+function stepDate(iso: string, deltaDays: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  d.setDate(d.getDate() + deltaDays);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
+
 export default function WorkerSchedulePage() {
   return (
     <RoleGuard role="worker">
@@ -79,68 +113,166 @@ export default function WorkerSchedulePage() {
 }
 
 function SchedulePageContent() {
+  const router = useRouter();
   const currentUserId = useAuthStore((s) => s.currentUserId);
-  // Select the stable raw `blocks` array. Filtering / sorting is derived
-  // below in `useMemo` so we never feed Zustand a fresh-array selector.
+
+  // Stable raw selectors. NEVER inline `.filter` / `.map` in a Zustand
+  // selector — see HANDOFF.md Section 11.
   const blocks = useScheduleStore((s) => s.blocks);
   const remove = useScheduleStore((s) => s.remove);
+  const applications = useApplicationStore((s) => s.applications);
+  const shifts = useShiftStore((s) => s.shifts);
 
-  const [weekStart, setWeekStart] = useState<string>(() => startOfWeek(todayIso()));
+  // -------------------------------------------------------------------------
+  // View state
+  // -------------------------------------------------------------------------
+  const [view, setView] = useState<CalendarView>('week');
+  const [selectedDateIso, setSelectedDateIso] = useState<string>(() => todayIso());
   const [slotCfg, setSlotCfg] = useState<SlotConfig>(DEFAULT_SLOT_CONFIG);
   const [slotCfgError, setSlotCfgError] = useState<string | null>(null);
 
   const [modalSeed, setModalSeed] = useState<ModalSeed | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Per-user list (used by the timetable cell logic AND the fallback list).
-  const myBlocks = useMemo(() => {
+  // -------------------------------------------------------------------------
+  // Derived data
+  // -------------------------------------------------------------------------
+
+  // Personal busy blocks for the current user.
+  const myBlocks = useMemo<ScheduleBlock[]>(() => {
     if (!currentUserId) return [];
     return blocks.filter((b) => b.userId === currentUserId);
   }, [blocks, currentUserId]);
 
-  // Days of the currently-displayed week.
-  const days = useMemo(() => weekDates(weekStart), [weekStart]);
+  // Applications that should appear on the calendar: this worker's
+  // Approved / Pending / CancellationRequested rows. Rejected and
+  // CancelledByWorker rows are intentionally hidden.
+  const myCalendarApplications = useMemo<Application[]>(() => {
+    if (!currentUserId) return [];
+    return applications.filter(
+      (a) =>
+        a.workerId === currentUserId &&
+        (a.status === 'Approved' ||
+          a.status === 'Pending' ||
+          a.status === 'CancellationRequested'),
+    );
+  }, [applications, currentUserId]);
 
-  // Slot rows derived from the config; falls back to an empty list when
-  // the config is invalid (the form-error UI surfaces the reason).
-  const slots = useMemo(() => generateSlots(slotCfg), [slotCfg]);
-
-  // Blocks that fall inside the current week, indexed by date for O(1)
-  // cell lookup. Sorted by `startTime` so multiple blocks in the same
-  // cell render in chronological order.
-  const blocksByDate = useMemo(() => {
-    const set = new Set(days);
-    const map = new Map<string, ScheduleBlock[]>();
-    for (const b of myBlocks) {
-      if (!set.has(b.date)) continue;
-      const list = map.get(b.date) ?? [];
-      list.push(b);
-      map.set(b.date, list);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.startTime.localeCompare(b.startTime));
-    }
+  // O(1) shift lookup keyed by id — saves a linear scan per application.
+  const shiftIndex = useMemo<Map<string, Shift>>(() => {
+    const map = new Map<string, Shift>();
+    for (const s of shifts) map.set(s.id, s);
     return map;
-  }, [myBlocks, days]);
+  }, [shifts]);
+
+  // Single calendar-event array fed to every body view. Personal blocks
+  // and approved/pending shifts share one array so the views can
+  // stack/sort them uniformly. IDs are prefixed so the click handler can
+  // dispatch by source.
+  const calendarEvents = useMemo<CalendarEvent[]>(() => {
+    const out: CalendarEvent[] = [];
+
+    for (const block of myBlocks) {
+      out.push({
+        id: `block-${block.id}`,
+        title: block.title,
+        date: block.date,
+        startTime: block.startTime,
+        endTime: block.endTime,
+        variant: 'personalBusy',
+        subtitle: block.note,
+      });
+    }
+
+    for (const app of myCalendarApplications) {
+      const shift = shiftIndex.get(app.shiftId);
+      if (!shift) continue;
+      // Hide shifts that are no longer relevant (cancelled / completed /
+      // expired) — they shouldn't clutter the worker's planner even if
+      // their application row still exists.
+      if (TERMINAL_SHIFT_STATUSES.has(shift.status)) continue;
+
+      const variant: CalendarEvent['variant'] =
+        app.status === 'Approved'
+          ? 'approvedShift'
+          : app.status === 'Pending'
+          ? 'pendingShift'
+          : 'cancelledShift';
+
+      out.push({
+        id: `app-${app.id}`,
+        title: shift.title,
+        date: shift.date,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        variant,
+        subtitle: shift.location,
+      });
+    }
+
+    return out;
+  }, [myBlocks, myCalendarApplications, shiftIndex]);
 
   // Sorted version for the fallback flat list at the bottom of the page.
+  // Workers may have busy blocks outside the visible calendar window, and
+  // delete affordance still lives there.
   const flatList = useMemo(() => {
     return [...myBlocks].sort((a, b) =>
       `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
     );
   }, [myBlocks]);
 
-  if (!currentUserId) return null;
+  // -------------------------------------------------------------------------
+  // Toolbar title + nav
+  // -------------------------------------------------------------------------
 
-  function openCreateForSlot(date: string, slot: TimeSlot) {
+  const toolbarTitle = useMemo(() => {
+    if (view === 'day') {
+      return formatDateVN(selectedDateIso);
+    }
+    if (view === 'week') {
+      const ws = startOfWeek(selectedDateIso);
+      const we = stepDate(ws, 6);
+      return `${formatDateVN(ws)} – ${formatDateVN(we)}`;
+    }
+    // agenda
+    const year = Number(selectedDateIso.slice(0, 4));
+    const month = Number(selectedDateIso.slice(5, 7));
+    if (Number.isFinite(year) && Number.isFinite(month)) {
+      return formatMonthYearVN(year, month);
+    }
+    return '';
+  }, [view, selectedDateIso]);
+
+  function handlePrev() {
+    setSelectedDateIso((iso) => {
+      if (view === 'week') return shiftWeek(startOfWeek(iso), -1);
+      if (view === 'day') return stepDate(iso, -1);
+      return stepDate(iso, -7); // agenda
+    });
+  }
+
+  function handleNext() {
+    setSelectedDateIso((iso) => {
+      if (view === 'week') return shiftWeek(startOfWeek(iso), 1);
+      if (view === 'day') return stepDate(iso, 1);
+      return stepDate(iso, 7); // agenda
+    });
+  }
+
+  function handleToday() {
+    setSelectedDateIso(todayIso());
+  }
+
+  // -------------------------------------------------------------------------
+  // Dialog open/close
+  // -------------------------------------------------------------------------
+
+  function openCreateForSlot(date: string, startTime: string, endTime: string) {
     setActionError(null);
     setModalSeed({
       block: null,
-      prefill: {
-        date,
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-      },
+      prefill: { date, startTime, endTime },
     });
   }
 
@@ -167,9 +299,28 @@ function SchedulePageContent() {
     }
   }
 
-  // Validate a slot-config edit before committing it. We always update the
-  // visible inputs, but a `slotCfgError` blocks the timetable from re-rendering
-  // with garbage values.
+  // Calendar event click — dispatch by id prefix.
+  function handleEventClick(event: CalendarEvent) {
+    if (event.id.startsWith('block-')) {
+      const blockId = event.id.slice('block-'.length);
+      const block = myBlocks.find((b) => b.id === blockId);
+      if (block) openEdit(block);
+      return;
+    }
+    if (event.id.startsWith('app-')) {
+      const appId = event.id.slice('app-'.length);
+      const app = myCalendarApplications.find((a) => a.id === appId);
+      if (!app) return;
+      const shift = shiftIndex.get(app.shiftId);
+      if (!shift) return;
+      router.push(`/shifts/${shift.id}`);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Slot-config form
+  // -------------------------------------------------------------------------
+
   function handleSlotCfgChange(patch: Partial<SlotConfig>) {
     const next = { ...slotCfg, ...patch };
     const validation = validateSlotConfig(next);
@@ -179,53 +330,53 @@ function SchedulePageContent() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <header className="mb-2">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t('schedule.page.title')}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">{t('schedule.page.subtitle')}</p>
-      </header>
+  if (!currentUserId) return null;
 
-      <p className="mt-3 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-700">
-        {t('schedule.page.approvedShiftsNote')}
-      </p>
+  // -------------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------------
 
-      {/* Week navigation */}
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setWeekStart((w) => shiftWeek(w, -1))}
-        >
-          ← {t('schedule.week.prev')}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => setWeekStart(startOfWeek(todayIso()))}
-        >
-          {t('schedule.week.current')}
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setWeekStart((w) => shiftWeek(w, 1))}
-        >
-          {t('schedule.week.next')} →
-        </Button>
-        <span className="ml-auto text-xs text-gray-500">
-          {formatDateVN(days[0])} – {formatDateVN(days[6])}
-        </span>
+  const sidebar = (
+    <div className="flex flex-col gap-4">
+      <MiniMonthCalendar
+        selectedDateIso={selectedDateIso}
+        onSelectDate={setSelectedDateIso}
+      />
+      <Card>
+        <CalendarLegend variant="worker" />
+      </Card>
+      <Card className="bg-orange-50 ring-1 ring-orange-100">
+        <p className="text-xs text-orange-700">
+          {t('schedule.page.approvedShiftsNote')}
+        </p>
+      </Card>
+    </div>
+  );
+
+  const toolbar = (
+    <CalendarToolbar
+      title={toolbarTitle}
+      view={view}
+      onViewChange={setView}
+      onPrev={handlePrev}
+      onNext={handleNext}
+      onToday={handleToday}
+      actions={
         <Button size="sm" variant="primary" onClick={openCreateBlank}>
           {t('schedule.btn.add')}
         </Button>
-      </div>
+      }
+    />
+  );
 
-      {/* Slot config */}
-      <Card className="mt-4">
+  const slotsValid = slotCfgError === null;
+
+  const body = (
+    <div className="flex flex-col gap-4">
+      {/* Slot-config form: a single Card above the body keeps the
+          existing "Cấu hình khung giờ" affordance without crowding the
+          sidebar. Day-grid views consume this; Agenda ignores it. */}
+      <Card>
         <p className="mb-3 text-sm font-semibold text-gray-900">
           {t('schedule.slotCfg.title')}
         </p>
@@ -266,38 +417,65 @@ function SchedulePageContent() {
         )}
       </Card>
 
-      {/* Action error */}
       {actionError && (
         <div
           role="alert"
-          className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700"
+          className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700"
         >
           {actionError}
         </div>
       )}
 
-      {/* Timetable */}
-      <section className="mt-6">
-        {slots.length === 0 ? (
+      {/* The active body view. */}
+      {view === 'week' && (
+        slotsValid ? (
+          <WeekView
+            weekStart={startOfWeek(selectedDateIso)}
+            slotConfig={slotCfg}
+            events={calendarEvents}
+            onCellClick={openCreateForSlot}
+            onEventClick={handleEventClick}
+          />
+        ) : (
           <Card>
             <p className="py-6 text-center text-sm text-gray-400">
               {slotCfgError ?? t('schedule.slotCfg.error.INVALID_TIME_RANGE')}
             </p>
           </Card>
-        ) : (
-          <Timetable
-            days={days}
-            slots={slots}
-            blocksByDate={blocksByDate}
-            onCellClick={openCreateForSlot}
-            onBlockClick={openEdit}
-          />
-        )}
-      </section>
+        )
+      )}
 
-      {/* Flat list — kept as an at-a-glance fallback so workers can still
-          delete blocks without finding them on the timetable. */}
-      <section className="mt-8">
+      {view === 'day' && (
+        slotsValid ? (
+          <DayView
+            dateIso={selectedDateIso}
+            slotConfig={slotCfg}
+            events={calendarEvents}
+            onCellClick={openCreateForSlot}
+            onEventClick={handleEventClick}
+          />
+        ) : (
+          <Card>
+            <p className="py-6 text-center text-sm text-gray-400">
+              {slotCfgError ?? t('schedule.slotCfg.error.INVALID_TIME_RANGE')}
+            </p>
+          </Card>
+        )
+      )}
+
+      {view === 'agenda' && (
+        <AgendaView
+          startDateIso={selectedDateIso}
+          dayCount={7}
+          events={calendarEvents}
+          onEventClick={handleEventClick}
+          emptyMessage={t('calendar.empty.worker')}
+        />
+      )}
+
+      {/* Flat fallback list — kept so workers can still delete blocks
+          without finding them on the timetable. */}
+      <section className="mt-2">
         <h2 className="mb-3 text-lg font-semibold text-gray-900">
           {t('schedule.list.title')}
         </h2>
@@ -319,152 +497,27 @@ function SchedulePageContent() {
           </ul>
         )}
       </section>
+    </div>
+  );
 
-      {/* Add / edit dialog */}
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t('schedule.page.title')}
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">{t('schedule.page.subtitle')}</p>
+      </header>
+
+      <CalendarShell sidebar={sidebar} toolbar={toolbar} body={body} />
+
+      {/* Add / edit dialog (preserved verbatim from Phase 5B). */}
       <ScheduleBlockDialog
         seed={modalSeed}
         userId={currentUserId}
         onClose={closeModal}
       />
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Timetable grid
-// ---------------------------------------------------------------------------
-
-function Timetable({
-  days,
-  slots,
-  blocksByDate,
-  onCellClick,
-  onBlockClick,
-}: {
-  days: string[];
-  slots: TimeSlot[];
-  blocksByDate: Map<string, ScheduleBlock[]>;
-  onCellClick: (date: string, slot: TimeSlot) => void;
-  onBlockClick: (block: ScheduleBlock) => void;
-}) {
-  const todayStr = todayIso();
-  const weekHasNoBlocks = Array.from(blocksByDate.values()).every(
-    (list) => list.length === 0,
-  );
-
-  return (
-    <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-      <table className="w-full min-w-[720px] border-collapse">
-        <thead>
-          <tr>
-            <th className="sticky left-0 z-10 bg-gray-50 px-2 py-2 text-left text-xs font-semibold text-gray-500">
-              {t('schedule.timetable.timeColumn')}
-            </th>
-            {days.map((d, idx) => {
-              const isToday = d === todayStr;
-              return (
-                <th
-                  key={d}
-                  className={[
-                    'border-l border-gray-100 px-2 py-2 text-center text-xs font-semibold',
-                    isToday ? 'bg-orange-50 text-orange-700' : 'bg-gray-50 text-gray-700',
-                  ].join(' ')}
-                >
-                  <div>{WEEKDAY_LABELS[idx]}</div>
-                  <div className="mt-0.5 font-mono text-[11px] font-normal text-gray-500">
-                    {formatDateVN(d)}
-                  </div>
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {slots.map((slot) => (
-            <tr key={`${slot.startTime}-${slot.endTime}`}>
-              <th
-                scope="row"
-                className="sticky left-0 z-10 border-t border-gray-100 bg-gray-50 px-2 py-2 text-left text-[11px] font-mono font-medium text-gray-600 align-top whitespace-nowrap"
-              >
-                {formatTimeVN(slot.startTime)}–{formatTimeVN(slot.endTime)}
-              </th>
-              {days.map((d) => {
-                const overlapping = (blocksByDate.get(d) ?? []).filter((b) =>
-                  rangesOverlap(b.startTime, b.endTime, slot.startTime, slot.endTime),
-                );
-                return (
-                  <TimetableCell
-                    key={`${d}-${slot.startTime}`}
-                    date={d}
-                    slot={slot}
-                    blocks={overlapping}
-                    onCellClick={onCellClick}
-                    onBlockClick={onBlockClick}
-                  />
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {weekHasNoBlocks && (
-        <p className="border-t border-gray-100 bg-gray-50 px-3 py-2 text-center text-xs text-gray-500">
-          {t('schedule.empty.weekHint')}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function TimetableCell({
-  date,
-  slot,
-  blocks,
-  onCellClick,
-  onBlockClick,
-}: {
-  date: string;
-  slot: TimeSlot;
-  blocks: ScheduleBlock[];
-  onCellClick: (date: string, slot: TimeSlot) => void;
-  onBlockClick: (block: ScheduleBlock) => void;
-}) {
-  const empty = blocks.length === 0;
-
-  if (empty) {
-    return (
-      <td className="border-l border-t border-gray-100 align-top">
-        <button
-          type="button"
-          onClick={() => onCellClick(date, slot)}
-          aria-label={t('schedule.timetable.addInSlot')}
-          className="h-full min-h-[60px] w-full text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50"
-        >
-          <span className="sr-only">{t('schedule.timetable.addInSlot')}</span>
-        </button>
-      </td>
-    );
-  }
-
-  return (
-    <td className="border-l border-t border-gray-100 align-top">
-      <div className="flex min-h-[60px] flex-col gap-1 p-1">
-        {blocks.map((b) => (
-          <button
-            key={b.id}
-            type="button"
-            onClick={() => onBlockClick(b)}
-            className="rounded-md bg-orange-100 px-2 py-1 text-left text-[11px] font-medium text-orange-800 ring-1 ring-orange-200 transition-colors hover:bg-orange-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-          >
-            <div className="truncate">{b.title}</div>
-            <div className="mt-0.5 font-mono text-[10px] font-normal text-orange-700/80">
-              {formatTimeVN(b.startTime)}–{formatTimeVN(b.endTime)}
-            </div>
-          </button>
-        ))}
-      </div>
-    </td>
   );
 }
 
@@ -540,7 +593,7 @@ function BlockRow({
 }
 
 // ---------------------------------------------------------------------------
-// Add / edit dialog
+// Add / edit dialog (preserved verbatim from Phase 5B)
 // ---------------------------------------------------------------------------
 
 function ScheduleBlockDialog({

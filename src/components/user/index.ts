@@ -14,3 +14,4 @@ export { WorkerSummaryRow } from './WorkerSummaryRow';
 export { WorkerProfileModal } from './WorkerProfileModal';
 export { EmployerProfileModal } from './EmployerProfileModal';
 export { AdminUserProfileModal } from './AdminUserProfileModal';
+export { EmployerFeedbackList } from './EmployerFeedbackList';

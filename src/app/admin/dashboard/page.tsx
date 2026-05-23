@@ -12,6 +12,7 @@ import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
+import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { formatVND, formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Dispute, EscrowStatus, Shift, User } from '@/types';
@@ -27,6 +28,7 @@ export default function AdminDashboardPage() {
 }
 
 function AdminDashboardContent() {
+  useLifecycleSync();
   const [tab, setTab] = useState<Tab>('analytics');
 
   return (
@@ -462,6 +464,7 @@ function UserRow({
 
 function ShiftsPanel() {
   const shifts = useShiftStore((s) => s.shifts);
+  const lastSyncAt = useShiftStore((s) => s.lastLifecycleSyncAt);
   const users = useUserStore((s) => s.users);
 
   // Sort by createdAt desc (recent first)
@@ -471,13 +474,43 @@ function ShiftsPanel() {
   );
 
   return (
-    <ul className="flex flex-col gap-2">
-      {sorted.slice(0, 50).map((shift) => {
-        const employer = users.find((u) => u.id === shift.employerId);
-        const employerName = employer?.role === 'employer' ? employer.companyName : 'Unknown';
-        return <ShiftRow key={shift.id} shift={shift} employerName={employerName} />;
-      })}
-    </ul>
+    <div className="flex flex-col gap-3">
+      {/* Phase 7: explainer banner — clarifies that statuses move
+          automatically and that Override is for exceptional cases. */}
+      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        <p>{t('admin.shifts.autoNote')}</p>
+        {lastSyncAt && (
+          <p className="mt-1 text-xs text-blue-700">
+            {t('admin.shifts.lastSync').replace(
+              '{when}',
+              formatSyncTime(lastSyncAt),
+            )}
+          </p>
+        )}
+      </div>
+
+      <ul className="flex flex-col gap-2">
+        {sorted.slice(0, 50).map((shift) => {
+          const employer = users.find((u) => u.id === shift.employerId);
+          const employerName = employer?.role === 'employer' ? employer.companyName : 'Unknown';
+          return <ShiftRow key={shift.id} shift={shift} employerName={employerName} />;
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * Format an ISO sync timestamp as a short Vietnamese-style time. Falls
+ * back to the raw value on parse failure.
+ */
+function formatSyncTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+  return (
+    `${pad(d.getHours())}:${pad(d.getMinutes())} ` +
+    `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`
   );
 }
 
@@ -517,7 +550,7 @@ function ShiftRow({ shift, employerName }: { shift: Shift; employerName: string 
         <EscrowStatusBadge status={shift.escrowStatus} />
         {!editing && (
           <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-            Override
+            {t('admin.shifts.override')}
           </Button>
         )}
       </div>

@@ -25,6 +25,7 @@ function getNavItems(role: Role | null): NavItem[] {
   if (role === 'employer') {
     return [
       { href: '/employer/dashboard', label: t('nav.dashboard') },
+      { href: '/employer/schedule', label: t('nav.employerSchedule') },
       { href: '/employer/shifts/new', label: t('nav.postShift') },
       { href: '/employer/profile', label: t('nav.profile') },
     ];

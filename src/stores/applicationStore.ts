@@ -128,7 +128,16 @@ interface ApplicationStore {
 
   // Employer actions
   approve(applicationId: string): Result<Application, ApplicationActionError>;
-  reject(applicationId: string): Result<Application, ApplicationActionError>;
+  /**
+   * Phase 6: rejecting a Pending application requires a non-empty reason
+   * which is stored on the application and included in the worker
+   * notification body. Empty / whitespace input returns
+   * `REASON_REQUIRED`.
+   */
+  reject(
+    applicationId: string,
+    reason: string,
+  ): Result<Application, ApplicationActionError | 'REASON_REQUIRED'>;
   /**
    * Approve a worker's cancellation request (status `CancellationRequested`).
    * Application becomes `CancelledByWorker`, position is freed, the worker
@@ -552,12 +561,19 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     return { ok: true, value: updated };
   },
 
-  reject(applicationId) {
+  reject(applicationId, reason) {
+    const trimmedReason = (reason ?? '').trim();
+    if (trimmedReason === '') return { ok: false, error: 'REASON_REQUIRED' };
+
     const app = get().getById(applicationId);
     if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
     if (app.status !== 'Pending') return { ok: false, error: 'WRONG_STATUS' };
 
-    const updated: Application = { ...app, status: 'Rejected' };
+    const updated: Application = {
+      ...app,
+      status: 'Rejected',
+      rejectionReason: trimmedReason,
+    };
     const next = get().applications.map((a) => (a.id === applicationId ? updated : a));
     set({ applications: next });
     persistApplications(next);
@@ -568,8 +584,8 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       kind: 'ApplicationRejected',
       title: 'Đơn ứng tuyển bị từ chối',
       body: shift
-        ? `Đơn ứng tuyển ca "${shift.title}" của bạn đã bị từ chối.`
-        : 'Đơn ứng tuyển của bạn đã bị từ chối.',
+        ? `Đơn ứng tuyển ca "${shift.title}" của bạn đã bị từ chối. Lý do: ${trimmedReason}`
+        : `Đơn ứng tuyển của bạn đã bị từ chối. Lý do: ${trimmedReason}`,
       link: '/worker/dashboard',
     });
 

@@ -8,7 +8,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
 
 ## Tasks
 
-- [ ] 1. Bootstrap Next.js project and tooling
+- [x] 1. Bootstrap Next.js project and tooling
   - [x] 1.1 Initialize Next.js App Router project with TypeScript and Tailwind
     - Run `create-next-app` with TypeScript, Tailwind, App Router, ESLint, `src/` directory, no Turbopack default
     - Configure `tsconfig.json` with `strict: true` and `@/*` path alias to `src/*`
@@ -42,8 +42,8 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Define generic `Result<T, E>` discriminated union
     - _Requirements: 1.1, 1.5, 2.1, 2.5, 3.1, 6.2, 8.1, 10.1, 13.1, 15.4_
 
-- [ ] 3. Implement pure domain modules with property-based tests
-  - [ ] 3.1 Implement `src/domain/deposit.ts`
+- [x] 3. Implement pure domain modules with property-based tests
+  - [x] 3.1 Implement `src/domain/deposit.ts`
     - Implement `hoursBetween(start, end)` for `HH:mm` strings (handle non-overnight only)
     - Implement `calculateDeposit(wage, hours, positions) = wage * hours * positions`
     - _Requirements: 3.2_
@@ -54,7 +54,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Use `fc.nat({ max: 1_000_000 })`, positive `hours`, positive `positions`; assert non-negative, equals product, monotonic in each argument
     - File: `src/__tests__/properties/deposit.property.test.ts`
 
-  - [ ] 3.3 Implement `src/domain/reputation.ts`
+  - [x] 3.3 Implement `src/domain/reputation.ts`
     - Constants `INITIAL_SCORE=100`, `MIN_SCORE=0`, `MAX_SCORE=100`, `APPLY_THRESHOLD=50`
     - Implement `applyReputationEvent(score, event)` with deltas `+5/-20/-10` and admin-adjust delta, clamped to `[0, 100]`
     - Implement `canApplyToShifts(score)` returning `score >= APPLY_THRESHOLD`
@@ -79,7 +79,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate arbitrary `now`, `shiftStart`, application status; assert mapping to `NoPenalty / OnTime / LateCancel` and that only `LateCancel` triggers the −10 reputation delta
     - File: `src/__tests__/properties/cancellation.property.test.ts`
 
-  - [ ] 3.7 Implement `src/domain/escrow.ts` state machine
+  - [x] 3.7 Implement `src/domain/escrow.ts` state machine
     - Define `EscrowEvent` union from the design
     - Implement `transitionEscrow(current, event)` covering all legal transitions; return current status for illegal events
     - Implement `isTerminalEscrow(s)` returning `true` for `'Released' | 'Refunded'`
@@ -91,7 +91,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - For arbitrary `(status, event)` pairs assert: result is either a defined next state or unchanged; terminal states never transition out; `NoShow` always lands on `Refunded`
     - File: `src/__tests__/properties/escrow.property.test.ts`
 
-  - [ ] 3.9 Implement `src/domain/conflict.ts`
+  - [x] 3.9 Implement `src/domain/conflict.ts`
     - Define `TimeRange` interface with `date`, `startTime`, `endTime`
     - Constant `BUFFER_MINUTES = 60`
     - Implement `hasConflict(target, approved)` using `[target.start − 60min, target.end + 60min]` window
@@ -104,7 +104,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate arbitrary `target` and approved list; assert `hasConflict` matches the buffered-overlap predicate; assert no conflict when approved list is empty
     - File: `src/__tests__/properties/conflict.property.test.ts`
 
-  - [ ] 3.11 Implement `src/domain/timeGates.ts` for check-in/out/no-show and edit/cancel 24h
+  - [x] 3.11 Implement `src/domain/timeGates.ts` for check-in/out/no-show and edit/cancel 24h
     - Implement `canCheckIn(now, application, shift)`, `canCheckOut(now, application, shift)`, `shouldMarkNoShow(now, application, shift)`
     - Implement `canEditShift(now, shift)` and `canCancelShift(now, shift)` enforcing the 24h gate and not-already-completed/cancelled rule
     - _Requirements: 7.1, 7.3, 7.5, 25.1, 25.3_
@@ -121,7 +121,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate arbitrary `now` and shift start; assert both predicates iff `T − now ≥ 24h` and shift is not cancelled/completed
     - File: `src/__tests__/properties/edit-cancel-gate.property.test.ts`
 
-  - [ ] 3.14 Implement `src/domain/filter.ts`
+  - [x] 3.14 Implement `src/domain/filter.ts`
     - Define `FilterCriteria` interface
     - Implement `applyFilters(shifts, criteria)` enforcing: status ∈ {Published, FullyBooked}, escrow = Deposited, start datetime ≥ now, criteria match (case-insensitive substring on title/location/description), wage range, date range, jobType
     - Preserve input order for matching shifts
@@ -133,7 +133,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate arbitrary shifts and criteria; assert returned set equals the predicate; assert no non-Deposited shift ever appears
     - File: `src/__tests__/properties/filter.property.test.ts`
 
-  - [ ] 3.16 Implement `src/domain/rating.ts`
+  - [x] 3.16 Implement `src/domain/rating.ts`
     - Implement `averageRating(ratings)` returning `null` for empty list, mean otherwise
     - _Requirements: 13.3_
 
@@ -143,8 +143,8 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate non-empty rating arrays; assert mean equals `Σ stars / n`, lies in `[1, 5]`, is permutation-invariant; empty list returns `null`
     - File: `src/__tests__/properties/rating.property.test.ts`
 
-- [ ] 4. Implement formatting and validation utilities with property-based tests
-  - [ ] 4.1 Implement `src/lib/format.ts` and `src/lib/parse.ts`
+- [x] 4. Implement formatting and validation utilities with property-based tests
+  - [x] 4.1 Implement `src/lib/format.ts` and `src/lib/parse.ts`
     - `formatVND(n)` using `Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 })`
     - `formatDateVN(iso)` using `Intl.DateTimeFormat('vi-VN', { day, month, year: '2-digit'/'numeric' })` to produce `DD/MM/YYYY`
     - `parseDateVN(formatted)` returning the original ISO `YYYY-MM-DD`
@@ -170,7 +170,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate arbitrary `now` and `lastActivityAt`; assert predicate matches `now − last > 24h`
     - File: `src/__tests__/properties/session-expiration.property.test.ts`
 
-  - [ ] 4.5 Implement `src/lib/validate.ts`
+  - [x] 4.5 Implement `src/lib/validate.ts`
     - `isRequired(v)`, `isValidEmail(s)`, `isValidPassword(s)` (min length 8)
     - `isValidVNPhone(s)` accepting `+84` / `84` / `0` prefix and 9-digit subscriber with carrier prefix in `{3,5,7,8,9}`; never throws
     - All validators return `Result<true, string>` style discriminated unions for use by forms
@@ -182,19 +182,19 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate arbitrary strings (including symbols and unicode); assert no throw; assert validity matches the canonical regex
     - File: `src/__tests__/properties/vn-phone.property.test.ts`
 
-  - [ ] 4.7 Implement `src/lib/ids.ts`
+  - [x] 4.7 Implement `src/lib/ids.ts`
     - Tiny id generator using `crypto.randomUUID()` with a typed wrapper
     - _Requirements: (supports 3.1, 5.3, 6.3, 9.4, 13.1, 18.x)_
 
-- [ ] 5. Build data layer (seeds, persistence, hydration)
-  - [ ] 5.1 Author mock seed JSON files in `src/data/seed/`
+- [x] 5. Build data layer (seeds, persistence, hydration)
+  - [x] 5.1 Author mock seed JSON files in `src/data/seed/`
     - `users.json`: 3 employers, 6 workers (mix of verification statuses and reputation scores including one < 50), 1 admin
     - `shifts.json`: at least 8 shifts spanning Draft/Published/FullyBooked/Completed/Cancelled with realistic Vietnamese titles and districts
     - `applications.json`: cover Pending/Approved/Rejected/CheckedIn/CheckedOut/Confirmed
     - `ratings.json`, `notifications.json`, `disputes.json`, `boostLedger.json`
     - _Requirements: 4.1, 4.4, 6.1, 14.1, 15.1, 18.1, 26.1, 26.2, 26.3, 26.4, 26.5_
 
-  - [ ] 5.2 Implement `src/data/persistence.ts`
+  - [x] 5.2 Implement `src/data/persistence.ts`
     - Constants for all `cale.*` localStorage keys and `SCHEMA_VERSION`
     - `read<T>(key, fallback)` and `write<T>(key, value)` with try/catch
     - `loadAll()` reads every key; on schema mismatch or parse error, reseeds from `data/seed/*.json` and returns the seeded snapshot
@@ -205,21 +205,21 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Cover happy path, corrupted JSON, version bump, missing keys
     - File: `src/data/persistence.test.ts`
 
-- [ ] 6. Build Zustand stores wired to domain modules and persistence
-  - [ ] 6.1 Implement `src/stores/authStore.ts`
+- [x] 6. Build Zustand stores wired to domain modules and persistence
+  - [x] 6.1 Implement `src/stores/authStore.ts`
     - `currentUser`, `login(email, password)` returning `Result`, `register(input)`, `logout()`, `touch()`
     - Block login when `user.suspended === true` (return `{ ok: false, reason: 'SUSPENDED' }`)
     - Persist to `cale.auth`
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 14.4, 30.2_
 
-  - [ ] 6.2 Implement `src/stores/shiftStore.ts`
+  - [x] 6.2 Implement `src/stores/shiftStore.ts`
     - `create`, `simulateDeposit`, `edit`, `cancel`, `list(filter)` (delegates to `domain/filter`), `setStatus`, `useBoostCredit`
     - `simulateDeposit` flips escrow `PendingDeposit → Deposited` and shift `Draft → Published`
     - `cancel` enforces `canCancelShift` from `domain/timeGates`; refunds escrow via `transitionEscrow('CancelShift')`
     - `edit` enforces `canEditShift` and forbids changing `wage` and `date`
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 25.1, 25.2, 25.3, 25.4, 25.5, 29.1, 29.2, 29.4_
 
-  - [ ] 6.3 Implement `src/stores/applicationStore.ts`
+  - [x] 6.3 Implement `src/stores/applicationStore.ts`
     - `apply(shiftId, workerId)` returning `Result<Application, 'VERIFICATION_REQUIRED' | 'REPUTATION_TOO_LOW' | 'CONFLICT' | 'FULLY_BOOKED' | 'ALREADY_APPLIED'>`
     - Calls `verifications.includes('phone')`, `canApplyToShifts(score)`, `hasConflict(target, approvedRanges)`
     - `approve(id)`: sets status `Approved`, increments `positionsFilled`, marks shift `FullyBooked` when full
@@ -246,7 +246,7 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Create a rating via `confirmCompletion`; run an arbitrary sequence of subsequent store ops; assert deep-equality to the snapshot
     - File: `src/__tests__/properties/rating-immutable.property.test.ts`
 
-  - [ ] 6.7 Implement `src/stores/notificationStore.ts`
+  - [x] 6.7 Implement `src/stores/notificationStore.ts`
     - `push(n)`, `markRead(id)`, `unreadCount(userId)`
     - Other stores call `push` for each notification kind defined in `NotificationKind`
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
@@ -257,11 +257,11 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Generate notifications and a target userId; assert count equals filtered length; `markRead` decrements by exactly 1 when previously unread for that user
     - File: `src/__tests__/properties/notifications.property.test.ts`
 
-  - [ ] 6.9 Implement `src/stores/adminStore.ts`
+  - [x] 6.9 Implement `src/stores/adminStore.ts`
     - `suspend(userId)`, `reactivate(userId)`, `adjustReputation(workerId, delta, note)` (records reason), `overrideEscrow(shiftId, status, note)`, `resolveDispute(disputeId, outcome, note)`
     - _Requirements: 14.3, 14.4, 14.5, 15.3, 15.5_
 
-  - [ ] 6.10 Implement `<AppHydrator>` client component
+  - [x] 6.10 Implement `<AppHydrator>` client component
     - On mount, call `persistence.loadAll()` and seed all Zustand stores once
     - Mount in root `app/layout.tsx`
     - _Requirements: (cross-cutting; supports all stateful requirements)_
@@ -408,8 +408,8 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     - Wrapped in `<RoleGuard role="admin">`
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 15.1, 15.2, 15.3, 15.4, 15.5, 26.1, 26.2, 26.3, 26.4, 26.5_
 
-- [ ] 17. Checkpoint - All pages render and connect to stores
-  - Ensure all tests pass and the app boots with seeded data, ask the user if questions arise.
+- [x] 17. Checkpoint - All pages render and connect to stores
+  - Pages 12–16 render with seeded data, all stores hydrate via `AppHydrator`, `npm run build` and `npm run test:run` exit 0. Verified per HANDOFF.md (Tasks 1–16 complete).
 
 - [ ] 18. Add cross-cutting integration tests and final polish
   - [ ]* 18.1 Write integration tests for end-to-end shift lifecycle
@@ -436,6 +436,104 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
 
 - [ ] 19. Final checkpoint - MVP ready for demo
   - Ensure all tests pass (unit, property, integration), all pages render with seeded data, and responsive behavior is verified at 375 px / 768 px / 1280 px widths. Ask the user if questions arise.
+
+- [x] 20. Phase 8 - Calendar UI redesign for worker and employer schedules
+  - Goal: rebuild `/worker/schedule` and `/employer/schedule` as a modern calendar product (Day / Week / Agenda views, sidebar mini-month + legend, top toolbar). Preserve all existing data, store APIs, and conflict logic from Phases 5 / 5B / 7. UI-only redesign — no Google Calendar, Outlook, Zoom, server sync, drag-and-drop, or new dependencies. localStorage / mock only.
+  - _Depends on: existing Phase 5 / 5B worker schedule and Phase 7 employer schedule (both complete, see HANDOFF Section 5 items 13–16)_
+
+  - [x] 20.1 Extend `src/domain/week.ts` with calendar utilities
+    - Add `monthGrid(year, month)` returning a 6×7 array of `{ iso, inMonth, isToday }` cells (Mon-first, padded with adjacent-month days) for the mini-month sidebar
+    - Add `formatMonthYearVN(year, month)` returning `"Tháng M / YYYY"` for toolbar headers
+    - Add `dayViewLayout(blocks, dayIso, slotConfig)` returning a positioned-event array `{ block, topMinutes, heightMinutes }` for absolute-positioned chips in `DayView` / `WeekView`
+    - Reuse existing `validateSlotConfig`, `generateSlots`, `weekDates`, `startOfWeek`, `shiftWeek`, `todayIso`, `timeToMinutes`, `rangesOverlap`. No breaking changes.
+    - Pure TS, no React imports
+    - _Requirements: (supporting Phase 5/5B/7 — no new product requirement)_
+
+  - [x] 20.2 Implement `src/components/calendar/CalendarShell.tsx`
+    - Two-column layout: left sidebar (mini-month + legend + optional CTA slot) and right main area (toolbar + view body)
+    - Responsive: sidebar collapses above main below `md`; full sidebar from `lg`
+    - Accepts `sidebar`, `toolbar`, `body` slots; no view logic of its own
+    - _Requirements: 17.1, 17.2, 17.3_
+
+  - [x] 20.3 Implement `src/components/calendar/MiniMonthCalendar.tsx`
+    - 6×7 grid driven by `monthGrid(...)`; shows month/year header with Prev/Next chevrons and a localized "Hôm nay" link
+    - Click a day → calls `onSelectDate(iso)` so the parent can switch the main view to that date
+    - Highlights today and the currently-selected date; out-of-month days are dimmed
+    - 44×44 minimum tap targets on mobile
+    - _Requirements: 17.4, 27.3_
+
+  - [x] 20.4 Implement `src/components/calendar/CalendarToolbar.tsx`
+    - Left: title (week range or month/year via `formatMonthYearVN` / `formatDateVN`)
+    - Middle: `Hôm nay`, `←`, `→` buttons (uses `shiftWeek` / day step)
+    - Right: view switcher segmented control: `Ngày | Tuần | Agenda`; controlled via `view` + `onViewChange` props
+    - Optional `actions` slot (e.g. employer "Đăng ca mới" CTA)
+    - _Requirements: 17.4, 27.1_
+
+  - [x] 20.5 Implement `src/components/calendar/WeekView.tsx`
+    - 7 columns Mon→Sun with a sticky leftmost time gutter; vertical time grid driven by `slotConfig` + `generateSlots`
+    - Today's column is highlighted (orange-50 / orange-700 to match existing style)
+    - Events absolute-positioned via `dayViewLayout(...)`; renders `CalendarEventCard` for each
+    - `min-w-[720px]` on the inner table + `overflow-x-auto` wrapper for mobile horizontal scroll (matches existing timetable behavior)
+    - Click empty slot → `onCellClick(date, startTime, endTime)`; click event → `onEventClick(event)`
+    - _Requirements: 17.1, 17.3, 17.4_
+
+  - [x] 20.6 Implement `src/components/calendar/DayView.tsx`
+    - Single-day vertical timeline using the same `slotConfig` and `dayViewLayout(...)` helpers as `WeekView`
+    - Same click handlers, same event chip rendering — primarily a reuse of `WeekView` columns with a single column
+    - _Requirements: 17.1, 17.3_
+
+  - [x] 20.7 Implement `src/components/calendar/AgendaView.tsx`
+    - Chronological list grouped by date for the visible range (default: 7 days, configurable via prop)
+    - Each group shows the localized date heading and stacked `CalendarEventCard`s
+    - Empty groups render the localized empty-state message; no date headers for fully-empty windows
+    - Mobile-first: this is the most usable view below `md`
+    - _Requirements: 17.1, 17.3_
+
+  - [x] 20.8 Implement `src/components/calendar/CalendarEventCard.tsx`
+    - Colored block with title, time range, optional subtitle, optional status chip slot
+    - Variant prop drives color: `personalBusy`, `approvedShift`, `pendingShift`, `publishedShift`, `fullyBookedShift`, `awaitingShift`, `completedShift`, `cancelledShift`
+    - Renders inside absolute-positioned wrapper for `Day`/`Week` views, and as a normal block in `Agenda` view
+    - 44×44 minimum tap target; click handler exposed via `onClick`
+    - _Requirements: 17.4_
+
+  - [x] 20.9 Implement `src/components/calendar/CalendarLegend.tsx`
+    - Small color-swatch list with localized labels
+    - Variants: `worker` (personal busy = slate, approved shift = orange, pending = amber) and `employer` (published = blue, fully-booked = amber, awaiting = yellow, completed = green, cancelled / expired = red / gray)
+    - Pure presentational; no store reads
+    - _Requirements: 27.1_
+
+  - [x] 20.10 Add Vietnamese i18n keys for the calendar shell
+    - Add `calendar.view.{day,week,agenda}`, `calendar.today`, `calendar.prev`, `calendar.next`, `calendar.miniMonth.aria.{prev,next}`
+    - Add `calendar.legend.worker.{personalBusy,approvedShift,pendingShift}`
+    - Add `calendar.legend.employer.{published,fullyBooked,awaiting,completed,cancelled,expired}`
+    - Add `calendar.empty.{worker,employer}` short empty-state copy
+    - Update `src/i18n/vi.ts` only — no other files
+    - _Requirements: 27.1, 27.4, 27.5_
+
+  - [x] 20.11 Rewrite `src/app/worker/schedule/page.tsx` on the calendar shell
+    - Keep `<RoleGuard role="worker">`, the `useScheduleStore` API, and the existing `ScheduleBlockDialog` for add/edit/delete
+    - Wire `CalendarShell`: sidebar = `MiniMonthCalendar` + `CalendarLegend variant="worker"`; toolbar = `CalendarToolbar` with view switcher; body = `WeekView | DayView | AgendaView` based on selected view
+    - Show personal busy blocks (`personalBusy` variant) AND the worker's approved shifts (`approvedShift` variant, read-only) as events on the same calendar
+    - Click a personal busy block → opens edit dialog; click an approved shift → router.push to `/shifts/[id]`
+    - Click empty cell on Day/Week → opens add dialog with date + start + end pre-filled (matches existing Phase 5B behavior)
+    - Conflict logic untouched — `hasScheduleConflict` still runs in `applicationStore.apply`
+    - _Requirements: 17.1, 17.2, 17.3, 17.4, 22.1, 22.2, 22.3, 22.4, 22.5_
+
+  - [x] 20.12 Rewrite `src/app/employer/schedule/page.tsx` on the calendar shell
+    - Keep `<RoleGuard role="employer">` and the `useLifecycleSync()` boot call (Phase 7 contract)
+    - Wire `CalendarShell`: sidebar = `MiniMonthCalendar` + `CalendarLegend variant="employer"` + a `Đăng ca mới` CTA linking to `/employer/shifts/new`; toolbar = `CalendarToolbar` with view switcher
+    - Show only the current employer's own shifts (filter on `employerId === currentUserId`); event variant chosen per `ShiftStatus`
+    - Each event chip shows title, time, `positionsFilled / positionsTotal`, `ShiftStatusBadge`, and `EscrowStatusBadge`
+    - Click event → router.push to `/employer/shifts/[id]`
+    - Empty state per view via `calendar.empty.employer`
+    - _Requirements: 17.1, 17.2, 17.3, 17.4_
+
+  - [x] 20.13 Verify Phase 8 build, tests, and update HANDOFF
+    - Run `npm run build` (must exit 0)
+    - Run `npm run test:run` (must exit 0)
+    - Append a new Phase 8 entry to HANDOFF.md Section 5 (date-stamped, files-changed list, explicit limitations: no Google Calendar / Outlook / Zoom / server sync / drag-and-drop)
+    - Confirm the route count is unchanged (15 routes) — no new route, only redesign of two existing routes
+    - _Requirements: (verification gate)_
 
 ## Notes
 
@@ -464,7 +562,12 @@ Stack: Next.js (App Router) + React + TypeScript + Tailwind CSS + Zustand + Vite
     { "id": 10, "tasks": ["12.1", "12.2", "13.1", "14.2", "15.4", "16.1"] },
     { "id": 11, "tasks": ["13.2", "14.1", "15.1", "15.2"] },
     { "id": 12, "tasks": ["15.3"] },
-    { "id": 13, "tasks": ["18.1", "18.2", "18.3", "18.4"] }
+    { "id": 13, "tasks": ["18.1", "18.2", "18.3", "18.4"] },
+    { "id": 14, "tasks": ["20.1"] },
+    { "id": 15, "tasks": ["20.2", "20.3", "20.4", "20.8", "20.9", "20.10"] },
+    { "id": 16, "tasks": ["20.5", "20.6", "20.7"] },
+    { "id": 17, "tasks": ["20.11", "20.12"] },
+    { "id": 18, "tasks": ["20.13"] }
   ]
 }
 ```

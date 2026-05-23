@@ -70,6 +70,20 @@ function WorkerProfileContent() {
             <h2 className="mb-3 font-semibold text-gray-900">Đánh giá đã nhận</h2>
             <RatingsHistory worker={worker} />
           </Card>
+
+          {/* Phase 6: reputation rules — surfaced on the profile so the
+              worker understands how to recover their score. */}
+          <Card className="bg-orange-50/40">
+            <p className="font-semibold text-orange-800">
+              {t('worker.dashboard.reputationHint.title')}
+            </p>
+            <p className="mt-1 text-sm text-orange-700">
+              {t('worker.dashboard.reputationHint.gain')}
+            </p>
+            <p className="mt-1 text-sm text-orange-700">
+              {t('worker.dashboard.reputationHint.lose')}
+            </p>
+          </Card>
         </div>
 
         {/* Right: stats + verifications */}

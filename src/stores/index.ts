@@ -36,3 +36,9 @@ export type {
   ScheduleBlockEditablePatch,
   ScheduleError,
 } from './scheduleStore';
+
+export { useEmployerFeedbackStore } from './employerFeedbackStore';
+export type {
+  FeedbackError,
+  NewEmployerFeedbackInput,
+} from './employerFeedbackStore';

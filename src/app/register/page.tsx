@@ -9,6 +9,7 @@ import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired, isValidPassword, isValidVNPhone } from '@/lib/validate';
 
 type Role = 'worker' | 'employer';
+type EmployerType = 'individual' | 'business';
 
 interface FormValues {
   role: Role;
@@ -18,6 +19,7 @@ interface FormValues {
   fullName: string;
   companyName: string;
   businessType: string;
+  employerType: EmployerType;
 }
 
 interface FormErrors {
@@ -58,6 +60,7 @@ function RegisterForm() {
     fullName: '',
     companyName: '',
     businessType: '',
+    employerType: 'individual',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
@@ -108,6 +111,7 @@ function RegisterForm() {
       fullName: values.role === 'worker' ? values.fullName.trim() : undefined,
       companyName: values.role === 'employer' ? values.companyName.trim() : undefined,
       businessType: values.role === 'employer' ? values.businessType.trim() : undefined,
+      employerType: values.role === 'employer' ? values.employerType : undefined,
     });
 
     setLoading(false);
@@ -167,6 +171,37 @@ function RegisterForm() {
             {/* Employer-specific */}
             {values.role === 'employer' && (
               <>
+                {/* Phase 6: employer-type selector — defaults to individual,
+                    so freelance employers don't have to fill out business
+                    fields they don't actually have. */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-gray-700">
+                    {t('form.employerType')}
+                  </span>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['individual', 'business'] as EmployerType[]).map((et) => (
+                      <button
+                        key={et}
+                        type="button"
+                        onClick={() => set('employerType', et)}
+                        className={[
+                          'rounded-xl border-2 px-3 py-2 text-xs font-medium transition-colors min-h-[44px]',
+                          values.employerType === et
+                            ? 'border-orange-500 bg-orange-50 text-orange-700'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                        ].join(' ')}
+                      >
+                        {t(`employerType.${et}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {values.employerType === 'individual'
+                      ? t('employerType.individual.hint')
+                      : t('employerType.business.hint')}
+                  </p>
+                </div>
+
                 <Input
                   label={t('form.companyName')}
                   value={values.companyName}
