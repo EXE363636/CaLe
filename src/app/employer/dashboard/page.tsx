@@ -358,6 +358,7 @@ function EmployerDashboardContent() {
           <HelpPopover
             title={t('employer.payments.title')}
             description={t('hint.employer.totalDeposited')}
+            learnMoreHref="/user-guide#employer-total-deposit"
           />
         }
       >
@@ -365,16 +366,30 @@ function EmployerDashboardContent() {
           <p>{t('employer.payments.intro')}</p>
           <dl className="grid grid-cols-2 gap-3 rounded-xl bg-orange-50 p-4 text-xs">
             <div>
-              <dt className="text-orange-700">
-                {t('employer.dashboard.stats.totalDeposited')}
+              <dt className="inline-flex items-center gap-1 text-orange-700">
+                <span>{t('employer.dashboard.stats.totalDeposited')}</span>
+                {/* Phase 9Z-Fix-5: per-amount popover so the user can
+                    deep-link to the specific guide section for the
+                    deposit half of this shared modal. */}
+                <HelpPopover
+                  title={t('employer.dashboard.stats.totalDeposited')}
+                  description={t('hint.employer.totalDeposited')}
+                  learnMoreHref="/user-guide#employer-total-deposit"
+                />
               </dt>
               <dd className="mt-1 text-base font-bold text-gray-900">
                 {formatVND(totalDeposited)}
               </dd>
             </div>
             <div>
-              <dt className="text-orange-700">
-                {t('employer.dashboard.stats.totalPaidOut')}
+              <dt className="inline-flex items-center gap-1 text-orange-700">
+                <span>{t('employer.dashboard.stats.totalPaidOut')}</span>
+                {/* Phase 9Z-Fix-5: paid-out half — separate deep link. */}
+                <HelpPopover
+                  title={t('employer.dashboard.stats.totalPaidOut')}
+                  description={t('hint.employer.totalPaidOut')}
+                  learnMoreHref="/user-guide#employer-total-paid"
+                />
               </dt>
               <dd className="mt-1 text-base font-bold text-orange-600">
                 {formatVND(totalPaidOut)}
@@ -461,6 +476,7 @@ function EmployerDashboardContent() {
           <HelpPopover
             title={t('employer.detail.posted.title')}
             description={t('hint.employer.postedShifts')}
+            learnMoreHref="/user-guide#employer-posted-shifts"
           />
         }
         intro={t('employer.detail.posted.intro')}
@@ -479,6 +495,7 @@ function EmployerDashboardContent() {
           <HelpPopover
             title={t('employer.detail.active.title')}
             description={t('hint.employer.activeShifts')}
+            learnMoreHref="/user-guide#employer-active-shifts"
           />
         }
         intro={t('employer.detail.active.intro')}
@@ -497,6 +514,7 @@ function EmployerDashboardContent() {
           <HelpPopover
             title={t('employer.detail.completed.title')}
             description={t('hint.employer.completedShifts')}
+            learnMoreHref="/user-guide#employer-completed-shifts"
           />
         }
         intro={t('employer.detail.completed.intro')}
@@ -515,6 +533,7 @@ function EmployerDashboardContent() {
           <HelpPopover
             title={t('employer.detail.pending.title')}
             description={t('hint.employer.pendingApps')}
+            learnMoreHref="/user-guide#employer-pending-applications"
           />
         }
       >
@@ -782,11 +801,14 @@ function StatTile({
 
   const body = (
     <>
+      {/* Phase 9Z-Fix-1: dropped the top-right decorative TileIcon —
+          see the matching note in `src/app/worker/dashboard/page.tsx`.
+          The `icon` prop is preserved for call-site compatibility but
+          is intentionally a no-op. */}
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
           {label}
         </p>
-        {icon && <TileIcon name={icon} />}
       </div>
       <p className={['mt-2 text-2xl font-extrabold', toneText[tone]].join(' ')}>
         {value}

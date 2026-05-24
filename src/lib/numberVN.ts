@@ -3,7 +3,7 @@
  *
  * Pure TypeScript — no React, no Next, no I/O. Used by `ShiftForm` for the
  * hourly wage input so users see `35.000` while typing `35000`, with a
- * helper line `(ba mươi lăm nghìn VNĐ)` reading the value out loud.
+ * helper line `(ba mươi lăm nghìn đồng)` reading the value out loud.
  *
  * Conventions:
  *   - Thousand separator is `.` (Vietnamese convention).
@@ -155,10 +155,13 @@ export function numberToVietnameseWords(n: number): string {
 
 /**
  * Convenience wrapper used by the `ShiftForm` helper text — appends
- * "VNĐ" after the words. Empty / NaN input returns empty string so the
- * caller can omit the helper line entirely while the field is empty.
+ * "đồng" after the spelled-out words. Phase 9Z-Fix-2 standardised the
+ * suffix from "VNĐ" to "đồng" so the helper line reads naturally
+ * (`ba mươi lăm nghìn đồng`) instead of mixing prose with an
+ * abbreviation. Empty / NaN input returns empty string so the caller
+ * can omit the helper line entirely while the field is empty.
  */
 export function numberToVietnameseCurrency(n: number): string {
   if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return '';
-  return `${numberToVietnameseWords(n)} VNĐ`;
+  return `${numberToVietnameseWords(n)} đồng`;
 }

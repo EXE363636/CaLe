@@ -39,6 +39,11 @@ function CalendarIcon() {
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
+      // Phase 9Y-Fix-4 — defensive against extension-injected
+      // attributes (Dark Reader, Grammarly) on heavily-reused inline
+      // SVGs. ShiftCard renders one CalendarIcon per shift row, so
+      // suppressing here avoids fan-out warnings on long lists.
+      suppressHydrationWarning
     >
       <path
         fillRule="evenodd"

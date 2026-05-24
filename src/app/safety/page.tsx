@@ -1,6 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'An toàn & xác minh — CaLẻ / ShiftNow' };
+export const metadata = { title: 'An toàn & xác minh — CaLẻ / Now' };
 
 export default function SafetyPage() {
   return (

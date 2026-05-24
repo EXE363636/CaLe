@@ -15,8 +15,12 @@
  */
 
 const VND_FORMATTER = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
+  // Phase 9Z-Fix-2: switched from `style: 'currency', currency: 'VND'`
+  // (which renders the `₫` symbol via Intl) to a plain decimal
+  // formatter so we can append the lowercase `đ` ourselves. The new
+  // suffix is consistent with the form helper text that reads amounts
+  // as `... đồng` and matches the i18n `(đ)` form-label convention.
+  style: 'decimal',
   maximumFractionDigits: 0,
 });
 
@@ -29,16 +33,18 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
 const SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Format a number as Vietnamese Dong (e.g. `50.000 ₫`).
+ * Format a number as Vietnamese Dong (e.g. `50.000 đ`). Phase 9Z-Fix-2
+ * standardised the suffix to lowercase `đ` (replacing the `₫` glyph)
+ * so amount displays match the form helper text convention.
  *
- * Non-finite or non-numeric input falls back to `0 ₫` so the UI never
- * renders `NaN ₫` from a stale store value.
+ * Non-finite or non-numeric input falls back to `0 đ` so the UI never
+ * renders `NaN đ` from a stale store value.
  */
 export function formatVND(n: number): string {
   if (typeof n !== 'number' || !Number.isFinite(n)) {
-    return VND_FORMATTER.format(0);
+    return `${VND_FORMATTER.format(0)} đ`;
   }
-  return VND_FORMATTER.format(n);
+  return `${VND_FORMATTER.format(n)} đ`;
 }
 
 /**

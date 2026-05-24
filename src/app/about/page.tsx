@@ -1,13 +1,13 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Giới thiệu — CaLẻ / ShiftNow' };
+export const metadata = { title: 'Giới thiệu — CaLẻ / Now' };
 
 export default function AboutPage() {
   return (
     <InfoPage
       eyebrow="Về chúng tôi"
-      title="Giới thiệu CaLẻ / ShiftNow"
-      intro="CaLẻ (ShiftNow) là sản phẩm của CaLedo Tech — đội ngũ Việt Nam xây dựng nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương."
+      title="Giới thiệu CaLẻ / Now"
+      intro="CaLẻ (Now) là sản phẩm của CaLedo Tech — đội ngũ Việt Nam xây dựng nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương."
       ctas={[
         { label: 'Tìm ca làm', href: '/shifts' },
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new', variant: 'secondary' },

@@ -101,15 +101,24 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
     links: [
       { href: '/shifts', label: 'Tìm ca làm' },
       { href: '/worker/reputation-guide', label: 'Hồ sơ & điểm uy tín' },
-      { href: '/worker/schedule', label: 'Lịch cá nhân' },
+      // Phase 9Z-Fix-3: public-variant — `/worker/schedule` is
+      // protected, so logged-out users get the user-guide instead.
+      // Phase 9Z-Fix-4: deep-link to the feature anchor so the user
+      // lands directly on the Lịch cá nhân explanation.
+      { href: '/user-guide#worker-schedule', label: 'Lịch cá nhân' },
       { href: '/worker/cancellation-policy', label: 'Quy định huỷ ca' },
     ],
   },
   {
     heading: 'Nhà tuyển dụng',
     links: [
-      { href: '/employer/shifts/new', label: 'Đăng ca tuyển' },
-      { href: '/employer/dashboard', label: 'Quản lý ứng viên' },
+      // Phase 9Z-Fix-3: public-variant — `/employer/shifts/new` and
+      // `/employer/dashboard` are protected, so logged-out users get
+      // public guide pages.
+      // Phase 9Z-Fix-4: deep-link to specific anchors so the user
+      // lands on the right feature explanation.
+      { href: '/user-guide#employer-post-shift', label: 'Đăng ca tuyển' },
+      { href: '/user-guide#employer-applicants', label: 'Quản lý ứng viên' },
       { href: '/employer/payments', label: 'Đặt cọc & thanh toán' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
     ],
@@ -200,6 +209,12 @@ function HamburgerIcon({ open }: { open: boolean }) {
       stroke="currentColor"
       strokeWidth={2}
       aria-hidden="true"
+      // Phase 9Y-Fix-4 — Dark Reader and similar extensions inject
+      // `data-darkreader-inline-stroke` on stroked SVGs before
+      // hydration, producing noisy dev warnings. The flag suppresses
+      // those for this element only; real hydration mismatches still
+      // surface on legitimate descendants.
+      suppressHydrationWarning
     >
       {open ? (
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

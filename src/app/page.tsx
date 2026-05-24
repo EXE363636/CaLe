@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Reveal } from '@/components/ui';
 import { FeaturedJobMockup } from '@/components/landing/FeaturedJobMockup';
+import { RouteBackdrop } from '@/components/layout/RouteBackdrop';
 import { t } from '@/i18n/vi';
 
 // ---------------------------------------------------------------------------
@@ -25,7 +26,7 @@ function StepNumber({ n }: { n: number }) {
 
 function ShieldIcon() {
   return (
-    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" suppressHydrationWarning>
       <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
       <path d="m9 12 2 2 4-4" />
     </svg>
@@ -33,7 +34,7 @@ function ShieldIcon() {
 }
 function WalletIcon() {
   return (
-    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" suppressHydrationWarning>
       <path d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
       <path d="M16 11h4M16 14h4" />
     </svg>
@@ -41,14 +42,14 @@ function WalletIcon() {
 }
 function StarIcon() {
   return (
-    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" suppressHydrationWarning>
       <path d="m12 2 3 7 7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z" />
     </svg>
   );
 }
 function CalendarIcon() {
   return (
-    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" suppressHydrationWarning>
       <rect x="3" y="5" width="18" height="16" rx="3" />
       <path d="M3 10h18M8 3v4M16 3v4" />
     </svg>
@@ -60,7 +61,7 @@ function CalendarIcon() {
 // rather than legal warning.
 function ScalesIcon() {
   return (
-    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg className="h-6 w-6 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" suppressHydrationWarning>
       <path d="M12 4v16M5 8h14" />
       <path d="M5 8 2 16h6L5 8ZM19 8l-3 8h6l-3-8Z" />
       <path d="M8 21h8" />
@@ -124,6 +125,12 @@ export default function LandingPage() {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="hero-decor relative overflow-hidden px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-24">
         <HeroBackgroundDecor />
+        {/* Phase 9Z — route-network backdrop layered behind the hero
+            blobs. Establishes the Vietnam-shift-network metaphor at
+            first paint. Decorative + accessible (aria-hidden on the
+            wrapper) + motion-safe (pulse-node respects
+            prefers-reduced-motion). */}
+        <RouteBackdrop variant="hero" className="-z-0 hidden md:block" />
 
         <div className="relative mx-auto grid min-w-0 max-w-6xl gap-10 sm:gap-12 lg:grid-cols-2 lg:items-center">
           {/* Copy column */}
@@ -356,6 +363,62 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Designed for Vietnam shift work — Phase 9Z ──────────────────── */}
+      {/* Network-of-cities strip. Pure illustration, NOT live coverage
+          data — copy reads "thiết kế cho nhu cầu ca làm linh hoạt
+          tại Việt Nam" so the MVP doesn't overclaim reach. Cities
+          were chosen as the five most-populated Vietnamese metros
+          where short-term shift work is most common; visual only. */}
+      <section className="px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto min-w-0 max-w-5xl">
+          <div className="section-shell relative overflow-hidden p-6 sm:p-10">
+            <RouteBackdrop variant="page" />
+            <div className="relative">
+              <div className="mb-8 text-center">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-orange-700">
+                  {t('landing.vn.eyebrow')}
+                </span>
+                <h2 className="mt-2 text-2xl font-bold text-gray-900 sm:text-3xl">
+                  {t('landing.vn.title')}
+                </h2>
+                <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
+                  {t('landing.vn.lead')}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {[
+                  { name: 'Hà Nội', sub: 'Thủ đô' },
+                  { name: 'TP.HCM', sub: 'Trung tâm phía Nam' },
+                  { name: 'Đà Nẵng', sub: 'Miền Trung' },
+                  { name: 'Cần Thơ', sub: 'ĐB Sông Cửu Long' },
+                  { name: 'Hải Phòng', sub: 'Cảng biển phía Bắc' },
+                ].map((city, i) => (
+                  <Reveal key={city.name} delayMs={i * 60}>
+                    <div className="card-lift flex h-full flex-col items-start gap-1 rounded-xl border border-orange-100 bg-white/80 p-4 shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-900">
+                        <span aria-hidden="true" className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-50 ring-1 ring-orange-200">
+                          <svg className="h-3.5 w-3.5 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" suppressHydrationWarning>
+                            <path d="M12 21s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z" />
+                            <circle cx="12" cy="9" r="2.5" />
+                          </svg>
+                        </span>
+                        {city.name}
+                      </span>
+                      <span className="text-[11px] text-gray-500">{city.sub}</span>
+                    </div>
+                  </Reveal>
+                ))}
+              </div>
+
+              <p className="mt-6 text-center text-[11px] text-gray-500">
+                {t('landing.vn.disclaimer')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── How it works ─────────────────────────────────────────────────── */}
       <section className="section-wave relative bg-white/60 px-4 py-14 backdrop-blur-sm sm:px-6 sm:py-16 lg:px-8">
         {/* Phase 9U — paper texture behind the timeline so it doesn't
@@ -426,9 +489,12 @@ export default function LandingPage() {
           <div className="mt-10 flex justify-center">
             <Link
               href="/user-guide"
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-5 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              // Phase 9Z-Fix-3: `.cta-arrow-nudge` triggers a small
+              // 4 px right-shift of the inner arrow on hover/focus.
+              // The arrow is wrapped in `<span class="cta-arrow">`.
+              className="cta-arrow-nudge inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-orange-200 bg-white/80 px-5 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
             >
-              {t('landing.howItWorks.viewGuide')} <ArrowRightIcon />
+              {t('landing.howItWorks.viewGuide')} <span className="cta-arrow"><ArrowRightIcon /></span>
             </Link>
           </div>
         </div>
@@ -482,7 +548,7 @@ export default function LandingPage() {
               <Reveal key={card.title} delayMs={i * 80}>
                 <Link
                   href={card.href}
-                  className="motion-lift entrance-up-soft group flex min-w-0 flex-col rounded-2xl border border-orange-100 bg-white p-5 shadow-sm ring-1 ring-orange-50 transition-shadow hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                  className="cta-arrow-nudge motion-lift entrance-up-soft group flex min-w-0 flex-col rounded-2xl border border-orange-100 bg-white p-5 shadow-sm ring-1 ring-orange-50 transition-shadow hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                   style={{ ['--entrance-delay' as string]: `${i * 80}ms` } as React.CSSProperties}
                 >
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 ring-1 ring-orange-100">
@@ -495,7 +561,7 @@ export default function LandingPage() {
                     {card.desc}
                   </p>
                   <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-orange-700">
-                    {card.cta} <ArrowRightIcon />
+                    {card.cta} <span className="cta-arrow"><ArrowRightIcon /></span>
                   </span>
                 </Link>
               </Reveal>

@@ -94,7 +94,7 @@ export function Footer() {
           {/* Column 1 — brand + contact */}
           <div className="lg:col-span-1">
             <p className="text-base font-bold text-orange-600">
-              CaLẻ / ShiftNow
+              CaLẻ / Now
             </p>
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-gray-500">
               CaLedo Tech

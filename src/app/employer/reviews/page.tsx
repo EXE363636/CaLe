@@ -1,7 +1,7 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
 export const metadata = {
-  title: 'Đánh giá sau ca — CaLẻ / ShiftNow',
+  title: 'Đánh giá sau ca — CaLẻ / Now',
 };
 
 export default function EmployerReviewsPage() {

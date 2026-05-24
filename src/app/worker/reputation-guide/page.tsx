@@ -1,7 +1,7 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
 export const metadata = {
-  title: 'Hồ sơ & điểm uy tín — CaLẻ / ShiftNow',
+  title: 'Hồ sơ & điểm uy tín — CaLẻ / Now',
 };
 
 export default function WorkerReputationGuidePage() {

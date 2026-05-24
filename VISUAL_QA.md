@@ -1,4 +1,4 @@
-# Visual QA Notes — CaLẻ / ShiftNow
+# Visual QA Notes — CaLẻ / Now
 
 Last reviewed: **2026-05-23, Phase 9S product navigation shell pass.**
 
@@ -2259,3 +2259,420 @@ Re-run this audit after any change to:
 - `src/app/employer/dashboard/page.tsx` — same, plus the `<ShiftListModal>` helper signature (must forward `titleAccessory`).
 - `src/i18n/vi.ts` — the `hint.*` block (worker / employer / admin descriptions).
 - `src/components/ui/HelpPopover.tsx` — popover trigger or modal body.
+
+
+## Phase 9Y-Fix-4 — Browser-extension hydration noise suppression
+
+Last reviewed: **2026-05-24, Phase 9Y-Fix-4**.
+
+Manual QA reported a `Hydration failed` warning in dev. The error log called out `data-darkreader-mode`, `data-darkreader-scheme`, `data-darkreader-proxy-injected`, `data-darkreader-inline-stroke`, and the CSS variable `--darkreader-inline-stroke` — every one of those is injected by the **Dark Reader** browser extension before React hydrates. The app's SSR markup matches its client markup; the third-party extension is the source of the divergence. Phase 9Y-Fix-4 adds defensive `suppressHydrationWarning` flags on the affected nodes only, plus a documented audit confirming no real app hydration risks were introduced.
+
+### A. Test with extensions enabled
+
+1. Run `npm run dev`. Open the app in a regular Chrome / Firefox window with Dark Reader (or any equivalent that mutates DOM/CSS) enabled.
+2. Reload `/` and watch the dev console.
+3. Expected: no `Hydration failed because the server rendered HTML didn't match the client.` warning. Old warnings about `data-darkreader-*` attributes on `<html>` / `<body>` / `<svg>` should be suppressed.
+4. If a warning appears for an attribute that ISN'T extension-injected (e.g. `data-react-something`, app className mismatch), treat it as a real app bug and investigate.
+
+### B. Test in Incognito / extensions disabled
+
+5. Reopen the app in an Incognito / Private window (Chrome / Firefox / Edge), or disable all extensions.
+6. Reload `/` and the dashboards. Watch the dev console.
+7. Expected: zero hydration warnings. The defensive flags should not be needed in this environment, but their presence is harmless.
+8. If warnings appear in Incognito, treat them as real app hydration bugs:
+   - Check for `new Date()` or `Date.now()` rendered as text inside SSR-able server components.
+   - Check for `Math.random()` in render paths.
+   - Check for `typeof window` branches that change rendered markup.
+   - Check for localStorage-derived markup before hydration.
+   - Check for invalid nested HTML (e.g. `<button>` inside `<button>`).
+   - Phase 9Y-Fix-4 audited and cleared all five categories — current findings are documented in `HANDOFF.md` item 44 part C.
+
+### C. Verify the surgical scope of suppression
+
+9. Inspect `src/app/layout.tsx` — `<html>` and `<body>` should both carry `suppressHydrationWarning`.
+10. Inspect the named SVG icons:
+    - `src/app/page.tsx` — `ShieldIcon`, `WalletIcon`, `StarIcon`, `CalendarIcon`, `ScalesIcon`.
+    - `src/components/layout/MobileNav.tsx` — `HamburgerIcon`.
+    - `src/components/shift/ShiftCard.tsx` — `CalendarIcon`.
+11. Each `<svg>` root should carry `suppressHydrationWarning`. Other SVGs in the codebase (deeper in the page tree, behind interaction) do not need the flag because they are not present at first paint and don't trigger the QA warning.
+
+### D. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/app/layout.tsx` — particularly the `<html>` / `<body>` element attributes.
+- The named icon components in `src/app/page.tsx`, `src/components/layout/MobileNav.tsx`, `src/components/shift/ShiftCard.tsx`.
+- Any new top-of-page inline SVG with `stroke="currentColor"` (Dark Reader's primary target).
+- Any change that adds a server-rendered `Date` / `Math.random` / `typeof window` branch.
+
+
+## Phase 9Z — Visual identity system + Vietnam-network atmosphere
+
+Last reviewed: **2026-05-24, Phase 9Z — NEEDS MANUAL VISUAL QA**.
+
+Cross-product review flagged the homepage and guidance pages as functional but visually generic. Phase 9Z layers a coherent CaLẻ identity on top: a Vietnam-shift-network metaphor (curved route lines + pulsing nodes) executed as a reusable `<RouteBackdrop>` SVG, four new shared CSS utilities, a new homepage city strip, and a polished `<InfoPage>` shell. Dashboards intentionally unchanged.
+
+### A. Homepage hero — Vietnam route backdrop
+
+Open `/` at 1366 / 1440 px:
+
+1. The hero panel still shows the existing Phase 9T blobs and Phase 9U mockup unchanged.
+2. Behind the blobs (lower z layer), two thin curved orange dashed lines sweep diagonally across the panel — one top-left → mid-right, one top-right → mid-left.
+3. Four small orange dots sit at the curve endpoints, each surrounded by a soft pulsing radial halo. Pulses are slow (4.4s loop, two endpoints on a 6.6s slow loop) and never reach below 55 % opacity at trough.
+4. Below `md` (768 px) the backdrop is hidden — mobile hero stays calm.
+5. Hero copy / CTAs / mockup readability unchanged.
+
+### B. Homepage "Designed for Vietnam" city strip
+
+Between Audience cards and How-it-works:
+
+6. Eyebrow reads "Kết nối ca làm tại Việt Nam".
+7. Title reads "Thiết kế cho nhu cầu ca làm linh hoạt".
+8. Lead is a 1–2 sentence sentence about the local short-term shift market.
+9. Below the lead, a 5-card grid: Hà Nội · TP.HCM · Đà Nẵng · Cần Thơ · Hải Phòng. Each card has a small orange location-pin glyph + city name + region subtitle.
+10. The grid sits inside a `.section-shell` panel — soft warm gradient + inset orange ring + low-opacity dot-grid mask + a `<RouteBackdrop variant="page" />` decoratively behind the cards.
+11. Hover any city card on desktop. The card lifts (`.card-lift` class) with a stronger orange shadow.
+12. A small disclaimer beneath the grid reads "Hiện đang trong giai đoạn thử nghiệm — danh sách thành phố ở trên là minh hoạ định hướng, không phải dữ liệu phủ sóng thực tế." This is critical — the MVP does NOT overclaim coverage.
+13. At `< sm` the grid stacks to 1 column. At `sm` it's 3 columns. At `lg` it's 5 columns.
+
+### C. InfoPage shell upgrade
+
+Visit `/user-guide`, `/about`, `/how-it-works`, `/safety`, `/faq`, `/disputes`, `/support`, `/terms`, `/privacy`, `/employer/payments`, `/employer/reviews`, `/worker/cancellation-policy`, `/worker/reputation-guide`:
+
+14. Each page header now sits inside an `.info-page-hero` strip — soft warm orange gradient wash + inset orange ring + rounded panel.
+15. A low-opacity `<RouteBackdrop variant="page" />` is decoratively layered behind the eyebrow / title / intro.
+16. Body content layout unchanged — only the header strip is upgraded.
+17. The header backdrop pulse nodes are visible at desktop widths but should not compete with the page title for attention.
+
+### D. Dashboard cleanliness preserved
+
+Visit `/worker/dashboard`, `/employer/dashboard`, `/admin/dashboard`:
+
+18. No `<RouteBackdrop>`. No new decorative SVGs. The Phase 9T `.bg-grid-soft` paper texture is the only background depth.
+19. Stat tiles still clean per Phase 9Y-Fix-3 (no `?` glyphs, no inline help). Help lives inside detail modals' `titleAccessory` slot.
+
+### E. Mobile behaviour (360 / 390 / 430 px)
+
+20. Homepage hero: backdrop hidden, blobs hidden, mockup simplified, no horizontal scroll.
+21. Homepage city strip: 1-column grid, each card full-width, no clipping, disclaimer fits.
+22. InfoPage hero strip: gradient wash visible, backdrop is faint but not clipped, title wraps gracefully.
+
+### F. Reduced-motion safety
+
+23. With `prefers-reduced-motion: reduce` enabled (DevTools → Rendering → emulate CSS media → reduce), the route backdrop pulse stops (`.pulse-node` rule short-circuited via the `globals.css` media query block). City cards still hover with shadow but no transform.
+24. Modals, toasts, entrance reveals, scroll-reveal — all already short-circuited from Phase 9D / 9O / 9R / 9U, no regression.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/RouteBackdrop.tsx` — particularly the variant SVG geometry or the curve/node count.
+- `src/app/globals.css` — particularly `.pulse-node`, `.section-shell`, `.card-lift`, `.info-page-hero`, and the `prefers-reduced-motion` block.
+- `src/app/page.tsx` — particularly the new city strip section between Audience and How-it-works.
+- `src/components/layout/InfoPage.tsx` — particularly the header strip composition.
+- `src/i18n/vi.ts` — particularly the `landing.vn.*` block.
+
+
+## Phase 9Z-Fix-1 — Dashboard icon cleanup, applicant status help consistency, brand rename
+
+Last reviewed: **2026-05-24, Phase 9Z-Fix-1 — NEEDS MANUAL VISUAL QA**.
+
+Three follow-on consistency fixes after the Phase 9Z visual upgrade:
+
+### A. Dashboard stat-tile cards are now clean
+
+Open `/worker/dashboard` and `/employer/dashboard`:
+
+1. No decorative glyph in the top-right corner of any stat tile. Only label + big value + (on hover) "Xem chi tiết →" caret.
+2. The colored top accent bar (`before:` pseudo-element) is the only per-tile differentiator.
+3. The grid reads as visually uniform across all 4 worker tiles and all 6 employer tiles.
+4. Click the body of any tile — its detail modal still opens (regression check).
+
+### B. Applicant status badges are uniform
+
+Open `/employer/shifts/[id]` as the shift's owner with at least one applicant in each state:
+
+5. Approved / Confirmed badges no longer carry a `?` glyph (Phase 9Z-Fix-1 removed the inline `<HelpPopover>`).
+6. Pending / Rejected / CheckedIn / CheckedOut badges also have no `?` glyph (they never did — that was the inconsistency).
+7. Applicant rows now look uniform regardless of state. Status meaning is conveyed by the tinted `<Badge>` color alone.
+8. Long-form status explanations live on `/user-guide` (the worker steps + employer steps cover Approved / Confirmed implicitly).
+
+### C. Brand rename consistency
+
+Visit any of these pages and check both the browser tab title and on-page brand text:
+
+9. `/` — homepage shows "CaLẻ / Now" in the navbar brand and footer brand.
+10. `/login` — auth subtitle reads "Chào mừng bạn quay lại CaLẻ / Now".
+11. `/register` — auth subtitle reads "Tham gia CaLẻ / Now ngay hôm nay".
+12. `/about` — page title in browser tab reads "Giới thiệu — CaLẻ / Now"; H1 reads "Giới thiệu CaLẻ / Now"; intro mentions "CaLẻ (Now)".
+13. `/user-guide` — H1 reads "Cách dùng CaLẻ / Now"; hero summary mentions "CaLẻ / Now".
+14. `/safety`, `/faq`, `/disputes`, `/support`, `/terms`, `/privacy`, `/how-it-works`, `/employer/payments`, `/employer/reviews`, `/worker/cancellation-policy`, `/worker/reputation-guide` — each browser tab title ends with "— CaLẻ / Now".
+15. No "ShiftNow" string visible anywhere in the rendered UI.
+16. No inconsistent variants like "Ca Lẻ/Now" or "CaLẻ /Now".
+
+### D. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/i18n/vi.ts` — particularly `site.name`, `auth.login.subtitle`, `auth.register.subtitle`, `auth.side.join`, `landing.hero.featured.exploreAria`, `landing.vn.lead`, `help.workerDashboard.intro`.
+- The 13 metadata-title pages listed in HANDOFF item 46.
+- The shared `<InfoPage>` shell — the default `eyebrow` value reads `"CaLẻ / Now"`.
+- StatTile signatures in worker/employer dashboards if a future revision wants to re-introduce a uniform glyph.
+
+
+## Phase 9Z-Fix-2 — InfoPage body polish + currency unit consistency
+
+Last reviewed: **2026-05-24, Phase 9Z-Fix-2 — NEEDS MANUAL VISUAL QA**.
+
+Two follow-on fixes after Phase 9Z gave guidance pages a designed hero card:
+
+### A. InfoPage body now flows from the hero
+
+Open `/how-it-works` at 1366 px and 390 px:
+
+1. The hero card (orange-gradient strip with eyebrow + title + intro + RouteBackdrop) reads exactly as in Phase 9Z.
+2. The first content block sits visually connected to the hero strip's bottom edge — there's a small `-8px` tuck so it reads as one continuous surface, not "header floating above raw text".
+3. Each of the four steps renders as a designed white card with a soft orange ring, a numbered orange-gradient circle in the left gutter, and the step body to the right of the badge.
+4. Below the steps, the `<InfoSection title="Quyền và nghĩa vụ chính">` block reads as prose with a subtle orange left rail (no full card — intentionally lighter than the step cards).
+5. Vertical rhythm between blocks is consistent (`1.5rem` gap).
+6. At 360 / 390 px the step-card left gutter (`3.75rem`) still leaves enough room for the body text; no clipping, no horizontal scroll.
+
+### B. InfoSection orange rail on simple guidance pages
+
+Open `/about`, `/safety`, `/faq`, `/disputes`, `/support`, `/employer/payments`, `/employer/reviews`, `/worker/cancellation-policy`, `/worker/reputation-guide`:
+
+7. Every `<InfoSection>` block carries a subtle orange left rail (2px solid `rgba(251,146,60,0.25)`).
+8. Section headings render as designed (`text-[17px]`, weight 600, gray-900) — no longer raw bold paragraphs.
+9. Adjacent sections feel connected; no full-card heaviness.
+
+### C. Legal pages stay readable
+
+Open `/terms` and `/privacy`:
+
+10. The body still reads as prose — orange rail is subtle enough that the page doesn't feel like a stack of boxes.
+11. Long-form legal text remains comfortable to read.
+12. CTA row at the bottom unchanged.
+
+### D. Currency unit consistency
+
+Visit `/employer/shifts/new`, `/shifts`, `/shifts/[id]`, `/worker/dashboard`, `/employer/dashboard`, the homepage hero `<FeaturedJobMockup>`:
+
+13. Every visible amount renders as `35.000 đ` / `1.200.000 đ` (lowercase `đ` suffix). No `₫` glyph anywhere.
+14. The wage input helper line on `/employer/shifts/new` reads `(ba mươi lăm nghìn đồng)` — `đồng` spelled out, not `VNĐ`.
+15. The form label reads `Lương theo giờ (đ)` — lowercase `đ` in the parenthetical, matching the suffix the user will see.
+16. Worker dashboard `Tổng thu nhập` tile shows the income with `đ`.
+17. Employer dashboard `Tổng đã đặt cọc` / `Tổng đã thanh toán` tiles show amounts with `đ`.
+18. The user-guide step about "Đăng ca tuyển" mentions `lương theo giờ (đ)`.
+19. No `VNĐ`, `VND`, `vnd`, or `Đ` (capital) appears in user-visible copy on any page.
+20. Numbers themselves are unchanged — `formatVND(35000)` still returns `35.000 đ`; calculations, deposit ratios, payouts, totals are all the same.
+
+### E. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/lib/format.ts` — particularly `formatVND` and the underlying `Intl.NumberFormat` config.
+- `src/lib/numberVN.ts` — particularly `numberToVietnameseCurrency`.
+- `src/i18n/vi.ts` — particularly `form.hourlyWage` and `common.currency`.
+- `src/components/layout/InfoPage.tsx` — body wrapper, `<InfoSection>`, `<InfoStep>`.
+- `src/app/globals.css` — `.info-content`, `.info-section-card`, `.info-step-card`, `.info-step-badge`.
+- Any guidance page that imports from `@/components/layout/InfoPage`.
+
+
+## Phase 9Z-Fix-3 — InfoPage hero/body alignment + public nav re-routing + public motion polish
+
+Last reviewed: **2026-05-24, Phase 9Z-Fix-3 — NEEDS MANUAL VISUAL QA**.
+
+Three follow-on fixes after Phase 9Z-Fix-2's body polish:
+
+### A. InfoPage hero ↔ body alignment
+
+Open `/user-guide`, `/how-it-works`, `/about`, `/safety`, `/faq`, `/disputes`, `/support`, `/employer/payments`, `/employer/reviews`, `/worker/cancellation-policy`, `/worker/reputation-guide` at 1366 px:
+
+1. The hero card title (e.g. "Cách dùng CaLẻ / Now") and the first body section heading both start at the same X coordinate. Use a vertical guide ruler in DevTools — hero title and body heading should align within 1 px.
+2. Body sections and step cards align with the hero card's left edge throughout the page.
+3. At `< sm` (mobile), the body wrapper's horizontal padding drops to 16 px — content still aligns with hero text edges.
+4. Legal pages (`/terms`, `/privacy`) — alignment holds; prose stays comfortable.
+
+### B. Public navigation re-routing
+
+5. Open the homepage in an Incognito / Private window (or simply log out). The desktop nav at `xl+` shows the public guest sections.
+6. Hover/click "Người lao động" dropdown:
+   - "Tìm ca làm" → `/shifts` (public route, unchanged)
+   - "Hồ sơ & điểm uy tín" → `/worker/reputation-guide` (public guide)
+   - "Lịch cá nhân" → `/user-guide` (NEW: was `/worker/schedule` which is protected; now points to public guide that explains the schedule feature)
+   - "Quy định huỷ ca" → `/worker/cancellation-policy` (public guide)
+7. Hover/click "Nhà tuyển dụng" dropdown:
+   - "Đăng ca tuyển" → `/how-it-works` (NEW: was `/employer/shifts/new` which is protected; now points to the four-step public flow)
+   - "Quản lý ứng viên" → `/user-guide` (NEW: was `/employer/dashboard` which is protected)
+   - "Đặt cọc & thanh toán" → `/employer/payments` (public guide, unchanged)
+   - "Đánh giá sau ca" → `/employer/reviews` (public guide, unchanged)
+8. None of the items above should trigger a redirect to `/login`. Each should land on a readable public page.
+9. **Direct URL still protects.** Navigate manually to `/worker/schedule`, `/employer/shifts/new`, `/employer/dashboard` while logged out — `RoleGuard` should bounce to `/login` exactly as before. Auth protection is unchanged.
+10. Mobile drawer: open at `< xl` while logged out. Same re-routing applies in the "Người lao động" and "Nhà tuyển dụng" sections of the drawer.
+11. Logged in as a worker — the dropdown / drawer should show the original protected routes (`/worker/schedule` etc.). The role-aware groups are untouched.
+12. Same check for logged-in employer.
+
+### C. Public motion polish
+
+13. Hover the "Xem hướng dẫn chi tiết" pill on the homepage's "Cách hoạt động" section — the inner `→` arrow shifts 4 px to the right, body of pill itself doesn't translate.
+14. Hover any of the four cards in the homepage Safety section — the same arrow nudge fires on the inner `→`. Card itself also lifts (existing `.motion-lift`).
+15. Visit `/user-guide` and hover one of the InfoPage CTA buttons at the bottom ("Tìm ca làm ngay" / "Đăng ca tuyển") — the trailing `→` arrow shifts right.
+16. None of the existing motion (Reveal scroll-in, entrance-up, modal pop, toast slide, route-node pulse) regresses — verify by scrolling the homepage and watching the existing rhythm.
+
+### D. Reduced motion
+
+17. With `prefers-reduced-motion: reduce` enabled (DevTools → Rendering → emulate CSS media), the arrow nudges stop firing on hover. Cards stop lifting (Phase 9Y-Fix-3 rule preserved). New `.motion-fade-up` keyframe also short-circuits.
+18. The pulse on `<RouteBackdrop>` nodes still stops (Phase 9Z preserved).
+
+### E. Dashboard non-regression
+
+19. Visit `/worker/dashboard`, `/employer/dashboard`, `/admin/dashboard`. None of the public motion utilities are applied there. Stat tiles remain clean (Phase 9Y-Fix-3 + Phase 9Z-Fix-1 preserved).
+20. No `<RouteBackdrop>` on dashboards. No `.cta-arrow-nudge` on dashboard CTAs.
+
+### F. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/layout/NavBar.tsx` — particularly `WORKER_GROUP_PUBLIC`, `EMPLOYER_GROUP_PUBLIC`, and the `<PublicNav>` block.
+- `src/components/layout/MobileNav.tsx` — particularly `PUBLIC_SECTIONS`'s "Người lao động" and "Nhà tuyển dụng" entries.
+- `src/app/globals.css` — particularly `.info-content` `padding-inline`, `.motion-fade-up`, `.cta-arrow-nudge` + `.cta-arrow`, `.gradient-drift`, `.public-section-rhythm`, and the `prefers-reduced-motion` block.
+- `src/components/layout/InfoPage.tsx` — particularly the CTA row.
+- `src/app/page.tsx` — homepage CTA pills, Safety section card grid.
+
+
+## Phase 9Z-Fix-4 — User-friendly guide copy + feature anchor sections
+
+Last reviewed: **2026-05-24, Phase 9Z-Fix-4 — NEEDS MANUAL VISUAL QA**.
+
+Phase 9Z-Fix-3 re-pointed logged-out worker / employer dropdowns to public guides, but manual QA found the guides still read as developer prose with raw route paths and dropped readers at the top of a long generic page instead of on the specific feature they clicked. Phase 9Z-Fix-4 closes both gaps.
+
+### A. Raw route paths scrubbed
+
+Open `/user-guide` and read every step body in both worker and employer columns:
+
+1. No string starting with `/register`, `/login`, `/worker/`, `/employer/`, `/shifts`, `/disputes`, etc. visible in any prose.
+2. Worker step 1 reads `Mở trang Đăng ký, chọn "Tôi muốn tìm ca làm" ...`
+3. Worker step 2 reads `Mở mục Hồ sơ trong menu Người lao động ...`
+4. Worker step 4 reads `Bấm "Tìm ca làm" trên thanh điều hướng để xem các ca đang tuyển ...`
+5. Worker step 7 reads `... mở trang Tổng quan của người lao động, chọn ca sắp diễn ra và bấm "Check-in" ...`
+6. Employer step 1 reads `Mở trang Đăng ký, chọn "Tôi cần tuyển người làm" ...`
+7. Employer step 2 reads `Mở mục Hồ sơ trong menu Nhà tuyển dụng ...`
+8. Employer step 3 reads `Trong menu Nhà tuyển dụng, chọn "Đăng ca tuyển" ...`
+9. Employer step 5 reads `Đơn ứng tuyển hiển thị trong trang quản lý chi tiết của ca tuyển và trong ô "Đơn chờ duyệt" trên Tổng quan của nhà tuyển dụng ...`
+10. FAQ "Tôi cần làm gì khi có tranh chấp?" no longer mentions `/disputes` directly — it references the page by its name "Chính sách xử lý tranh chấp".
+
+### B. Feature anchor sections
+
+11. Visit `/user-guide` — five new feature cards render above the timeline columns:
+    - "Lịch cá nhân hoạt động như thế nào?" (`#worker-schedule`)
+    - "Điểm uy tín của người lao động" (`#worker-reputation`)
+    - "Đăng ca tuyển diễn ra như thế nào?" (`#employer-post-shift`)
+    - "Quản lý ứng viên như thế nào?" (`#employer-applicants`)
+    - "Đặt cọc và thanh toán" (`#employer-payments`)
+12. Each card has an orange eyebrow, a bold title, 3–4 bullet points in plain Vietnamese, and a primary CTA + optional secondary CTA.
+13. Visit `/user-guide#worker-schedule` directly — the page scrolls so the heading is fully visible (not covered by the sticky header). Same for the other four anchors.
+14. Hover the primary "Đăng nhập" CTA — the trailing `→` arrow shifts 4 px right (Phase 9Z-Fix-3 `.cta-arrow-nudge`).
+
+### C. Public nav anchored deep-links
+
+15. Log out (or use Incognito). Open the desktop nav at `xl+`.
+16. Click "Người lao động" → "Lịch cá nhân" — URL becomes `/user-guide#worker-schedule` and the page scrolls to that section.
+17. Click "Nhà tuyển dụng" → "Đăng ca tuyển" — URL becomes `/user-guide#employer-post-shift`.
+18. Click "Nhà tuyển dụng" → "Quản lý ứng viên" — URL becomes `/user-guide#employer-applicants`.
+19. None of these clicks should trigger a `/login` redirect.
+20. Mobile drawer at `< xl` — the same three items use the same anchor URLs.
+
+### D. RoleGuard non-regression
+
+21. While logged out, paste each protected URL directly into the address bar:
+    - `/worker/schedule`
+    - `/worker/profile`
+    - `/worker/dashboard`
+    - `/employer/shifts/new`
+    - `/employer/dashboard`
+    - `/employer/schedule`
+    - `/employer/profile`
+    - `/employer/shifts/[any-id]`
+22. Each should still redirect to `/login`. Auth protection unchanged.
+
+### E. Logged-in role nav
+
+23. Log in as a worker (any seed account). Click the "Người lao động" dropdown.
+24. "Lịch cá nhân" should now point to the protected `/worker/schedule` (not the anchor) — role-aware nav uses the original `WORKER_GROUP`, which is unchanged.
+25. Same check as employer — "Đăng ca tuyển" and "Quản lý ứng viên" route to `/employer/shifts/new` and `/employer/dashboard` respectively.
+
+### F. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/app/user-guide/page.tsx` — particularly the worker / employer step bodies, the `<FeatureGuide>` primitive, and any new anchor section.
+- `src/components/layout/NavBar.tsx` — `WORKER_GROUP_PUBLIC`, `EMPLOYER_GROUP_PUBLIC` href values.
+- `src/components/layout/MobileNav.tsx` — `PUBLIC_SECTIONS` worker + employer entries.
+- The HANDOFF.md "User-facing copy must not contain raw route paths" rule (Section 11).
+
+
+## Phase 9Z-Fix-5 — HelpPopover deep-links to specific guide anchors + enriched guide examples
+
+Last reviewed: **2026-05-24, Phase 9Z-Fix-5 — NEEDS MANUAL VISUAL QA**.
+
+Phase 9Y-Fix-3 routed every dashboard stat-tile help into the corresponding detail-modal `titleAccessory` slot, and Phase 9Z-Fix-4 added five public-nav feature anchors to `/user-guide`. But HelpPopover CTAs still defaulted to a generic `/user-guide` link. Phase 9Z-Fix-5 wires every popover to a specific anchor and enriches every guide section with concrete examples + next-action lines.
+
+### A. Contextual help deep-link QA
+
+Open the worker dashboard. Click each stat tile to open its detail modal, then click the `?` glyph next to the modal title and confirm the "Xem hướng dẫn chi tiết →" CTA points to the right anchor:
+
+1. **Điểm uy tín** modal `?` → `/user-guide#worker-reputation`
+2. **Ca đã hoàn thành** modal `?` → `/user-guide#worker-completed-shifts`
+3. **Tổng thu nhập** modal `?` → `/user-guide#worker-total-income`
+4. **Hạn mức huỷ tuần** modal `?` → `/user-guide#worker-cancellation-quota`
+
+Same on the employer dashboard:
+
+5. **Ca đang hoạt động** modal `?` → `/user-guide#employer-active-shifts`
+6. **Đơn chờ duyệt** modal `?` → `/user-guide#employer-pending-applications`
+7. **Tất cả ca đã đăng** modal `?` → `/user-guide#employer-posted-shifts`
+8. **Ca đã hoàn thành** modal `?` → `/user-guide#employer-completed-shifts`
+9. **Payments modal title `?`** (opens from either deposit or paid-out tile) → `/user-guide#employer-total-deposit`
+10. **Payments modal body — Tổng đã đặt cọc** inline `?` → `/user-guide#employer-total-deposit`
+11. **Payments modal body — Tổng đã thanh toán** inline `?` → `/user-guide#employer-total-paid`
+
+### B. Anchor scroll QA
+
+12. Click each CTA above. Confirm the page scrolls so the anchored `<FeatureGuide>` heading is fully visible — not covered by the sticky `z-30` header.
+13. The matching guide section reads with: orange eyebrow + bold title + 3–4 explanatory bullets + tinted "Ví dụ:" callout + "Tiếp theo:" line.
+
+### C. Guide example/readability QA
+
+Read each of the 14 feature cards on `/user-guide`:
+
+14. Each card has a concrete example with realistic Vietnamese-context numbers (e.g. `45.000 đ/giờ`, `196.000 đ`, `7 ngày`, `Đăng nhập`, `Tổng quan người lao động`).
+15. Examples don't reference raw URLs (`/worker/dashboard` etc.); they reference visible UI labels.
+16. Each card ends with a "Tiếp theo:" prompt telling the user what to do.
+17. Cards explaining MVP-mock features clearly say so (e.g. "Trong bản MVP, thao tác đặt cọc chỉ là mô phỏng, chưa có giao dịch thật.").
+
+### D. Guide grouping QA
+
+18. The 14 feature cards are organised into three groups with eyebrow + title + lead:
+    - "Dành cho người lao động" — 5 cards covering schedule, reputation, completed, total income, cancellation quota
+    - "Dành cho nhà tuyển dụng" — 6 cards covering post-shift, applicants, active, pending, posted, completed
+    - "Thanh toán, đặt cọc và uy tín" — 3 cards covering payments overview, total deposit, total paid
+19. The 9-step worker / employer timelines + FAQ remain below the grouped cards (Phase 9Z-Fix-4 layout preserved).
+20. Public-nav anchored deep-links from Phase 9Z-Fix-4 still work (`/user-guide#worker-schedule`, `/user-guide#employer-post-shift`, `/user-guide#employer-applicants`).
+
+### E. Mobile anchor QA
+
+At 360 / 390 / 430 px:
+
+21. Open a stat detail modal, tap its `?` glyph. Tap the "Xem hướng dẫn chi tiết →" link.
+22. After dismissing the popover, the page scrolls to the anchored section. Heading is fully visible above the sticky header.
+23. The "Ví dụ:" and "Tiếp theo:" blocks fit within the card on mobile without horizontal overflow.
+
+### F. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/app/user-guide/page.tsx` — particularly `<FeatureGuide>`, `<GuideGroup>`, or any new anchor section.
+- `src/app/worker/dashboard/page.tsx` — `<HelpPopover>` `learnMoreHref` props.
+- `src/app/employer/dashboard/page.tsx` — `<HelpPopover>` `learnMoreHref` props (modal title + payments-modal body inline).
+- `src/components/ui/HelpPopover.tsx` — particularly the `learnMoreHref` rendering.
+- The HANDOFF.md "HelpPopover CTAs must deep-link to specific guide anchors" rule (Section 11).

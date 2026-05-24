@@ -711,6 +711,7 @@ function WorkerDashboardContent() {
           <HelpPopover
             title={t('worker.dashboard.stats.reputationScore')}
             description={t('hint.worker.reputation')}
+            learnMoreHref="/user-guide#worker-reputation"
           />
         }
       >
@@ -868,6 +869,7 @@ function WorkerDashboardContent() {
           <HelpPopover
             title={t('worker.dashboard.cancelQuota')}
             description={t('hint.worker.cancelQuota')}
+            learnMoreHref="/user-guide#worker-cancellation-quota"
           />
         }
       >
@@ -968,6 +970,7 @@ function WorkerDashboardContent() {
           <HelpPopover
             title={t('worker.dashboard.stats.totalEarnings')}
             description={t('hint.worker.totalEarnings')}
+            learnMoreHref="/user-guide#worker-total-income"
           />
         }
       >
@@ -1077,6 +1080,7 @@ function WorkerDashboardContent() {
           <HelpPopover
             title={t('worker.dashboard.stats.completedShifts')}
             description={t('hint.worker.completedShifts')}
+            learnMoreHref="/user-guide#worker-completed-shifts"
           />
         }
       >
@@ -1283,11 +1287,18 @@ function StatTile({
 
   const body = (
     <>
+      {/* Phase 9Z-Fix-1: dropped the top-right decorative TileIcon.
+          Manual QA found the per-tile icons (star / check / wallet /
+          calendar) made the stat grid look inconsistent — different
+          glyphs, different visual weights, different colours all
+          competing with the value. The colored top accent bar
+          (`before:`) already provides per-tile differentiation. The
+          `icon` prop is preserved for call-site compatibility but is
+          intentionally a no-op. */}
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
           {label}
         </p>
-        {icon && <TileIcon name={icon} />}
       </div>
       <p className={['mt-2 text-2xl font-extrabold', toneText[tone]].join(' ')}>
         {value}

@@ -1,7 +1,7 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
 export const metadata = {
-  title: 'Đặt cọc & thanh toán — CaLẻ / ShiftNow',
+  title: 'Đặt cọc & thanh toán — CaLẻ / Now',
 };
 
 export default function EmployerPaymentsPage() {

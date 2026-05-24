@@ -19,7 +19,7 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Site / meta
   // -------------------------------------------------------------------------
-  'site.name': 'CaLẻ / ShiftNow',
+  'site.name': 'CaLẻ / Now',
   'site.tagline': 'Nền tảng ca làm ngắn hạn tại Việt Nam',
   'site.description':
     'Kết nối nhà tuyển dụng cần người làm tạm thời với người lao động linh hoạt tại Việt Nam.',
@@ -218,7 +218,7 @@ export const vi: Record<string, string> = {
   'form.date': 'Ngày làm',
   'form.startTime': 'Giờ bắt đầu',
   'form.endTime': 'Giờ kết thúc',
-  'form.hourlyWage': 'Lương theo giờ (₫)',
+  'form.hourlyWage': 'Lương theo giờ (đ)',
   'form.hourlyWage.hint':
     'Ví dụ: 35000 sẽ hiển thị thành 35.000. Hệ thống sẽ đọc thành chữ bên dưới.',
   'form.positionsTotal': 'Số lượng người cần',
@@ -581,7 +581,7 @@ export const vi: Record<string, string> = {
   'landing.hero.featured.statusBadge': 'Đang tuyển',
   'landing.hero.featured.viewCta': 'Xem chi tiết',
   'landing.hero.featured.exploreCta': 'Khám phá ca làm',
-  'landing.hero.featured.exploreAria': 'Khám phá ca làm trên CaLẻ / ShiftNow',
+  'landing.hero.featured.exploreAria': 'Khám phá ca làm trên CaLẻ / Now',
   'landing.hero.featured.fallbackTitle': 'Khám phá ca làm phù hợp',
   'landing.hero.featured.fallbackHint':
     'Hệ thống đang cập nhật ca làm. Bấm để xem danh sách đầy đủ.',
@@ -631,6 +631,14 @@ export const vi: Record<string, string> = {
   'landing.howItWorks.worker.step3': 'Làm việc, check-in/out và nhận tiền',
   'landing.howItWorks.viewGuide': 'Xem hướng dẫn chi tiết',
 
+  // Phase 9Z — Designed-for-Vietnam network strip
+  'landing.vn.eyebrow': 'Kết nối ca làm tại Việt Nam',
+  'landing.vn.title': 'Thiết kế cho nhu cầu ca làm linh hoạt',
+  'landing.vn.lead':
+    'Thị trường lao động ngắn hạn của Việt Nam có đặc thù riêng — chúng tôi xây dựng CaLẻ / Now theo cách người tuyển và người làm thực sự cần.',
+  'landing.vn.disclaimer':
+    'Hiện đang trong giai đoạn thử nghiệm — danh sách thành phố ở trên là minh hoạ định hướng, không phải dữ liệu phủ sóng thực tế.',
+
   'landing.finalCta.title': 'Bắt đầu ngay hôm nay',
   'landing.finalCta.subtitle': 'Đăng ký miễn phí, không cần đặt cọc.',
 
@@ -664,10 +672,10 @@ export const vi: Record<string, string> = {
   // Auth pages
   // -------------------------------------------------------------------------
   'auth.login.title': 'Đăng nhập',
-  'auth.login.subtitle': 'Chào mừng bạn quay lại CaLẻ / ShiftNow',
+  'auth.login.subtitle': 'Chào mừng bạn quay lại CaLẻ / Now',
   'auth.login.noAccount': 'Chưa có tài khoản?',
   'auth.register.title': 'Đăng ký tài khoản',
-  'auth.register.subtitle': 'Tham gia CaLẻ / ShiftNow ngay hôm nay',
+  'auth.register.subtitle': 'Tham gia CaLẻ / Now ngay hôm nay',
   'auth.register.hasAccount': 'Đã có tài khoản?',
   'auth.register.selectRole': 'Bạn muốn đăng ký với vai trò nào?',
   'auth.register.asWorker': 'Tôi muốn tìm ca làm',
@@ -677,7 +685,7 @@ export const vi: Record<string, string> = {
   'auth.side.welcome': 'Chào mừng quay lại',
   'auth.side.welcome.desc':
     'Đăng nhập để tiếp tục quản lý ca làm, đơn ứng tuyển và lịch cá nhân của bạn.',
-  'auth.side.join': 'Tham gia CaLẻ / ShiftNow',
+  'auth.side.join': 'Tham gia CaLẻ / Now',
   'auth.side.join.desc':
     'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người làm linh hoạt.',
   'auth.side.benefit1': 'Thanh toán minh bạch',
@@ -922,7 +930,7 @@ export const vi: Record<string, string> = {
   'common.readMore': 'Xem thêm',
   'common.required': '(bắt buộc)',
   'common.optional': '(tuỳ chọn)',
-  'common.currency': '₫',
+  'common.currency': 'đ',
   'common.perHour': '/giờ',
   'common.hours': 'giờ',
   'common.positions': 'người',
@@ -943,7 +951,7 @@ export const vi: Record<string, string> = {
 
   'help.workerDashboard.title': 'Hướng dẫn — Tổng quan người lao động',
   'help.workerDashboard.intro':
-    'Đây là trang tổng quan các hoạt động của bạn trên CaLẻ / ShiftNow.',
+    'Đây là trang tổng quan các hoạt động của bạn trên CaLẻ / Now.',
   'help.workerDashboard.item1':
     'Bấm vào ô "Điểm uy tín" để xem chi tiết cách điểm được cộng/trừ.',
   'help.workerDashboard.item2':

@@ -1,7 +1,7 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
 export const metadata = {
-  title: 'Quy định huỷ ca — CaLẻ / ShiftNow',
+  title: 'Quy định huỷ ca — CaLẻ / Now',
 };
 
 export default function WorkerCancellationPolicyPage() {

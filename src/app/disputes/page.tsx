@@ -1,7 +1,7 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
 export const metadata = {
-  title: 'Chính sách xử lý tranh chấp — CaLẻ / ShiftNow',
+  title: 'Chính sách xử lý tranh chấp — CaLẻ / Now',
 };
 
 export default function DisputesPage() {

@@ -4,7 +4,7 @@
  * NavBar (Phase 9W refinement of the Phase 9T / 9V dropdown).
  *
  * A real product nav with:
- *   - Brand block (CaLẻ / ShiftNow) plus a small "by CaLedo Tech" subtitle.
+ *   - Brand block (CaLẻ / Now) plus a small "by CaLedo Tech" subtitle.
  *   - Public guest nav with grouped dropdowns:
  *       Trang chủ · Tìm ca làm · Người lao động ▾ · Nhà tuyển dụng ▾ ·
  *       An toàn & hướng dẫn ▾ · Hỗ trợ
@@ -151,6 +151,81 @@ const SAFETY_GROUP: MenuGroup = {
       href: '/user-guide',
       label: 'Hướng dẫn sử dụng',
       description: 'Hướng dẫn từng bước cho cả hai phía',
+    },
+  ],
+};
+
+// ---------------------------------------------------------------------------
+// Phase 9Z-Fix-3 — public (logged-out) variants of the worker / employer
+// dropdowns. Manual QA found that the Phase 9S role-aware groups linked
+// straight to protected routes (`/worker/schedule`, `/employer/shifts/new`,
+// `/employer/dashboard`) for everyone, including logged-out visitors —
+// who would then be bounced to `/login` by `RoleGuard`. That makes the
+// nav feel like a sales funnel disguised as discovery.
+//
+// The public variants below preserve the same visible labels but
+// remap each item to a public guide page that explains the feature
+// without requiring auth. The protected routes still exist and still
+// require login when visited directly; only the marketing-time entry
+// point changes.
+// ---------------------------------------------------------------------------
+
+const WORKER_GROUP_PUBLIC: MenuGroup = {
+  label: 'Người lao động',
+  activePrefixes: ['/worker', '/shifts'],
+  items: [
+    {
+      href: '/shifts',
+      label: 'Tìm ca làm',
+      description: 'Xem các ca đang tuyển gần bạn',
+    },
+    {
+      href: '/worker/reputation-guide',
+      label: 'Hồ sơ & điểm uy tín',
+      description: 'Hiểu cách hệ thống đánh giá độ tin cậy',
+    },
+    {
+      // Phase 9Z-Fix-4: deep-link to the Lịch cá nhân anchor on
+      // /user-guide so logged-out visitors land directly on the
+      // feature explanation, not the top of a long generic guide.
+      href: '/user-guide#worker-schedule',
+      label: 'Lịch cá nhân',
+      description: 'Cách tránh trùng lịch khi ứng tuyển',
+    },
+    {
+      href: '/worker/cancellation-policy',
+      label: 'Quy định huỷ ca',
+      description: 'Các mốc thời gian và hạn mức huỷ ca',
+    },
+  ],
+};
+
+const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
+  label: 'Nhà tuyển dụng',
+  activePrefixes: ['/employer', '/how-it-works'],
+  items: [
+    {
+      // Phase 9Z-Fix-4: deep-link to the Đăng ca tuyển anchor on
+      // /user-guide so logged-out visitors land directly on the
+      // posting-flow explanation.
+      href: '/user-guide#employer-post-shift',
+      label: 'Đăng ca tuyển',
+      description: 'Quy trình tạo ca và đặt cọc',
+    },
+    {
+      href: '/user-guide#employer-applicants',
+      label: 'Quản lý ứng viên',
+      description: 'Cách duyệt và xác nhận ca làm',
+    },
+    {
+      href: '/employer/payments',
+      label: 'Đặt cọc & thanh toán',
+      description: 'Cấp độ tin cậy và tỷ lệ đặt cọc',
+    },
+    {
+      href: '/employer/reviews',
+      label: 'Đánh giá sau ca',
+      description: 'Hướng dẫn chấm điểm người lao động',
     },
   ],
 };
@@ -445,7 +520,7 @@ function PublicNav({
       </NavLink>
       <Dropdown
         id="worker"
-        group={WORKER_GROUP}
+        group={WORKER_GROUP_PUBLIC}
         pathname={pathname}
         isOpen={activeDropdown === 'worker'}
         registerContainer={registerContainer}
@@ -456,7 +531,7 @@ function PublicNav({
       />
       <Dropdown
         id="employer"
-        group={EMPLOYER_GROUP}
+        group={EMPLOYER_GROUP_PUBLIC}
         pathname={pathname}
         isOpen={activeDropdown === 'employer'}
         registerContainer={registerContainer}

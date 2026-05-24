@@ -1,6 +1,6 @@
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Câu hỏi thường gặp — CaLẻ / ShiftNow' };
+export const metadata = { title: 'Câu hỏi thường gặp — CaLẻ / Now' };
 
 export default function FaqPage() {
   return (

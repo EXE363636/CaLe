@@ -1,6 +1,6 @@
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Liên hệ hỗ trợ — CaLẻ / ShiftNow' };
+export const metadata = { title: 'Liên hệ hỗ trợ — CaLẻ / Now' };
 
 export default function SupportPage() {
   return (

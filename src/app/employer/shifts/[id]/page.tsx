@@ -9,7 +9,7 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { Badge, Button, EmptyState, HelpPopover } from '@/components/ui';
+import { Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
@@ -329,23 +329,20 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                   <WorkerSummaryRow
                     worker={worker}
                     statusSlot={
-                      <span className="inline-flex items-center gap-1">
-                        <Badge tone={badgeToneForApp(app.status)}>
-                          {t(`application.status.${app.status}`)}
-                        </Badge>
-                        {app.status === 'Approved' && (
-                          <HelpPopover
-                            title={t('application.status.Approved')}
-                            description={t('hint.employer.statusApproved')}
-                          />
-                        )}
-                        {app.status === 'Confirmed' && (
-                          <HelpPopover
-                            title={t('application.status.Confirmed')}
-                            description={t('hint.employer.statusCompleted')}
-                          />
-                        )}
-                      </span>
+                      // Phase 9Z-Fix-1: dropped the inline HelpPopover
+                      // next to Approved / Confirmed badges. Manual QA
+                      // flagged that only two of the six status types
+                      // carried a `?` (the Pending / Rejected / etc.
+                      // states had none), creating inconsistent UI on
+                      // applicant cards. Per the Phase 9Y-Fix-3 rule
+                      // ("overview/list cards stay clean; help lives in
+                      // drill-down/detail surfaces"), all per-row help
+                      // is removed. Status meaning is conveyed by the
+                      // tinted badge alone; `/user-guide` carries the
+                      // long-form explanation.
+                      <Badge tone={badgeToneForApp(app.status)}>
+                        {t(`application.status.${app.status}`)}
+                      </Badge>
                     }
                     onViewProfile={() => setProfileWorker(worker)}
                     actions={

@@ -246,7 +246,10 @@ body {
   .entrance-up-soft,
   .entrance-right,
   .float-soft,
-  .float-blob {
+  .float-blob,
+  .pulse-node,
+  .motion-fade-up,
+  .gradient-drift {
     animation: none;
   }
   /* Reduced-motion users see the reveal end-state immediately — no
@@ -254,10 +257,28 @@ body {
   .reveal,
   .entrance-up,
   .entrance-up-soft,
-  .entrance-right {
+  .entrance-right,
+  .motion-fade-up {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+  /* `.card-lift` is `.motion-lift`'s marketing cousin; suppress its
+   * hover translate too so motion-sensitive users don't see surprise
+   * shifts on rollover. */
+  .card-lift {
+    transition: none;
+  }
+  .card-lift:hover {
+    transform: none;
+  }
+  /* CTA arrow nudge — keep arrow static under reduced motion. */
+  .cta-arrow-nudge .cta-arrow {
+    transition: none;
+  }
+  .cta-arrow-nudge:hover .cta-arrow,
+  .cta-arrow-nudge:focus-visible .cta-arrow {
+    transform: none;
   }
 }
 
@@ -610,4 +631,330 @@ summary::-webkit-details-marker {
   opacity: 0;
   animation: entrance-up-soft 640ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: var(--entrance-delay, 0ms);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9Z — visual identity system
+ *
+ * Three additions:
+ *
+ *   - `@keyframes pulse-node` + `.pulse-node`: slow ambient pulse for
+ *     the decorative endpoints in the `<RouteBackdrop>` SVG. The halo
+ *     gently scales between 1.0 and 1.18 over 4.4s; never fades to
+ *     0% so the endpoint remains visible at all times. Two endpoints
+ *     can opt into a slower 6.6s loop via `.pulse-node-slow` so the
+ *     pulses don't synchronise.
+ *
+ *   - `.bg-route-soft`: a faint dot-and-line texture suitable as a
+ *     fallback / extra layer behind hero panels and section shells.
+ *     Pure CSS gradient — no `<RouteBackdrop>` SVG required, so it
+ *     can be applied to surfaces where mounting an SVG would feel
+ *     heavy (e.g. the InfoPage header strip).
+ *
+ *   - `.section-shell`: opt-in card chrome for content sections that
+ *     need a designed surface (homepage city strip, InfoPage hero
+ *     blocks, etc.). White panel + soft orange ring + warm gradient
+ *     wash + low-alpha dot grid overlay. Intended as a parent class;
+ *     children render normally on top.
+ *
+ *   - `.card-lift`: alias of `.motion-lift` plus a slightly stronger
+ *     hover shadow for marketing-surface cards (city chips, audience
+ *     cards) where the existing `.motion-lift` reads as too subtle.
+ *
+ * All animations are short-circuited under `prefers-reduced-motion:
+ * reduce` via the existing media query (`pulse-node` has been added
+ * to the explicit list).
+ * ------------------------------------------------------------------------- */
+
+@keyframes pulse-node {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.85;
+  }
+}
+.pulse-node {
+  animation: pulse-node 4.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+.pulse-node.pulse-node-slow {
+  animation-duration: 6.6s;
+}
+
+.bg-route-soft {
+  background-image:
+    radial-gradient(
+      ellipse 700px 300px at 100% 0%,
+      rgba(251, 146, 60, 0.08) 0%,
+      rgba(251, 146, 60, 0) 65%
+    ),
+    radial-gradient(
+      rgba(249, 115, 22, 0.05) 1px,
+      transparent 1px
+    );
+  background-size: auto, 22px 22px;
+}
+
+.section-shell {
+  position: relative;
+  border-radius: 24px;
+  background-image:
+    radial-gradient(
+      ellipse 600px 320px at 0% 0%,
+      rgba(251, 146, 60, 0.10) 0%,
+      rgba(251, 146, 60, 0) 65%
+    ),
+    radial-gradient(
+      ellipse 500px 300px at 100% 100%,
+      rgba(252, 211, 77, 0.10) 0%,
+      rgba(252, 211, 77, 0) 65%
+    ),
+    linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 146, 60, 0.12),
+    0 16px 40px -28px rgba(251, 146, 60, 0.18);
+}
+.section-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: radial-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.5;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 50%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 0%, black 50%, transparent 95%);
+}
+
+.card-lift {
+  transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px -22px rgba(251, 146, 60, 0.35);
+}
+
+/* InfoPage hero strip — Phase 9Z. Replaces the previous flat orange
+ * underline on guidance pages with a soft gradient wash that picks
+ * up the brand without dominating the heading area. Pairs naturally
+ * with a `<RouteBackdrop variant="page" />` mounted absolutely
+ * inside it. */
+.info-page-hero {
+  position: relative;
+  border-radius: 20px;
+  padding: 24px 24px 20px;
+  background-image:
+    radial-gradient(
+      ellipse 500px 240px at 100% 0%,
+      rgba(251, 146, 60, 0.14) 0%,
+      rgba(251, 146, 60, 0) 70%
+    ),
+    linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.18);
+  overflow: hidden;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9Z-Fix-2 — InfoPage body polish
+ *
+ * Phase 9Z gave guidance pages a designed hero card (`info-page-hero`)
+ * but the body content below stayed plain — readers saw a stylish
+ * header floating above unstyled `<section>`s, which felt
+ * disconnected. Phase 9Z-Fix-2 introduces three lightweight body
+ * utilities so the body reads as one continuous designed surface
+ * without over-decorating Terms / Privacy:
+ *
+ *   - `.info-content` — body wrapper. Single source of truth for the
+ *     vertical rhythm between blocks (gap: 1.5rem), reading-line
+ *     line-height, and the small "tuck" (negative margin) that
+ *     visually connects the first block to the hero strip above.
+ *
+ *   - `.info-section-card` — applied to each `<InfoSection>`. Subtle
+ *     orange left accent rail + a slight inner padding so the
+ *     section heading and body share a designed vertical anchor.
+ *     Deliberately NOT a full card (no background, no full ring) so
+ *     legal pages like /terms still read as prose, not as a stack of
+ *     boxes. The left rail provides the connecting brand cue.
+ *
+ *   - `.info-step-card` — applied to numbered step blocks via the
+ *     `<InfoStep>` primitive. White card surface + soft orange ring
+ *     + numbered badge gutter (3rem on the left for the badge
+ *     circle). Designed for step-based pages (/how-it-works,
+ *     /worker/cancellation-policy, /employer/payments) where each
+ *     step deserves its own "block" treatment, not just a heading.
+ *
+ *   - `.info-step-badge` — orange-gradient circle for the step
+ *     number. Mirrors the homepage `<StepNumber />` glyph so the
+ *     two surfaces feel like one product.
+ * ------------------------------------------------------------------------- */
+
+.info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  /* Phase 9Z-Fix-2: tuck the first content block slightly into the
+   * hero strip's bottom edge so the body visually flows from the
+   * header instead of starting after a hard gap. -8px is enough that
+   * a reader perceives the connection without the first heading
+   * appearing to overlap the hero. */
+  margin-top: -8px;
+  padding-top: 8px;
+  /* Phase 9Z-Fix-3: match the hero's inner horizontal padding so
+   * body text starts at the same X as the hero title. The hero card
+   * uses `padding: 24px 24px 20px` — replicate the 24px horizontal
+   * indent on the body wrapper so the visual column reads as one
+   * aligned surface. Mobile keeps a tighter 16px to avoid cramping
+   * narrow viewports. */
+  padding-inline: 16px;
+}
+@media (min-width: 640px) {
+  .info-content {
+    padding-inline: 24px;
+  }
+}
+
+.info-section-card {
+  position: relative;
+  padding-left: 1.25rem;
+  border-left: 2px solid rgba(251, 146, 60, 0.25);
+  /* Slightly tighter top + bottom rhythm so adjacent sections breathe
+   * without leaving a "gap of nothing" between them. The outer
+   * `.info-content` `gap: 1.5rem` already separates blocks. */
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.info-section-card > h2 {
+  /* Bump section headings to a slightly more designed weight so they
+   * read as headers rather than first-paragraph bold lines. */
+  font-size: 1.0625rem;        /* between text-base (16px) and text-lg (18px) */
+  line-height: 1.4;
+  font-weight: 600;
+  color: #111827;              /* gray-900 */
+  margin-bottom: 0.5rem;
+}
+
+.info-step-card {
+  position: relative;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 1.25rem 1.25rem 1.25rem 3.75rem;
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 146, 60, 0.16),
+    0 4px 16px -10px rgba(251, 146, 60, 0.18);
+}
+.info-step-card > h3 {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+.info-step-badge {
+  position: absolute;
+  top: 1.125rem;
+  left: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  box-shadow:
+    0 0 0 4px rgba(255, 247, 237, 1),
+    0 4px 8px -4px rgba(249, 115, 22, 0.5);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9Z-Fix-3 — public motion + visual rhythm utilities
+ *
+ * The Phase 9Z visual identity layer added a Vietnam-route backdrop +
+ * city strip + InfoPage hero strip, but cross-product review found
+ * the public site still felt static between those anchors. Phase
+ * 9Z-Fix-3 adds three lightweight reusable utilities so public
+ * surfaces breathe without becoming noisy:
+ *
+ *   - `.motion-fade-up` — entrance variant that fades + lifts in one
+ *     motion. Lighter than `.entrance-up` (200ms vs 520ms) so a
+ *     stagger of many cards reads as a quick wave, not a slow march.
+ *
+ *   - `.cta-arrow-nudge` — small horizontal nudge of a `.cta-arrow`
+ *     descendant on hover. Reads as "click invites motion" without
+ *     full-card animation. Used on primary CTAs across the homepage
+ *     and InfoPage CTA rows.
+ *
+ *   - `.gradient-drift` — slow, very low-amplitude background-position
+ *     drift so warm gradient washes feel alive. Only applied to opt-in
+ *     decorative surfaces (e.g. the homepage hero panel), not to
+ *     dashboards or text-heavy content.
+ *
+ *   - `.public-section-rhythm` — opt-in vertical-padding utility that
+ *     gives public marketing sections consistent breathing room. Apps
+ *     to surfaces that want the standard public rhythm without
+ *     scattering Tailwind padding utilities.
+ *
+ * All three are short-circuited under `prefers-reduced-motion: reduce`
+ * via the existing media query block.
+ * ------------------------------------------------------------------------- */
+
+@keyframes motion-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.motion-fade-up {
+  opacity: 0;
+  animation: motion-fade-up 360ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--motion-delay, 0ms);
+}
+
+/* CTA arrow nudge — apply `.cta-arrow-nudge` to the CTA wrapper,
+ * `.cta-arrow` to the inner arrow `<span>`. The arrow translates
+ * 4 px right on hover/focus. The 4 px amplitude is the same one
+ * Tailwind uses for `translate-x-1` so the motion reads as a
+ * deliberate UI nudge, not a drift. */
+.cta-arrow-nudge .cta-arrow {
+  display: inline-flex;
+  transition: transform 180ms ease-out;
+}
+.cta-arrow-nudge:hover .cta-arrow,
+.cta-arrow-nudge:focus-visible .cta-arrow {
+  transform: translateX(4px);
+}
+
+@keyframes gradient-drift {
+  0%, 100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 6% 4%;
+  }
+}
+.gradient-drift {
+  background-size: 140% 140%;
+  animation: gradient-drift 18s ease-in-out infinite;
+  will-change: background-position;
+}
+
+.public-section-rhythm {
+  padding-block: 56px;
+}
+@media (min-width: 768px) {
+  .public-section-rhythm {
+    padding-block: 80px;
+  }
 }
