@@ -44,6 +44,15 @@ export type ApplicationStatus =
   | 'Approved'
   | 'Rejected'
   | 'CancelledByWorker'
+  /**
+   * Phase 10A-Fix-7: terminal state for an approved (or later) worker
+   * whose shift was cancelled by the employer. Worker is NOT penalised
+   * — no reputation drop, no quota tick. The status exists so worker-
+   * facing UI can show "Đã hủy bởi nhà tuyển dụng" instead of the
+   * stigmatising "CancelledByWorker" framing, and so cancel buttons
+   * never reappear on a card the worker had no part in cancelling.
+   */
+  | 'CancelledByEmployer'
   | 'CancellationRequested'
   | 'NoShow'
   | 'CheckedIn'
@@ -67,7 +76,12 @@ export type NotificationKind =
   | 'CancellationRejected'
   | 'ReputationAdjusted'
   | 'EmployerFeedbackReceived'
-  | 'DisputeResolved';
+  | 'DisputeResolved'
+  /**
+   * Phase 10A-Fix-7: worker received employer-cancellation protection.
+   * Title: "Ca làm đã bị hủy bởi nhà tuyển dụng".
+   */
+  | 'EmployerCancelledShift';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -323,6 +337,12 @@ export interface Worker extends BaseUser {
   ratingsReceived: Rating[];
   cancellationHistory: CancellationRecord[];
   noShowCount: number;
+  /**
+   * Phase 10A-Fix-7 — protection events credited to the worker (e.g.
+   * an employer cancelled a shift after approval). Optional for
+   * back-compat; pre-Fix-7 worker records read this as `[]`.
+   */
+  protections?: WorkerProtectionRecord[];
 }
 
 export interface Employer extends BaseUser {
@@ -420,6 +440,22 @@ export interface Shift {
   onSiteContactName?: string;
   onSiteContactPhone?: string;
   requiresVerifiedDocumentOnArrival?: boolean;
+
+  /**
+   * Phase 10A-Fix-7: employer cancellation metadata. All fields are
+   * undefined unless the shift was cancelled by the employer; even
+   * then `employerCancellationPenaltyAmount` may be 0 if no workers
+   * were ever approved (no penalty owed).
+   */
+  cancelledAt?: string;
+  cancelledBy?: 'employer' | 'admin';
+  employerCancellationReason?: string;
+  /** True when at least one worker was Approved/CheckedIn/CheckedOut/Confirmed/CancellationRequested at cancel time. */
+  employerCancelledAfterApproval?: boolean;
+  /** 0.05, 0.10, or 0.15 depending on time gap to start. 0 when no penalty applies. */
+  employerCancellationPenaltyRate?: number;
+  /** VND amount = round(depositAmount * rate). */
+  employerCancellationPenaltyAmount?: number;
 }
 
 export interface Application {
@@ -483,6 +519,34 @@ export interface CancellationRecord {
   cancelledAt: string;
   type: 'OnTime' | 'LateCancel';
   reasonNote?: string;
+}
+
+/**
+ * Phase 10A-Fix-7 — record of a "system gave the worker the benefit of
+ * the doubt" event. Currently only one trigger: an employer cancelled
+ * a shift the worker had been approved for. The system credits the
+ * worker with a reputation bump and a quota refund (capped) and writes
+ * one of these records so the worker can see the protection event in
+ * their reputation / cancellation history modal.
+ */
+export interface WorkerProtectionRecord {
+  id: string;
+  /** Type of protection event. */
+  kind: 'EmployerCancelledShift';
+  shiftId: string;
+  /** Snapshot at protection time so history reads correctly even if
+   *  the shift is later edited / deleted. */
+  shiftTitle: string;
+  employerId: string;
+  employerName: string;
+  /** Employer-supplied cancellation reason (mirrored verbatim). */
+  reason: string;
+  /** ISO timestamp of the cancellation. */
+  occurredAt: string;
+  /** Reputation points added (0 when score was already at the cap). */
+  reputationPointsRestored: number;
+  /** Cancellation quota slots refunded (0 when worker had no recent quota usage). */
+  quotaSlotsRefunded: number;
 }
 
 // ---------------------------------------------------------------------------

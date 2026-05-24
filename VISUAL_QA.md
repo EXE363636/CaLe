@@ -3200,3 +3200,143 @@ Re-run this audit after any change to:
 - `src/components/landing/FeaturedJobMockup.tsx` — slot label.
 - `src/components/shift/ShiftCard.tsx` — listing slot label.
 - HANDOFF Section 11 rules for live verification, single verification UI, modal outside-click, and slot label phrasing.
+
+
+## Phase 10A-Fix-7 — Trust-sensitive employer cancellation
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-7 — NEEDS MANUAL VISUAL QA**.
+
+This phase rebuilds employer cancellation as the canonical trust-sensitive flow it should always have been: required reason, application-status flip to `'CancelledByEmployer'` (NOT worker-side cancellation), worker reputation/quota protection, employer deposit penalty, and notification fan-out. The worker-side "Hủy" button never appears on a shift the worker had no part in cancelling.
+
+### A. Reason required + after-approval warning
+
+1. Run `npm run dev`. Clear localStorage, refresh.
+2. Log in as `lien@quanphoha.vn` (employer-001). Open `/employer/shifts/[id]` for a Published shift with at least one Approved applicant (use `/employer/dashboard` to find one or approve a worker first).
+3. Click "Huỷ ca". A modal opens.
+4. The modal MUST show an amber warning: "Ca này đã có người lao động được duyệt. Khi hủy, người lao động sẽ không bị phạt và hệ thống sẽ ghi nhận ảnh hưởng đến uy tín nhà tuyển dụng."
+5. Try to submit with an empty reason. The "Xác nhận hủy ca" button stays disabled.
+6. Type a single space — still disabled (whitespace-only doesn't satisfy the gate).
+7. Type a real reason (e.g. "Lịch đột xuất thay đổi"). The button enables. The penalty preview card shows the rate / amount based on current time-to-start.
+8. Confirm. The page navigates to the dashboard and the shift list now shows the cancellation reflected.
+
+### B. Penalty tiers
+
+1. Set up three test shifts via DevTools localStorage: one starting 48h from now, one starting 12h from now, one starting 3h from now. Approve a worker for each.
+2. Cancel each shift with a reason and observe the penalty card:
+   - 48h ahead → 5% of deposit.
+   - 12h ahead → 10% of deposit.
+   - 3h ahead → 15% of deposit.
+3. After cancellation, return to the cancelled shift's detail page. The Cancelled banner should show "Phí hủy sau khi đã duyệt người: {rate}% tiền cọc ({amount})".
+4. Cancel a shift with no approved workers (only Pending). Penalty card shows nothing (rate 0). Banner shows the reason but no penalty line.
+
+### C. Worker protection
+
+1. As a worker (`an.nguyen@gmail.com`), apply to a Published shift and have the employer approve.
+2. As the employer, cancel that shift with a reason.
+3. As the worker, refresh `/worker/dashboard`:
+   - The shift NO LONGER appears under "Ca làm sắp tới" (cancelled shifts are filtered out).
+   - The cancel button has disappeared (this was the bug — it should never reappear on a shift the worker didn't cancel).
+   - The worker's reputation score has gone UP by 2 (or up to the 100 cap), not down.
+   - If the worker had a recent `LateCancel` in their history, it has been refunded — `cancellationHistory.length` decreases by 1.
+4. Open a worker notification — the title reads "Ca làm đã bị hủy bởi nhà tuyển dụng", body includes the employer reason, link goes to `/shifts/{id}`.
+5. On `/shifts/{id}`, a red banner shows "Đã hủy bởi nhà tuyển dụng", the employer reason, and the protection note: "Bạn không bị trừ điểm uy tín hoặc hạn mức hủy vì ca do nhà tuyển dụng hủy. Hệ thống đã tự động bảo vệ quyền lợi của bạn."
+
+### D. Application status flip
+
+1. Open DevTools → Application → Local Storage → `cale.applications`.
+2. After an employer cancellation, find the affected worker's application record. Status MUST be `'CancelledByEmployer'`, NOT `'CancelledByWorker'`. `cancellationReasonNote` carries the employer's reason.
+3. Pending applicants for the same shift stay `'Pending'` — they get a notification but no status flip and no protection credit.
+4. Already-rejected / already-confirmed applicants are not modified.
+
+### E. Notification deep link
+
+1. Open the notification bell as the affected worker.
+2. The "Ca làm đã bị hủy bởi nhà tuyển dụng" notification is clickable.
+3. Clicking navigates to `/shifts/{id}` where the protection banner explains the situation in full.
+
+### F. Privacy non-regression
+
+1. Open the worker's reputation/cancellation modal and inspect the protection record.
+2. Confirm: only the shift title, employer name, reason, occurredAt, points/quota are shown. NO `fullIdentifier`, NO image URLs, NO admin notes.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/shiftStore.ts` — `cancel` action and side effects.
+- `src/domain/employerCancellation.ts` — penalty + protection helpers.
+- `src/app/employer/shifts/[id]/page.tsx` — cancellation modal.
+- `src/app/worker/dashboard/page.tsx` — `upcoming` filter and `UpcomingShiftCard`.
+- `src/app/shifts/[id]/page.tsx` — cancellation banner.
+- HANDOFF Section 11 employer-cancellation rule.
+
+
+## Phase 10A-Fix-8 — Canonical history records for protection + penalty
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-8 — NEEDS MANUAL VISUAL QA**.
+
+This phase wires existing `Worker.protections` and `Shift.employerCancellation*` data into the worker reputation timeline, the worker cancellation quota modal, and the employer payments modal. Every numeric change driven by an employer cancellation now has a permanent, visible history record.
+
+### A. Worker reputation timeline — protection event
+
+1. Run `npm run dev`, clear localStorage, refresh.
+2. Log in as a worker (e.g. `an.nguyen@gmail.com`). Apply to a published shift, have the employer approve, then have the employer cancel the shift with a reason.
+3. As the worker, open the dashboard and click the reputation card to open the "Điểm uy tín" modal.
+4. The timeline should show a new entry at the top: **"+2 Bảo vệ quyền lợi do nhà tuyển dụng hủy ca"** with the shift title, employer name, and reason in the sublabel.
+5. If the worker was already at 100 reputation, the same entry shows with delta=0 and the explanatory copy "Bạn đã đạt 100 điểm nên không cộng thêm uy tín."
+
+### B. Worker quota modal — protection sub-list
+
+1. With a worker who had a recent `LateCancel` in their `cancellationHistory`, repeat the cancel-by-employer flow.
+2. Open the "Hạn mức huỷ" stat card. The modal opens.
+3. Below the existing usage list, a new "Bảo vệ quyền lợi" section appears listing up to 5 most-recent protection records.
+4. The card reads "+1 lượt hủy được hoàn lại" when the worker had quota usage to refund, OR "Không bị tính lượt hủy" when they had nothing to refund.
+5. Each card shows the shift title, employer name, reason, and date.
+6. The legacy quota usage list (red/amber chips) still renders normally.
+
+### C. Employer money ledger
+
+1. Log in as the employer who just cancelled a shift after approving workers.
+2. Open the dashboard payments stat card. The modal opens.
+3. Below the existing recent-payouts list, a new "Phí hủy ca sau khi đã duyệt người" section appears.
+4. Each entry shows:
+   - shift title and cancellation date
+   - rate badge (5% / 10% / 15% tiền cọc)
+   - negative amount (e.g. "-60.000đ")
+   - reason
+   - the standard tag "Phí hủy do ca đã có người lao động được duyệt."
+5. Section is hidden entirely when the employer has no penalty entries.
+6. Cancel a shift before any worker was approved — the section does NOT show that entry (no `afterApproval`, no penalty).
+
+### D. Notification body deltas
+
+1. As the affected worker, open the notification bell.
+2. The new "Ca làm đã bị hủy bởi nhà tuyển dụng" notification body should now quote the actual deltas applied:
+   - Both deltas apply → `"… Bạn không bị phạt. Hệ thống đã ghi nhận bảo vệ quyền lợi: +2 uy tín / +1 lượt hủy được hoàn lại."`
+   - Only reputation delta → `"… +2 uy tín."`
+   - Only quota delta → `"… +1 lượt hủy được hoàn lại."`
+   - Both 0 (capped + no usage) → `"… Hệ thống đã ghi nhận bảo vệ quyền lợi cho bạn."`
+3. The reason text remains in every variant.
+4. Clicking the notification still deep-links to `/shifts/{id}` where the cancellation banner explains the situation.
+
+### E. Refresh persistence
+
+1. After all the above, hard-refresh the worker and employer dashboards.
+2. The reputation timeline entry, quota protection sub-list, and employer penalty ledger entry must all persist.
+3. Verify in DevTools → Application → Local Storage that:
+   - `cale.users` carries a `protections` array on the affected worker record.
+   - `cale.shifts` carries `cancelledBy: "employer"`, `employerCancellationReason`, `employerCancelledAfterApproval: true`, `employerCancellationPenaltyRate`, and `employerCancellationPenaltyAmount` on the cancelled shift record.
+
+### F. Privacy non-regression
+
+1. Open DevTools → Inspector on each modal that now renders the new sections.
+2. Confirm the rendered HTML carries no `fullIdentifier`, no document URLs, no admin notes, no rejection reasons. The protection record's only fields are `kind`, `shiftId`, `shiftTitle`, `employerId`, `employerName`, `reason`, `occurredAt`, `reputationPointsRestored`, `quotaSlotsRefunded`. The penalty entry only shows public-safe shift fields.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/shiftStore.ts` — `applyEmployerCancellationSideEffects` and `formatProtectionDeltas`.
+- `src/app/worker/dashboard/page.tsx` — `repTimeline`, the quota modal, and the cancelled-by-employer dashboard section.
+- `src/app/employer/dashboard/page.tsx` — `<EmployerPenaltyLedger>` and the payments modal.
+- HANDOFF Section 11 history-record rule.

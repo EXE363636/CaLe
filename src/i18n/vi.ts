@@ -155,6 +155,7 @@ export const vi: Record<string, string> = {
   'application.status.Approved': 'Đã duyệt',
   'application.status.Rejected': 'Bị từ chối',
   'application.status.CancelledByWorker': 'Người làm đã huỷ',
+  'application.status.CancelledByEmployer': 'Đã hủy bởi nhà tuyển dụng',
   'application.status.CancellationRequested': 'Yêu cầu huỷ',
   'application.status.NoShow': 'Vắng mặt',
   'application.status.CheckedIn': 'Đã check-in',
@@ -186,6 +187,7 @@ export const vi: Record<string, string> = {
   'notification.kind.ReputationAdjusted': 'Điều chỉnh điểm uy tín',
   'notification.kind.EmployerFeedbackReceived': 'Đánh giá từ người làm',
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
+  'notification.kind.EmployerCancelledShift': 'Ca làm đã bị hủy bởi nhà tuyển dụng',
   // Phase 9M — affordance label on dashboard notification cards.
   'notification.viewDetail': 'Xem chi tiết',
 

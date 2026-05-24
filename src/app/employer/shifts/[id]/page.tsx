@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
@@ -8,21 +8,24 @@ import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
-import { useNotificationStore } from '@/stores/notificationStore';
-import { Badge, Button, EmptyState } from '@/components/ui';
+import { Badge, Button, EmptyState, Modal, Textarea } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
 import { WorkerProfileModal } from '@/components/user/WorkerProfileModal';
 import { RatingForm } from '@/components/forms/RatingForm';
 import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
+import {
+  APPROVED_OR_LATER_STATUSES,
+  computeEmployerCancellationPenalty,
+} from '@/domain/employerCancellation';
 import { shouldMarkNoShow } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
-import type { Application, ApplicationStatus, Shift, Worker } from '@/types';
+import type { Application, Shift, Worker } from '@/types';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -64,10 +67,13 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     (s) => s.rejectCancellationRequest,
   );
   const cancelShift = useShiftStore((s) => s.cancel);
-  const pushNotification = useNotificationStore((s) => s.push);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [cancelConfirm, setCancelConfirm] = useState(false);
+  // Phase 10A-Fix-7: cancellation now goes through a modal that
+  // captures a required reason. The legacy inline confirm has been
+  // replaced; `cancelOpen` controls modal visibility.
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [profileWorker, setProfileWorker] = useState<Worker | null>(null);
@@ -161,11 +167,21 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     setCancelLoading(true);
     setCancelError(null);
 
-    const result = cancelShift(shift.id);
+    const trimmed = cancelReason.trim();
+    if (trimmed === '') {
+      setCancelError('Vui lòng nhập lý do hủy.');
+      setCancelLoading(false);
+      return;
+    }
+
+    const result = cancelShift(shift.id, trimmed);
     if (!result.ok) {
-      // Phase 9G — distinguish the three failure modes so the employer
-      // sees a precise reason. `NOT_FOUND` is rare (only if the shift
-      // was deleted between render and click).
+      // Phase 9G — distinguish the failure modes so the employer
+      // sees a precise reason. Phase 10A-Fix-7 added `REASON_REQUIRED`
+      // for empty reasons; the inline guard above handles that case
+      // before calling the store, so we shouldn't normally see it
+      // here. `NOT_FOUND` is rare (only if the shift was deleted
+      // between render and click).
       const message = toastFromStoreError(result.error);
       setCancelError(message);
       showError(message);
@@ -173,39 +189,51 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
       return;
     }
 
-    // Success: notify every worker who currently has an active stake in
-    // this shift (Pending / Approved / CancellationRequested / CheckedIn /
-    // CheckedOut). Cancelled / Confirmed / NoShow / Rejected applications
-    // are intentionally skipped — those workers are already done with the
-    // shift one way or another.
-    const affectedStatuses: ReadonlySet<ApplicationStatus> = new Set([
-      'Pending',
-      'Approved',
-      'CancellationRequested',
-      'CheckedIn',
-      'CheckedOut',
-    ]);
-    for (const app of shiftApps) {
-      if (!affectedStatuses.has(app.status)) continue;
-      pushNotification({
-        userId: app.workerId,
-        kind: 'ShiftCancelled',
-        title: 'Ca làm đã bị huỷ',
-        body: `Nhà tuyển dụng đã huỷ ca "${shift.title}" (${formatDateVN(shift.date)}).`,
-        link: '/worker/dashboard',
-      });
-    }
-
+    // Phase 10A-Fix-7 — the store now owns the affected-worker
+    // notification fan-out, the application status flips, the worker
+    // protection credit, and the employer penalty calculation. The
+    // employer-facing UI just confirms success and navigates away.
     setCancelLoading(false);
-    setCancelConfirm(false);
-    showSuccess(
-      t('feedback.shift.cancel.success'),
-      t('feedback.shift.cancel.success.desc'),
-    );
+    setCancelOpen(false);
+    setCancelReason('');
+    if (result.value.employerCancelledAfterApproval) {
+      showSuccess(
+        t('feedback.shift.cancel.success'),
+        `Hệ thống đã thông báo cho người lao động và áp dụng phí hủy ${Math.round(
+          (result.value.employerCancellationPenaltyRate ?? 0) * 100,
+        )}% tiền cọc.`,
+      );
+    } else {
+      showSuccess(
+        t('feedback.shift.cancel.success'),
+        t('feedback.shift.cancel.success.desc'),
+      );
+    }
     // Redirect back to the employer dashboard so the employer sees the
     // cancellation reflected in their shift list immediately.
     router.push('/employer/dashboard');
   }
+
+  // Phase 10A-Fix-7 — preview the penalty inline in the dialog so the
+  // employer sees the consequence before they confirm. Recomputed on
+  // every render with `Date.now()` so opening the dialog two minutes
+  // before the 6h cutoff still reflects the higher rate.
+  const cancelPreview = useMemo(() => {
+    return computeEmployerCancellationPenalty(
+      shift,
+      applications,
+      Date.now(),
+    );
+  }, [shift, applications]);
+  const hasApprovedWorkers = useMemo(
+    () =>
+      applications.some(
+        (a) =>
+          a.shiftId === shift.id &&
+          APPROVED_OR_LATER_STATUSES.has(a.status),
+      ),
+    [applications, shift.id],
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
@@ -242,64 +270,161 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
       {/* Cancel shift — only available while the shift is in a state that
           can still be cancelled. Completed / InProgress / AwaitingConfirmation
-          / Cancelled / Expired states should never expose this control. */}
+          / Cancelled / Expired states should never expose this control.
+          Phase 10A-Fix-7: cancellation now opens a modal that captures
+          a required reason and warns about worker-protection + employer
+          penalty consequences. */}
       {['Draft', 'Published', 'FullyBooked'].includes(shift.status) && (
         <div className="mt-4 flex flex-col gap-2">
-          {!cancelConfirm ? (
-            <div>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => {
-                  setCancelError(null);
-                  setCancelConfirm(true);
-                }}
-              >
-                {t('btn.cancelShift')}
-              </Button>
-            </div>
+          <div>
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => {
+                setCancelError(null);
+                setCancelOpen(true);
+              }}
+            >
+              {t('btn.cancelShift')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Already cancelled — informational banner so the page is not blank
+          where the cancel button used to be. Phase 10A-Fix-7 — also
+          shows the cancellation reason and the penalty applied so the
+          employer has a record. */}
+      {shift.status === 'Cancelled' && (
+        <div
+          role="status"
+          className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700"
+        >
+          <p className="font-medium text-gray-900">
+            {t('shift.cancelled.banner')}
+          </p>
+          {shift.employerCancellationReason && (
+            <p className="mt-1 text-xs text-gray-600">
+              <span className="font-medium">Lý do:</span>{' '}
+              {shift.employerCancellationReason}
+            </p>
+          )}
+          {shift.employerCancelledAfterApproval &&
+            (shift.employerCancellationPenaltyAmount ?? 0) > 0 && (
+              <p className="mt-1 text-xs text-amber-700">
+                Phí hủy sau khi đã duyệt người:{' '}
+                {Math.round(
+                  (shift.employerCancellationPenaltyRate ?? 0) * 100,
+                )}
+                % tiền cọc ({formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
+                ).
+              </p>
+            )}
+          {/* Phase 10A-Fix-8 — surface the affected approved-worker
+              count on the cancelled-shift detail so the employer can
+              audit the cancellation later (the payments-modal ledger
+              already shows the money side; this banner shows the
+              human side). Counts every application that was flipped
+              to `'CancelledByEmployer'` by the store. */}
+          {shift.employerCancelledAfterApproval &&
+            (() => {
+              const affectedCount = shiftApps.filter(
+                (a) => a.status === 'CancelledByEmployer',
+              ).length;
+              if (affectedCount === 0) return null;
+              return (
+                <p className="mt-1 text-xs text-gray-600">
+                  Số người lao động đã được duyệt bị ảnh hưởng:{' '}
+                  <span className="font-semibold text-gray-900">
+                    {affectedCount}
+                  </span>
+                </p>
+              );
+            })()}
+        </div>
+      )}
+
+      {/* Phase 10A-Fix-7 — employer cancellation modal. */}
+      <Modal
+        open={cancelOpen}
+        onClose={() => {
+          if (cancelLoading) return;
+          setCancelOpen(false);
+          setCancelError(null);
+        }}
+        title="Hủy ca làm"
+      >
+        <div className="flex flex-col gap-3 text-sm text-gray-700">
+          {hasApprovedWorkers ? (
+            <p className="rounded-md bg-amber-50 px-3 py-2 text-amber-900 ring-1 ring-amber-200">
+              Ca này đã có người lao động được duyệt. Khi hủy, người lao
+              động sẽ không bị phạt và hệ thống sẽ ghi nhận ảnh hưởng đến
+              uy tín nhà tuyển dụng.
+            </p>
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-red-700">Xác nhận huỷ ca?</span>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={handleCancelShift}
-                loading={cancelLoading}
-              >
-                Huỷ ca
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setCancelConfirm(false);
-                  setCancelError(null);
-                }}
-                disabled={cancelLoading}
-              >
-                Không
-              </Button>
+            <p className="text-gray-600">
+              Vui lòng nhập lý do hủy. Người lao động đang chờ duyệt sẽ
+              nhận thông báo ca không còn áp dụng.
+            </p>
+          )}
+
+          <Textarea
+            label="Lý do hủy (bắt buộc)"
+            value={cancelReason}
+            onChange={(e) => {
+              setCancelReason(e.target.value);
+              if (cancelError) setCancelError(null);
+            }}
+            placeholder="Ví dụ: Lịch đột xuất thay đổi, không thể tổ chức ca."
+            rows={3}
+          />
+
+          {cancelPreview.afterApproval && cancelPreview.amount > 0 && (
+            <div className="rounded-md bg-orange-50 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-200">
+              <p className="font-medium">
+                Phí hủy: {Math.round(cancelPreview.rate * 100)}% tiền cọc
+                ({formatVND(cancelPreview.amount)})
+              </p>
+              <p className="mt-0.5 text-orange-800/80">
+                {cancelPreview.rate >= 0.15
+                  ? 'Bạn đang hủy trong vòng 6 giờ trước giờ bắt đầu.'
+                  : cancelPreview.rate >= 0.1
+                    ? 'Bạn đang hủy trong vòng 24 giờ trước giờ bắt đầu.'
+                    : 'Bạn đang hủy hơn 24 giờ trước giờ bắt đầu.'}
+              </p>
             </div>
           )}
+
           {cancelError && (
             <p role="alert" className="text-sm text-red-600">
               {cancelError}
             </p>
           )}
-        </div>
-      )}
 
-      {/* Already cancelled — informational banner so the page is not blank
-          where the cancel button used to be. */}
-      {shift.status === 'Cancelled' && (
-        <div
-          role="status"
-          className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700"
-        >
-          {t('shift.cancelled.banner')}
+          <div className="mt-1 flex justify-end gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setCancelOpen(false);
+                setCancelError(null);
+              }}
+              disabled={cancelLoading}
+            >
+              Không
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={handleCancelShift}
+              loading={cancelLoading}
+              disabled={cancelReason.trim() === ''}
+            >
+              Xác nhận hủy ca
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
 
       {/* Applications */}
       <section className="mt-8">
@@ -558,6 +683,8 @@ function badgeToneForApp(
       return 'danger';
     case 'CancelledByWorker':
       return 'neutral';
+    case 'CancelledByEmployer':
+      return 'danger';
     default:
       return 'neutral';
   }

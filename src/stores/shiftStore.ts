@@ -19,14 +19,28 @@ import {
   depositForTrust,
   trustForEmployer,
 } from '@/domain/employerTrust';
+import {
+  AFFECTED_APPLICATION_STATUSES,
+  buildWorkerProtection,
+  computeEmployerCancellationPenalty,
+  refundOneLateCancel,
+} from '@/domain/employerCancellation';
 import { transitionEscrow } from '@/domain/escrow';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
 import { canEditShift } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
-import type { Result, Shift, ShiftStatus } from '@/types';
+import type {
+  Application,
+  ApplicationStatus,
+  Result,
+  Shift,
+  ShiftStatus,
+  Worker,
+} from '@/types';
 
 import { useApplicationStore } from './applicationStore';
+import { useNotificationStore } from './notificationStore';
 import { asEmployer, useUserStore } from './userStore';
 
 // ---------------------------------------------------------------------------
@@ -76,7 +90,9 @@ export type ShiftEditablePatch = Partial<
 export type CancelError =
   | 'NOT_FOUND'
   | 'TOO_LATE_STARTED'
-  | 'TOO_LATE_HAS_APPLICANTS';
+  | 'TOO_LATE_HAS_APPLICANTS'
+  /** Phase 10A-Fix-7: empty / whitespace-only reason. */
+  | 'REASON_REQUIRED';
 export type EditError = 'NOT_FOUND' | 'TOO_LATE' | 'POSITIONS_BELOW_FILLED';
 
 interface ShiftStore {
@@ -95,7 +111,17 @@ interface ShiftStore {
   setStatus(shiftId: string, status: ShiftStatus): void;
   incrementFilled(shiftId: string, delta: number): void;
   edit(shiftId: string, patch: ShiftEditablePatch, nowIso?: string): Result<Shift, EditError>;
-  cancel(shiftId: string, nowIso?: string): Result<Shift, CancelError>;
+  /**
+   * Phase 10A-Fix-7: employer-initiated cancellation. Reason is required
+   * and stored on the shift. When at least one worker had been approved
+   * the store also (a) flips their applications to
+   * `'CancelledByEmployer'`, (b) credits each worker with a
+   * `WorkerProtectionRecord` plus a reputation/quota refund, and
+   * (c) computes the deposit penalty per the time-window rules in
+   * `src/domain/employerCancellation.ts`. Pending-only applicants are
+   * notified but receive no protection record.
+   */
+  cancel(shiftId: string, reason: string, nowIso?: string): Result<Shift, CancelError>;
   useBoostCredit(shiftId: string): void;
 
   /**
@@ -260,9 +286,17 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     return { ok: true, value: updated };
   },
 
-  cancel(shiftId, when) {
+  cancel(shiftId, reason, when) {
     const shift = get().getById(shiftId);
     if (!shift) return { ok: false, error: 'NOT_FOUND' };
+
+    // Phase 10A-Fix-7: reason is required. Trim before checking so a
+    // whitespace-only string doesn't satisfy the gate. The error code
+    // surfaces in the employer dialog so the field highlights.
+    const trimmedReason = (reason ?? '').trim();
+    if (trimmedReason === '') {
+      return { ok: false, error: 'REASON_REQUIRED' };
+    }
 
     // Phase 9G: applicant-aware cancellation rule.
     //
@@ -271,12 +305,6 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     //     (TOO_LATE_HAS_APPLICANTS).
     //   - Within 6h before start AND zero active applicants  → allowed.
     //   - More than 6h before start → allowed.
-    //
-    // "Active applicant" = any application in a state that still occupies
-    // a slot or expects employer action: Pending, Approved,
-    // CancellationRequested, CheckedIn, CheckedOut. Rejected /
-    // CancelledByWorker / NoShow / Confirmed are skipped — those workers
-    // have already exited the lifecycle.
     const at = when ?? nowIso();
     const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
     const nowMs = new Date(at).getTime();
@@ -304,19 +332,35 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     }
 
     // Terminal states are still off-limits — `Cancelled` / `Completed`
-    // shouldn't be re-cancelled. The pre-9G `canCancelShift` enforced
-    // this; we keep the equivalent guard inline here.
+    // shouldn't be re-cancelled.
     if (shift.status === 'Cancelled' || shift.status === 'Completed') {
       return { ok: false, error: 'TOO_LATE_STARTED' };
     }
 
+    // Phase 10A-Fix-7: compute the penalty + protection state BEFORE
+    // mutating the application slice so we have a clean read of who
+    // was approved at cancel time.
+    const apps = useApplicationStore.getState().applications;
+    const penalty = computeEmployerCancellationPenalty(shift, apps, nowMs);
+
+    // Patch the shift with the new metadata + Cancelled status.
     const next = patchShift(get().shifts, shiftId, {
       status: 'Cancelled',
       escrowStatus: transitionEscrow(shift.escrowStatus, 'CancelShift'),
+      cancelledAt: at,
+      cancelledBy: 'employer',
+      employerCancellationReason: trimmedReason,
+      employerCancelledAfterApproval: penalty.afterApproval,
+      employerCancellationPenaltyRate: penalty.rate,
+      employerCancellationPenaltyAmount: penalty.amount,
     });
     set({ shifts: next });
     persist(next);
     const updated = next.find((s) => s.id === shiftId)!;
+
+    // Phase 10A-Fix-7: orchestrate the side effects.
+    applyEmployerCancellationSideEffects(updated, apps, at, trimmedReason);
+
     return { ok: true, value: updated };
   },
 
@@ -361,3 +405,159 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     set({ shifts });
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Phase 10A-Fix-7 — employer cancellation side effects
+// ---------------------------------------------------------------------------
+
+/**
+ * Orchestrate the post-cancel work outside the Zustand setter so the
+ * shift slice stays focused on its own data. Mutates the application
+ * slice (status flips), worker records (protection credit), and
+ * notification slice. Persistence happens inside each slice's helper.
+ */
+function applyEmployerCancellationSideEffects(
+  shift: Shift,
+  applicationsBefore: Application[],
+  occurredAt: string,
+  reason: string,
+): void {
+  const userStore = useUserStore.getState();
+  const applicationStore = useApplicationStore.getState();
+  const notificationStore = useNotificationStore.getState();
+
+  const employer = asEmployer(userStore.findById(shift.employerId));
+  const employerName = employer?.companyName ?? 'Nhà tuyển dụng';
+
+  // Snapshot the applications belonging to this shift in the order the
+  // employer sees them. We bucket into:
+  //   - approved (or later) → flip status, credit protection, notify.
+  //   - pending             → leave status untouched; notify only.
+  //   - terminal (Rejected / CancelledByWorker / NoShow) → skip.
+  const ourApps = applicationsBefore.filter((a) => a.shiftId === shift.id);
+  const affected: Application[] = [];
+  const pendingOnly: Application[] = [];
+  for (const a of ourApps) {
+    if (AFFECTED_APPLICATION_STATUSES.has(a.status)) {
+      affected.push(a);
+    } else if (a.status === 'Pending') {
+      pendingOnly.push(a);
+    }
+  }
+
+  // 1. Flip affected applications to `'CancelledByEmployer'`. We
+  //    intentionally do not call `applicationStore.cancelByWorker` here
+  //    — that would mark the worker as the canceller and tick the
+  //    weekly quota, which is precisely what Fix-7 forbids. We
+  //    rebuild the application slice in place and persist via the
+  //    store's existing setter helper.
+  if (affected.length > 0) {
+    const affectedIds = new Set(affected.map((a) => a.id));
+    const updatedApps = applicationStore.applications.map((a) =>
+      affectedIds.has(a.id)
+        ? ({
+            ...a,
+            status: 'CancelledByEmployer' as ApplicationStatus,
+            cancelledAt: occurredAt,
+            cancellationReasonNote: reason,
+          } satisfies Application)
+        : a,
+    );
+    // Use the store's hydrate path: it both replaces state AND
+    // triggers a persist write via `applicationStore.hydrate` callers.
+    // The application store doesn't expose a public bulk-mutate, so we
+    // do it through `setState` directly. The slice's own persist
+    // helpers are only called inside store actions; since we're
+    // bypassing those, we write directly using the storage key.
+    useApplicationStore.setState({ applications: updatedApps });
+    write(STORAGE_KEYS.applications, updatedApps);
+  }
+
+  // 2. Credit each affected worker with a protection record + reputation
+  //    bump + late-cancel quota refund. `userStore.updateUser` already
+  //    persists. Phase 10A-Fix-8: collect each protection record so the
+  //    notification body can quote the worker's actual delta numbers.
+  const protectionByWorker = new Map<
+    string,
+    { reputationDelta: number; quotaDelta: number }
+  >();
+  for (const a of affected) {
+    const user = userStore.findById(a.workerId);
+    if (!user || user.role !== 'worker') continue;
+    const worker = user as Worker;
+    const built = buildWorkerProtection({
+      worker,
+      shift,
+      employerName,
+      reason,
+      occurredAt,
+    });
+    const refundedHistory =
+      built.record.quotaSlotsRefunded > 0
+        ? refundOneLateCancel(worker.cancellationHistory)
+        : worker.cancellationHistory;
+    userStore.updateUser(worker.id, {
+      reputationScore: built.patch.reputationScore,
+      protections: built.patch.protections,
+      cancellationHistory: refundedHistory,
+    } satisfies Partial<Worker>);
+    protectionByWorker.set(a.workerId, {
+      reputationDelta: built.record.reputationPointsRestored,
+      quotaDelta: built.record.quotaSlotsRefunded,
+    });
+  }
+
+  // 3. Notify every affected worker with the protection-aware copy +
+  //    a deep link to the shift detail (where the cancellation reason
+  //    + protection note now render). Phase 10A-Fix-8 — body quotes
+  //    the actual deltas applied to that specific worker.
+  for (const a of affected) {
+    const deltas = protectionByWorker.get(a.workerId) ?? {
+      reputationDelta: 0,
+      quotaDelta: 0,
+    };
+    const protectionLine = formatProtectionDeltas(
+      deltas.reputationDelta,
+      deltas.quotaDelta,
+    );
+    notificationStore.push({
+      userId: a.workerId,
+      kind: 'EmployerCancelledShift',
+      title: 'Ca làm đã bị hủy bởi nhà tuyển dụng',
+      body: `${shift.title} đã bị hủy. Lý do: ${reason}. Bạn không bị phạt. ${protectionLine}`,
+      link: `/shifts/${shift.id}`,
+    });
+  }
+
+  // 4. Notify Pending-only applicants so they know not to wait. They
+  //    receive no protection credit because they were never approved.
+  for (const a of pendingOnly) {
+    notificationStore.push({
+      userId: a.workerId,
+      kind: 'ShiftCancelled',
+      title: 'Ca làm đã bị hủy',
+      body: `${shift.title} đã bị hủy. Đơn ứng tuyển của bạn không còn áp dụng.`,
+      link: '/shifts',
+    });
+  }
+}
+
+/**
+ * Phase 10A-Fix-8 — render the worker-side protection summary as a
+ * single Vietnamese sentence that names the actual deltas applied.
+ * When both deltas are zero (the worker was already at the rep cap
+ * AND had no late-cancel slot to refund) we still confirm the
+ * protection record was created so the notification reads consistently.
+ */
+function formatProtectionDeltas(
+  reputationDelta: number,
+  quotaDelta: number,
+): string {
+  const parts: string[] = [];
+  if (reputationDelta > 0) parts.push(`+${reputationDelta} uy tín`);
+  if (quotaDelta > 0) parts.push(`+${quotaDelta} lượt hủy được hoàn lại`);
+  if (parts.length === 0) {
+    return 'Hệ thống đã ghi nhận bảo vệ quyền lợi cho bạn.';
+  }
+  return `Hệ thống đã ghi nhận bảo vệ quyền lợi: ${parts.join(' / ')}.`;
+}

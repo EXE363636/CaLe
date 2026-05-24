@@ -134,13 +134,25 @@ function WorkerDashboardContent() {
   // Upcoming approved/checked-in shifts (date in future or today).
   // Includes `CancellationRequested` so the worker still sees the shift
   // while waiting for the employer's decision.
+  // Phase 10A-Fix-7: drop applications whose shift was cancelled by the
+  // employer — they belong in the "recent cancelled" section, not the
+  // upcoming list. The application status `'CancelledByEmployer'` is
+  // also excluded from the active set.
   const todayStr = new Date().toISOString().slice(0, 10);
   const upcoming = myApps
-    .filter((a) =>
-      ['Approved', 'CancellationRequested', 'CheckedIn', 'CheckedOut'].includes(a.status) &&
-      getShift(a.shiftId) !== undefined &&
-      getShift(a.shiftId)!.date >= todayStr,
-    )
+    .filter((a) => {
+      if (
+        !['Approved', 'CancellationRequested', 'CheckedIn', 'CheckedOut'].includes(
+          a.status,
+        )
+      ) {
+        return false;
+      }
+      const sh = getShift(a.shiftId);
+      if (!sh) return false;
+      if (sh.status === 'Cancelled') return false;
+      return sh.date >= todayStr;
+    })
     .sort((a, b) => {
       const sa = getShift(a.shiftId)!;
       const sb = getShift(b.shiftId)!;
@@ -155,6 +167,22 @@ function WorkerDashboardContent() {
       myApps
         .filter((a) => a.status === 'Rejected')
         .sort((a, b) => b.appliedAt.localeCompare(a.appliedAt))
+        .slice(0, 5),
+    [myApps],
+  );
+
+  // Phase 10A-Fix-7: keep recently-cancelled-by-employer applications
+  // visible on the dashboard so the worker has a clickable surface for
+  // the cancellation reason + protection note. The notification bell
+  // also deep-links to `/shifts/{id}` but the dashboard is the worker's
+  // home, so we mirror the `recentlyRejected` pattern here.
+  const recentlyCancelledByEmployer = useMemo(
+    () =>
+      myApps
+        .filter((a) => a.status === 'CancelledByEmployer')
+        .sort((a, b) =>
+          (b.cancelledAt ?? '').localeCompare(a.cancelledAt ?? ''),
+        )
         .slice(0, 5),
     [myApps],
   );
@@ -266,6 +294,26 @@ function WorkerDashboardContent() {
           '{count}',
           String(worker.noShowCount),
         ),
+      });
+    }
+    // Phase 10A-Fix-8: employer-cancellation protection events. Each
+    // record carries the +reputation delta that was applied at the
+    // time of the cancellation; when the worker was already at the
+    // 100-point cap the delta is 0 and the timeline still shows the
+    // event so the worker understands the system protected them.
+    for (const rec of worker.protections ?? []) {
+      events.push({
+        id: `rep-protection-${rec.id}`,
+        at: rec.occurredAt,
+        delta: rec.reputationPointsRestored,
+        label:
+          rec.reputationPointsRestored > 0
+            ? `+${rec.reputationPointsRestored} Bảo vệ quyền lợi do nhà tuyển dụng hủy ca`
+            : 'Bảo vệ quyền lợi do nhà tuyển dụng hủy ca',
+        sublabel:
+          rec.reputationPointsRestored > 0
+            ? `${rec.shiftTitle} • ${rec.employerName} • ${rec.reason}`
+            : `${rec.shiftTitle} • ${rec.employerName} • Bạn đã đạt 100 điểm nên không cộng thêm uy tín.`,
       });
     }
     // Sort descending so the most-recent event is first.
@@ -565,6 +613,55 @@ function WorkerDashboardContent() {
                       application={a}
                       shift={shift}
                     />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Phase 10A-Fix-7: recently-cancelled-by-employer
+              applications. Each card is a `<Link>` to `/shifts/{id}`
+              where the cancellation banner explains the reason and the
+              worker-protection note. */}
+          {recentlyCancelledByEmployer.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                Ca làm bị nhà tuyển dụng hủy
+              </h2>
+              <div className="flex flex-col gap-3">
+                {recentlyCancelledByEmployer.map((a) => {
+                  const shift = getShift(a.shiftId);
+                  if (!shift) return null;
+                  return (
+                    <Link key={a.id} href={`/shifts/${shift.id}`}>
+                      <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900">
+                              {shift.title}
+                            </p>
+                            <p className="mt-0.5 text-sm text-gray-500">
+                              {formatDateVN(shift.date)} •{' '}
+                              {formatTimeVN(shift.startTime)}–
+                              {formatTimeVN(shift.endTime)}
+                            </p>
+                          </div>
+                          <Badge tone="danger">
+                            {t('application.status.CancelledByEmployer')}
+                          </Badge>
+                        </div>
+                        {shift.employerCancellationReason && (
+                          <p className="mt-2 text-sm text-gray-700">
+                            <span className="font-medium">Lý do:</span>{' '}
+                            {shift.employerCancellationReason}
+                          </p>
+                        )}
+                        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                          Bạn không bị trừ điểm uy tín hoặc hạn mức hủy
+                          vì ca do nhà tuyển dụng hủy.
+                        </p>
+                      </Card>
+                    </Link>
                   );
                 })}
               </div>
@@ -949,6 +1046,47 @@ function WorkerDashboardContent() {
           <p className="text-xs text-gray-500">
             {t('worker.dashboard.quotaModal.bonus')}
           </p>
+
+          {/* Phase 10A-Fix-8: protection-against-employer-cancellation
+              entries. Visible alongside the cancellation usage list so
+              the worker can see exactly when the system protected them
+              and whether a quota slot was refunded. */}
+          {(worker.protections ?? []).length > 0 && (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                Bảo vệ quyền lợi
+              </p>
+              <ul className="flex flex-col gap-2">
+                {[...(worker.protections ?? [])]
+                  .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+                  .slice(0, 5)
+                  .map((rec) => (
+                    <li
+                      key={rec.id}
+                      className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-xs font-medium text-emerald-900">
+                          {rec.quotaSlotsRefunded > 0
+                            ? `+${rec.quotaSlotsRefunded} lượt hủy được hoàn lại`
+                            : 'Không bị tính lượt hủy'}
+                        </p>
+                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                          {rec.shiftTitle}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-emerald-800/80">
+                        {rec.employerName} • Lý do: {rec.reason}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-emerald-700/70">
+                        {formatDateVN(rec.occurredAt.slice(0, 10))}
+                      </p>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+
           <div className="mt-1 flex justify-end">
             <Button
               size="sm"
@@ -1443,11 +1581,13 @@ function UpcomingShiftCard({
             {t('btn.checkOut')}
           </Button>
         )}
-        {application.status === 'Approved' && !showCheckIn && (
-          <Button size="sm" variant="ghost" onClick={onCancel} loading={loading}>
-            {t('btn.cancel')}
-          </Button>
-        )}
+        {application.status === 'Approved' &&
+          !showCheckIn &&
+          shift.status !== 'Cancelled' && (
+            <Button size="sm" variant="ghost" onClick={onCancel} loading={loading}>
+              {t('btn.cancel')}
+            </Button>
+          )}
       </div>
     </Card>
   );
@@ -1533,6 +1673,7 @@ function badgeToneFor(status: Application['status']): 'success' | 'warning' | 'd
     case 'Rejected': return 'danger';
     case 'NoShow': return 'danger';
     case 'CancelledByWorker': return 'neutral';
+    case 'CancelledByEmployer': return 'danger';
     default: return 'neutral';
   }
 }

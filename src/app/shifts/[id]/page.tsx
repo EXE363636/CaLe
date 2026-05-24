@@ -228,6 +228,39 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           contact info. Never reveals private employer documents. */}
       <WorkplaceCard shift={shift} />
 
+      {/* Phase 10A-Fix-7 — employer cancellation banner. When the
+          employer cancelled this shift, every worker who lands on the
+          detail page (often via a notification deep link) sees the
+          reason + the protection note. The banner is public-safe:
+          only the employer-supplied reason is shown. */}
+      {shift.status === 'Cancelled' && shift.cancelledBy === 'employer' && (
+        <Section title="Ca làm đã bị hủy">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+            <p>
+              <span className="font-semibold">Đã hủy bởi nhà tuyển dụng</span>
+              {shift.cancelledAt && (
+                <span className="ml-2 text-xs text-red-800/80">
+                  ({formatDateVN(shift.cancelledAt.slice(0, 10))})
+                </span>
+              )}
+            </p>
+            {shift.employerCancellationReason && (
+              <p className="mt-2 text-sm">
+                <span className="font-medium">Lý do:</span>{' '}
+                {shift.employerCancellationReason}
+              </p>
+            )}
+            {shift.employerCancelledAfterApproval && (
+              <p className="mt-2 text-xs leading-relaxed text-red-800">
+                Bạn không bị trừ điểm uy tín hoặc hạn mức hủy vì ca do nhà
+                tuyển dụng hủy. Hệ thống đã tự động bảo vệ quyền lợi của
+                bạn.
+              </p>
+            )}
+          </div>
+        </Section>
+      )}
+
       {/* Apply section */}
       <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         {!currentUserId && (

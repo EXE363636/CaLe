@@ -461,6 +461,14 @@ function EmployerDashboardContent() {
             )}
           </div>
 
+          {/* Phase 10A-Fix-8: employer cancellation penalty ledger.
+              When the employer has cancelled a shift after at least
+              one worker was approved, the deposit penalty (5/10/15%)
+              is stored on the shift record. We list them here so the
+              employer has a permanent ledger surface, not just a
+              one-time toast. */}
+          <EmployerPenaltyLedger employerShifts={myShifts} />
+
           <p className="text-xs text-gray-500">
             {t('employer.payments.disclaimer')}
           </p>
@@ -941,5 +949,77 @@ function LiveVerificationChips({
         </span>
       )}
     </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10A-Fix-8 — employer cancellation penalty ledger
+// ---------------------------------------------------------------------------
+
+function EmployerPenaltyLedger({
+  employerShifts,
+}: {
+  employerShifts: Shift[];
+}) {
+  const penaltyEntries = useMemo(() => {
+    return employerShifts
+      .filter(
+        (s) =>
+          s.cancelledBy === 'employer' &&
+          s.employerCancelledAfterApproval === true &&
+          (s.employerCancellationPenaltyAmount ?? 0) > 0,
+      )
+      .sort((a, b) =>
+        (b.cancelledAt ?? '').localeCompare(a.cancelledAt ?? ''),
+      );
+  }, [employerShifts]);
+
+  if (penaltyEntries.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+        Phí hủy ca sau khi đã duyệt người
+      </p>
+      <ul className="flex flex-col gap-2">
+        {penaltyEntries.slice(0, 5).map((shift) => (
+          <li
+            key={shift.id}
+            className="rounded-lg border border-red-200 bg-red-50/60 px-3 py-2"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-red-900">
+                  {shift.title}
+                </p>
+                <p className="mt-0.5 text-[11px] text-red-800/80">
+                  {shift.cancelledAt &&
+                    formatDateVN(shift.cancelledAt.slice(0, 10))}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-xs font-semibold text-red-700">
+                  {Math.round(
+                    (shift.employerCancellationPenaltyRate ?? 0) * 100,
+                  )}
+                  % tiền cọc
+                </p>
+                <p className="text-sm font-bold text-red-800">
+                  -{formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
+                </p>
+              </div>
+            </div>
+            {shift.employerCancellationReason && (
+              <p className="mt-1.5 text-[11px] text-red-800/90">
+                Lý do: {shift.employerCancellationReason}
+              </p>
+            )}
+            <p className="mt-0.5 text-[11px] italic text-red-700/70">
+              Phí hủy do ca đã có người lao động được duyệt.
+            </p>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
