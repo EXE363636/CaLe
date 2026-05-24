@@ -47,6 +47,14 @@ export interface NewShiftInput {
   endTime: string;     // HH:mm
   hourlyWage: number;
   positionsTotal: number;
+
+  /** Phase 10A-Fix-3 — workplace imagery + on-site contact metadata. */
+  workplaceImageUrl?: string;
+  workplaceImageLabel?: string;
+  workplaceNotes?: string;
+  onSiteContactName?: string;
+  onSiteContactPhone?: string;
+  requiresVerifiedDocumentOnArrival?: boolean;
 }
 
 /** Editable subset of a shift (Req 25.1 — wage and date are NOT editable). */
@@ -179,6 +187,15 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       depositAmount,
       createdAt: created,
       updatedAt: created,
+      // Phase 10A-Fix-3 — only persist trim non-empty values to keep
+      // the JSON snapshot tight; empty strings round-trip as undefined.
+      workplaceImageUrl: input.workplaceImageUrl?.trim() || undefined,
+      workplaceImageLabel: input.workplaceImageLabel?.trim() || undefined,
+      workplaceNotes: input.workplaceNotes?.trim() || undefined,
+      onSiteContactName: input.onSiteContactName?.trim() || undefined,
+      onSiteContactPhone: input.onSiteContactPhone?.trim() || undefined,
+      requiresVerifiedDocumentOnArrival:
+        input.requiresVerifiedDocumentOnArrival ?? false,
     };
 
     const next = [...get().shifts, shift];

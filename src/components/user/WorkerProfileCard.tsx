@@ -5,16 +5,27 @@
  * Shows avatar, name, reputation, verifications, star rating, completed
  * shift count, bio, and skill chips.
  *
- * No hooks → no 'use client' needed.
+ * Phase 10A-Fix-5 — verification chips are LIVE-DERIVED from the
+ * verification store, not the frozen `worker.verifications` flag-array.
+ * Component is now a client component because it subscribes to a
+ * Zustand slice. Keeps the same employer-facing privacy boundary —
+ * only badge + masked identifier per approved method, never the
+ * fullIdentifier or image URLs.
  */
 
+'use client';
+
+import { useMemo } from 'react';
 import { Card, StarRating, Badge } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { averageRating } from '@/domain/rating';
+import {
+  getWorkerVerificationSummary,
+  useVerificationStore,
+} from '@/stores';
 import type { Worker } from '@/types';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
-import { VerificationBadge } from './VerificationBadge';
 
 export interface WorkerProfileCardProps {
   worker: Worker;
@@ -23,6 +34,11 @@ export interface WorkerProfileCardProps {
 
 export function WorkerProfileCard({ worker, className = '' }: WorkerProfileCardProps) {
   const avg = averageRating(worker.ratingsReceived);
+  const workerDocuments = useVerificationStore((s) => s.workerDocuments);
+  const summary = useMemo(
+    () => getWorkerVerificationSummary(worker, workerDocuments),
+    [worker, workerDocuments],
+  );
 
   return (
     <Card className={className}>
@@ -39,9 +55,29 @@ export function WorkerProfileCard({ worker, className = '' }: WorkerProfileCardP
         <ReputationBadge score={worker.reputationScore} />
       </div>
 
-      {/* Row 2: verification badges */}
-      <div className="mt-2">
-        <VerificationBadge verifications={worker.verifications} />
+      {/* Row 2: live verification badges */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {worker.verifications.includes('phone') && (
+          <Badge tone="info">{t('verification.phone')}</Badge>
+        )}
+        {summary.identityVerified ? (
+          <Badge tone="success">Đã xác minh danh tính</Badge>
+        ) : (
+          <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+        )}
+        {summary.approvedMethods.map((m) => (
+          <span
+            key={m.type}
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+          >
+            <span>{m.label}</span>
+            {m.maskedIdentifier && (
+              <span className="font-mono text-emerald-600/80">
+                {m.maskedIdentifier}
+              </span>
+            )}
+          </span>
+        ))}
       </div>
 
       {/* Row 3: star rating or empty state */}

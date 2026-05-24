@@ -173,7 +173,8 @@ describe('toastStore.show — sticky (Phase 9Q)', () => {
     );
     expect(map.success).toBe(3000);
     expect(map.info).toBe(4000);
-    expect(map.warning).toBe(4000);
+    // Phase 10A-Fix-2: warning base bumped 4000 → 5000.
+    expect(map.warning).toBe(5000);
     expect(map.error).toBe(5000);
   });
 });
@@ -334,5 +335,89 @@ describe('toastStore.clearByScope — Phase 9R', () => {
       scope: 'worker',
     });
     expect(useToastStore.getState().toasts).toHaveLength(2);
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// Phase 10A-Fix-2 — adaptive auto-dismiss duration
+// ---------------------------------------------------------------------------
+
+import {
+  computeAdaptiveDuration,
+  MIN_DURATION_MS,
+  MAX_DURATION_MS,
+} from '@/stores/toastStore';
+
+describe('toastStore.computeAdaptiveDuration — Phase 10A-Fix-2', () => {
+  it('returns the per-tone base for short copy under 40 chars', () => {
+    // success base = 3000; "Đã lưu" is well under 40 chars.
+    expect(computeAdaptiveDuration('success', 'Đã lưu')).toBe(3000);
+    // warning base bumped to 5000 in this phase.
+    expect(computeAdaptiveDuration('warning', 'Cảnh báo')).toBe(5000);
+    // info base = 4000.
+    expect(computeAdaptiveDuration('info', 'Thông tin')).toBe(4000);
+    // error base = 5000.
+    expect(computeAdaptiveDuration('error', 'Lỗi')).toBe(5000);
+  });
+
+  it('extends the duration for copy longer than 40 chars (12ms per extra char)', () => {
+    // 80 chars total → 40 over baseline → +480ms.
+    const title = 'a'.repeat(40);
+    const desc = 'b'.repeat(40);
+    // info base 4000 + 480 = 4480ms.
+    expect(computeAdaptiveDuration('info', title, desc)).toBe(4480);
+  });
+
+  it('clamps to MIN_DURATION_MS for very short copy that would compute below', () => {
+    // success base 3000 already equals the floor; test that even an
+    // empty title cannot fall below the floor.
+    expect(computeAdaptiveDuration('success', '')).toBeGreaterThanOrEqual(
+      MIN_DURATION_MS,
+    );
+    expect(MIN_DURATION_MS).toBe(3000);
+  });
+
+  it('clamps to MAX_DURATION_MS for very long copy', () => {
+    // 1000 chars → 960 over baseline → +11520ms over base, easily
+    // exceeding the cap.
+    const longBody = 'x'.repeat(1000);
+    expect(computeAdaptiveDuration('error', longBody)).toBe(MAX_DURATION_MS);
+    expect(MAX_DURATION_MS).toBe(9000);
+  });
+
+  it('is bypassed when an explicit duration is passed to show()', () => {
+    useToastStore.setState({ toasts: [] });
+    useToastStore.getState().show({
+      tone: 'error',
+      title: 'x'.repeat(500),
+      duration: 1500,
+    });
+    // Explicit value preserved verbatim, even though adaptive math
+    // would push this well past 9000ms.
+    expect(useToastStore.getState().toasts[0].duration).toBe(1500);
+  });
+
+  it('preserves sticky duration: 0 verbatim (does NOT replace with adaptive)', () => {
+    useToastStore.setState({ toasts: [] });
+    useToastStore.getState().show({
+      tone: 'error',
+      title: 'x'.repeat(500),
+      duration: 0,
+    });
+    expect(useToastStore.getState().toasts[0].duration).toBe(0);
+  });
+
+  it('uses adaptive computation when show() is called without a duration', () => {
+    useToastStore.setState({ toasts: [] });
+    // 80-char message, info tone → 4480ms per the formula.
+    const title = 'a'.repeat(40);
+    const desc = 'b'.repeat(40);
+    useToastStore.getState().show({
+      tone: 'info',
+      title,
+      description: desc,
+    });
+    expect(useToastStore.getState().toasts[0].duration).toBe(4480);
   });
 });

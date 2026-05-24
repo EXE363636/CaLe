@@ -233,6 +233,19 @@ export interface WorkerVerificationSummary {
   primaryMethodLabel?: string;
   /** Public-safe masked identifier of the primary approved method. */
   maskedIdentifier?: string;
+  /**
+   * Phase 10A-Fix-5 — every approved identity method, not just the
+   * primary. Employer-facing surfaces render one chip per entry so a
+   * worker who has approved CCCD + student card + driver license is
+   * shown all three, not just the most-recently-reviewed one.
+   * Each entry is public-safe — masked identifier only, no raw
+   * fullIdentifier or image URLs.
+   */
+  approvedMethods: Array<{
+    type: WorkerIdentityDocumentType;
+    label: string;
+    maskedIdentifier?: string;
+  }>;
   badges: WorkerTrustBadge[];
   /** Pending / NeedsMoreInfo count for admin queue triage. */
   pendingCount: number;
@@ -385,6 +398,28 @@ export interface Shift {
   updatedAt: string;
   /** Set when the employer used a Boost_Credit on this shift. */
   boostedAt?: string;
+
+  /**
+   * Phase 10A-Fix-3 — workplace imagery + on-site contact info.
+   *
+   * `workplaceImageUrl` is intended for a real upload eventually; in the
+   * MVP only `workplaceImageLabel` (a mock filename or short caption)
+   * is rendered to workers. The field is public-safe — these are
+   * storefront / event photos meant to help workers judge whether the
+   * job and location look real before applying.
+   *
+   * `requiresVerifiedDocumentOnArrival` is a simple boolean flag
+   * surfaced on the worker-facing shift detail; when true, workers are
+   * reminded to bring an approved CCCD / student card / driver license.
+   * Independent from the worker's stored verification — the employer
+   * may want a fresh on-site check.
+   */
+  workplaceImageUrl?: string;
+  workplaceImageLabel?: string;
+  workplaceNotes?: string;
+  onSiteContactName?: string;
+  onSiteContactPhone?: string;
+  requiresVerifiedDocumentOnArrival?: boolean;
 }
 
 export interface Application {

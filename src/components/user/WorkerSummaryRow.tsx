@@ -10,12 +10,24 @@
  *
  * The full profile (bio, all skills, preferences, rating history) lives in
  * the `WorkerProfileModal`, which is opened by the "Xem hồ sơ" button.
+ *
+ * Phase 10A-Fix-5 — verification chips are LIVE-DERIVED on this row,
+ * not passed in by the caller. The component subscribes to
+ * `useVerificationStore.workerDocuments` and runs
+ * `getWorkerVerificationSummary(...)` on every render so admin-side
+ * approvals reflect immediately on every employer-facing surface that
+ * uses this row. The legacy `<VerificationBadge>` snapshot derived
+ * from `worker.verifications` is no longer rendered here.
  */
 
-import { Card, Button } from '@/components/ui';
+import { useMemo } from 'react';
+import { Card, Button, Badge } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
-import { VerificationBadge } from './VerificationBadge';
+import {
+  getWorkerVerificationSummary,
+  useVerificationStore,
+} from '@/stores';
 import { averageRating } from '@/domain/rating';
 import { t } from '@/i18n/vi';
 import type { ReactNode } from 'react';
@@ -28,16 +40,6 @@ interface WorkerSummaryRowProps {
   /** Bottom action area — typically Approve/Reject + actions. */
   actions?: ReactNode;
   onViewProfile: () => void;
-  /**
-   * Phase 10A — optional identity-verification cue. When provided, shows
-   * a small "Đã xác minh • {method} • {masked}" chip below the name.
-   * Employer-side surfaces only see the masked identifier; the full
-   * document is admin-only.
-   */
-  identityBadge?: {
-    methodLabel: string;
-    maskedIdentifier?: string;
-  };
   className?: string;
 }
 
@@ -48,9 +50,13 @@ export function WorkerSummaryRow({
   statusSlot,
   actions,
   onViewProfile,
-  identityBadge,
   className = '',
 }: WorkerSummaryRowProps) {
+  const workerDocuments = useVerificationStore((s) => s.workerDocuments);
+  const summary = useMemo(
+    () => getWorkerVerificationSummary(worker, workerDocuments),
+    [worker, workerDocuments],
+  );
   const avg = averageRating(worker.ratingsReceived);
 
   return (
@@ -69,31 +75,37 @@ export function WorkerSummaryRow({
             </button>
             <ReputationBadge score={worker.reputationScore} />
           </div>
-          <div className="mt-1.5">
-            <VerificationBadge verifications={worker.verifications} />
-          </div>
-          {identityBadge && (
-            <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-              <svg
-                className="h-3 w-3"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
+          {/* Phase 10A-Fix-5 — live verification chips. Phone stays on
+              the user record (no dedicated phone-doc store), every
+              identity method is derived from the verification store. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {worker.verifications.includes('phone') && (
+              <Badge tone="info">{t('verification.phone')}</Badge>
+            )}
+            {summary.identityVerified ? (
+              <Badge tone="success">Đã xác minh danh tính</Badge>
+            ) : (
+              <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+            )}
+            {summary.approvedMethods.map((m) => (
+              <span
+                key={m.type}
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>Đã xác minh · {identityBadge.methodLabel}</span>
-              {identityBadge.maskedIdentifier && (
-                <span className="font-mono text-emerald-600/80">
-                  {identityBadge.maskedIdentifier}
-                </span>
-              )}
-            </div>
-          )}
+                <span>{m.label}</span>
+                {m.maskedIdentifier && (
+                  <span className="font-mono text-emerald-600/80">
+                    {m.maskedIdentifier}
+                  </span>
+                )}
+              </span>
+            ))}
+            {summary.pendingCount > 0 && (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                {summary.pendingCount} đang chờ duyệt
+              </span>
+            )}
+          </div>
         </div>
         {statusSlot && <div className="shrink-0">{statusSlot}</div>}
       </div>

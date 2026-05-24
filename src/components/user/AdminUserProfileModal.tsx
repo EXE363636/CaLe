@@ -22,9 +22,12 @@ import { useMemo } from 'react';
 import { Modal, Badge, StarRating } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
-import { VerificationBadge } from './VerificationBadge';
 import { EmployerFeedbackList } from './EmployerFeedbackList';
 import { useShiftStore } from '@/stores/shiftStore';
+import {
+  getWorkerVerificationSummary,
+  useVerificationStore,
+} from '@/stores';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { averageRating } from '@/domain/rating';
 import { formatDateVN } from '@/lib/format';
@@ -65,6 +68,14 @@ export function AdminUserProfileModal({
 
 function WorkerBody({ worker }: { worker: Worker }) {
   const avg = averageRating(worker.ratingsReceived);
+  // Phase 10A-Fix-5 — live verification summary so admin sees the
+  // current approval state inline. Full doc detail still lives in the
+  // admin verification queue tab; this is just a quick summary chip.
+  const workerDocuments = useVerificationStore((s) => s.workerDocuments);
+  const verificationSummary = useMemo(
+    () => getWorkerVerificationSummary(worker, workerDocuments),
+    [worker, workerDocuments],
+  );
 
   // Phase 3 quota — derived in a useMemo so the modal never feeds Zustand
   // a fresh array selector. `cancellationHistory` and `reputationScore`
@@ -143,9 +154,36 @@ function WorkerBody({ worker }: { worker: Worker }) {
         </div>
       </Section>
 
-      {/* Verification */}
+      {/* Verification — Phase 10A-Fix-5 live summary */}
       <Section title="Xác minh">
-        <VerificationBadge verifications={worker.verifications} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {worker.verifications.includes('phone') && (
+            <Badge tone="info">{t('verification.phone')}</Badge>
+          )}
+          {verificationSummary.identityVerified ? (
+            <Badge tone="success">Đã xác minh danh tính</Badge>
+          ) : (
+            <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+          )}
+          {verificationSummary.approvedMethods.map((m) => (
+            <span
+              key={m.type}
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+            >
+              <span>{m.label}</span>
+              {m.maskedIdentifier && (
+                <span className="font-mono text-emerald-600/80">
+                  {m.maskedIdentifier}
+                </span>
+              )}
+            </span>
+          ))}
+          {verificationSummary.pendingCount > 0 && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              {verificationSummary.pendingCount} đang chờ duyệt
+            </span>
+          )}
+        </div>
       </Section>
 
       {/* Bio */}

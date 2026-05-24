@@ -11,6 +11,13 @@ import { Modal, Badge } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { EmployerFeedbackList } from './EmployerFeedbackList';
 import { useShiftStore } from '@/stores/shiftStore';
+import {
+  employerTypeLabel,
+  resolveEmployerType,
+  useVerificationStore,
+} from '@/stores';
+import { getPublicEmployerWorkplacePhotos } from '@/domain/postingReadiness';
+import { formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Employer, EmployerType } from '@/types';
 
@@ -29,8 +36,17 @@ export function EmployerProfileModal({
   // the per-employer counts so the selector itself never returns a fresh
   // array (Zustand snapshot stability).
   const allShifts = useShiftStore((s) => s.shifts);
-  const { posted, active, completed, cancelled } = useMemo(() => {
-    if (!employer) return { posted: 0, active: 0, completed: 0, cancelled: 0 };
+  const employerDocuments = useVerificationStore((s) => s.employerDocuments);
+
+  const { posted, active, completed, cancelled, hasPostedShifts } = useMemo(() => {
+    if (!employer)
+      return {
+        posted: 0,
+        active: 0,
+        completed: 0,
+        cancelled: 0,
+        hasPostedShifts: false,
+      };
     let posted = 0;
     let active = 0;
     let completed = 0;
@@ -49,8 +65,26 @@ export function EmployerProfileModal({
         active += 1;
       }
     }
-    return { posted, active, completed, cancelled };
+    return { posted, active, completed, cancelled, hasPostedShifts: posted > 0 };
   }, [allShifts, employer]);
+
+  // Phase 10A-Fix-3 — public-safe approved storefront / workplace
+  // photos. Returns just the label + submitted-at for each, never the
+  // raw image URL or filename of a private document.
+  const publicPhotos = useMemo(() => {
+    if (!employer) return [];
+    return getPublicEmployerWorkplacePhotos(employer.id, employerDocuments);
+  }, [employer, employerDocuments]);
+
+  // Phase 10A-Fix-3 — prefer the 4-shape canonical type when available;
+  // fall back to the legacy 2-shape only for ancient pre-Phase-6 data.
+  const resolvedType = useMemo(
+    () =>
+      employer
+        ? resolveEmployerType(employer, { hasPostedShifts })
+        : undefined,
+    [employer, hasPostedShifts],
+  );
 
   if (!employer) return null;
 
@@ -79,9 +113,13 @@ export function EmployerProfileModal({
           )}
         </div>
 
-        {/* Phase 6: account-type chip — distinguishes individual /
-            freelance employers from registered businesses. */}
-        <EmployerTypeChip type={employer.employerType} />
+        {/* Phase 10A-Fix-3: prefer canonical 4-shape label; the chip
+            falls back to the legacy 2-shape when the new field is
+            missing. */}
+        <EmployerTypeChip
+          resolvedType={resolvedType}
+          legacyType={employer.employerType}
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 rounded-xl bg-gray-50 p-3 sm:grid-cols-4">
@@ -96,6 +134,53 @@ export function EmployerProfileModal({
             label={t('employer.profile.cancelledShifts')}
           />
         </div>
+
+        {/* Phase 10A-Fix-3 — public-safe approved workplace / storefront
+            photos. Mock filenames only; no raw image URLs or private
+            documents are surfaced here. */}
+        <Section title={t('employer.profile.publicPhotos.title')}>
+          {publicPhotos.length > 0 ? (
+            <ul className="flex flex-col gap-1.5 text-sm">
+              {publicPhotos.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-center justify-between gap-3 rounded-lg bg-orange-50 px-3 py-2 ring-1 ring-orange-100"
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-orange-500"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.6}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect x="3" y="5" width="18" height="14" rx="2" />
+                        <path d="m6 17 4-5 3 4 2-2 3 3" />
+                        <circle cx="9" cy="10" r="1.4" />
+                      </svg>
+                    </span>
+                    <span className="truncate font-medium text-gray-900">
+                      {p.label}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[11px] text-gray-500">
+                    {formatDateVN(p.submittedAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs italic text-gray-500">
+              {t('employer.profile.publicPhotos.empty')}
+            </p>
+          )}
+        </Section>
 
         {/* Description */}
         <Section title={t('employer.profile.description')}>
@@ -126,10 +211,26 @@ export function EmployerProfileModal({
 
 // ---------------------------------------------------------------------------
 
-function EmployerTypeChip({ type }: { type: EmployerType | undefined }) {
-  // Default to `'business'` to preserve pre-Phase-6 seed records that
-  // don't carry the field yet.
-  const t0 = type ?? 'business';
+function EmployerTypeChip({
+  resolvedType,
+  legacyType,
+}: {
+  resolvedType:
+    | 'Individual'
+    | 'HouseholdBusiness'
+    | 'Company'
+    | 'AgencyEvent'
+    | undefined;
+  legacyType: EmployerType | undefined;
+}) {
+  // Phase 10A-Fix-3 — prefer the canonical 4-shape label. Falls back
+  // to the Phase-6 2-shape label only for ancient seed records that
+  // somehow have neither field set.
+  if (resolvedType) {
+    const tone = resolvedType === 'Individual' ? 'info' : 'neutral';
+    return <Badge tone={tone}>{employerTypeLabel(resolvedType)}</Badge>;
+  }
+  const t0 = legacyType ?? 'business';
   return (
     <Badge tone={t0 === 'individual' ? 'info' : 'neutral'}>
       {t(`employerType.${t0}`)}

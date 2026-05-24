@@ -330,29 +330,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               const canMarkNoShow =
                 app.status === 'Approved' && shouldMarkNoShow(nowIso, app, shift);
               const showRating = ratingForAppId === app.id;
-              // Phase 10A — compute identity-verification summary so
-              // the applicant row can render a "Đã xác minh · {method}"
-              // chip without exposing the full document. Employers
-              // never see the raw images / full identifier — only the
-              // method label + masked identifier from the public-safe
-              // selector.
-              const verificationSummary = getWorkerVerificationSummary(
-                worker,
-                workerVerifications,
-              );
-              const identityBadge = verificationSummary.identityVerified
-                ? {
-                    methodLabel:
-                      verificationSummary.primaryMethodLabel ?? 'Danh tính',
-                    maskedIdentifier: verificationSummary.maskedIdentifier,
-                  }
-                : undefined;
 
               return (
                 <div key={app.id} className="flex flex-col gap-2">
                   <WorkerSummaryRow
                     worker={worker}
-                    identityBadge={identityBadge}
                     statusSlot={
                       // Phase 9Z-Fix-1: dropped the inline HelpPopover
                       // next to Approved / Confirmed badges. Manual QA

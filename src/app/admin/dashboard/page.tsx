@@ -9,7 +9,9 @@ import { useUserStore } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useAdminStore } from '@/stores/adminStore';
-import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton } from '@/components/ui';
+import { useVerificationStore } from '@/stores';
+import { adminVerificationTaskCount } from '@/domain/taskBadges';
+import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
@@ -36,6 +38,22 @@ export default function AdminDashboardPage() {
 function AdminDashboardContent() {
   useLifecycleSync();
   const [tab, setTab] = useState<Tab>('analytics');
+
+  // Phase 10A-Fix-4 — verification queue task count for the tab badge.
+  const adminWorkerDocs = useVerificationStore((s) => s.workerDocuments);
+  const adminEmployerDocs = useVerificationStore((s) => s.employerDocuments);
+  const adminTypeChangeRequests = useVerificationStore(
+    (s) => s.typeChangeRequests,
+  );
+  const verificationTaskCount = useMemo(
+    () =>
+      adminVerificationTaskCount(
+        adminWorkerDocs,
+        adminEmployerDocs,
+        adminTypeChangeRequests,
+      ),
+    [adminWorkerDocs, adminEmployerDocs, adminTypeChangeRequests],
+  );
   // Phase 9F — when the analytics StatTiles fire, they switch to a tab
   // and seed an initial filter so the panel renders the right slice.
   const [usersInitialFilter, setUsersInitialFilter] = useState<
@@ -197,7 +215,16 @@ function AdminDashboardContent() {
         <TabButton active={tab === 'disputes'} onClick={() => setTab('disputes')}>
           {t('admin.dashboard.tabs.disputes')}
         </TabButton>
-        <TabButton active={tab === 'verifications'} onClick={() => setTab('verifications')}>
+        <TabButton
+          active={tab === 'verifications'}
+          onClick={() => setTab('verifications')}
+          badgeCount={verificationTaskCount}
+          badgeAriaLabel={
+            verificationTaskCount > 0
+              ? `${verificationTaskCount} mục chờ xác minh`
+              : undefined
+          }
+        >
           {t('admin.dashboard.tabs.verifications')}
         </TabButton>
       </div>
@@ -220,21 +247,27 @@ function AdminDashboardContent() {
 function TabButton({
   active,
   onClick,
+  badgeCount = 0,
+  badgeAriaLabel,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  /** Phase 10A-Fix-4 — show task badge inside the tab. */
+  badgeCount?: number;
+  badgeAriaLabel?: string;
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
       className={[
-        'min-h-[44px] flex-1 rounded-md px-4 text-sm font-medium transition-colors',
+        'relative min-h-[44px] flex-1 rounded-md px-4 text-sm font-medium transition-colors',
         active ? 'bg-white text-orange-700 shadow-sm' : 'text-gray-600 hover:text-gray-900',
       ].join(' ')}
     >
       {children}
+      <TaskBadge count={badgeCount} ariaLabel={badgeAriaLabel} />
     </button>
   );
 }

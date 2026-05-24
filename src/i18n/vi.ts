@@ -1354,6 +1354,80 @@ export const vi: Record<string, string> = {
   'calendar.legend.employer.expired': 'Đã quá hạn',
   'calendar.empty.worker': 'Không có lịch bận hoặc ca làm trong khoảng thời gian này.',
   'calendar.empty.employer': 'Bạn chưa đăng ca làm nào trong khoảng thời gian này.',
+
+  // -------------------------------------------------------------------------
+  // Phase 10A-Fix-3 — registration employer-type, posting readiness,
+  // workplace imagery
+  // -------------------------------------------------------------------------
+  'auth.register.employerType.label': 'Loại tài khoản nhà tuyển dụng',
+  'auth.register.employerType.intro':
+    'Loại tài khoản này quyết định giấy tờ cần xác minh và quy định đặt cọc. Bạn không thể tự đổi sau khi đã chọn — nếu cần thay đổi, hãy gửi yêu cầu để quản trị viên xét duyệt.',
+  'auth.register.employerType.required':
+    'Vui lòng chọn loại tài khoản nhà tuyển dụng.',
+  'employerType10A.Individual': 'Cá nhân thuê ngắn hạn',
+  'employerType10A.HouseholdBusiness': 'Hộ kinh doanh',
+  'employerType10A.Company': 'Doanh nghiệp',
+  'employerType10A.AgencyEvent': 'Agency / Sự kiện',
+  'employerType10A.Individual.hint':
+    'Không cần giấy phép kinh doanh. Bạn cần xác minh danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công.',
+  'employerType10A.HouseholdBusiness.hint':
+    'Hộ kinh doanh: nộp CCCD đại diện + giấy phép hộ kinh doanh + ảnh mặt tiền.',
+  'employerType10A.Company.hint':
+    'Doanh nghiệp: nộp giấy phép kinh doanh + mã số thuế + ảnh chi nhánh hoặc địa chỉ.',
+  'employerType10A.AgencyEvent.hint':
+    'Agency / Sự kiện: nộp giấy phép kinh doanh + hợp đồng / xác nhận sự kiện + ảnh địa điểm.',
+
+  'form.workplaceSection.title': 'Ảnh địa điểm và liên hệ tại nơi làm việc',
+  'form.workplaceSection.intro':
+    'Ảnh giúp người lao động nhận biết nơi làm việc thật trước khi nhận ca. Trong bản MVP, bạn chỉ cần điền tên file mô phỏng (ví dụ: "mat-tien-quan-pho-ha.jpg").',
+  'form.workplaceImageLabel': 'Ảnh địa điểm / khu vực làm việc',
+  'form.workplaceImageLabel.placeholder': 'mat-tien-quan-pho-ha.jpg',
+  'form.workplaceImageLabel.hint':
+    'Tên file ảnh (mô phỏng). Người lao động sẽ thấy nhãn này trên trang chi tiết ca làm.',
+  'form.workplaceNotes': 'Ghi chú về địa điểm',
+  'form.workplaceNotes.placeholder':
+    'Ví dụ: Vào cổng phía sau, có chỗ để xe miễn phí.',
+  'form.onSiteContactName': 'Người phụ trách tại chỗ',
+  'form.onSiteContactPhone': 'SĐT người phụ trách tại chỗ',
+  'form.requiresVerifiedDocumentOnArrival':
+    'Yêu cầu mang giấy tờ tuỳ thân đã xác minh khi tới làm.',
+  'error.workplaceImage.required':
+    'Cần thêm ảnh địa điểm / khu vực làm việc cho ca này.',
+
+  'posting.readiness.title': 'Yêu cầu trước khi đăng ca',
+  'posting.readiness.intro':
+    'Bạn cần hoàn tất xác minh nhà tuyển dụng trước khi đăng ca.',
+  'posting.readiness.allClear':
+    'Tất cả yêu cầu đã được đáp ứng. Bạn có thể đăng ca.',
+  'posting.readiness.cta.profile': 'Mở hồ sơ nhà tuyển dụng',
+  'posting.readiness.checklist.type': 'Đã chọn loại tài khoản',
+  'posting.readiness.checklist.id': 'CCCD đại diện đã được duyệt',
+  'posting.readiness.checklist.business':
+    'Giấy phép kinh doanh hoặc mã số thuế đã được duyệt',
+  'posting.readiness.checklist.workplaceProof':
+    'Ảnh mặt tiền / nơi làm việc đã được duyệt trên hồ sơ',
+  'posting.readiness.checklist.workplaceImage':
+    'Đã có ảnh địa điểm cho ca này',
+  'posting.readiness.checklist.event':
+    'Hợp đồng / xác nhận sự kiện đã được duyệt',
+  'posting.readiness.depositLocked':
+    'Hệ thống chỉ mở thanh toán đặt cọc khi bạn đã hoàn tất các yêu cầu trên.',
+  'posting.readiness.individualNote':
+    'Với tài khoản cá nhân thuê ngắn hạn, hệ thống yêu cầu đặt cọc 100% tiền công.',
+
+  'shifts.detail.workplace.title': 'Ảnh địa điểm / khu vực làm việc',
+  'shifts.detail.workplace.empty':
+    'Nhà tuyển dụng chưa cung cấp ảnh địa điểm cho ca này.',
+  'shifts.detail.workplace.notes': 'Ghi chú từ nhà tuyển dụng',
+  'shifts.detail.onSiteContact': 'Người phụ trách tại chỗ',
+  'shifts.detail.requiresVerifiedDocument':
+    'Vui lòng mang giấy tờ tuỳ thân đã xác minh khi tới ca làm.',
+
+  'employer.profile.publicPhotos.title': 'Ảnh địa điểm đã xác minh',
+  'employer.profile.publicPhotos.empty':
+    'Chưa có ảnh địa điểm làm việc đã xác minh.',
+  'employer.profile.firstSet.legacy':
+    'Chỉ áp dụng cho tài khoản cũ chưa có loại tài khoản. Tài khoản đăng ký mới đã có loại tài khoản từ bước đăng ký.',
 };
 
 // ---------------------------------------------------------------------------

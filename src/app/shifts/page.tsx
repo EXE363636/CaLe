@@ -4,6 +4,8 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore } from '@/stores/userStore';
+import { useApplicationStore } from '@/stores/applicationStore';
+import { isShiftAvailableForRecruiting } from '@/domain/shiftAvailability';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { ShiftFilters } from '@/components/shift/ShiftFilters';
 import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
@@ -22,6 +24,7 @@ export default function ShiftsPage() {
   const router = useRouter();
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);
+  const applications = useApplicationStore((s) => s.applications);
 
   const [criteria, setCriteria] = useState<FilterCriteria>({});
   const [searchText, setSearchText] = useState('');
@@ -38,13 +41,12 @@ export default function ShiftsPage() {
   // Apply filters + search + publication invariant
   const filtered = useMemo(() => {
     const merged: FilterCriteria = { ...criteria, text: searchText || criteria.text };
-    // Actionable invariant: only Published + Deposited + future + positions available
+    const nowMs = Date.now();
+    // Phase 10A-Fix-5: canonical recruiting predicate. Reconciles
+    // `positionsFilled` against the live application store so a
+    // stale field can't let a 3/3 shift leak through.
     return shifts.filter((s) => {
-      if (s.status !== 'Published') return false;
-      if (s.escrowStatus !== 'Deposited') return false;
-      if (s.positionsFilled >= s.positionsTotal) return false;
-      const startMs = new Date(`${s.date}T${s.startTime}:00`).getTime();
-      if (startMs < Date.now()) return false;
+      if (!isShiftAvailableForRecruiting(s, applications, nowMs)) return false;
       if (merged.text) {
         const q = merged.text.toLowerCase();
         if (
@@ -61,7 +63,7 @@ export default function ShiftsPage() {
       if (merged.jobType && s.jobType !== merged.jobType) return false;
       return true;
     });
-  }, [shifts, criteria, searchText]);
+  }, [shifts, applications, criteria, searchText]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

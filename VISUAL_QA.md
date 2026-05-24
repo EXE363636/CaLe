@@ -2838,3 +2838,296 @@ Re-run this audit after any change to:
 - `src/app/employer/profile/page.tsx` — locked card + first-set picker + change-request Modal.
 - `src/lib/adminNotifications.ts` — admin fan-out helper.
 - HANDOFF Section 11 employer-type lock rule.
+
+
+## Phase 10A-Fix-2 — Adaptive toast duration + employer type backfill + posting guard
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-2 — NEEDS MANUAL VISUAL QA**.
+
+This phase polishes three rough edges from 10A-Fix-1: long Vietnamese toast copy was being dismissed too early, seeded employer accounts hadn't been backfilled with `employerType10A` (so they incorrectly showed the first-set picker), and the new-shift page didn't refuse to render `<ShiftForm>` for accounts with no resolvable type. All changes are mock-only; no schema migration code beyond the existing reseed path.
+
+### A. Adaptive toast duration — long copy readability
+
+1. Run `npm run dev` and open the app.
+2. Trigger a short-copy success toast (e.g. log in successfully). Expect the toast to dismiss after exactly **3000ms** (success base, copy under 40 chars).
+3. Trigger a longer-copy toast — submit a verification document on the worker or employer profile. The toast text contains a Vietnamese sentence around 50–80 chars. Confirm the toast stays visible longer than the short-copy success — should be ~3500–4500ms based on length.
+4. Trigger a warning toast (e.g. cancellation modal validation error). The base is now **5000ms** (was 4000ms in 10A-Fix-1). Confirm the warning is visibly longer than `success`.
+5. Trigger an error toast with a long body (e.g. dispute submission with a long reason) — should stay visible up to the **9000ms cap**, never longer.
+6. Confirm that callers who pin an explicit `duration` (e.g. `showError('...', { duration: 12000 })` if any) still get the explicit value verbatim, and that sticky toasts (`duration: 0`) never auto-dismiss.
+
+### B. Employer type backfill — seeded employers should never see the picker
+
+1. Clear localStorage (`localStorage.clear()` in DevTools console, then refresh) so the schema-bump path reseeds.
+2. Log in as `lien@quanphoha.vn` (employer-001). Open the profile. The "Xác minh nhà tuyển dụng" card MUST show the locked display with **"Loại tài khoản hiện tại: Hộ kinh doanh"** and the corresponding required-document list. Do NOT show the first-set picker.
+3. Repeat for `tuan@cafecong.vn` (employer-002) → must show **"Doanh nghiệp"** locked.
+4. Repeat for `minh@sukienvinhquang.vn` (employer-003) → must show **"Agency / Sự kiện"** locked.
+5. The "Yêu cầu đổi loại tài khoản" CTA appears under the locked display for all three, and the type-change request modal works as it did in 10A-Fix-1.
+6. Pre-existing pending change requests (if any seeded) still show the amber "Đang chờ duyệt" banner.
+
+### C. Posting guard — `/employer/shifts/new` refuses without a resolved type
+
+1. Open DevTools, go to Application → Local Storage, and manually edit `cale.users` to remove BOTH `employerType` and `employerType10A` from one of the seeded employer records, then also clear that employer's shifts from `cale.shifts` (so `hasPostedShifts === false`). Refresh.
+2. Log in as that doctored employer and navigate to **Đăng ca tuyển** (`/employer/shifts/new`).
+3. Expect the page to render the new guard `<Card>` with title **"Cần chọn loại tài khoản trước khi đăng ca"**, body **"Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca. Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đặt cọc và quy tắc an toàn cho người lao động."**, and a primary CTA **"Mở Hồ sơ nhà tuyển dụng"** linking to `/employer/profile`. The `<ShiftForm>`, `<TrustExplainerCard>`, and `<DepositConfirmCard>` MUST NOT render.
+4. Click the CTA — lands on the employer profile, sees the first-set picker (because both type fields are now empty AND no shifts).
+5. Pick "Hộ kinh doanh" and confirm. Toast appears. Navigate back to **Đăng ca tuyển** — the guard is gone, `<ShiftForm>` renders normally.
+6. Restore localStorage (or run `localStorage.clear()`) and reload to get back to the seeded state.
+
+### D. Posting guard — established accounts pass through
+
+1. Log in as a seeded employer (e.g. `lien@quanphoha.vn` with `employerType10A: "HouseholdBusiness"` already set).
+2. Navigate to **Đăng ca tuyển**. Expect the existing flow: trust explainer card + ShiftForm visible immediately. The new guard MUST NOT trigger.
+3. Repeat with each of the three seeded employers — none should hit the guard.
+
+### E. Toast progress bar matches actual dismissal
+
+1. Trigger a success toast and watch the progress-bar countdown. The bar should reach zero at the exact moment the card disappears.
+2. Trigger a long-copy info toast (description ~80 chars). Progress bar should run for ~4480ms — visibly longer than the short success toast — and reach zero precisely when the card dismisses.
+3. Trigger a sticky toast (e.g. an unrecoverable error) — confirm there is NO progress bar.
+
+### F. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/toastStore.ts` — adaptive duration, MIN/MAX bounds, per-tone bases.
+- `src/__tests__/toastStore.test.ts` — adaptive-duration tests.
+- `src/data/seed/users.json` — employer type backfill.
+- `src/data/persistence.ts` — schema version.
+- `src/stores/verificationStore.ts` — `resolveEmployerType` 2-arg signature.
+- `src/app/employer/profile/page.tsx` — `hasPostedShifts` wiring.
+- `src/app/employer/shifts/new/page.tsx` — posting guard early return.
+- HANDOFF Section 11 employer-type rule (Fix-2 addendum).
+
+
+## Phase 10A-Fix-3 — Employer type at registration, verification-gated posting, workplace photos
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-3 — NEEDS MANUAL VISUAL QA**.
+
+This phase enforces the 4-shape employer type at registration, blocks shift posting until per-type verification + workplace prerequisites are met, and adds workplace imagery to shift creation + worker-facing detail. Worker identity privacy boundary is unchanged. Workplace photos surfaced to workers are limited to the public-safe document subset.
+
+### A. Registration employer-type required
+
+1. Run `npm run dev`. Open `/register`.
+2. Toggle the role chip to "Tôi cần tuyển người làm". The form should show the 4-shape employer-type selector with each option's hint copy visible underneath the option title.
+3. Without picking a type, fill the rest of the form (company name, business type, email, phone, password) and submit. Expect:
+   - Submit blocked.
+   - Red validation message under the selector: "Vui lòng chọn loại tài khoản nhà tuyển dụng."
+   - The intro paragraph above the selector reads: "Loại tài khoản này quyết định giấy tờ cần xác minh và quy định đặt cọc. Bạn không thể tự đổi sau khi đã chọn — nếu cần thay đổi, hãy gửi yêu cầu để quản trị viên xét duyệt."
+4. Pick "Doanh nghiệp" and submit. Account created → redirected to `/employer/dashboard`. Open `/employer/profile` — the locked-type card shows "Loại tài khoản hiện tại: Doanh nghiệp", NOT the first-set picker.
+5. Repeat with each of the other three shapes — each one persists into the locked profile view.
+
+### B. Profile first-set picker is legacy-only
+
+1. Open DevTools and clear `cale.users` then refresh once to reseed.
+2. Use DevTools to remove BOTH `employerType` and `employerType10A` from one of the seeded employer records, AND remove that employer's shifts from `cale.shifts`. Refresh.
+3. Log in as the doctored employer → open profile. Confirm the first-set picker now carries an amber callout reading "Chỉ áp dụng cho tài khoản cũ chưa có loại tài khoản. Tài khoản đăng ký mới đã có loại tài khoản từ bước đăng ký."
+4. Pick a type, confirm. The picker disappears and the locked card replaces it.
+5. Restore localStorage (or `localStorage.clear()`).
+
+### C. Verification-gated posting checklist
+
+1. Reseed (clear localStorage, refresh). Log in as `lien@quanphoha.vn` (employer-001, HouseholdBusiness, no approved verification docs by default).
+2. Navigate to **Đăng ca tuyển**. Expect the page to render the trust-tier explainer + the new "Yêu cầu trước khi đăng ca" checklist card.
+3. Checklist items for HouseholdBusiness should be:
+   - "Đã chọn loại tài khoản" — green check.
+   - "CCCD đại diện đã được duyệt" — amber bang.
+   - "Ảnh mặt tiền / nơi làm việc đã được duyệt trên hồ sơ" — amber bang.
+   - "Đã có ảnh địa điểm cho ca này" — amber bang (until the form has a workplace image).
+4. The card carries the focused first blocker, the deposit-locked reminder, and a "Mở hồ sơ nhà tuyển dụng" CTA. The form is still rendered below — the gate is on **submit**, not on form visibility.
+5. Type a workplace image filename (e.g. `mat-tien-quan-pho-ha.jpg`). The "Đã có ảnh địa điểm cho ca này" item should flip to green within a tick — readiness updates live as you type.
+6. Try to submit the form anyway. Expect a red error toast: "Bạn cần hoàn tất xác minh nhà tuyển dụng trước khi đăng ca." (the page intro line) plus the first blocker.
+7. Open the verification card on `/employer/profile`, submit a `RepresentativeId` mock document, then open the admin queue (`/admin/dashboard` Xác minh tab) as `admin-001` and approve the doc. Repeat for `StorefrontPhoto` to satisfy the workplace-proof check (or leave the workplace-image typed in the form to satisfy via the per-shift fallback).
+8. Return to **Đăng ca tuyển**. Checklist now all green; header chip flips to "Tất cả yêu cầu đã được đáp ứng. Bạn có thể đăng ca." Submit the form → shift created, deposit-confirm card appears.
+
+### D. Shift form workplace section
+
+1. On **Đăng ca tuyển**, scroll past the description/requirements blocks. The new "Ảnh địa điểm và liên hệ tại nơi làm việc" panel should appear with:
+   - Workplace image filename input (required indicator visible based on resolved type).
+   - Workplace notes textarea.
+   - On-site contact name input.
+   - On-site contact phone input.
+   - "Yêu cầu mang giấy tờ tuỳ thân đã xác minh khi tới làm" checkbox.
+2. The intro line above the inputs reads "Ảnh giúp người lao động nhận biết nơi làm việc thật trước khi nhận ca…"
+3. Submit without an image when required → red error message "Cần thêm ảnh địa điểm / khu vực làm việc cho ca này."
+4. Submit with all fields populated → the new shift carries the workplace metadata (verify by re-opening the shift on `/shifts/[id]` as a worker — see section E).
+
+### E. Worker-facing shift detail trust info
+
+1. Log out, then log in as `an.nguyen@gmail.com` (worker-001).
+2. Open `/shifts` — pick `shift-001` (Phục vụ quán phở giờ trưa). On the detail page, scroll past description/requirements.
+3. The new "Ảnh địa điểm / khu vực làm việc" section should render:
+   - The mock filename `mat-tien-quan-pho-ha.jpg` next to a generic image-icon placeholder.
+   - The workplace notes ("Bếp và khu phục vụ tách riêng. Đồng phục được cấp.") in a separate callout.
+   - For shifts that include an on-site contact, the name + tap-to-call phone link.
+4. Open `shift-005` (Hỗ trợ sự kiện khai trương) — same card layout plus the amber "Vui lòng mang giấy tờ tuỳ thân đã xác minh khi tới ca làm." notice.
+5. For shifts with no workplace image, the empty state reads "Nhà tuyển dụng chưa cung cấp ảnh địa điểm cho ca này."
+
+### F. Employer profile public photos
+
+1. Still as a worker, click an employer name on a shift detail page to open the `EmployerProfileModal`.
+2. Confirm the chip header now uses the 4-shape label (e.g. "Hộ kinh doanh", "Doanh nghiệp", "Agency / Sự kiện").
+3. The new "Ảnh địa điểm đã xác minh" section lists labels of approved storefront/workplace/event photos as a stacked list with submitted-at dates. For seeded employers without approved workplace docs the section shows the empty-state "Chưa có ảnh địa điểm làm việc đã xác minh."
+4. **CRITICAL — privacy non-regression.** The list MUST NOT include `RepresentativeId`, `BusinessLicense`, `TaxCode` rows. Open DevTools and inspect the rendered HTML: confirm no representative-ID full-identifier text, image URL, or admin notes appear anywhere on this modal.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/types/index.ts` — `Shift.workplaceImageLabel/Notes`, `onSiteContactName/Phone`, `requiresVerifiedDocumentOnArrival`.
+- `src/stores/authStore.ts` — `RegisterInput.employerType10A`, `isEmployerInput` validation.
+- `src/app/register/page.tsx` — 4-shape selector + required validation.
+- `src/components/forms/ShiftForm.tsx` — workplace panel + `workplaceImageRequired` + `onValuesChange`.
+- `src/app/employer/shifts/new/page.tsx` — `ReadinessChecklist` + `computePostingReadiness` integration.
+- `src/app/shifts/[id]/page.tsx` — `WorkplaceCard`.
+- `src/components/user/EmployerProfileModal.tsx` — public photos + 4-shape chip.
+- `src/domain/postingReadiness.ts` — readiness rules + public-photo selector.
+- `src/data/seed/shifts.json` — workplace label backfill.
+- HANDOFF Section 11 employer-type rule (Fix-3 addendum).
+
+
+## Phase 10A-Fix-4 — Live verification summaries, task badges, error toast tone, featured-job countdown
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-4 — NEEDS MANUAL VISUAL QA**.
+
+This phase fixes four polish bugs surfaced after 10A-Fix-3: stale verification chips on employer-facing applicant surfaces, missing task indicators in the top nav, two validation messages that rendered as green success toasts, and a featured-job marketing card with no countdown.
+
+### A. Live worker verification on employer surfaces
+
+1. Run `npm run dev`. Clear localStorage and refresh once to reseed.
+2. Log in as `binh.le@gmail.com` (worker-003) and apply to an open shift (e.g. `shift-001`).
+3. Without logging out, open a second browser tab → log in as `admin@cale.vn`. Open the verification tab and approve the worker's identity verification (or simulate one via DevTools by submitting a worker doc and approving it).
+4. Switch to the employer browser session (`lien@quanphoha.vn`). Open the dashboard pending-applications detail modal AND the applicant list at `/employer/shifts/[id]`.
+5. Both surfaces should now show the live verified chip (e.g. "Đã xác minh · CCCD / CMND" + masked identifier) without requiring a hard refresh — at most a quick page navigation that re-renders the modal.
+6. Open the `WorkerProfileModal` (click on the worker's name from the applicant list). The "Xác minh" section should show the live badge + method label + masked identifier + pending count, NOT the legacy three-chip pill view.
+7. **CRITICAL — privacy non-regression.** Open DevTools and inspect the rendered HTML of the modal. Confirm there is NO `fullIdentifier`, no raw image URLs, no admin notes. Only the public-safe summary appears.
+
+### B. Top-nav task badges — admin
+
+1. Log in as `admin@cale.vn`. The "Tổng quan admin" nav link in the desktop top bar should show a red task badge whose number equals total pending verification queue items.
+2. Open the dashboard and click the "Xác minh" tab — same number rendered inside the tab as a small pill (or red dot if exactly 1 pending).
+3. Approve all pending items. The badge should disappear from both surfaces on the next render.
+4. Submit a new worker verification doc (as a worker in another tab). Switch back to admin — badge count increments.
+
+### C. Top-nav task badges — employer
+
+1. Log in as a seeded employer (e.g. `tuan@cafecong.vn`). The "Tổng quan" nav link should carry a badge whose count is `Pending` applications across the employer's shifts plus any `CheckedOut` ones awaiting confirmation.
+2. Approve / reject pending applications until the count reaches zero. The badge disappears.
+
+### D. Top-nav task badges — worker
+
+1. Log in as `an.nguyen@gmail.com` (worker-001). The worker dashboard link should show a badge whose count is unread worker-scoped notifications.
+2. Mark all read. Badge disappears.
+3. Submit a verification doc, then in another tab as admin reject it with a reason. Switch back to the worker. The "Hồ sơ" nav link should now show a badge whose count is the rejected/needs-more-info doc.
+4. Resubmit a corrected doc. The "Hồ sơ" badge stays until admin clears the `Rejected` / `NeedsMoreInfo` state by approving (or until the worker submits a fresh doc that the admin acts on).
+
+### E. Badge display rules
+
+1. Confirm `count === 1` renders a red dot (no number visible), `count >= 2` renders a red pill with the number, and `count > 9` clamps at "9+".
+2. Confirm the badge does not break active-state styling on any nav link (active orange background remains visible behind the badge).
+3. Confirm the badge has an accessible label — open DevTools → Inspector and check `role="status"` + `aria-label="…mục cần xử lý"` on the chip.
+4. Confirm hovering / focusing the badge does not steal click events from the parent link (the badge has `pointer-events-none`).
+
+### F. Validation error toast tone
+
+1. Log in as a seeded employer. Open the employer profile.
+2. Click "Yêu cầu đổi loại tài khoản". In the modal, leave the reason blank and submit.
+3. Toast should be RED (error tone), not green. Title content: "Vui lòng nhập lý do."
+4. Pick the same type as the current type and submit. Same expectation — error toast for "Loại tài khoản mới phải khác loại hiện tại."
+5. Trigger a real success path (e.g. submit a verification document). Toast is green / success tone.
+6. Spot-check admin verification panel rejections: reject a doc with a blank reason — error toast, not green.
+
+### G. Featured-job countdown + full-shift filter
+
+1. Open the homepage `/` as a guest.
+2. The "Việc đang nổi bật" card should show a real upcoming shift with a small orange pill underneath the location/wage/positions row reading "Bắt đầu sau {N} ngày {HH} giờ" (or "{H} giờ {MM} phút" for nearer-term, or "{MM}:{SS} phút" for the last hour).
+3. **CRITICAL — SSR safety.** Open DevTools console — confirm there is no React hydration mismatch warning. The countdown chip should briefly be missing on the very first paint (mount gate), then render once the client takes over.
+4. **Tick test.** Wait one minute (or open DevTools and adjust the system clock forward). The countdown updates every minute on its own — no manual refresh required.
+5. **Full-shift filter.** Use the `/employer/shifts/[id]` admin/owner UI to set a featured shift's `positionsFilled` equal to its `positionsTotal` (or have all seats fill via apply+approve). Refresh `/`. The featured card should switch to the next eligible shift, NOT show the full one.
+6. **Past-shift filter.** Wait until a featured shift's start time passes. The minute tick should automatically promote the next eligible shift; the past one is filtered out by `isListable`.
+7. **Empty state.** With localStorage wiped or all eligible shifts removed, the card should show the existing "Khám phá ca làm ngay" placeholder linking to `/shifts`.
+
+### H. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/ui/TaskBadge.tsx` — the badge component.
+- `src/domain/taskBadges.ts` — the count selectors.
+- `src/components/layout/NavBar.tsx` — role-specific nav.
+- `src/app/admin/dashboard/page.tsx` — `TabButton` badge wiring.
+- `src/app/employer/dashboard/page.tsx` — pending-applications detail modal verification chips.
+- `src/components/user/WorkerProfileModal.tsx` — verification section.
+- `src/app/employer/profile/page.tsx` — toast tone in change-request flow.
+- `src/components/landing/FeaturedJobMockup.tsx` — countdown chip + minute tick.
+
+
+## Phase 10A-Fix-5 — Live verification everywhere, actionable badge semantics, canonical featured-job availability
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-5 — NEEDS MANUAL VISUAL QA**.
+
+This phase fixes four real product-flow bugs surfaced after 10A-Fix-4: worker profile badge stuck red after resubmit, worker dashboard badge driven by unread-notification count, employer-facing applicant chips still derived from the frozen flag-array, and a 3/3 full shift sneaking onto the homepage featured card.
+
+### A. Worker profile badge — resubmit clears the red dot
+
+1. Run `npm run dev`, clear localStorage, refresh.
+2. Log in as `binh.le@gmail.com` (worker-003). Open `/worker/profile` and submit a CCCD verification.
+3. Switch to admin. Reject the doc with a reason.
+4. Switch back to the worker. The "Hồ sơ" nav link should show a red dot (1 actionable doc).
+5. Resubmit the same CCCD doc as the worker. Without leaving the page, the red dot should disappear within a render — the latest CCCD record is now `Pending`, so the worker has no fresh action to take.
+6. Have admin reject again. Red dot reappears. Resubmit. Red dot clears. Repeat to confirm latest-per-type semantics is stable.
+
+### B. Worker dashboard nav — no badge from unread notifications
+
+1. Have multiple unread notifications on the worker.
+2. Confirm the "Tổng quan" link in the worker nav shows NO badge regardless of unread count.
+3. The notification bell continues to show the unread count, as before. Open the bell, mark all read — bell count drops, dashboard nav still has no badge.
+
+### C. Employer-facing live verification — every surface
+
+1. Log in as `binh.le@gmail.com` and apply to an open shift.
+2. Without logging out from binh.le, switch to admin. Approve a CCCD verification doc, a student card doc, and a driver license doc for binh.le (or simulate via DevTools by submitting + approving each).
+3. Switch to the employer (`lien@quanphoha.vn`). Visit:
+   - **Employer dashboard pending-applications detail modal** — should show three live chips: "Đã xác minh · CCCD / CMND", "Đã xác minh · Thẻ sinh viên", "Đã xác minh · Bằng lái xe", PLUS the existing "Đã xác minh số điện thoại".
+   - **`/employer/shifts/[id]` applicant list** — same chips on the `WorkerSummaryRow`. Confirm the row shows the per-method chips with masked identifier next to each.
+   - **`WorkerProfileModal` (Xem hồ sơ)** — same three chips in the "Xác minh" section, with the "Đã xác minh danh tính" headline plus per-method chips.
+   - **`AdminUserProfileModal` (admin → user list → click worker)** — same chips in the worker tab.
+4. **CRITICAL — privacy non-regression.** Open DevTools and inspect each of these surfaces. Confirm there is NO `fullIdentifier`, NO raw image URLs, NO admin notes, NO rejection reason text. Only the public-safe summary appears.
+
+### D. Featured-job — full / stale shifts never appear
+
+1. Log in as a worker. Find an upcoming Published + Deposited shift on `/shifts` that has 1 free seat (e.g. `shift-001` after one worker is approved).
+2. As an employer, fill the last seat (apply + approve a worker until `positionsFilled === positionsTotal`). Or open DevTools and manually edit `cale.applications` to add `Approved` apps until the shift is full.
+3. Refresh `/`. The featured card should NOT show that shift even if `positionsFilled` was not synced — the canonical helper reconciles against the live application store.
+4. Repeat with the seed shift `shift-003` (already 2/2 in seed). Confirm it's never picked.
+5. Wait until the featured shift's start time passes. Within ~1 minute the minute tick should drop it and surface the next eligible shift.
+6. Wipe localStorage so no shifts exist; the empty-state placeholder ("Khám phá ca làm ngay") shows instead.
+
+### E. /shifts listing — same canonical filter
+
+1. As a worker browsing `/shifts`, confirm the listing never shows a 3/3 full shift, a non-Published shift, a non-Deposited shift, or a past-start shift.
+2. Apply to a shift until it becomes full. Refresh `/shifts`. The full shift drops out of the listing.
+3. Re-test the empty state when no eligible shifts exist (via localStorage wipe).
+
+### F. Mobile drawer parity
+
+1. On a 390px viewport, open the mobile drawer.
+2. Confirm worker "Hồ sơ" badge appears with the same semantics (red dot when latest-per-doc actionable count > 0; no dashboard badge from unread notifications).
+3. Confirm employer "Tổng quan" badge appears with pending-applications count.
+4. Confirm admin "Tổng quan admin" badge appears.
+
+### G. Validation toast tone non-regression
+
+1. Trigger a validation error (e.g. submit the type-change-request modal with a blank reason). Toast must be RED, not green.
+2. Trigger a real success path (submit a verification document). Toast is GREEN.
+
+### H. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/verificationStore.ts` — `getWorkerVerificationSummary` shape.
+- `src/domain/taskBadges.ts` — count semantics.
+- `src/domain/shiftAvailability.ts` — recruiting predicate.
+- `src/components/user/WorkerSummaryRow.tsx` / `WorkerProfileCard.tsx` / `WorkerProfileModal.tsx` / `AdminUserProfileModal.tsx` — live derivation.
+- `src/components/landing/FeaturedJobMockup.tsx` — picker.
+- `src/app/shifts/page.tsx` — listing filter.
+- `src/app/employer/dashboard/page.tsx` — `LiveVerificationChips`.
+- `src/components/layout/NavBar.tsx` — role-specific nav badges.

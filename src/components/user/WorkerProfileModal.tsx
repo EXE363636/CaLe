@@ -4,12 +4,25 @@
  * Full-profile modal opened from the employer applicant list.
  * Shows everything the employer might need to make a decision: bio, full
  * skills list, preferences, rating history, no-show / cancellation stats.
+ *
+ * Phase 10A-Fix-4 — verification info is now LIVE-DERIVED from the
+ * verification store via `getWorkerVerificationSummary(...)`. The
+ * legacy frozen `worker.verifications` flag-array is no longer the
+ * source of truth on this surface; if admin approves a new doc, the
+ * employer's view reflects it on next render. The full document
+ * subset (front/back/selfie/`fullIdentifier`) is intentionally NOT
+ * surfaced — that boundary remains admin-only per the Phase 10A
+ * privacy rule.
  */
 
-import { Modal, StarRating } from '@/components/ui';
+import { useMemo } from 'react';
+import { Modal, StarRating, Badge } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
-import { VerificationBadge } from './VerificationBadge';
+import {
+  getWorkerVerificationSummary,
+  useVerificationStore,
+} from '@/stores';
 import { averageRating } from '@/domain/rating';
 import { formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
@@ -22,6 +35,16 @@ interface WorkerProfileModalProps {
 }
 
 export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModalProps) {
+  // Phase 10A-Fix-4 — read the verification slice so the modal always
+  // shows current admin-approval state. We compute the public-safe
+  // summary inside `useMemo` to keep the selector return stable.
+  const workerDocuments = useVerificationStore((s) => s.workerDocuments);
+  const verificationSummary = useMemo(
+    () =>
+      worker ? getWorkerVerificationSummary(worker, workerDocuments) : null,
+    [worker, workerDocuments],
+  );
+
   if (!worker) return null;
 
   const avg = averageRating(worker.ratingsReceived);
@@ -57,9 +80,45 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
           <Stat value={String(worker.noShowCount)} label={t('employer.applicant.noShows')} />
         </div>
 
-        {/* Verification */}
+        {/* Verification — Phase 10A-Fix-4: live summary, not the
+            frozen `worker.verifications` flag array. Public-safe:
+            badge + method label + masked identifier only.
+            Phase 10A-Fix-5: render every approved method, not just
+            the most-recent primary, so a worker who has CCCD +
+            student card + driver license shows all three. */}
         <Section title="Xác minh">
-          <VerificationBadge verifications={worker.verifications} />
+          {verificationSummary ? (
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {worker.verifications.includes('phone') && (
+                <Badge tone="info">{t('verification.phone')}</Badge>
+              )}
+              {verificationSummary.identityVerified ? (
+                <Badge tone="success">Đã xác minh danh tính</Badge>
+              ) : (
+                <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+              )}
+              {verificationSummary.approvedMethods.map((m) => (
+                <span
+                  key={m.type}
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+                >
+                  <span>{m.label}</span>
+                  {m.maskedIdentifier && (
+                    <span className="font-mono text-emerald-600/80">
+                      {m.maskedIdentifier}
+                    </span>
+                  )}
+                </span>
+              ))}
+              {verificationSummary.pendingCount > 0 && (
+                <span className="text-[11px] text-amber-700">
+                  +{verificationSummary.pendingCount} đang chờ duyệt
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">—</p>
+          )}
         </Section>
 
         {/* Bio */}

@@ -13,6 +13,18 @@ import { isValidEmail, isRequired, isValidPassword, isValidVNPhone } from '@/lib
 
 type Role = 'worker' | 'employer';
 type EmployerType = 'individual' | 'business';
+type EmployerType10A =
+  | 'Individual'
+  | 'HouseholdBusiness'
+  | 'Company'
+  | 'AgencyEvent';
+
+const EMPLOYER_TYPE_10A_OPTIONS: EmployerType10A[] = [
+  'Individual',
+  'HouseholdBusiness',
+  'Company',
+  'AgencyEvent',
+];
 
 interface FormValues {
   role: Role;
@@ -23,6 +35,8 @@ interface FormValues {
   companyName: string;
   businessType: string;
   employerType: EmployerType;
+  /** Phase 10A-Fix-3 — required for employer registrations. */
+  employerType10A: EmployerType10A | '';
 }
 
 interface FormErrors {
@@ -33,6 +47,7 @@ interface FormErrors {
   fullName?: string;
   companyName?: string;
   businessType?: string;
+  employerType10A?: string;
   form?: string;
 }
 
@@ -64,6 +79,7 @@ function RegisterForm() {
     companyName: '',
     businessType: '',
     employerType: 'individual',
+    employerType10A: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
@@ -94,6 +110,10 @@ function RegisterForm() {
     if (values.role === 'employer') {
       if (!isRequired(values.companyName).ok) errs.companyName = t('error.required');
       if (!isRequired(values.businessType).ok) errs.businessType = t('error.required');
+      // Phase 10A-Fix-3: enforce the 4-shape selection.
+      if (values.employerType10A === '') {
+        errs.employerType10A = t('auth.register.employerType.required');
+      }
     }
     return errs;
   }
@@ -115,6 +135,12 @@ function RegisterForm() {
       companyName: values.role === 'employer' ? values.companyName.trim() : undefined,
       businessType: values.role === 'employer' ? values.businessType.trim() : undefined,
       employerType: values.role === 'employer' ? values.employerType : undefined,
+      // Phase 10A-Fix-3: 4-shape canonical type. Validation above
+      // guarantees a non-empty value when role === 'employer'.
+      employerType10A:
+        values.role === 'employer' && values.employerType10A !== ''
+          ? values.employerType10A
+          : undefined,
     });
 
     setLoading(false);
@@ -185,35 +211,57 @@ function RegisterForm() {
             {/* Employer-specific */}
             {values.role === 'employer' && (
               <>
-                {/* Phase 6: employer-type selector — defaults to individual,
-                    so freelance employers don't have to fill out business
-                    fields they don't actually have. */}
+                {/* Phase 10A-Fix-3 — canonical 4-shape selector replaces
+                    the Phase-6 individual/business toggle. Required at
+                    registration so the new posting guard never has to
+                    fall back to the first-set picker. */}
                 <div className="flex flex-col gap-2">
                   <span className="text-sm font-medium text-gray-700">
-                    {t('form.employerType')}
+                    {t('auth.register.employerType.label')}
+                    <span className="ml-1 text-red-500">*</span>
                   </span>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(['individual', 'business'] as EmployerType[]).map((et) => (
-                      <button
-                        key={et}
-                        type="button"
-                        onClick={() => set('employerType', et)}
-                        className={[
-                          'rounded-xl border-2 px-3 py-2 text-xs font-medium transition-colors min-h-[44px]',
-                          values.employerType === et
-                            ? 'border-orange-500 bg-orange-50 text-orange-700'
-                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
-                        ].join(' ')}
-                      >
-                        {t(`employerType.${et}`)}
-                      </button>
-                    ))}
-                  </div>
                   <p className="text-xs text-gray-500">
-                    {values.employerType === 'individual'
-                      ? t('employerType.individual.hint')
-                      : t('employerType.business.hint')}
+                    {t('auth.register.employerType.intro')}
                   </p>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {EMPLOYER_TYPE_10A_OPTIONS.map((et) => {
+                      const selected = values.employerType10A === et;
+                      return (
+                        <button
+                          key={et}
+                          type="button"
+                          onClick={() => {
+                            set('employerType10A', et);
+                            // Mirror Phase 6 legacy field so older code
+                            // paths keep working: Individual → individual,
+                            // everything else → business.
+                            set(
+                              'employerType',
+                              et === 'Individual' ? 'individual' : 'business',
+                            );
+                          }}
+                          className={[
+                            'rounded-xl border-2 px-3 py-2 text-left text-xs font-medium transition-colors min-h-[64px]',
+                            selected
+                              ? 'border-orange-500 bg-orange-50 text-orange-700'
+                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                          ].join(' ')}
+                        >
+                          <span className="block text-sm font-semibold">
+                            {t(`employerType10A.${et}`)}
+                          </span>
+                          <span className="mt-1 block text-[11px] font-normal leading-snug text-gray-500">
+                            {t(`employerType10A.${et}.hint`)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {errors.employerType10A && (
+                    <p className="text-xs text-red-600" role="alert">
+                      {errors.employerType10A}
+                    </p>
+                  )}
                 </div>
 
                 <Input

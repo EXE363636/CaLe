@@ -8,6 +8,10 @@ import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import {
+  getWorkerVerificationSummary,
+  useVerificationStore,
+} from '@/stores';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
@@ -43,6 +47,11 @@ function EmployerDashboardContent() {
   );
   const markAllRead = useNotificationStore((s) => s.markAllRead);
   const markRead = useNotificationStore((s) => s.markRead);
+  // Phase 10A-Fix-4 — read the live verification doc slice so the
+  // pending-applications detail modal always shows current admin
+  // approval state, not a frozen snapshot from when the application
+  // was submitted.
+  const workerDocuments = useVerificationStore((s) => s.workerDocuments);
 
   const employer = asEmployer(users.find((u) => u.id === currentUserId));
 
@@ -598,21 +607,16 @@ function EmployerDashboardContent() {
                                 String(worker.reputationScore),
                               )}
                             </span>
-                            {worker.verifications.includes('phone') && (
-                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-                                {t('verification.phone')}
-                              </span>
-                            )}
-                            {worker.verifications.includes('id') && (
-                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-                                {t('verification.id')}
-                              </span>
-                            )}
-                            {worker.verifications.includes('student') && (
-                              <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
-                                {t('verification.student')}
-                              </span>
-                            )}
+                            {/* Phase 10A-Fix-4 — verification chips
+                                derive from the LIVE verification store
+                                so admin-side approvals reflect on the
+                                next render. The legacy
+                                `worker.verifications` array is no
+                                longer the source of truth here. */}
+                            <LiveVerificationChips
+                              worker={worker}
+                              workerDocuments={workerDocuments}
+                            />
                             <span className="text-[10px] text-gray-400">
                               {t('employer.detail.pending.completedShifts').replace(
                                 '{count}',
@@ -894,4 +898,48 @@ function TileIcon({ name }: { name: IconName }) {
     default:
       return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10A-Fix-4 — live verification chips
+// ---------------------------------------------------------------------------
+
+import type { Worker, WorkerVerificationDocument } from '@/types';
+
+function LiveVerificationChips({
+  worker,
+  workerDocuments,
+}: {
+  worker: Worker;
+  workerDocuments: WorkerVerificationDocument[];
+}) {
+  const summary = useMemo(
+    () => getWorkerVerificationSummary(worker, workerDocuments),
+    [worker, workerDocuments],
+  );
+  return (
+    <>
+      {worker.verifications.includes('phone') && (
+        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+          {t('verification.phone')}
+        </span>
+      )}
+      {/* Phase 10A-Fix-5 — one chip per approved method, not just the
+          most-recent primary, so an employer scanning the queue sees
+          every identity proof the worker has cleared. */}
+      {summary.approvedMethods.map((m) => (
+        <span
+          key={m.type}
+          className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+        >
+          Đã xác minh · {m.label}
+        </span>
+      ))}
+      {summary.pendingCount > 0 && (
+        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+          {summary.pendingCount} đang chờ duyệt
+        </span>
+      )}
+    </>
+  );
 }

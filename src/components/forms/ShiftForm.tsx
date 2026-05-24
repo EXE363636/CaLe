@@ -23,6 +23,12 @@ export interface ShiftFormValues {
   endTime: string;
   hourlyWage: number;
   positionsTotal: number;
+  /** Phase 10A-Fix-3 — workplace imagery + on-site contact metadata. */
+  workplaceImageLabel: string;
+  workplaceNotes: string;
+  onSiteContactName: string;
+  onSiteContactPhone: string;
+  requiresVerifiedDocumentOnArrival: boolean;
 }
 
 interface ShiftFormProps {
@@ -41,6 +47,20 @@ interface ShiftFormProps {
    * confirmed assignments.
    */
   minPositions?: number;
+  /**
+   * Phase 10A-Fix-3: when `true`, the workplace-image-label field is
+   * required at submit time. The new-shift page sets this based on
+   * the employer's resolved type (always required for Individual /
+   * AgencyEvent; required for HouseholdBusiness / Company unless they
+   * have an approved profile-side workplace photo).
+   */
+  workplaceImageRequired?: boolean;
+  /**
+   * Phase 10A-Fix-3: live snapshot callback. Fires after every field
+   * change so the parent can drive a side-by-side readiness checklist.
+   * Optional — when omitted the form behaves identically to before.
+   */
+  onValuesChange?: (values: ShiftFormValues) => void;
 }
 
 const JOB_TYPE_OPTIONS = [
@@ -65,6 +85,11 @@ const DEFAULT_VALUES: ShiftFormValues = {
   endTime: '',
   hourlyWage: 0,
   positionsTotal: 1,
+  workplaceImageLabel: '',
+  workplaceNotes: '',
+  onSiteContactName: '',
+  onSiteContactPhone: '',
+  requiresVerifiedDocumentOnArrival: false,
 };
 
 type FormErrors = Partial<Record<keyof ShiftFormValues, string>>;
@@ -79,6 +104,8 @@ export function ShiftForm({
   mode = 'create',
   className = '',
   minPositions = 1,
+  workplaceImageRequired = false,
+  onValuesChange,
 }: ShiftFormProps) {
   const [values, setValues] = useState<ShiftFormValues>({
     ...DEFAULT_VALUES,
@@ -102,7 +129,17 @@ export function ShiftForm({
   );
 
   function set<K extends keyof ShiftFormValues>(key: K, value: ShiftFormValues[K]) {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    setValues((prev) => {
+      const next = { ...prev, [key]: value };
+      // Phase 10A-Fix-3 — fire the live snapshot for the parent's
+      // readiness checklist. We use a microtask so the callback sees
+      // the post-update state without triggering React's "setState in
+      // render" warning.
+      if (onValuesChange) {
+        queueMicrotask(() => onValuesChange(next));
+      }
+      return next;
+    });
     // Clear error on change
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -134,6 +171,15 @@ export function ShiftForm({
     } else if (values.positionsTotal < minPositions) {
       errs.positionsTotal = t('error.positions.belowFilled')
         .replace('{min}', String(minPositions));
+    }
+
+    // Phase 10A-Fix-3: workplace image label required for the relevant
+    // employer types. The new-shift page passes
+    // `workplaceImageRequired={true}` when the employer's resolved type
+    // is Individual / AgencyEvent (always) or HouseholdBusiness /
+    // Company without an approved profile workplace photo.
+    if (workplaceImageRequired && !isRequired(values.workplaceImageLabel).ok) {
+      errs.workplaceImageLabel = t('error.workplaceImage.required');
     }
 
     return errs;
@@ -303,6 +349,68 @@ export function ShiftForm({
             onChange={(e) => set('requirements', e.target.value)}
             rows={3}
           />
+        </div>
+
+        {/* Phase 10A-Fix-3 — workplace image + on-site contact info.
+            Helps workers judge whether the job/location looks real
+            before they apply. Mock filename only — no real upload. */}
+        <div className="md:col-span-2 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+          <p className="mb-1 text-sm font-semibold text-orange-900">
+            {t('form.workplaceSection.title')}
+          </p>
+          <p className="mb-3 text-xs text-orange-800/80">
+            {t('form.workplaceSection.intro')}
+          </p>
+
+          <Input
+            label={t('form.workplaceImageLabel')}
+            value={values.workplaceImageLabel}
+            onChange={(e) => set('workplaceImageLabel', e.target.value)}
+            placeholder={t('form.workplaceImageLabel.placeholder')}
+            hint={t('form.workplaceImageLabel.hint')}
+            error={errors.workplaceImageLabel}
+            required={workplaceImageRequired}
+          />
+
+          <div className="mt-3">
+            <Textarea
+              label={t('form.workplaceNotes')}
+              value={values.workplaceNotes}
+              onChange={(e) => set('workplaceNotes', e.target.value)}
+              rows={2}
+              placeholder={t('form.workplaceNotes.placeholder')}
+            />
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Input
+              label={t('form.onSiteContactName')}
+              value={values.onSiteContactName}
+              onChange={(e) => set('onSiteContactName', e.target.value)}
+              placeholder="Anh Liêm — quản lý"
+            />
+            <Input
+              label={t('form.onSiteContactPhone')}
+              type="tel"
+              value={values.onSiteContactPhone}
+              onChange={(e) => set('onSiteContactPhone', e.target.value)}
+              placeholder="0901234567"
+            />
+          </div>
+
+          <label className="mt-3 flex items-start gap-2 text-xs text-gray-700">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-orange-500"
+              checked={values.requiresVerifiedDocumentOnArrival}
+              onChange={(e) =>
+                set('requiresVerifiedDocumentOnArrival', e.target.checked)
+              }
+            />
+            <span className="leading-relaxed">
+              {t('form.requiresVerifiedDocumentOnArrival')}
+            </span>
+          </label>
         </div>
       </div>
 

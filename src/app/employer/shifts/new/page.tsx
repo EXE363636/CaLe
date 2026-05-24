@@ -7,16 +7,18 @@ import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
-import { resolveEmployerType } from '@/stores';
+import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
-import { Button, Card, PageHelpButton } from '@/components/ui';
+import { Badge, Button, Card, PageHelpButton } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
   trustForEmployer,
 } from '@/domain/employerTrust';
+import { computePostingReadiness } from '@/domain/postingReadiness';
 import { formatVND } from '@/lib/format';
-import { showSuccess } from '@/lib/toast';
+import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
+import type { EmployerType10A } from '@/types';
 
 export default function NewShiftPage() {
   return (
@@ -33,10 +35,18 @@ function NewShiftContent() {
   const shifts = useShiftStore((s) => s.shifts);
   const createShift = useShiftStore((s) => s.create);
   const simulateDeposit = useShiftStore((s) => s.simulateDeposit);
+  // Phase 10A-Fix-3 — read employer verification documents so we can
+  // compute posting readiness against the same data the admin queue
+  // sees.
+  const employerDocuments = useVerificationStore((s) => s.employerDocuments);
 
   const [createdShiftId, setCreatedShiftId] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState(0);
   const [deposited, setDeposited] = useState(false);
+  // Phase 10A-Fix-3 — live snapshot of the workplace-image filename so
+  // the readiness checklist updates as the employer types. Mirrored
+  // out of `<ShiftForm>` via the `onValuesChange` callback.
+  const [workplaceImageDraft, setWorkplaceImageDraft] = useState('');
 
   // Phase 6: derive the employer's trust tier so we can show the deposit
   // breakdown live as they fill the form. Both selectors return stable
@@ -58,18 +68,55 @@ function NewShiftContent() {
   // employerType10A, no legacy employerType, and no shifts yet) must
   // pick an account type before posting. `resolveEmployerType` returns
   // `undefined` only in that exact state — established accounts with
-  // posted shifts get an automatic fallback.
+  // posted shifts get an automatic fallback. Phase 10A-Fix-3 — the
+  // resolved type is now read off `readiness.resolvedType` instead of
+  // a separate variable.
   const hasPostedShifts = useMemo(
     () =>
       employer ? shifts.some((s) => s.employerId === employer.id) : false,
     [shifts, employer],
   );
-  const resolvedEmployerType = employer
-    ? resolveEmployerType(employer, { hasPostedShifts })
-    : undefined;
+
+  // Phase 10A-Fix-3: full posting readiness. Computed at the page
+  // level so the same `ready` flag controls (1) the checklist display,
+  // (2) the create-shift submit handler, and (3) the deposit-confirm
+  // CTA. Recomputes when the employer record, doc list, or in-form
+  // workplace-image draft changes.
+  const readiness = useMemo(() => {
+    if (!employer) return null;
+    return computePostingReadiness({
+      employer,
+      employerDocuments,
+      hasPostedShifts,
+      workplaceImageInForm: workplaceImageDraft,
+    });
+  }, [employer, employerDocuments, hasPostedShifts, workplaceImageDraft]);
+
+  // Workplace image is required for the form when readiness rules say
+  // so. AgencyEvent + Individual always require it; HouseholdBusiness /
+  // Company only require it when no profile-side workplace photo is
+  // approved yet.
+  const workplaceImageRequired = useMemo<boolean>(() => {
+    if (!readiness?.resolvedType) return false;
+    const t10 = readiness.resolvedType;
+    if (t10 === 'Individual' || t10 === 'AgencyEvent') return true;
+    return !readiness.checks.workplaceProofApproved;
+  }, [readiness]);
 
   function handleSubmit(values: ShiftFormValues) {
     if (!currentUserId) return;
+    // Phase 10A-Fix-3 — defence in depth. The form already validates
+    // the workplace-image label when required; this re-checks the
+    // full readiness rule set so a stale form state can't bypass the
+    // gate (e.g. employer types in a filename then deletes it before
+    // submitting).
+    if (!readiness || !readiness.ready) {
+      showError(
+        t('posting.readiness.intro'),
+        readiness?.blockers[0],
+      );
+      return;
+    }
     const shift = createShift({ ...values, employerId: currentUserId });
     setCreatedShiftId(shift.id);
     setDepositAmount(shift.depositAmount);
@@ -85,6 +132,44 @@ function NewShiftContent() {
     setDeposited(true);
     showSuccess(t('feedback.shift.deposit.success'));
     setTimeout(() => router.push(`/employer/shifts/${createdShiftId}`), 1200);
+  }
+
+  // Phase 10A-Fix-3: posting guard now uses the full readiness rule
+  // set, not just "is type set?". When the employer is brand-new
+  // (no resolved type), we render the type-picker prompt. When the
+  // type is set but verification or workplace prerequisites are
+  // missing, we render the same page wrapper but show the checklist
+  // alongside the form so the employer can still see the deposit
+  // explainer + form (the form's submit + the deposit CTA below the
+  // form remain blocked until `readiness.ready === true`).
+  if (employer && readiness && !readiness.resolvedType) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+        <header className="mb-6">
+          <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            {t('employer.dashboard.title')}
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+            {t('btn.postShift')}
+          </h1>
+        </header>
+        <Card>
+          <h2 className="mb-2 font-semibold text-gray-900">
+            Cần chọn loại tài khoản trước khi đăng ca
+          </h2>
+          <p className="mb-3 text-sm leading-relaxed text-gray-600">
+            Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.
+            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đặt cọc
+            và quy tắc an toàn cho người lao động.
+          </p>
+          <Link href="/employer/profile">
+            <Button variant="primary" size="md">
+              {t('posting.readiness.cta.profile')}
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -123,6 +208,19 @@ function NewShiftContent() {
         <TrustExplainerCard trust={trust} ratio={ratio} />
       )}
 
+      {/* Phase 10A-Fix-3 — verification + workplace readiness checklist.
+          Always shown before creation so the employer sees what's
+          missing. Hidden after creation since at that point readiness
+          was already enforced. */}
+      {!createdShiftId && readiness && readiness.resolvedType && (
+        <ReadinessChecklist
+          resolvedType={readiness.resolvedType}
+          ready={readiness.ready}
+          checks={readiness.checks}
+          blockers={readiness.blockers}
+        />
+      )}
+
       {/* Success state */}
       {deposited && (
         <div className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
@@ -140,12 +238,147 @@ function NewShiftContent() {
         />
       )}
 
-      {/* Form (hidden after creation) */}
+      {/* Form (hidden after creation). Phase 10A-Fix-3 — workplace
+          image required by employer-type readiness rules; the live
+          draft drives the readiness recompute via `onValuesChange`. */}
       {!createdShiftId && (
         <ShiftForm
           mode="create"
           onSubmit={handleSubmit}
+          workplaceImageRequired={workplaceImageRequired}
+          onValuesChange={(v) => setWorkplaceImageDraft(v.workplaceImageLabel)}
         />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10A-Fix-3 — verification + workplace readiness checklist
+// ---------------------------------------------------------------------------
+
+function ReadinessChecklist({
+  resolvedType,
+  ready,
+  checks,
+  blockers,
+}: {
+  resolvedType: EmployerType10A;
+  ready: boolean;
+  checks: {
+    typeSelected: boolean;
+    representativeIdApproved: boolean;
+    businessLicenseOrTaxApproved: boolean;
+    workplaceProofApproved: boolean;
+    workplaceImageProvided: boolean;
+    eventProofApproved: boolean;
+  };
+  blockers: string[];
+}) {
+  // Pick which checklist items apply to the current type.
+  const items: Array<{ key: string; label: string; ok: boolean }> = [
+    {
+      key: 'type',
+      label: t('posting.readiness.checklist.type'),
+      ok: checks.typeSelected,
+    },
+    {
+      key: 'id',
+      label: t('posting.readiness.checklist.id'),
+      ok: checks.representativeIdApproved,
+    },
+  ];
+
+  if (resolvedType === 'Company') {
+    items.push({
+      key: 'business',
+      label: t('posting.readiness.checklist.business'),
+      ok: checks.businessLicenseOrTaxApproved,
+    });
+  }
+  if (resolvedType === 'AgencyEvent') {
+    items.push({
+      key: 'event',
+      label: t('posting.readiness.checklist.event'),
+      ok: checks.eventProofApproved,
+    });
+  }
+  if (
+    resolvedType === 'HouseholdBusiness' ||
+    resolvedType === 'Company'
+  ) {
+    items.push({
+      key: 'workplaceProof',
+      label: t('posting.readiness.checklist.workplaceProof'),
+      ok: checks.workplaceProofApproved,
+    });
+  }
+  // Per-shift workplace image: required for Individual + AgencyEvent;
+  // optional fallback for HouseholdBusiness / Company when no profile
+  // photo is approved.
+  items.push({
+    key: 'workplaceImage',
+    label: t('posting.readiness.checklist.workplaceImage'),
+    ok: checks.workplaceImageProvided,
+  });
+
+  const tone = ready ? 'success' : 'warning';
+  const headerLabel = ready
+    ? t('posting.readiness.allClear')
+    : t('posting.readiness.intro');
+
+  return (
+    <div
+      className={[
+        'mb-5 rounded-2xl border p-4 shadow-sm',
+        ready
+          ? 'border-emerald-200 bg-emerald-50/60'
+          : 'border-amber-300 bg-amber-50',
+      ].join(' ')}
+    >
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-gray-900">
+          {t('posting.readiness.title')}
+        </p>
+        <Badge tone={tone}>{headerLabel}</Badge>
+      </div>
+      <ul className="flex flex-col gap-1.5 text-xs text-gray-800">
+        {items.map((it) => (
+          <li key={it.key} className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={[
+                'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white',
+                it.ok ? 'bg-emerald-500' : 'bg-amber-500',
+              ].join(' ')}
+            >
+              {it.ok ? '✓' : '!'}
+            </span>
+            <span className={it.ok ? 'text-gray-700' : 'text-amber-900'}>
+              {it.label}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {!ready && blockers.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          <p className="text-xs font-medium text-amber-900">
+            {blockers[0]}
+          </p>
+          <p className="text-[11px] text-amber-800/80">
+            {t('posting.readiness.depositLocked')}
+          </p>
+          <Link href="/employer/profile">
+            <Button size="sm" variant="secondary">
+              {t('posting.readiness.cta.profile')}
+            </Button>
+          </Link>
+        </div>
+      )}
+      {resolvedType === 'Individual' && (
+        <p className="mt-3 text-[11px] italic leading-relaxed text-gray-600">
+          {t('posting.readiness.individualNote')}
+        </p>
       )}
     </div>
   );

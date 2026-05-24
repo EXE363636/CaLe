@@ -567,6 +567,24 @@ export function getWorkerVerificationSummary(
           (latest.reviewedAt ?? '') > (d.reviewedAt ?? '') ? latest : d,
         );
 
+  // Phase 10A-Fix-5 — every approved identity method, deduped by
+  // documentType so a re-approved doc doesn't render twice. Sorted
+  // by reviewed-at desc so newest method shows first.
+  const seenTypes = new Set<WorkerIdentityDocumentType>();
+  const approvedMethods: WorkerVerificationSummary['approvedMethods'] = [];
+  const approvedSorted = [...approved].sort((a, b) =>
+    (b.reviewedAt ?? '').localeCompare(a.reviewedAt ?? ''),
+  );
+  for (const d of approvedSorted) {
+    if (seenTypes.has(d.documentType)) continue;
+    seenTypes.add(d.documentType);
+    approvedMethods.push({
+      type: d.documentType,
+      label: workerDocLabel(d.documentType),
+      maskedIdentifier: d.maskedIdentifier,
+    });
+  }
+
   const badges: WorkerTrustBadge[] = [];
   if (worker.verifications.includes('phone')) badges.push('PhoneVerified');
   if (approved.some((d) => d.documentType === 'NationalId')) {
@@ -587,6 +605,7 @@ export function getWorkerVerificationSummary(
       ? workerDocLabel(primary.documentType)
       : undefined,
     maskedIdentifier: primary?.maskedIdentifier,
+    approvedMethods,
     badges,
     pendingCount,
   };
@@ -726,14 +745,27 @@ export function verificationStatusTone(s: VerificationStatus): 'neutral' | 'warn
  * Returns `undefined` only when the employer has neither field set,
  * which means onboarding is incomplete and the UI should ask the user
  * to choose once.
+ *
+ * Phase 10A-Fix-2: if the employer has posted at least one shift,
+ * the UI should never show the first-set picker — they are an
+ * established account that just hasn't migrated through the new
+ * model yet. Pass `hasPostedShifts: true` to fall back to a sensible
+ * default (`'HouseholdBusiness'`) instead of returning `undefined`.
  */
-export function resolveEmployerType(employer: {
-  employerType10A?: EmployerType10A;
-  employerType?: 'individual' | 'business';
-}): EmployerType10A | undefined {
+export function resolveEmployerType(
+  employer: {
+    employerType10A?: EmployerType10A;
+    employerType?: 'individual' | 'business';
+  },
+  options: { hasPostedShifts?: boolean } = {},
+): EmployerType10A | undefined {
   if (employer.employerType10A) return employer.employerType10A;
   if (employer.employerType === 'individual') return 'Individual';
   if (employer.employerType === 'business') return 'HouseholdBusiness';
+  // Phase 10A-Fix-2: established accounts (have posted shifts) should
+  // never see the first-set picker. Fall back to HouseholdBusiness
+  // and let them request a change via the admin queue if needed.
+  if (options.hasPostedShifts) return 'HouseholdBusiness';
   return undefined;
 }
 

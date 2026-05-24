@@ -35,3 +35,6 @@ export type { PageHelpButtonProps, PageHelpSection } from './PageHelpButton';
 
 export { HelpPopover } from './HelpPopover';
 export type { HelpPopoverProps } from './HelpPopover';
+
+
+export { TaskBadge } from './TaskBadge';

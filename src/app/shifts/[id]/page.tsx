@@ -223,6 +223,11 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         </Section>
       )}
 
+      {/* Phase 10A-Fix-3 — workplace imagery card. Public-safe: only
+          shows the mock filename / caption + workplace notes + on-site
+          contact info. Never reveals private employer documents. */}
+      <WorkplaceCard shift={shift} />
+
       {/* Apply section */}
       <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         {!currentUserId && (
@@ -318,5 +323,105 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="mb-2 text-sm font-semibold text-gray-900">{title}</h2>
       {children}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10A-Fix-3 — workplace imagery card (worker-facing)
+// ---------------------------------------------------------------------------
+
+function WorkplaceCard({ shift }: { shift: Shift }) {
+  const hasImage =
+    typeof shift.workplaceImageLabel === 'string' &&
+    shift.workplaceImageLabel.trim().length > 0;
+  const hasNotes =
+    typeof shift.workplaceNotes === 'string' &&
+    shift.workplaceNotes.trim().length > 0;
+  const hasContact =
+    (typeof shift.onSiteContactName === 'string' &&
+      shift.onSiteContactName.trim().length > 0) ||
+    (typeof shift.onSiteContactPhone === 'string' &&
+      shift.onSiteContactPhone.trim().length > 0);
+
+  return (
+    <Section title={t('shifts.detail.workplace.title')}>
+      {/* Mock image placeholder — renders the filename + a generic
+          icon so the worker sees something concrete without us hosting
+          actual photos in the MVP. */}
+      <div className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-4">
+        {hasImage ? (
+          <div className="flex items-start gap-3">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-orange-500 ring-1 ring-orange-200"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m6 17 4-5 3 4 2-2 3 3" />
+                <circle cx="9" cy="10" r="1.4" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-orange-900">
+                {shift.workplaceImageLabel}
+              </p>
+              <p className="mt-0.5 text-[11px] italic text-orange-800/80">
+                Ảnh mô phỏng — bản MVP không có upload thật.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-gray-600">
+            {t('shifts.detail.workplace.empty')}
+          </p>
+        )}
+
+        {hasNotes && (
+          <div className="mt-3 rounded-lg bg-white/70 px-3 py-2 ring-1 ring-orange-100">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+              {t('shifts.detail.workplace.notes')}
+            </p>
+            <p className="mt-1 whitespace-pre-line text-xs text-gray-700">
+              {shift.workplaceNotes}
+            </p>
+          </div>
+        )}
+
+        {hasContact && (
+          <div className="mt-3 rounded-lg bg-white/70 px-3 py-2 ring-1 ring-orange-100">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+              {t('shifts.detail.onSiteContact')}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-700">
+              {shift.onSiteContactName && (
+                <span className="font-medium">{shift.onSiteContactName}</span>
+              )}
+              {shift.onSiteContactPhone && (
+                <a
+                  href={`tel:${shift.onSiteContactPhone}`}
+                  className="font-medium text-orange-600 hover:underline"
+                >
+                  {shift.onSiteContactPhone}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {shift.requiresVerifiedDocumentOnArrival && (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+            {t('shifts.detail.requiresVerifiedDocument')}
+          </p>
+        )}
+      </div>
+    </Section>
   );
 }

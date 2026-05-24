@@ -87,9 +87,50 @@ interface ToastStore {
 const DEFAULT_DURATION_MS: Record<ToastTone, number> = {
   success: 3000,
   info: 4000,
-  warning: 4000,
+  warning: 5000,
   error: 5000,
 };
+
+/**
+ * Phase 10A-Fix-2 — adaptive auto-dismiss bounds.
+ *
+ * The base per-tone duration is comfortable for short copy ("Đã lưu",
+ * "Có lỗi xảy ra"). Longer messages (especially Vietnamese acceptance
+ * criteria, error explanations, or multi-line guidance) need more
+ * reading time. `computeAdaptiveDuration` extends the base duration
+ * proportionally to the content length, then clamps to a sane
+ * window so users never face a sub-3s flash or a >9s wait that
+ * blocks subsequent toasts.
+ */
+export const MIN_DURATION_MS = 3000;
+export const MAX_DURATION_MS = 9000;
+
+/**
+ * Compute the adaptive auto-dismiss duration for a toast based on its
+ * tone and copy length.
+ *
+ *   adaptive = base + 12ms * max(0, length - 40)
+ *
+ * Where `length = title.length + (description?.length ?? 0)` and
+ * `base` is the per-tone default. The result is clamped to
+ * `[MIN_DURATION_MS, MAX_DURATION_MS]`.
+ *
+ * Pure function — no I/O, no clock — so tests can pin behaviour
+ * without `vi.useFakeTimers()`.
+ */
+export function computeAdaptiveDuration(
+  tone: ToastTone,
+  title: string,
+  description?: string,
+): number {
+  const base = DEFAULT_DURATION_MS[tone];
+  const length = (title?.length ?? 0) + (description?.length ?? 0);
+  const overhead = 12 * Math.max(0, length - 40);
+  const raw = base + overhead;
+  if (raw < MIN_DURATION_MS) return MIN_DURATION_MS;
+  if (raw > MAX_DURATION_MS) return MAX_DURATION_MS;
+  return raw;
+}
 
 /** Phase 9Q: hard cap on visible toasts. */
 export const MAX_VISIBLE_TOASTS = 4;
@@ -142,7 +183,13 @@ export const useToastStore = create<ToastStore>((set, get) => ({
   toasts: [],
   show(input) {
     const dedupeKey = dedupeKeyFor(input);
-    const duration = input.duration ?? DEFAULT_DURATION_MS[input.tone];
+    // Phase 10A-Fix-2: when caller did not pin a duration, derive
+    // one from the copy length so long Vietnamese messages get more
+    // reading time. Explicit values (including sticky `0`) are kept
+    // verbatim.
+    const duration =
+      input.duration ??
+      computeAdaptiveDuration(input.tone, input.title, input.description);
     const now = Date.now();
 
     const existing = get().toasts.find((t) => t.dedupeKey === dedupeKey);

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
+import { useShiftStore } from '@/stores/shiftStore';
 import {
   useVerificationStore,
   employerDocLabel,
@@ -18,7 +19,7 @@ import { Card, Button, Input, Textarea, Modal } from '@/components/ui';
 import { Badge } from '@/components/ui';
 import { EmployerFeedbackList } from '@/components/user/EmployerFeedbackList';
 import { formatDateVN } from '@/lib/format';
-import { showSuccess } from '@/lib/toast';
+import { showSuccess, showError } from '@/lib/toast';
 import { notifyAdmins } from '@/lib/adminNotifications';
 import { t } from '@/i18n/vi';
 import type {
@@ -232,13 +233,21 @@ function EmployerVerificationCard({
   const users = useUserStore((s) => s.users);
   const updateUser = useUserStore((s) => s.updateUser);
   const pushNotification = useNotificationStore((s) => s.push);
+  // Phase 10A-Fix-2: if the employer has already posted shifts, treat
+  // them as an established account — never show the first-set picker.
+  const shifts = useShiftStore((s) => s.shifts);
+  const hasPostedShifts = useMemo(
+    () => shifts.some((s) => s.employerId === employer.id),
+    [shifts, employer.id],
+  );
 
   // Resolve current type with legacy fallback. If undefined, employer
   // hasn't picked yet — we render a one-time first-set picker instead
-  // of the locked display.
+  // of the locked display. Established accounts (already posted shifts)
+  // never see the picker thanks to the `hasPostedShifts` fallback.
   const resolvedType = useMemo(
-    () => resolveEmployerType(employer),
-    [employer],
+    () => resolveEmployerType(employer, { hasPostedShifts }),
+    [employer, hasPostedShifts],
   );
 
   const pendingChange = useMemo(
@@ -272,7 +281,9 @@ function EmployerVerificationCard({
 
   function handleSubmitMock(documentType: EmployerVerificationDocumentType) {
     if (!resolvedType) {
-      showSuccess('Vui lòng chọn loại tài khoản trước khi nộp tài liệu.');
+      // Phase 10A-Fix-4 — validation error must use error tone, not
+      // green success.
+      showError('Vui lòng chọn loại tài khoản trước khi nộp tài liệu.');
       return;
     }
     submit(employer.id, {
@@ -307,7 +318,8 @@ function EmployerVerificationCard({
             : r.error === 'ALREADY_PENDING'
               ? 'Bạn đã có một yêu cầu đang chờ duyệt.'
               : `Không thể gửi yêu cầu: ${r.error}`;
-      showSuccess(msg);
+      // Phase 10A-Fix-4 — validation error must use error tone.
+      showError(msg);
       return;
     }
     notifyAdmins({
@@ -333,6 +345,11 @@ function EmployerVerificationCard({
           Chọn loại tài khoản phù hợp nhất. Loại tài khoản dùng để xác định
           giấy tờ cần xác minh và sẽ được khoá sau khi bạn xác nhận; nếu cần
           đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.
+        </p>
+        {/* Phase 10A-Fix-3 — note that this picker is only a legacy
+            fallback. New accounts pick their type at registration. */}
+        <p className="mb-3 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-900 ring-1 ring-amber-200">
+          {t('employer.profile.firstSet.legacy')}
         </p>
         <div className="mt-1 flex flex-wrap gap-2">
           {EMPLOYER_TYPES.map((t) => (

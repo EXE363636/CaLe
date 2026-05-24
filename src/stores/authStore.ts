@@ -58,6 +58,13 @@ export interface RegisterInput {
   businessType?: string;
   /** Phase 6: defaults to `'individual'` when omitted. */
   employerType?: 'individual' | 'business';
+  /**
+   * Phase 10A-Fix-3: canonical 4-value account shape selected at
+   * registration. Required when `role === 'employer'`. The auth store
+   * persists this onto `Employer.employerType10A` so the new posting
+   * guard never has to fall back to the first-set picker.
+   */
+  employerType10A?: 'Individual' | 'HouseholdBusiness' | 'Company' | 'AgencyEvent';
 }
 
 interface AuthStore {
@@ -98,7 +105,16 @@ function isEmployerInput(input: RegisterInput): boolean {
     typeof input.companyName === 'string' &&
     input.companyName.trim() !== '' &&
     typeof input.businessType === 'string' &&
-    input.businessType.trim() !== ''
+    input.businessType.trim() !== '' &&
+    // Phase 10A-Fix-3: employer type is now mandatory at registration.
+    // The four canonical shapes drive the verification queue and the
+    // posting-guard rules; allowing an employer to slip through without
+    // a type would re-introduce the inconsistent state Phase 10A-Fix-2
+    // closed.
+    (input.employerType10A === 'Individual' ||
+      input.employerType10A === 'HouseholdBusiness' ||
+      input.employerType10A === 'Company' ||
+      input.employerType10A === 'AgencyEvent')
   );
 }
 
@@ -234,6 +250,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         // Phase 6: default to individual / freelance — matches the
         // register form's default selection.
         employerType: input.employerType ?? 'individual',
+        // Phase 10A-Fix-3: canonical 4-shape stored at registration so
+        // the posting guard never sees a missing type for new accounts.
+        // `isEmployerInput` already validated this is one of the four
+        // canonical values.
+        employerType10A: input.employerType10A,
       };
       newUser = employer;
     }

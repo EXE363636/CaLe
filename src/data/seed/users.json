@@ -23,7 +23,8 @@
     "description": "Quán phở gia đình tại Quận 1, phục vụ ăn sáng và ăn trưa.",
     "logoUrl": "",
     "verifiedBusiness": true,
-    "boostCredits": 1
+    "boostCredits": 1,
+    "employerType10A": "HouseholdBusiness"
   },
   {
     "id": "employer-002",
@@ -38,7 +39,8 @@
     "description": "Chuỗi cafe phong cách hoài cổ, có 3 chi nhánh tại TP.HCM.",
     "logoUrl": "",
     "verifiedBusiness": true,
-    "boostCredits": 0
+    "boostCredits": 0,
+    "employerType10A": "Company"
   },
   {
     "id": "employer-003",
@@ -53,7 +55,8 @@
     "description": "Đơn vị tổ chức sự kiện ngắn hạn, hội chợ, khai trương cửa hàng.",
     "logoUrl": "",
     "verifiedBusiness": false,
-    "boostCredits": 0
+    "boostCredits": 0,
+    "employerType10A": "AgencyEvent"
   },
 
   {

@@ -18,7 +18,9 @@
     "escrowStatus": "Deposited",
     "depositAmount": 270000,
     "createdAt": "2026-05-15T09:00:00.000Z",
-    "updatedAt": "2026-05-15T10:00:00.000Z"
+    "updatedAt": "2026-05-15T10:00:00.000Z",
+    "workplaceImageLabel": "mat-tien-quan-pho-ha.jpg",
+    "workplaceNotes": "Bếp và khu phục vụ tách riêng. Đồng phục được cấp."
   },
   {
     "id": "shift-002",
@@ -39,7 +41,9 @@
     "escrowStatus": "Deposited",
     "depositAmount": 750000,
     "createdAt": "2026-05-16T11:30:00.000Z",
-    "updatedAt": "2026-05-16T12:00:00.000Z"
+    "updatedAt": "2026-05-16T12:00:00.000Z",
+    "workplaceImageLabel": "khu-vuc-phuc-vu-toi.jpg",
+    "workplaceNotes": "Ca tối đông khách, ưu tiên người có kinh nghiệm phục vụ."
   },
   {
     "id": "shift-003",
@@ -60,7 +64,9 @@
     "escrowStatus": "Deposited",
     "depositAmount": 600000,
     "createdAt": "2026-05-14T08:00:00.000Z",
-    "updatedAt": "2026-05-18T15:30:00.000Z"
+    "updatedAt": "2026-05-18T15:30:00.000Z",
+    "workplaceImageLabel": "mat-tien-cafe-cong.jpg",
+    "workplaceNotes": "Có chỗ để xe cho nhân viên. Ca sáng nhận khách thư giãn."
   },
   {
     "id": "shift-004",
@@ -81,7 +87,9 @@
     "escrowStatus": "Deposited",
     "depositAmount": 1600000,
     "createdAt": "2026-05-17T10:00:00.000Z",
-    "updatedAt": "2026-05-19T09:00:00.000Z"
+    "updatedAt": "2026-05-19T09:00:00.000Z",
+    "workplaceImageLabel": "chi-nhanh-le-loi-cafe-cong.jpg",
+    "workplaceNotes": "Chi nhánh trung tâm Quận 1, đông khách cuối tuần."
   },
   {
     "id": "shift-005",
@@ -102,7 +110,12 @@
     "escrowStatus": "Deposited",
     "depositAmount": 4050000,
     "createdAt": "2026-05-18T14:00:00.000Z",
-    "updatedAt": "2026-05-18T16:00:00.000Z"
+    "updatedAt": "2026-05-18T16:00:00.000Z",
+    "workplaceImageLabel": "san-khau-su-kien-vinh-quang.jpg",
+    "workplaceNotes": "Đeo bảng tên + đồng phục được phát tại địa điểm. Có nước uống miễn phí.",
+    "onSiteContactName": "Anh Minh — điều phối sự kiện",
+    "onSiteContactPhone": "0904333003",
+    "requiresVerifiedDocumentOnArrival": true
   },
   {
     "id": "shift-006",
@@ -123,7 +136,11 @@
     "escrowStatus": "PendingDeposit",
     "depositAmount": 525000,
     "createdAt": "2026-05-19T16:00:00.000Z",
-    "updatedAt": "2026-05-19T16:00:00.000Z"
+    "updatedAt": "2026-05-19T16:00:00.000Z",
+    "workplaceImageLabel": "khu-vuc-phat-to-roi-ho-hoan-kiem.jpg",
+    "workplaceNotes": "Khu vực phố đi bộ Hồ Hoàn Kiếm. Tập trung tại quảng trường lúc 8h45.",
+    "onSiteContactName": "Chị Hà — điều phối",
+    "onSiteContactPhone": "0904333003"
   },
   {
     "id": "shift-007",
@@ -144,7 +161,8 @@
     "escrowStatus": "Released",
     "depositAmount": 550000,
     "createdAt": "2026-04-15T09:00:00.000Z",
-    "updatedAt": "2026-04-26T22:30:00.000Z"
+    "updatedAt": "2026-04-26T22:30:00.000Z",
+    "workplaceImageLabel": "trung-tam-tiec-cuoi-riverside.jpg"
   },
   {
     "id": "shift-008",
@@ -165,7 +183,8 @@
     "escrowStatus": "Completed",
     "depositAmount": 450000,
     "createdAt": "2026-05-10T10:00:00.000Z",
-    "updatedAt": "2026-05-19T17:15:00.000Z"
+    "updatedAt": "2026-05-19T17:15:00.000Z",
+    "workplaceImageLabel": "kho-cafe-cong-q7.jpg"
   },
   {
     "id": "shift-009",

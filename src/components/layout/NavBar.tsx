@@ -33,10 +33,19 @@
  * common laptop widths. Below `xl` the hamburger drives the entire nav.
  */
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCurrentUser } from '@/stores/authStore';
+import { useApplicationStore } from '@/stores/applicationStore';
+import { useShiftStore } from '@/stores/shiftStore';
+import { useVerificationStore } from '@/stores';
+import {
+  adminVerificationTaskCount,
+  employerDashboardTaskCount,
+  workerProfileTaskCount,
+} from '@/domain/taskBadges';
+import { TaskBadge } from '@/components/ui';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
@@ -444,8 +453,12 @@ export function NavBar() {
               onItemClick={closeNow}
             />
           )}
-          {role === 'worker' && <WorkerNav pathname={pathname} />}
-          {role === 'employer' && <EmployerNav pathname={pathname} />}
+          {role === 'worker' && currentUser && (
+            <WorkerNav pathname={pathname} workerId={currentUser.id} />
+          )}
+          {role === 'employer' && currentUser && (
+            <EmployerNav pathname={pathname} employerId={currentUser.id} />
+          )}
           {role === 'admin' && <AdminNav pathname={pathname} />}
         </nav>
 
@@ -558,7 +571,22 @@ function PublicNav({
   );
 }
 
-function WorkerNav({ pathname }: { pathname: string }) {
+function WorkerNav({
+  pathname,
+  workerId,
+}: {
+  pathname: string;
+  workerId: string;
+}) {
+  // Phase 10A-Fix-5 — worker profile badge counts only LATEST per-doc
+  // verification records in actionable status (Rejected / NeedsMoreInfo).
+  // The dashboard nav no longer carries an unread-notification badge
+  // since unread notifications belong to the bell, not a nav link.
+  const workerDocs = useVerificationStore((s) => s.workerDocuments);
+  const profileCount = useMemo(
+    () => workerProfileTaskCount(workerId, workerDocs),
+    [workerId, workerDocs],
+  );
   return (
     <>
       <NavLink href="/" pathname={pathname} exact>
@@ -573,7 +601,16 @@ function WorkerNav({ pathname }: { pathname: string }) {
       <NavLink href="/worker/schedule" pathname={pathname}>
         {t('nav.schedule')}
       </NavLink>
-      <NavLink href="/worker/profile" pathname={pathname}>
+      <NavLink
+        href="/worker/profile"
+        pathname={pathname}
+        badgeCount={profileCount}
+        badgeAriaLabel={
+          profileCount > 0
+            ? `${profileCount} tài liệu xác minh cần xử lý`
+            : undefined
+        }
+      >
         {t('nav.profile')}
       </NavLink>
       <NavLink href="/support" pathname={pathname}>
@@ -583,7 +620,21 @@ function WorkerNav({ pathname }: { pathname: string }) {
   );
 }
 
-function EmployerNav({ pathname }: { pathname: string }) {
+function EmployerNav({
+  pathname,
+  employerId,
+}: {
+  pathname: string;
+  employerId: string;
+}) {
+  const shifts = useShiftStore((s) => s.shifts);
+  const applications = useApplicationStore((s) => s.applications);
+  const dashboardCount = useMemo(() => {
+    const ids = new Set(
+      shifts.filter((s) => s.employerId === employerId).map((s) => s.id),
+    );
+    return employerDashboardTaskCount(applications, ids);
+  }, [shifts, applications, employerId]);
   return (
     <>
       <NavLink href="/" pathname={pathname} exact>
@@ -592,7 +643,14 @@ function EmployerNav({ pathname }: { pathname: string }) {
       <NavLink href="/employer/shifts/new" pathname={pathname}>
         {t('nav.postShift')}
       </NavLink>
-      <NavLink href="/employer/dashboard" pathname={pathname}>
+      <NavLink
+        href="/employer/dashboard"
+        pathname={pathname}
+        badgeCount={dashboardCount}
+        badgeAriaLabel={
+          dashboardCount > 0 ? `${dashboardCount} ứng viên cần xử lý` : undefined
+        }
+      >
         {t('nav.dashboard')}
       </NavLink>
       <NavLink href="/employer/schedule" pathname={pathname}>
@@ -619,12 +677,38 @@ function EmployerNav({ pathname }: { pathname: string }) {
 // to compete for room. We keep only `Trang chủ`, `Tổng quan admin`, and
 // `Hỗ trợ` here and let the dashboard's tab system do its job.
 function AdminNav({ pathname }: { pathname: string }) {
+  // Phase 10A-Fix-4 — surface pending verification queue items as a
+  // badge on the admin dashboard nav link so missed notifications
+  // don't lead to forgotten reviews.
+  const workerDocs = useVerificationStore((s) => s.workerDocuments);
+  const employerDocs = useVerificationStore((s) => s.employerDocuments);
+  const typeChangeRequests = useVerificationStore(
+    (s) => s.typeChangeRequests,
+  );
+  const verificationCount = useMemo(
+    () =>
+      adminVerificationTaskCount(
+        workerDocs,
+        employerDocs,
+        typeChangeRequests,
+      ),
+    [workerDocs, employerDocs, typeChangeRequests],
+  );
   return (
     <>
       <NavLink href="/" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
-      <NavLink href="/admin/dashboard" pathname={pathname}>
+      <NavLink
+        href="/admin/dashboard"
+        pathname={pathname}
+        badgeCount={verificationCount}
+        badgeAriaLabel={
+          verificationCount > 0
+            ? `${verificationCount} mục chờ xác minh`
+            : undefined
+        }
+      >
         Tổng quan admin
       </NavLink>
       <NavLink href="/support" pathname={pathname}>
@@ -655,11 +739,19 @@ function NavLink({
   href,
   pathname,
   exact = false,
+  badgeCount = 0,
+  badgeAriaLabel,
   children,
 }: {
   href: string;
   pathname: string;
   exact?: boolean;
+  /**
+   * Phase 10A-Fix-4 — render a `<TaskBadge>` on the nav link for
+   * "needs your attention" indicators. Hidden when `<= 0`.
+   */
+  badgeCount?: number;
+  badgeAriaLabel?: string;
   children: ReactNode;
 }) {
   // Strip query string from the link's href before computing the active
@@ -669,6 +761,19 @@ function NavLink({
   const active = exact
     ? pathname === targetPath
     : isPathActive(pathname, targetPath);
+  if (badgeCount > 0) {
+    // Wrap in a relative span so the absolutely-positioned badge
+    // anchors to the link without breaking the existing flex layout
+    // of role-specific nav rows.
+    return (
+      <span className="relative inline-flex">
+        <Link href={href} className={navLinkClasses(active)}>
+          {children}
+        </Link>
+        <TaskBadge count={badgeCount} ariaLabel={badgeAriaLabel} />
+      </span>
+    );
+  }
   return (
     <Link href={href} className={navLinkClasses(active)}>
       {children}

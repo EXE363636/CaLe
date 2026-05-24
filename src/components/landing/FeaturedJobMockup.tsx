@@ -1,64 +1,117 @@
 'use client';
 
 /**
- * FeaturedJobMockup — Phase 9E.
+ * FeaturedJobMockup — Phase 9E (live countdown added in Phase 10A-Fix-4,
+ * canonical availability helper added in Phase 10A-Fix-5).
  *
  * Replaces the Phase 9D "Bản xem trước" decorative mockup with a real,
  * interactive featured-job card on the landing hero. The component reads
- * the live `useShiftStore` (via `AppHydrator`) and surfaces the first
- * currently-listable shift — same publication invariant the discovery
- * page uses (Published + Deposited + future + has positions remaining).
+ * the live `useShiftStore` + `useApplicationStore` (via `AppHydrator`)
+ * and surfaces the first currently-recruiting shift via the canonical
+ * `isShiftAvailableForRecruiting(shift, applications, nowMs)` helper.
  *
  * Behavior:
  *   - If at least one eligible shift exists → main card links to
  *     `/shifts/[id]` for that shift, carries `aria-label` referencing the
- *     real title, has hover lift + focus ring.
- *   - If no eligible shift exists yet (e.g. AppHydrator hasn't run, all
- *     seed shifts have expired in demo time, or the user wiped
- *     localStorage) → main card links to `/shifts` and shows a tasteful
- *     "Khám phá ca làm ngay" placeholder. No fake `/shifts/[id]` route.
+ *     real title, has hover lift + focus ring. A small live countdown
+ *     chip ("Bắt đầu sau 2 ngày 04 giờ" / "Bắt đầu sau 03:25") sits on
+ *     the card so the marketing surface feels alive.
+ *   - If no eligible shift exists yet → main card links to `/shifts`
+ *     and shows a tasteful "Khám phá ca làm ngay" placeholder.
  *
- * The two supporting stat cards (reputation chip, sample calendar slot)
- * stay decorative and are clearly styled as "supporting stats" — they do
- * not look like clickable controls (no hover lift, no focus ring, no
- * pointer cursor). They live inside `aria-hidden` so screen readers skip
- * them. The featured job card is the one interactive surface.
+ * Phase 10A-Fix-5 — picker now consults the application store too, so
+ * a 3/3 shift that hasn't yet had its `positionsFilled` written back
+ * to the shift record can never slip through. The fallback keeps
+ * working because the picker always picks `eligible[0]` — if the
+ * top candidate is full it's automatically dropped from the eligible
+ * list and the next one wins.
  *
  * No new business logic, no new types, no new store actions. Pure read.
  */
 
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useShiftStore } from '@/stores/shiftStore';
+import { useApplicationStore } from '@/stores/applicationStore';
+import { selectAvailableShiftsForRecruiting } from '@/domain/shiftAvailability';
 import { formatDateVN, formatVND } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Shift } from '@/types';
 
 /** Same invariant `/shifts/page.tsx` enforces. Pure helper, no side effects. */
-function isListable(s: Shift, nowMs: number): boolean {
-  if (s.status !== 'Published') return false;
-  if (s.escrowStatus !== 'Deposited') return false;
-  if (s.positionsFilled >= s.positionsTotal) return false;
-  const startMs = new Date(`${s.date}T${s.startTime}:00`).getTime();
-  return startMs >= nowMs;
+// Phase 10A-Fix-5 — replaced inline `isListable` with the canonical
+// `isShiftAvailableForRecruiting` from `@/domain/shiftAvailability`,
+// which also reconciles `positionsFilled` against the application
+// store so a stale field can't let a 3/3 shift slip through.
+
+/**
+ * Phase 10A-Fix-4 — pure countdown formatter for the featured card.
+ *
+ * Returns end-user Vietnamese phrasing keyed off the gap between now
+ * and the shift start:
+ *
+ *   - >= 24h  → "Bắt đầu sau {N} ngày {HH} giờ"
+ *   - >= 1h   → "Bắt đầu sau {H} giờ {MM} phút"
+ *   - <  1h   → "Bắt đầu sau {MM}:{SS} phút" (no leading "0 giờ")
+ *   - <= 0    → null (caller should drop the chip; the shift is no
+ *                  longer eligible to be featured anyway)
+ */
+export function formatFeaturedCountdown(diffMs: number): string | null {
+  if (!Number.isFinite(diffMs) || diffMs <= 0) return null;
+  const totalSec = Math.floor(diffMs / 1000);
+  const days = Math.floor(totalSec / 86_400);
+  const hours = Math.floor((totalSec % 86_400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+
+  if (days >= 1) {
+    const hh = String(hours).padStart(2, '0');
+    return `Bắt đầu sau ${days} ngày ${hh} giờ`;
+  }
+  if (hours >= 1) {
+    const mm = String(mins).padStart(2, '0');
+    return `Bắt đầu sau ${hours} giờ ${mm} phút`;
+  }
+  // Under 1 hour — show MM:SS so the urgency reads.
+  const sec = totalSec % 60;
+  const mm = String(mins).padStart(2, '0');
+  const ss = String(sec).padStart(2, '0');
+  return `Bắt đầu sau ${mm}:${ss} phút`;
 }
 
 export function FeaturedJobMockup() {
-  // Stable raw selector (HANDOFF.md Section 11). Filter / pick happens in
-  // useMemo so we never feed Zustand a fresh-array selector.
+  // Stable raw selectors (HANDOFF.md Section 11). Filter / pick happens
+  // in useMemo so we never feed Zustand a fresh-array selector.
   const shifts = useShiftStore((s) => s.shifts);
+  const applications = useApplicationStore((s) => s.applications);
+
+  // Phase 10A-Fix-4 — SSR-safe mount gate plus a once-per-minute tick.
+  // The tick lets the countdown re-render without us running a 1Hz
+  // timer (which would be visually noisy and waste CPU). It also
+  // re-runs the eligibility filter, so a shift that becomes full or
+  // hits its start-time during the user's session falls out and the
+  // next eligible shift takes over.
+  const [mounted, setMounted] = useState(false);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    setMounted(true);
+    const id = setInterval(() => setTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const featured = useMemo<Shift | null>(() => {
-    const now = Date.now();
-    // Sort by start datetime ascending so "featured" reads as the
-    // soonest upcoming opportunity — the demo-friendliest pick.
-    const eligible = shifts
-      .filter((s) => isListable(s, now))
-      .sort((a, b) =>
-        `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
-      );
+    // Phase 10A-Fix-5 — canonical helper accounts for both the shift's
+    // own `positionsFilled` AND live application-store occupancy. A
+    // shift whose seats are filled by approved/confirmed applications
+    // can no longer slip through because of a stale field.
+    const eligible = selectAvailableShiftsForRecruiting(
+      shifts,
+      applications,
+      Date.now(),
+    );
     return eligible[0] ?? null;
-  }, [shifts]);
+    // `tick` deliberately included so the picker re-runs each minute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shifts, applications, tick]);
 
   // Resolve href + aria-label up-front so the JSX stays clean.
   const href = featured ? `/shifts/${featured.id}` : '/shifts';
@@ -102,7 +155,7 @@ export function FeaturedJobMockup() {
           className="motion-lift group sm:col-span-2 rounded-2xl border border-orange-200 bg-white p-4 shadow-md ring-1 ring-orange-100 transition-shadow hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
         >
           {featured ? (
-            <FeaturedCardBody shift={featured} />
+            <FeaturedCardBody shift={featured} mounted={mounted} />
           ) : (
             <FeaturedFallbackBody />
           )}
@@ -156,8 +209,23 @@ export function FeaturedJobMockup() {
 // Inner card bodies
 // ---------------------------------------------------------------------------
 
-function FeaturedCardBody({ shift }: { shift: Shift }) {
+function FeaturedCardBody({
+  shift,
+  mounted,
+}: {
+  shift: Shift;
+  mounted: boolean;
+}) {
   const remaining = Math.max(0, shift.positionsTotal - shift.positionsFilled);
+  // Phase 10A-Fix-4 — derive countdown only on the client (mount
+  // gate) so the SSR markup matches the first client paint and React
+  // doesn't throw a hydration mismatch over the dynamic time string.
+  const countdown = useMemo(() => {
+    if (!mounted) return null;
+    const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
+    if (!Number.isFinite(startMs)) return null;
+    return formatFeaturedCountdown(startMs - Date.now());
+  }, [mounted, shift.date, shift.startTime]);
   return (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -186,6 +254,28 @@ function FeaturedCardBody({ shift }: { shift: Shift }) {
           {remaining}/{shift.positionsTotal} {t('common.positions')}
         </span>
       </div>
+      {/* Phase 10A-Fix-4 — live countdown chip. Mount-gated so SSR
+          and first client paint agree. */}
+      {countdown && (
+        <div className="mt-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
+            <svg
+              className="h-3 w-3"
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="10" cy="10" r="7" />
+              <path d="M10 6v4l2.5 2.5" />
+            </svg>
+            {countdown}
+          </span>
+        </div>
+      )}
       <div className="mt-3 flex items-center justify-between text-xs">
         <span className="font-medium text-orange-700">
           {t('landing.hero.featured.viewCta')} →
