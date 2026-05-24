@@ -24,6 +24,7 @@ import {
   useScheduleStore,
   useShiftStore,
   useUserStore,
+  useVerificationStore,
 } from '@/stores';
 
 interface AppHydratorProps {
@@ -47,6 +48,13 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useAuthStore.getState().hydrate(snapshot.auth);
     useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
     useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
+    useVerificationStore
+      .getState()
+      .hydrate(
+        snapshot.workerVerifications,
+        snapshot.employerVerifications,
+        snapshot.employerTypeChangeRequests,
+      );
 
     // Phase 7: roll the shift lifecycle forward once after hydration so
     // freshly-loaded data reflects any time-driven transitions that

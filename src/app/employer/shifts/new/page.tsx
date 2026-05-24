@@ -1,13 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
+import { resolveEmployerType } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
-import { Button, PageHelpButton } from '@/components/ui';
+import { Button, Card, PageHelpButton } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
   trustForEmployer,
@@ -51,6 +53,20 @@ function NewShiftContent() {
   );
   const trust = employer ? trustForEmployer(employer, completedCount) : 'low';
   const ratio = DEPOSIT_RATIO[trust];
+
+  // Phase 10A-Fix-2: posting guard. A truly-new employer (no
+  // employerType10A, no legacy employerType, and no shifts yet) must
+  // pick an account type before posting. `resolveEmployerType` returns
+  // `undefined` only in that exact state — established accounts with
+  // posted shifts get an automatic fallback.
+  const hasPostedShifts = useMemo(
+    () =>
+      employer ? shifts.some((s) => s.employerId === employer.id) : false,
+    [shifts, employer],
+  );
+  const resolvedEmployerType = employer
+    ? resolveEmployerType(employer, { hasPostedShifts })
+    : undefined;
 
   function handleSubmit(values: ShiftFormValues) {
     if (!currentUserId) return;

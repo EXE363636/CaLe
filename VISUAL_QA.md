@@ -2676,3 +2676,165 @@ Re-run this audit after any change to:
 - `src/app/employer/dashboard/page.tsx` — `<HelpPopover>` `learnMoreHref` props (modal title + payments-modal body inline).
 - `src/components/ui/HelpPopover.tsx` — particularly the `learnMoreHref` rendering.
 - The HANDOFF.md "HelpPopover CTAs must deep-link to specific guide anchors" rule (Section 11).
+
+
+## Phase 10A — Verification data model + admin queue + per-role profile UI
+
+Last reviewed: **2026-05-25, Phase 10A — NEEDS MANUAL VISUAL QA**.
+
+First foundation phase for real-user-grade verification. Schema bumped 4 → 5; reseed automatically applies. Existing seed data continues to render correctly because the new slices have their own JSON file (`src/data/seed/verifications.json`) with worker + employer mock submissions covering every status state.
+
+### A. Admin verification queue
+
+Log in as admin (`admin@cale.vn` / `demo`) and visit `/admin/dashboard`:
+
+1. Tab strip shows the new "Xác minh" tab as the 5th button after Tranh chấp.
+2. Click the tab. Three subsections render:
+   - **Người lao động chờ duyệt** — worker-003 (Bằng lái xe) Pending. The card shows full identifier `B1-079123987` plus the masked form `B1-079•••987` below it, three image preview blocks (Mặt trước / Mặt sau / Selfie), and three action buttons (Duyệt / Từ chối / Yêu cầu bổ sung).
+   - **Nhà tuyển dụng chờ duyệt** — employer-003 (Giấy phép sự kiện) Pending. Card shows the file name + MVP-mock disclaimer.
+   - **Lịch sử duyệt gần đây** — last 10 reviewed actions. Should include worker-001 NationalId Approved, worker-002 StudentCard Approved, worker-004 NationalId NeedsMoreInfo (with rejection reason visible), employer-001's three approved docs, employer-002's three approved docs, employer-003's NeedsMoreInfo doc.
+3. Click Duyệt on worker-003. A success toast fires; the card disappears from the Pending section and a new entry appears in Lịch sử with status `Đã xác minh`. The affected worker (worker-003) gets a notification with link to `/worker/profile`.
+4. Click Từ chối on employer-003 Pending Giấy phép sự kiện. A modal opens asking for reason. Submit empty → error toast "Vui lòng nhập lý do." Submit with text → success toast; card moves from Pending to Lịch sử with status `Bị từ chối` and the reason visible.
+5. Click Yêu cầu bổ sung on a fresh Pending item. Same modal, status becomes `Cần bổ sung` after submit.
+6. Already-Approved or already-Rejected items don't appear in Pending, so re-action is naturally prevented. (The store also returns `ALREADY_REVIEWED` if called directly.)
+
+### B. Worker profile verification card
+
+Log in as a worker (`an.nguyen@gmail.com` / `demo`) and visit `/worker/profile`:
+
+7. Below the existing legacy "Xác minh" toggle card, a new "Xác minh danh tính" card renders with the lead "Bạn có thể xác minh danh tính bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe."
+8. Three rows: CCCD / CMND, Thẻ sinh viên, Bằng lái xe — each with a description + status badge.
+9. worker-001's CCCD shows `Đã xác minh` (green). The other two rows show `Chưa gửi` (neutral) with a "Gửi tài liệu (mô phỏng)" button.
+10. Click Gửi tài liệu on Bằng lái xe — a Pending record is created in the store + persisted; the badge flips to `Đang chờ duyệt` (warning) and the button disappears for that row. A success toast fires.
+11. Footer reads: "Trong bản MVP, tài liệu là mô phỏng — không có upload thật. Quản trị viên là người duy nhất xem tài liệu đầy đủ; nhà tuyển dụng chỉ thấy huy hiệu và số đăng ký dạng rút gọn."
+
+For worker-004 (`chi.pham@gmail.com`), the CCCD row shows `Cần bổ sung` (warning) with the rejection reason "Ảnh mặt sau bị mờ, vui lòng chụp lại rõ hơn để dễ đối chiếu." plus a "Gửi lại" button.
+
+### C. Employer profile verification card
+
+Log in as an employer (`lien@quanphoha.vn` / `demo`) and visit `/employer/profile`:
+
+12. New "Xác minh nhà tuyển dụng" card between main profile card and worker-feedback panel.
+13. Account-type selector with four pills: Cá nhân thuê ngắn hạn / Hộ kinh doanh / Doanh nghiệp / Agency / Sự kiện. Default selected: Hộ kinh doanh.
+14. Click "Cá nhân thuê ngắn hạn" — the hint copy reads exactly "Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công."
+15. Below the selector, the doc list adapts to the selected account type: Individual shows RepresentativeId / WorkplacePhoto / AddressProof; HouseholdBusiness shows RepresentativeId / BusinessLicense / StorefrontPhoto; Company shows BusinessLicense / TaxCode / StorefrontPhoto / AddressProof; AgencyEvent shows BusinessLicense / EventProof / WorkplacePhoto / GoogleMapsOrFanpage.
+16. employer-001 (Phở Hà) on HouseholdBusiness shows all three rows as `Đã xác minh`. Submit buttons hidden.
+17. Below the selector, "Tất cả tài liệu đã gửi" history lists all 3 of employer-001's approved documents with type, account-shape, date, and status badge.
+
+### D. Privacy-respecting applicant view
+
+Log in as employer-001 and visit `/employer/shifts/[id]` for a shift with applicants (e.g. shift-007):
+
+18. Each applicant row shows the existing reputation + verification flags as before.
+19. **NEW:** Applicants whose identity is verified show a green chip below their name: `Đã xác minh · {method label} · {masked identifier}`. For worker-001 the chip reads `Đã xác minh · CCCD / CMND · 0791•••••234`. For worker-002 it reads `Đã xác minh · Thẻ sinh viên · SV2024-•••54`.
+20. **CRITICAL — privacy check:** The chip shows ONLY the method label + masked identifier. Open browser DevTools and inspect the row — confirm the rendered HTML does NOT contain the full identifier (`079198001234` / `SV2024-87654`), document image URLs, or selfie URLs. The `<WorkerSummaryRow>` component reads ONLY the public-safe selector output.
+21. Workers without an approved identity document (e.g. worker-003 if Pending; worker-006 if no submission) show NO chip.
+
+### E. /user-guide privacy section
+
+Visit `/user-guide#verification-overview`:
+
+22. Section heading "Cách xác minh hoạt động" lands fully visible (sticky-nav clearance via `scroll-mt-24`).
+23. 4 bullets cover: 3 worker methods, 4 employer types, admin-only full-doc privacy, on-site recheck possibility.
+24. The `Ví dụ:` callout reads exactly "Bạn xác minh bằng CCCD. Trong danh sách ứng viên của nhà tuyển dụng, họ sẽ thấy chip xanh «Đã xác minh · CCCD / CMND · 0791•••••234». Họ KHÔNG thấy ảnh CCCD đầy đủ của bạn."
+25. The `Tiếp theo:` line points to the profile pages.
+
+### F. Mobile QA
+
+At 360 / 390 / 430 px:
+
+26. Admin queue cards stack with action buttons wrapping below the card body. No horizontal overflow.
+27. Worker profile verification card stacks vertically; submit buttons remain tappable.
+28. Employer profile account-type selector wraps to multiple lines; doc list rows stack.
+29. Applicant identity chip wraps if needed; masked identifier never gets cut off.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/types/index.ts` — particularly the verification model.
+- `src/stores/verificationStore.ts` — store actions or selector helpers.
+- `src/data/persistence.ts` — schema bump path.
+- `src/data/seed/verifications.json` — seed records.
+- `src/app/admin/dashboard/VerificationsPanel.tsx` — admin queue UI.
+- `src/components/user/WorkerSummaryRow.tsx` — `identityBadge` prop.
+- `src/app/employer/shifts/[id]/page.tsx` — privacy-safe summary computation.
+- The new HANDOFF Section 11 rules on document privacy, identity methods, and employer types.
+
+
+## Phase 10A-Fix-1 — Clickable history details + locked employer type + type-change request flow + admin submission notifications
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-1 — NEEDS MANUAL VISUAL QA**.
+
+Three follow-on gaps from 10A:
+
+### A. Clickable verification history detail
+
+Log in as admin, visit `/admin/dashboard` Xác minh tab, scroll to "Lịch sử duyệt gần đây":
+
+1. Each history row is now a focusable button (hover shows orange-50 background; keyboard tab cycles through them).
+2. Click any row — a Modal opens titled "Chi tiết tài liệu xác minh" with the full mock-data dump:
+   - Account name + role + (for employers) account-shape
+   - Document type label
+   - Status badge + submitted/reviewed timestamps + reviewing admin ID
+   - Rejection reason callout (red box) when present
+   - Notes (if any)
+   - **Worker docs only:** full identifier with masked-form readout below + 3-tile mock document preview (Mặt trước / Mặt sau / Selfie) showing image URLs + "Mô phỏng" disclaimer
+   - **Employer docs only:** mock file name in dashed-border preview block
+3. Modal dismisses via ESC, outside click, or "Đóng" button.
+
+### B. Locked employer type — first-set onboarding
+
+Log in as employer-001 (Phở Hà). The employer record has `employerType: 'business'` from Phase 6 seed but no `employerType10A`. The fallback in `resolveEmployerType()` returns `'HouseholdBusiness'` so the locked card renders directly without the first-set picker.
+
+To test the first-set picker, manually clear the employer's `employerType` and `employerType10A` via DevTools (or use the schema-bump reseed if employer-003 ends up without either):
+
+4. The card title "Xác minh nhà tuyển dụng" + intro "Chọn loại tài khoản phù hợp nhất. Loại tài khoản dùng để xác định giấy tờ cần xác minh và sẽ được khoá sau khi bạn xác nhận..."
+5. Four-pill selector with all four account types.
+6. Per-pill hint adapts as user clicks. Individual reads literally: "Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công."
+7. Click "Xác nhận và khoá loại tài khoản" — the employer's `employerType10A` is written, success toast fires, and the card flips to the locked display on next render.
+
+### C. Locked employer type — locked display
+
+For employer-001 with the resolved `'HouseholdBusiness'`:
+
+8. Read-only orange-bordered card shows "Loại tài khoản hiện tại: Hộ kinh doanh" + the per-shape hint copy.
+9. Below that, "Yêu cầu đổi loại tài khoản" CTA button.
+10. Read-only — no inline pill selector. The free-edit selector that 10A shipped is gone.
+11. Below the type card, "Tài liệu cần nộp" section adapts to the resolved type's required docs.
+12. Footer copy: "Loại tài khoản dùng để xác định giấy tờ cần xác minh. Bạn không thể tự đổi loại tài khoản sau khi đã chọn..."
+
+### D. Type-change request flow
+
+13. Click "Yêu cầu đổi loại tài khoản". A Modal opens with current type display + 3-pill selector (excludes the current type) + required reason textarea.
+14. Submit empty reason → toast "Vui lòng nhập lý do."
+15. Submit with text — success toast "Đã gửi yêu cầu đổi loại tài khoản. Quản trị viên sẽ xem xét." The card now shows an amber "Đang chờ duyệt" banner with the request details and disables the CTA.
+16. Submit a second request while one is Pending → toast "Bạn đã có một yêu cầu đang chờ duyệt."
+17. As admin, refresh `/admin/dashboard` Xác minh tab. The "Yêu cầu đổi loại tài khoản" subsection (newly added between "Nhà tuyển dụng chờ duyệt" and "Lịch sử duyệt gần đây") shows the request with current → requested type chips + reason callout + Duyệt/Từ chối buttons.
+18. Click Duyệt: the request is approved, the employer's `employerType10A` flips to the requested value, the employer gets a notification with deep link to `/employer/profile`, and the doc list adapts (existing approved docs stay in history; the new required-doc list is what shows up at the top).
+19. Click Từ chối on a fresh Pending request: a Modal collects the admin reason (required), submission rejects the request and notifies the employer that their type stays unchanged.
+
+### E. Admin notifications on submission
+
+20. Log in as a worker, open `/worker/profile`, submit a mock identity document. Switch to admin → the notification bell shows a new entry with title "Có yêu cầu xác minh mới" and body "{workerName} đã gửi xác minh bằng {documentType}." Click → lands on `/admin/dashboard?tab=verifications`.
+21. Log in as an employer, submit a verification document on `/employer/profile`. Admin notification fires with title "Nhà tuyển dụng gửi xác minh mới" and body "{employerName} đã gửi tài liệu {documentType}."
+22. Submit a type-change request as employer. Admin notification fires with title "Có yêu cầu đổi loại tài khoản" and body "{employerName} muốn đổi từ {currentType} sang {requestedType}."
+23. With multiple admins seeded, every active admin receives all three notifications. (Currently only `admin-001` exists in seed, so only one user gets each ping.)
+
+### F. Privacy non-regression
+
+24. Log in as employer, visit `/employer/shifts/[id]` for a shift with applicants. The green identity-verified chip on `<WorkerSummaryRow>` still shows method label + masked identifier only.
+25. **CRITICAL:** Open DevTools and inspect the rendered HTML. Confirm the page does NOT contain `fullIdentifier` text, image URLs, or admin notes. The selector boundary in `getWorkerVerificationSummary()` strips them.
+26. The new admin history-detail Modal is rendered inside `<VerificationsPanel>` (mounted only inside the admin tab). Non-admin surfaces never reach it.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/types/index.ts` — `Employer.employerType10A`, `EmployerTypeChangeRequest`.
+- `src/stores/verificationStore.ts` — new actions + helpers.
+- `src/data/persistence.ts` — schema-bump path + new storage key.
+- `src/app/admin/dashboard/VerificationsPanel.tsx` — clickable history, type-change subsection, history-detail Modal.
+- `src/app/employer/profile/page.tsx` — locked card + first-set picker + change-request Modal.
+- `src/lib/adminNotifications.ts` — admin fan-out helper.
+- HANDOFF Section 11 employer-type lock rule.

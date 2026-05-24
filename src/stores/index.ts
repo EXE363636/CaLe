@@ -42,3 +42,25 @@ export type {
   FeedbackError,
   NewEmployerFeedbackInput,
 } from './employerFeedbackStore';
+
+export {
+  useVerificationStore,
+  workerDocLabel,
+  employerDocLabel,
+  employerTypeLabel,
+  getWorkerVerificationSummary,
+  getEmployerVerificationSummary,
+  getPendingWorkerVerifications,
+  getPendingEmployerVerifications,
+  getRecentVerificationHistory,
+  verificationStatusLabel,
+  verificationStatusTone,
+  resolveEmployerType,
+  getPendingTypeChangeRequest,
+  getPendingTypeChangeRequests,
+} from './verificationStore';
+export type {
+  WorkerDocumentSubmission,
+  EmployerDocumentSubmission,
+  VerifyError,
+} from './verificationStore';

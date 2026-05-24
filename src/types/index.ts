@@ -91,6 +91,190 @@ export type EmployerFeedbackTag =
   | 'AccurateDescription';
 
 // ---------------------------------------------------------------------------
+// Phase 10A — verification model
+// ---------------------------------------------------------------------------
+
+/**
+ * Lifecycle of every verification document submission. `NotSubmitted` is
+ * the implicit pre-state used by selectors when no record exists yet.
+ */
+export type VerificationStatus =
+  | 'NotSubmitted'
+  | 'Pending'
+  | 'Approved'
+  | 'Rejected'
+  | 'NeedsMoreInfo';
+
+/**
+ * Worker identity-verification methods. The MVP accepts any one of the
+ * three — workers are NOT required to submit CCCD specifically. Each
+ * choice opens a separate `WorkerVerificationDocument` record so admins
+ * can review them independently.
+ */
+export type WorkerIdentityDocumentType =
+  | 'NationalId'    // CCCD / CMND
+  | 'StudentCard'   // thẻ sinh viên
+  | 'DriverLicense'; // bằng lái xe
+
+/**
+ * Mock-only identity-document submission. Image fields are URL strings or
+ * file names; in the MVP they are placeholder values, never real uploads.
+ * `maskedIdentifier` is the publicly-visible partial number (e.g.
+ * `0791•••••456`) — admins see the full mock identifier inline; workers
+ * and employers only see the masked form.
+ */
+export interface WorkerVerificationDocument {
+  id: string;
+  workerId: string;
+  documentType: WorkerIdentityDocumentType;
+  status: VerificationStatus;
+  /** Vietnamese display label for the document type. */
+  displayLabel: string;
+  /** Full identifier (admin-only). */
+  fullIdentifier?: string;
+  /** Public-safe masked form. */
+  maskedIdentifier?: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedByAdminId?: string;
+  rejectionReason?: string;
+  notes?: string;
+  /** Mock URL or file name — no real upload in the MVP. */
+  mockFrontImageUrl?: string;
+  mockBackImageUrl?: string;
+  mockSelfieImageUrl?: string;
+  /** Optional human-readable label for the verification method. */
+  verificationMethodLabel?: string;
+}
+
+/**
+ * Phase 10A widens `EmployerType` from the Phase 6 binary
+ * (`'individual' | 'business'`) to four real-market account shapes.
+ * `'individual'` and `'business'` remain valid backwards-compat aliases —
+ * the new values let the employer-verification UI request the correct
+ * documents per shape.
+ */
+export type EmployerType10A =
+  | 'Individual'
+  | 'HouseholdBusiness'
+  | 'Company'
+  | 'AgencyEvent';
+
+/**
+ * Document types the employer-verification flow can collect. The
+ * required subset depends on the employer's `EmployerType10A`:
+ *
+ *   - `Individual`         → RepresentativeId + (StorefrontPhoto |
+ *                            WorkplacePhoto | AddressProof)
+ *   - `HouseholdBusiness`  → RepresentativeId + (BusinessLicense |
+ *                            TaxCode) + StorefrontPhoto
+ *   - `Company`            → BusinessLicense + TaxCode +
+ *                            (StorefrontPhoto | AddressProof)
+ *   - `AgencyEvent`        → BusinessLicense + EventProof +
+ *                            (WorkplacePhoto | GoogleMapsOrFanpage)
+ *
+ * All values are optional in the model; the UI enforces "at least one
+ * identity proof + at least one workplace proof" client-side.
+ */
+export type EmployerVerificationDocumentType =
+  | 'RepresentativeId'
+  | 'BusinessLicense'
+  | 'TaxCode'
+  | 'StorefrontPhoto'
+  | 'WorkplacePhoto'
+  | 'EventProof'
+  | 'AddressProof'
+  | 'GoogleMapsOrFanpage';
+
+export interface EmployerVerificationDocument {
+  id: string;
+  employerId: string;
+  /** The employer's account shape at time of submission. */
+  employerType: EmployerType10A;
+  documentType: EmployerVerificationDocumentType;
+  status: VerificationStatus;
+  displayLabel: string;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedByAdminId?: string;
+  rejectionReason?: string;
+  notes?: string;
+  /** Mock URL or file name — no real upload in the MVP. */
+  mockFileName?: string;
+  mockImageUrl?: string;
+}
+
+/**
+ * Trust badges derived by the verification store from the entity's
+ * approved documents + verification flags. UI components render badges
+ * straight from this list — they don't run their own derivation.
+ */
+export type WorkerTrustBadge =
+  | 'PhoneVerified'
+  | 'IdentityVerified'
+  | 'StudentVerified'
+  | 'DriverLicenseVerified';
+
+export type EmployerTrustBadge =
+  | 'PhoneVerified'
+  | 'IdentityVerified'
+  | 'BusinessVerified'
+  | 'WorkplaceProvided'
+  | 'DepositRequired'
+  | 'TrustedEmployer';
+
+export interface WorkerVerificationSummary {
+  workerId: string;
+  /** Identity verified iff at least one identity-doc record is `Approved`. */
+  identityVerified: boolean;
+  /** The single approved method label (most-recent), if any. */
+  primaryMethod?: WorkerIdentityDocumentType;
+  /** Display label of the primary approved method, public-safe. */
+  primaryMethodLabel?: string;
+  /** Public-safe masked identifier of the primary approved method. */
+  maskedIdentifier?: string;
+  badges: WorkerTrustBadge[];
+  /** Pending / NeedsMoreInfo count for admin queue triage. */
+  pendingCount: number;
+}
+
+export interface EmployerVerificationSummary {
+  employerId: string;
+  employerType: EmployerType10A;
+  identityVerified: boolean;
+  businessVerified: boolean;
+  workplaceProvided: boolean;
+  badges: EmployerTrustBadge[];
+  pendingCount: number;
+}
+
+/**
+ * Phase 10A-Fix-1: employer type change request.
+ *
+ * Employer cannot directly change their account type after onboarding.
+ * They submit a request that an admin reviews from the verification
+ * queue. On approval the store rewrites the employer's
+ * `employerType10A` field; on rejection nothing changes.
+ *
+ * One Pending request per employer at a time — re-submitting while a
+ * Pending request exists returns `ALREADY_PENDING`.
+ */
+export interface EmployerTypeChangeRequest {
+  id: string;
+  employerId: string;
+  currentType: EmployerType10A;
+  requestedType: EmployerType10A;
+  /** Required reason from the employer. */
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewedByAdminId?: string;
+  /** Admin's decision reason (rejection only). */
+  adminReason?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Users
 // ---------------------------------------------------------------------------
 
@@ -143,6 +327,18 @@ export interface Employer extends BaseUser {
    * register flow / hydration so existing seed data stays valid).
    */
   employerType?: EmployerType;
+  /**
+   * Phase 10A-Fix-1: canonical 4-value account shape used by the
+   * verification flow. Locked after onboarding — employers must submit
+   * an `EmployerTypeChangeRequest` to change it.
+   *
+   * When this field is missing, the UI infers a reasonable default
+   * from the legacy `employerType` (Phase 6: `'individual'` → `'Individual'`,
+   * `'business'` → `'HouseholdBusiness'`). The first time the employer
+   * confirms a type the store writes this field and the UI locks
+   * subsequent edits.
+   */
+  employerType10A?: EmployerType10A;
 }
 
 export interface Admin extends BaseUser {

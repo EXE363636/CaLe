@@ -1403,6 +1403,118 @@ These were caught during manual QA. Read the affected file's history before "sim
       - `src/app/employer/dashboard/page.tsx` — 4 list-modal HelpPopovers gained specific `learnMoreHref` props; payments modal title popover targets the deposit anchor; payments modal body now renders per-amount HelpPopovers inline next to each `<dt>` for deposit and paid-out, each with its own deep link.
       - `HANDOFF.md`, `VISUAL_QA.md`.
 
+51. **Phase 10A — Verification data model + admin queue + per-role profile UI** *(2026-05-25, Phase 10A)*. First foundation phase for real-user-grade verification. Replaces the boolean `worker.verifications: ('phone' | 'id' | 'student')[]` flag-list (which was sufficient for the demo but doesn't carry document state, review status, or employer-side documents) with a real model: per-document submissions, status lifecycle, admin review queue, role-aware profile UIs, and privacy-respecting applicant badges.
+
+    - **A. Verification data model** added to `src/types/index.ts`:
+      - `VerificationStatus` — `'NotSubmitted' | 'Pending' | 'Approved' | 'Rejected' | 'NeedsMoreInfo'`. Drives every status badge across the app.
+      - `WorkerIdentityDocumentType` — `'NationalId' | 'StudentCard' | 'DriverLicense'`. **Workers are NOT required to use CCCD specifically** — any one of the three is sufficient.
+      - `WorkerVerificationDocument` — full submission record with `status`, `displayLabel`, `fullIdentifier` (admin-only), `maskedIdentifier` (public-safe), mock image fields, review timestamps, rejection reason, etc.
+      - `EmployerType10A` — widens the Phase 6 binary `'individual' | 'business'` to four real-market shapes: `'Individual' | 'HouseholdBusiness' | 'Company' | 'AgencyEvent'`.
+      - `EmployerVerificationDocumentType` — 8 doc types covering representative ID, business license, tax code, storefront/workplace photos, event proof, address proof, Google Maps / fanpage link.
+      - `EmployerVerificationDocument` — same shape as worker, plus `employerType` snapshotted at submission time.
+      - `WorkerTrustBadge` / `EmployerTrustBadge` enums + summary types (`WorkerVerificationSummary`, `EmployerVerificationSummary`) carrying derived badges + identity-verified flag + masked identifier for public-safe consumers.
+
+    - **B. Verification store** at `src/stores/verificationStore.ts`. Holds two slices (`workerDocuments`, `employerDocuments`) and exposes:
+      - **Worker actions:** `submitWorkerDocument(workerId, payload)`, `approveWorkerDocument(id, adminId)`, `rejectWorkerDocument(id, adminId, reason)`, `requestMoreWorkerInfo(id, adminId, reason)`. Reject / requestMoreInfo require non-empty reason; the store returns `Result<doc, 'NOT_FOUND' | 'REASON_REQUIRED' | 'ALREADY_REVIEWED'>`.
+      - **Employer actions:** symmetric — `submitEmployerDocument`, `approveEmployerDocument`, `rejectEmployerDocument`, `requestMoreEmployerInfo`.
+      - **Selectors (pure helpers, exported alongside the store):** `getWorkerVerificationSummary(worker, docs)`, `getEmployerVerificationSummary(employerId, type, docs, hasPhone, depositRequired, trusted)`, `getPendingWorkerVerifications`, `getPendingEmployerVerifications`, `getRecentVerificationHistory(workerDocs, employerDocs, limit)`. Pure functions so consumers can `useMemo` over stable raw arrays — no Zustand fresh-array hazard.
+      - **Display helpers:** `workerDocLabel(t)`, `employerDocLabel(t)`, `employerTypeLabel(t)`, `verificationStatusLabel(s)`, `verificationStatusTone(s)`. Single source of truth for the Vietnamese display strings + `<Badge>` tones.
+      - **`hydrate(workerDocs, employerDocs)`** — called by `AppHydrator` on boot.
+
+    - **C. Persistence schema bumped from 4 → 5.** `src/data/persistence.ts` now persists `workerVerifications` and `employerVerifications` slices. Existing demo data is auto-reseeded on first boot after the version bump (the existing `loadAll()` mechanism handles this — no manual migration needed). New storage keys: `cale.workerVerifications`, `cale.employerVerifications`.
+
+    - **D. Seed data** at `src/data/seed/verifications.json`. Six demo records covering the spec's required mix:
+      - **Workers (4 records):** worker-001 NationalId Approved, worker-002 StudentCard Approved, worker-003 DriverLicense Pending, worker-004 NationalId NeedsMoreInfo (with rejection reason).
+      - **Employers (8 records):** employer-001 (HouseholdBusiness — RepresentativeId + BusinessLicense + StorefrontPhoto, all Approved), employer-002 (Company — BusinessLicense + TaxCode + StorefrontPhoto, all Approved), employer-003 (AgencyEvent — BusinessLicense Pending + EventProof NeedsMoreInfo).
+
+    - **E. Admin verification queue** at `src/app/admin/dashboard/VerificationsPanel.tsx`. New "Xác minh" tab on `/admin/dashboard` (added to the Tab union + tab strip + URL-validation lists). Three subsections render in order: Pending workers, Pending employers, Recent review history (last 10 reviewed actions). Each card surfaces:
+      - User/employer name + email + phone + account type
+      - Document type badge + submitted timestamp
+      - **Full identifier** (admin-only) plus the public-facing masked form below it for transparency
+      - Mock document preview area showing image URLs / file names with a "Mô phỏng — không có upload thật" note
+      - Rejection reason (if NeedsMoreInfo)
+      - Three action buttons: Duyệt / Từ chối / Yêu cầu bổ sung
+      - Reject + RequestMoreInfo open a Modal collecting the reason; submit fires the store action and pushes a notification to the affected user with a deep link to their profile
+
+    - **F. Worker profile** at `src/app/worker/profile/page.tsx`. New `<WorkerIdentityVerificationCard>` rendered between the existing legacy "Xác minh" toggle card (kept for the boolean `verifications` flag-list — not removed because other parts of the app still read it) and the "Thống kê" stats card. Card shows three rows (CCCD / Thẻ sinh viên / Bằng lái) each with status badge + description + "Gửi tài liệu (mô phỏng)" or "Gửi lại" button. Uses real visible UI labels: "Bạn có thể xác minh danh tính bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe." Privacy footer reminds that admins are the only ones who see full documents.
+
+    - **G. Employer profile** at `src/app/employer/profile/page.tsx`. New `<EmployerVerificationCard>` rendered between the main profile card and the existing worker-feedback panel. Account-type selector with four options + per-type hint copy (the Individual hint reads exactly the spec text: "Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công."). Below the selector, a per-type doc list with status + submit-mock buttons. A "Tất cả tài liệu đã gửi" history section lists every document the employer has ever submitted with type, account-shape, date, and status. MVP-mock disclaimer at the bottom.
+
+    - **H. Privacy boundary on applicant view.** `<WorkerSummaryRow>` (`src/components/user/WorkerSummaryRow.tsx`) gained an optional `identityBadge?: { methodLabel; maskedIdentifier? }` prop. When present, renders a green "Đã xác minh · {method} · {masked}" chip below the name. The manage-shift page (`/employer/shifts/[id]`) computes `getWorkerVerificationSummary(worker, workerDocs)` per row and passes the public-safe subset only — employers never see full document images, only the badge + method label + masked identifier (e.g. `0791•••••234`). This is the single source of truth for the "no full document leak to employers" rule.
+
+    - **I. Notifications.** Every admin action (approve / reject / request-more-info) fires a `useNotificationStore.push()` to the affected user with title + body + `link` deep-pointed at their profile (`/worker/profile` or `/employer/profile`). Notification kind is reused from the existing `'ReputationAdjusted'` enum so the existing notification UI handles it without a new kind being added — pragmatic for Phase 10A since the visual treatment in `NotificationBell` already handles arbitrary titles. A future phase can add a dedicated `'VerificationDecided'` kind if desired.
+
+    - **J. Toasts.** Admin actions show success/error toasts using the existing `showSuccess` / `showError` helpers. Reason-required + already-reviewed errors surface clear Vietnamese messages.
+
+    - **K. /user-guide section.** New `<FeatureGuide id="verification-overview">` card under a new "Xác minh và quyền riêng tư" group. Bullets cover the three worker methods, four employer types, the privacy boundary (admin-only full doc), and the on-site recheck possibility. Concrete example reads: "Bạn xác minh bằng CCCD. Trong danh sách ứng viên của nhà tuyển dụng, họ sẽ thấy chip xanh «Đã xác minh · CCCD / CMND · 0791•••••234». Họ KHÔNG thấy ảnh CCCD đầy đủ của bạn."
+
+    - **L. Shift posting "bring verified document on-site" option** — **deferred to Phase 10B** per the spec's explicit allowance ("If too large for 10A, add data field + UI placeholder and document as 10B follow-up"). Phase 10A ships without the field; the data model is ready (the existing `Shift.requirements` free-text field can carry the message in the interim, or a typed `requireOnSiteIdMatch?: boolean` field can be added in 10B without schema risk since the seed/fallback path defaults missing fields gracefully).
+
+    - **Constraints honored.** No new dependencies. **Schema bumped 4 → 5** (allowed by the spec). No business-logic / payment / formula changes. RoleGuard unchanged. Phase 9Z RouteBackdrop, Phase 9Z-Fix-2 InfoPage utilities, Phase 9Z-Fix-3 nav, Phase 9Z-Fix-4 anchors, Phase 9Z-Fix-5 HelpPopover deep-links — all preserved exactly. The new badges + admin queue use existing `<Badge>` / `<Card>` / `<Modal>` / `<Button>` / `<Textarea>` primitives, no new component dependencies.
+
+    - **Validation.** `npm run build` → exit 0, **28 routes** (unchanged — no new routes added). `npm run test:run` → exit 0, **40/40 tests passing in 4 files** (unchanged — pure presentational + content + new store actions). The new store has no PBT yet; future work could add property-based tests for the review-action state machine.
+
+    - **Files changed (Phase 10A):**
+      - `src/types/index.ts` — verification model (5 enums + 4 interfaces + 2 summary types).
+      - `src/data/persistence.ts` — schema bumped to 5; new storage keys; load/persist wiring.
+      - `src/data/seed/verifications.json` — NEW. 4 worker + 8 employer seed records.
+      - `src/stores/verificationStore.ts` — NEW. Full store + selectors + display helpers.
+      - `src/stores/index.ts` — re-export verification store + helpers + types.
+      - `src/components/layout/AppHydrator.tsx` — hydrate the verification slice.
+      - `src/app/admin/dashboard/VerificationsPanel.tsx` — NEW. Admin queue UI.
+      - `src/app/admin/dashboard/page.tsx` — added `verifications` tab + tab button + URL validation list.
+      - `src/i18n/vi.ts` — `admin.dashboard.tabs.verifications` label.
+      - `src/components/user/WorkerSummaryRow.tsx` — optional `identityBadge` prop + green chip render.
+      - `src/app/employer/shifts/[id]/page.tsx` — compute `getWorkerVerificationSummary` per applicant row, pass public-safe subset to `<WorkerSummaryRow>`.
+      - `src/app/worker/profile/page.tsx` — `<WorkerIdentityVerificationCard>` helper added in the aside column.
+      - `src/app/employer/profile/page.tsx` — `<EmployerVerificationCard>` helper added between main card and feedback list.
+      - `src/app/user-guide/page.tsx` — new `verification-overview` anchor section under "Xác minh và quyền riêng tư" group.
+      - `HANDOFF.md`, `VISUAL_QA.md`.
+
+52. **Phase 10A-Fix-1 — Clickable history details, locked employer type, type-change request flow, admin-side submission notifications** *(2026-05-25, Phase 10A-Fix-1)*. Manual QA after 10A flagged three concrete gaps. This phase closes them while preserving the privacy boundary (admin sees full docs; employer/worker do not).
+
+    - **A. Clickable verification history rows.** `<VerificationsPanel>` history cards are now keyboard-focusable buttons that open a detail Modal (admin-only). The new `<HistoryDetailBody>` helper renders: account name + role + (for employers) account-shape, document type label, status badge, submitted/reviewed timestamps with admin ID, rejection reason, notes, full identifier (admin-only) with masked-form readout, and the mock front/back/selfie image fields or file name. ESC + outside click + an explicit "Đóng" button all dismiss.
+
+    - **B. Locked employer type with first-set onboarding.** `Employer` gained a new optional canonical field `employerType10A?: EmployerType10A`. The legacy `employerType?: 'individual' | 'business'` field is preserved for back-compat — the new `resolveEmployerType(employer)` helper falls back to it when the new field is missing (`'individual' → 'Individual'`, `'business' → 'HouseholdBusiness'`). Two render branches:
+      - **Onboarding (no resolved type):** the employer profile renders a one-time "Xác nhận và khoá loại tài khoản" picker — selecting + confirming writes `employerType10A` to the user record via `userStore.updateUser` and locks the field.
+      - **Locked display (type resolved):** the previous free type-selector is replaced with a read-only orange-bordered card showing "Loại tài khoản hiện tại: {type}" + the per-shape hint copy + a "Yêu cầu đổi loại tài khoản" CTA. Clicking the CTA opens a Modal collecting the requested new type (filtered to exclude the current one) + a required reason; submit fires `submitEmployerTypeChangeRequest`.
+
+    - **C. Type-change request store extension.** `verificationStore` gained:
+      - New persisted slice `typeChangeRequests: EmployerTypeChangeRequest[]`.
+      - Actions: `submitEmployerTypeChangeRequest(employerId, currentType, requestedType, reason)`, `approveEmployerTypeChangeRequest(requestId, adminId)`, `rejectEmployerTypeChangeRequest(requestId, adminId, adminReason)`. All return `Result<request, VerifyError>`. Submit checks `SAME_TYPE`, `REASON_REQUIRED`, and `ALREADY_PENDING` (one Pending per employer at a time). Approve/Reject check `NOT_FOUND` and `ALREADY_REVIEWED`.
+      - **On approval**, the admin queue handler calls `updateUser(employerId, { employerType10A: requestedType })` to flip the employer record. Existing approved documents stay in the DB; the doc list adapts to the new type's required set automatically because `TYPE_DOC_OPTIONS[type]` drives the rendering. Documents that no longer apply are still visible in the "Tất cả tài liệu đã gửi" history but don't count toward the current required-doc list.
+      - Helpers: `getPendingTypeChangeRequest(employerId, requests)`, `getPendingTypeChangeRequests(requests)`, `resolveEmployerType(employer)`.
+
+    - **D. Admin queue subsection** "Yêu cầu đổi loại tài khoản" rendered between the "Nhà tuyển dụng chờ duyệt" section and "Lịch sử duyệt gần đây". Each request card shows employer name + email/phone, current → requested type chips, submitted timestamp, reason callout, and Duyệt / Từ chối buttons. Reject opens a Modal collecting the admin reason (required). Notifications fire to the employer on both decisions; toasts confirm the admin action.
+
+    - **E. Onboarding integration deferral.** Per the spec's allowance ("If registration type is too large for this phase, implement first-set lock in employer profile"), Phase 10A-Fix-1 ships the first-set lock in the **profile** only — `/register` is unchanged. The first time an employer with no `employerType10A` opens their profile, they pick a shape; subsequent visits show the locked display. Documented as a Phase 10B follow-up to wire the registration form to the canonical field directly.
+
+    - **F. Admin notifications on every submission.** New `src/lib/adminNotifications.ts` `notifyAdmins({ users, push, kind, title, body, link })` helper iterates every active admin and pushes a notification (default link points to `/admin/dashboard?tab=verifications`). Three call sites:
+      - **Worker profile** (`/worker/profile`) — when worker submits a doc, notify admins with title "Có yêu cầu xác minh mới" and body "{workerName} đã gửi xác minh bằng {documentType}."
+      - **Employer profile** (`/employer/profile`) — when employer submits a doc, notify admins with title "Nhà tuyển dụng gửi xác minh mới" and body "{employerName} đã gửi tài liệu {documentType}."
+      - **Employer profile type-change submit** — title "Có yêu cầu đổi loại tài khoản" and body "{employerName} muốn đổi từ {currentType} sang {requestedType}."
+      Notification kind reuses `'ReputationAdjusted'` (the existing catch-all) for now — a dedicated `'VerificationDecided'` / `'VerificationSubmitted'` kind is a clean Phase 10B addition.
+
+    - **G. Profile copy** updated per spec: locked card explanation reads literally "Loại tài khoản dùng để xác định giấy tờ cần xác minh. Bạn không thể tự đổi loại tài khoản sau khi đã chọn. Nếu chọn nhầm hoặc mô hình hoạt động thay đổi, hãy gửi yêu cầu để quản trị viên xem xét." Individual hint preserved from 10A: "Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công."
+
+    - **H. Privacy boundary preserved.** Admin: full mock docs visible in queue + history detail Modal. Worker: own docs in worker profile (own data only). Employer: own docs in employer profile (own data only). Public-facing applicant view continues to show only `<WorkerSummaryRow identityBadge>` chip with method label + masked identifier. The new history-detail Modal is mounted inside `<VerificationsPanel>` which lives behind `RoleGuard role="admin"` on `/admin/dashboard`.
+
+    - **Constraints honored.** No new dependencies. **Schema bumped 5 → 6** to make the new `employerTypeChangeRequests` slice persist cleanly. The 10A-fix on existing `Employer.employerType10A` field uses optional fallback semantics — no migration code needed because the resolveEmployerType helper handles missing fields. RoleGuard unchanged. HelpPopover, dashboard cleanup, info-page utilities, public motion polish — all preserved.
+
+    - **Validation.** `npm run build` → exit 0, **28 routes** (unchanged). `npm run test:run` → exit 0, **40/40 tests passing in 4 files** (unchanged — pure store + UI additions).
+
+    - **Files changed (Phase 10A-Fix-1):**
+      - `src/types/index.ts` — added `Employer.employerType10A?` field; new `EmployerTypeChangeRequest` interface.
+      - `src/data/persistence.ts` — schema bumped 5 → 6; new `employerTypeChangeRequests` storage key; load/persist wiring.
+      - `src/stores/verificationStore.ts` — added type-change request slice + actions + `resolveEmployerType` + `getPendingTypeChangeRequest(s)` helpers; extended `VerifyError` enum.
+      - `src/stores/index.ts` — re-export new helpers.
+      - `src/components/layout/AppHydrator.tsx` — hydrate the new slice.
+      - `src/lib/adminNotifications.ts` — NEW helper for cross-admin fan-out.
+      - `src/app/admin/dashboard/VerificationsPanel.tsx` — clickable history rows + `<HistoryDetailBody>` modal + new "Yêu cầu đổi loại tài khoản" subsection + handlers + rejection-reason modal.
+      - `src/app/worker/profile/page.tsx` — admin notification on document submit.
+      - `src/app/employer/profile/page.tsx` — locked-type read-only card + first-set onboarding picker + change-request Modal + admin notifications on doc submit and on type-change submit.
+      - `HANDOFF.md`, `VISUAL_QA.md`.
+
 *(Completed 2026-05-22. Earlier in this same session a "Phase 2 In Progress" section described the partial state. That state has now been finished and merged into the bug-fixes list as item #9 in section 5. The detailed reference below is preserved for the next maintainer.)*
 
 ### 1. Goal of Phase 2
@@ -1594,5 +1706,8 @@ Read these before making changes. Each rule has bitten the project at least once
 - **HelpPopover CTAs must deep-link to specific guide anchors.** *(Phase 9Z-Fix-5 rule)* The `learnMoreHref` prop on `<HelpPopover>` defaults to `/user-guide` but every dashboard / stat-modal call site MUST pass an anchored URL like `/user-guide#worker-total-income`. Generic `/user-guide` links drop users at the top of a long page instead of on the section that explains the metric they clicked on. The Phase 9Z-Fix-5 mapping covers all 10 dashboard stats (4 worker + 6 employer); when a new stat tile or help surface is added, also add a matching `<FeatureGuide>` anchor section to `src/app/user-guide/page.tsx` with `example` + `nextAction` content and wire `learnMoreHref` to it.
 - **Hydration warnings: reproduce in Incognito first.** *(Phase 9Y-Fix-4 rule)* Browser extensions — Dark Reader, Grammarly, password managers, accessibility tools — routinely inject DOM attributes (`data-darkreader-mode`, `data-darkreader-inline-stroke`, etc.) onto `<html>`, `<body>`, and stroked SVGs before React hydrates. These produce noisy `Hydration failed` console warnings in dev that are not real app bugs. The root layout already carries `suppressHydrationWarning` on `<html>` and `<body>` defensively (Phase 9Y-Fix-4); the named landing-page icons + `HamburgerIcon` + `ShiftCard.CalendarIcon` carry the flag on their `<svg>` roots. Before treating any new hydration warning as a real bug, **disable extensions and reload in an Incognito / Private window.** If the warning persists in Incognito, it's a real app mismatch — common causes are `Date.now()` / `new Date()` rendered as text, `Math.random()` in render, `typeof window` branches that change rendered markup, localStorage-derived markup before hydration, and invalid nested HTML (e.g. `<button>` inside `<button>`). Fix the underlying mismatch rather than adding more `suppressHydrationWarning` flags — the flag is for known third-party noise only.
 - **User-facing copy must not contain raw route paths.** *(Phase 9Z-Fix-4 rule)* Guide pages, info pages, help text, and any other Vietnamese / English prose visible to users must reference the visible page names, menu labels, button text, or section headings — never raw URLs like `/worker/profile` or `/employer/shifts/new`. Examples: `Tại trang Đăng ký, chọn ...` (not `Tại /register, chọn ...`), `Trong menu Nhà tuyển dụng, chọn "Đăng ca tuyển"` (not `Vào /employer/shifts/new`), `Mở trang Tổng quan của người lao động` (not `Vào /worker/dashboard`). Internal route strings live in `href={...}` props and other technical contexts where they're not user-visible. When public nav must deep-link to a feature explanation, use anchored URLs like `/user-guide#worker-schedule` (Phase 9Z-Fix-4 added five such anchor sections to `/user-guide`).
+- **Verification document privacy boundary.** *(Phase 10A rule)* Admins are the only role permitted to see full identity-document data (`fullIdentifier`, raw image URLs, file names). Worker- and employer-visible surfaces — applicant cards, worker profile public modal, employer profile public modal, shift detail employer block — render the public-safe subset only: identity-verified badge, method label (CCCD / Thẻ sinh viên / Bằng lái xe), and `maskedIdentifier` (e.g. `0791•••••234`). Use `getWorkerVerificationSummary(worker, docs)` and `getEmployerVerificationSummary(...)` from `@/stores` to derive the public-safe view; never reach into `useVerificationStore.workerDocuments` directly from a non-admin surface. The single exception is the admin queue at `/admin/dashboard` Xác minh tab. When adding a new applicant- or worker-facing surface, audit it against this rule before merging.
+- **Workers can verify with any of three identity methods.** *(Phase 10A rule)* CCCD/CMND, Thẻ sinh viên, and Bằng lái xe are all valid. The UI must NOT force CCCD specifically. The Worker profile verification card lists the three side-by-side with equal weight and per-method description so the worker picks whichever they have. The user-guide reads "Bạn có thể xác minh danh tính bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe."
+- **Employer accounts come in four shapes.** *(Phase 10A rule, locked in 10A-Fix-1)* `'Individual'` (cá nhân thuê ngắn hạn — no business license required), `'HouseholdBusiness'` (hộ kinh doanh), `'Company'` (doanh nghiệp), `'AgencyEvent'` (agency / sự kiện). The canonical field is `Employer.employerType10A`; the legacy `employerType` (Phase 6 `'individual' | 'business'`) is preserved for back-compat — `resolveEmployerType()` in `verificationStore` handles the fallback. **Type is locked after onboarding.** The employer profile renders read-only when set; changes require submitting an `EmployerTypeChangeRequest` that an admin reviews from the verification queue. The Individual hint copy must remain literally: "Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công." Any future shape additions must keep the four canonical ones intact.
 
 That's it. Good luck.

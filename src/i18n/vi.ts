@@ -863,6 +863,7 @@ export const vi: Record<string, string> = {
   'admin.dashboard.tabs.users': 'Người dùng',
   'admin.dashboard.tabs.shifts': 'Ca làm',
   'admin.dashboard.tabs.disputes': 'Tranh chấp',
+  'admin.dashboard.tabs.verifications': 'Xác minh',
   'admin.dashboard.tabs.analytics': 'Thống kê',
   'admin.analytics.totalEmployers': 'Tổng nhà tuyển dụng',
   'admin.analytics.totalWorkers': 'Tổng người làm',

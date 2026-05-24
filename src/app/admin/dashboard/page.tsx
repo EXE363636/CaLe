@@ -14,6 +14,7 @@ import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
+import { VerificationsPanel } from './VerificationsPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { showSuccess, showError } from '@/lib/toast';
@@ -22,7 +23,7 @@ import { formatVND, formatDateVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Dispute, EscrowStatus, Shift, User } from '@/types';
 
-type Tab = 'analytics' | 'users' | 'shifts' | 'disputes';
+type Tab = 'analytics' | 'users' | 'shifts' | 'disputes' | 'verifications';
 
 export default function AdminDashboardPage() {
   return (
@@ -58,7 +59,7 @@ function AdminDashboardContent() {
     if (!qTab && !qFilter) return;
     handledQuery.current = true;
 
-    const validTabs: readonly Tab[] = ['analytics', 'users', 'shifts', 'disputes'];
+    const validTabs: readonly Tab[] = ['analytics', 'users', 'shifts', 'disputes', 'verifications'];
     if (qTab && (validTabs as readonly string[]).includes(qTab)) {
       setTab(qTab as Tab);
     }
@@ -88,6 +89,7 @@ function AdminDashboardContent() {
       'users',
       'shifts',
       'disputes',
+      'verifications',
     ];
     if (detail.tab && (validTabs as readonly string[]).includes(detail.tab)) {
       setTab(detail.tab as Tab);
@@ -195,6 +197,9 @@ function AdminDashboardContent() {
         <TabButton active={tab === 'disputes'} onClick={() => setTab('disputes')}>
           {t('admin.dashboard.tabs.disputes')}
         </TabButton>
+        <TabButton active={tab === 'verifications'} onClick={() => setTab('verifications')}>
+          {t('admin.dashboard.tabs.verifications')}
+        </TabButton>
       </div>
 
       {tab === 'analytics' && (
@@ -207,6 +212,7 @@ function AdminDashboardContent() {
       {tab === 'users' && <UsersPanel initialFilter={usersInitialFilter} />}
       {tab === 'shifts' && <ShiftsPanel initialFilter={shiftsInitialFilter} />}
       {tab === 'disputes' && <DisputesPanel />}
+      {tab === 'verifications' && <VerificationsPanel />}
     </div>
   );
 }

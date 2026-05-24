@@ -18,11 +18,14 @@ import type {
   BoostCreditLedgerEntry,
   Dispute,
   EmployerFeedback,
+  EmployerTypeChangeRequest,
+  EmployerVerificationDocument,
   Notification,
   Rating,
   ScheduleBlock,
   Shift,
   User,
+  WorkerVerificationDocument,
 } from '@/types';
 
 import applicationsSeed from './seed/applications.json';
@@ -33,13 +36,14 @@ import notificationsSeed from './seed/notifications.json';
 import ratingsSeed from './seed/ratings.json';
 import shiftsSeed from './seed/shifts.json';
 import usersSeed from './seed/users.json';
+import verificationsSeed from './seed/verifications.json';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 6;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -54,6 +58,9 @@ export const STORAGE_KEYS = {
   boostLedger: 'cale.boostLedger',
   scheduleBlocks: 'cale.scheduleBlocks',
   employerFeedback: 'cale.employerFeedback',
+  workerVerifications: 'cale.workerVerifications',
+  employerVerifications: 'cale.employerVerifications',
+  employerTypeChangeRequests: 'cale.employerTypeChangeRequests',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -82,6 +89,12 @@ export interface Snapshot {
   scheduleBlocks: ScheduleBlock[];
   /** Phase 6: worker → employer feedback records. */
   employerFeedback: EmployerFeedback[];
+  /** Phase 10A: worker identity-verification submissions. */
+  workerVerifications: WorkerVerificationDocument[];
+  /** Phase 10A: employer verification submissions. */
+  employerVerifications: EmployerVerificationDocument[];
+  /** Phase 10A-Fix-1: pending/decided employer type change requests. */
+  employerTypeChangeRequests: EmployerTypeChangeRequest[];
 }
 
 // ---------------------------------------------------------------------------
@@ -113,6 +126,17 @@ export function seedSnapshot(): Snapshot {
     // reviews are visible on the shift detail and employer profile right
     // after a fresh reseed; new feedback still gets appended at runtime.
     employerFeedback: employerFeedbackSeed as unknown as EmployerFeedback[],
+    // Phase 10A: verification submissions seeded so the admin queue and
+    // the worker / employer profile verification sections have data on
+    // first paint. Cast through `unknown` because the JSON literal types
+    // are wider than the discriminated unions in `types/index.ts`.
+    workerVerifications:
+      verificationsSeed.workerDocuments as unknown as WorkerVerificationDocument[],
+    employerVerifications:
+      verificationsSeed.employerDocuments as unknown as EmployerVerificationDocument[],
+    // Phase 10A-Fix-1: type-change requests start empty; employers
+    // submit them at runtime.
+    employerTypeChangeRequests: [],
   };
 }
 
@@ -200,6 +224,18 @@ export function loadAll(): Snapshot {
       STORAGE_KEYS.employerFeedback,
       seed.employerFeedback,
     ),
+    workerVerifications: read<WorkerVerificationDocument[]>(
+      STORAGE_KEYS.workerVerifications,
+      seed.workerVerifications,
+    ),
+    employerVerifications: read<EmployerVerificationDocument[]>(
+      STORAGE_KEYS.employerVerifications,
+      seed.employerVerifications,
+    ),
+    employerTypeChangeRequests: read<EmployerTypeChangeRequest[]>(
+      STORAGE_KEYS.employerTypeChangeRequests,
+      seed.employerTypeChangeRequests,
+    ),
   };
 }
 
@@ -223,4 +259,10 @@ export function persistAll(snapshot: Snapshot): void {
   write(STORAGE_KEYS.boostLedger, snapshot.boostLedger);
   write(STORAGE_KEYS.scheduleBlocks, snapshot.scheduleBlocks);
   write(STORAGE_KEYS.employerFeedback, snapshot.employerFeedback);
+  write(STORAGE_KEYS.workerVerifications, snapshot.workerVerifications);
+  write(STORAGE_KEYS.employerVerifications, snapshot.employerVerifications);
+  write(
+    STORAGE_KEYS.employerTypeChangeRequests,
+    snapshot.employerTypeChangeRequests,
+  );
 }

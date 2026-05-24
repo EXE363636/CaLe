@@ -1,17 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
-import { Card, Button, Input, Textarea, StarRating } from '@/components/ui';
+import {
+  useVerificationStore,
+  workerDocLabel,
+  verificationStatusLabel,
+  verificationStatusTone,
+} from '@/stores';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { notifyAdmins } from '@/lib/adminNotifications';
+import { Badge, Card, Button, Input, Textarea, StarRating } from '@/components/ui';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { VerificationBadge } from '@/components/user/VerificationBadge';
 import { averageRating } from '@/domain/rating';
 import { formatDateVN } from '@/lib/format';
+import { showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
-import type { VerificationFlag, Worker } from '@/types';
+import type {
+  VerificationFlag,
+  Worker,
+  WorkerIdentityDocumentType,
+  WorkerVerificationDocument,
+} from '@/types';
 
 export default function WorkerProfilePage() {
   return (
@@ -102,6 +116,11 @@ function WorkerProfileContent() {
               }}
             />
           </Card>
+
+          {/* Phase 10A — identity verification card. Worker chooses one
+              method (CCCD / thẻ sinh viên / bằng lái) and submits a
+              mock document. Admin reviews from /admin/dashboard. */}
+          <WorkerIdentityVerificationCard worker={worker} />
 
           <Card>
             <h2 className="mb-3 font-semibold text-gray-900">Thống kê</h2>
@@ -360,4 +379,118 @@ function parseList(text: string): string[] {
     out.push(trimmed);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10A — worker identity verification card
+// ---------------------------------------------------------------------------
+
+function WorkerIdentityVerificationCard({ worker }: { worker: Worker }) {
+  const docs = useVerificationStore((s) => s.workerDocuments);
+  const submit = useVerificationStore((s) => s.submitWorkerDocument);
+  const users = useUserStore((s) => s.users);
+  const pushNotification = useNotificationStore((s) => s.push);
+
+  const own = useMemo(
+    () => docs.filter((d) => d.workerId === worker.id),
+    [docs, worker.id],
+  );
+  // Most-recent record per type so the UI shows current status.
+  const byType = useMemo(() => {
+    const m = new Map<WorkerIdentityDocumentType, WorkerVerificationDocument>();
+    for (const d of own) {
+      const existing = m.get(d.documentType);
+      if (!existing || d.submittedAt > existing.submittedAt) {
+        m.set(d.documentType, d);
+      }
+    }
+    return m;
+  }, [own]);
+
+  const types: { type: WorkerIdentityDocumentType; description: string }[] = [
+    { type: 'NationalId', description: 'CCCD / CMND — phổ biến nhất, nhận trên mọi loại ca.' },
+    { type: 'StudentCard', description: 'Thẻ sinh viên — phù hợp nếu bạn đang đi học.' },
+    { type: 'DriverLicense', description: 'Bằng lái xe — dùng được khi không có CCCD/CMND.' },
+  ];
+
+  const [submitting, setSubmitting] = useState<WorkerIdentityDocumentType | null>(
+    null,
+  );
+
+  function handleSubmitMock(type: WorkerIdentityDocumentType) {
+    setSubmitting(type);
+    submit(worker.id, {
+      documentType: type,
+      fullIdentifier: `MOCK-${worker.id}-${type}`,
+      mockFrontImageUrl: `mock://${worker.id}/${type}-front.jpg`,
+      mockBackImageUrl:
+        type === 'StudentCard' ? undefined : `mock://${worker.id}/${type}-back.jpg`,
+      mockSelfieImageUrl: `mock://${worker.id}/selfie.jpg`,
+    });
+    // Phase 10A-Fix-1: notify all admins so the queue gets a bell ping.
+    notifyAdmins({
+      users,
+      push: pushNotification,
+      kind: 'ReputationAdjusted',
+      title: 'Có yêu cầu xác minh mới',
+      body: `${worker.fullName} đã gửi xác minh bằng ${workerDocLabel(type)}.`,
+    });
+    showSuccess('Đã gửi tài liệu xác minh (mô phỏng). Quản trị viên sẽ duyệt.');
+    setSubmitting(null);
+  }
+
+  return (
+    <Card>
+      <h2 className="mb-1 font-semibold text-gray-900">Xác minh danh tính</h2>
+      <p className="mb-3 text-xs leading-relaxed text-gray-500">
+        Bạn có thể xác minh danh tính bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe.
+        Chọn loại giấy tờ phù hợp nhất với bạn.
+      </p>
+      <div className="flex flex-col gap-2">
+        {types.map(({ type, description }) => {
+          const doc = byType.get(type);
+          const status = doc?.status ?? 'NotSubmitted';
+          return (
+            <div
+              key={type}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-gray-900">
+                  {workerDocLabel(type)}
+                </span>
+                <Badge tone={verificationStatusTone(status)}>
+                  {verificationStatusLabel(status)}
+                </Badge>
+              </div>
+              <p className="mt-1 text-xs text-gray-500">{description}</p>
+              {doc?.rejectionReason && (
+                <p className="mt-1 text-xs text-red-600">
+                  Lý do: {doc.rejectionReason}
+                </p>
+              )}
+              {(status === 'NotSubmitted' || status === 'Rejected' || status === 'NeedsMoreInfo') && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="mt-2"
+                  loading={submitting === type}
+                  onClick={() => handleSubmitMock(type)}
+                >
+                  {status === 'NotSubmitted'
+                    ? 'Gửi tài liệu (mô phỏng)'
+                    : 'Gửi lại'}
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
+        Trong bản MVP, tài liệu là mô phỏng — không có upload thật.
+        Quản trị viên là người duy nhất xem tài liệu đầy đủ; nhà tuyển dụng
+        chỉ thấy huy hiệu và số đăng ký dạng rút gọn.
+      </p>
+    </Card>
+  );
 }

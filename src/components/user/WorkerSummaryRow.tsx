@@ -28,6 +28,16 @@ interface WorkerSummaryRowProps {
   /** Bottom action area — typically Approve/Reject + actions. */
   actions?: ReactNode;
   onViewProfile: () => void;
+  /**
+   * Phase 10A — optional identity-verification cue. When provided, shows
+   * a small "Đã xác minh • {method} • {masked}" chip below the name.
+   * Employer-side surfaces only see the masked identifier; the full
+   * document is admin-only.
+   */
+  identityBadge?: {
+    methodLabel: string;
+    maskedIdentifier?: string;
+  };
   className?: string;
 }
 
@@ -38,6 +48,7 @@ export function WorkerSummaryRow({
   statusSlot,
   actions,
   onViewProfile,
+  identityBadge,
   className = '',
 }: WorkerSummaryRowProps) {
   const avg = averageRating(worker.ratingsReceived);
@@ -61,6 +72,28 @@ export function WorkerSummaryRow({
           <div className="mt-1.5">
             <VerificationBadge verifications={worker.verifications} />
           </div>
+          {identityBadge && (
+            <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+              <svg
+                className="h-3 w-3"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>Đã xác minh · {identityBadge.methodLabel}</span>
+              {identityBadge.maskedIdentifier && (
+                <span className="font-mono text-emerald-600/80">
+                  {identityBadge.maskedIdentifier}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         {statusSlot && <div className="shrink-0">{statusSlot}</div>}
       </div>

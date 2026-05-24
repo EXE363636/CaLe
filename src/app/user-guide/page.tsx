@@ -611,6 +611,26 @@ export default function UserGuidePage() {
       />
       </GuideGroup>
 
+      <GuideGroup
+        eyebrow="Xác minh và quyền riêng tư"
+        title="Cách hệ thống xác minh người dùng"
+        lead="Quản trị viên duyệt giấy tờ — nhà tuyển dụng và người lao động chỉ thấy huy hiệu xác minh, không thấy ảnh giấy tờ gốc."
+      >
+      <FeatureGuide
+        id="verification-overview"
+        eyebrow="Quyền riêng tư"
+        title="Cách xác minh hoạt động"
+        bullets={[
+          'Người lao động có thể xác minh bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe — không bắt buộc chọn loại nào cụ thể.',
+          'Nhà tuyển dụng có thể đăng ký dưới dạng Cá nhân thuê ngắn hạn, Hộ kinh doanh, Doanh nghiệp hoặc Agency / Sự kiện — mỗi loại nộp tài liệu khác nhau.',
+          'Quản trị viên là người duy nhất xem được tài liệu đầy đủ. Nhà tuyển dụng chỉ thấy huy hiệu xác minh và phương thức (CCCD / Thẻ sinh viên / Bằng lái) cùng số đăng ký dạng rút gọn.',
+          'Một số ca có thể yêu cầu người lao động mang theo giấy tờ đã xác minh để đối chiếu khi nhận ca.',
+        ]}
+        example="Bạn xác minh bằng CCCD. Trong danh sách ứng viên của nhà tuyển dụng, họ sẽ thấy chip xanh «Đã xác minh · CCCD / CMND · 0791•••••234». Họ KHÔNG thấy ảnh CCCD đầy đủ của bạn."
+        nextAction="Vào trang Hồ sơ tương ứng (người lao động hoặc nhà tuyển dụng) và gửi tài liệu xác minh để quản trị viên duyệt."
+      />
+      </GuideGroup>
+
       {/* Two-column timeline */}
       <div className="grid gap-6 md:grid-cols-2 md:gap-8">
         <RoleColumn
