@@ -15,7 +15,6 @@ import { notifyAdmins } from '@/lib/adminNotifications';
 import { Badge, Card, Button, Input, Textarea, StarRating } from '@/components/ui';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
-import { VerificationBadge } from '@/components/user/VerificationBadge';
 import { averageRating } from '@/domain/rating';
 import { formatDateVN } from '@/lib/format';
 import { showSuccess } from '@/lib/toast';
@@ -102,25 +101,21 @@ function WorkerProfileContent() {
 
         {/* Right: stats + verifications */}
         <aside className="flex flex-col gap-4">
-          <Card>
-            <h2 className="mb-3 font-semibold text-gray-900">Xác minh</h2>
-            <VerificationBadge verifications={worker.verifications} />
-            <VerificationActions
-              worker={worker}
-              onToggle={(flag) => {
-                const has = worker.verifications.includes(flag);
-                const next = has
-                  ? worker.verifications.filter((v) => v !== flag)
-                  : [...worker.verifications, flag];
-                updateUser(worker.id, { verifications: next });
-              }}
-            />
-          </Card>
-
-          {/* Phase 10A — identity verification card. Worker chooses one
-              method (CCCD / thẻ sinh viên / bằng lái) and submits a
-              mock document. Admin reviews from /admin/dashboard. */}
-          <WorkerIdentityVerificationCard worker={worker} />
+          {/* Phase 10A canonical verification card. Phase 10A-Fix-6 —
+              the older "Xác minh" card with `<VerificationBadge>` +
+              upload toggles was removed; phone verification is now a
+              row inside this canonical card so the worker sees ONE
+              source of truth, not two competing upload paths. */}
+          <WorkerIdentityVerificationCard
+            worker={worker}
+            onTogglePhone={(flag) => {
+              const has = worker.verifications.includes(flag);
+              const next = has
+                ? worker.verifications.filter((v) => v !== flag)
+                : [...worker.verifications, flag];
+              updateUser(worker.id, { verifications: next });
+            }}
+          />
 
           <Card>
             <h2 className="mb-3 font-semibold text-gray-900">Thống kê</h2>
@@ -283,35 +278,6 @@ function RatingsHistory({ worker }: { worker: Worker }) {
   );
 }
 
-function VerificationActions({
-  worker,
-  onToggle,
-}: {
-  worker: Worker;
-  onToggle: (flag: VerificationFlag) => void;
-}) {
-  return (
-    <div className="mt-4 flex flex-col gap-2">
-      <ToggleVerifyButton
-        label={t('btn.verifyPhone')}
-        active={worker.verifications.includes('phone')}
-        onClick={() => onToggle('phone')}
-      />
-      <ToggleVerifyButton
-        label={t('btn.uploadId')}
-        active={worker.verifications.includes('id')}
-        onClick={() => onToggle('id')}
-      />
-      <ToggleVerifyButton
-        label={t('btn.uploadStudentCard')}
-        active={worker.verifications.includes('student')}
-        onClick={() => onToggle('student')}
-      />
-      <p className="mt-1 text-xs text-gray-400">Mô phỏng — không yêu cầu OTP hoặc tài liệu thật.</p>
-    </div>
-  );
-}
-
 function ToggleVerifyButton({
   label,
   active,
@@ -331,9 +297,7 @@ function ToggleVerifyButton({
       {active ? '✓ ' : ''}{label}{active ? ' (đã xác minh)' : ''}
     </Button>
   );
-}
-
-function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
+}function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-3 last:mb-0">
       <p className="text-xs font-medium text-gray-500">{label}</p>
@@ -385,7 +349,13 @@ function parseList(text: string): string[] {
 // Phase 10A — worker identity verification card
 // ---------------------------------------------------------------------------
 
-function WorkerIdentityVerificationCard({ worker }: { worker: Worker }) {
+function WorkerIdentityVerificationCard({
+  worker,
+  onTogglePhone,
+}: {
+  worker: Worker;
+  onTogglePhone: (flag: VerificationFlag) => void;
+}) {
   const docs = useVerificationStore((s) => s.workerDocuments);
   const submit = useVerificationStore((s) => s.submitWorkerDocument);
   const users = useUserStore((s) => s.users);
@@ -439,12 +409,42 @@ function WorkerIdentityVerificationCard({ worker }: { worker: Worker }) {
     setSubmitting(null);
   }
 
+  const phoneVerified = worker.verifications.includes('phone');
+
   return (
     <Card>
-      <h2 className="mb-1 font-semibold text-gray-900">Xác minh danh tính</h2>
+      <h2 className="mb-1 font-semibold text-gray-900">Xác minh</h2>
       <p className="mb-3 text-xs leading-relaxed text-gray-500">
-        Bạn có thể xác minh danh tính bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe.
-        Chọn loại giấy tờ phù hợp nhất với bạn.
+        Bạn chỉ cần dùng một trong các giấy tờ hợp lệ để xác minh danh tính.
+        Nếu giấy tờ đã được duyệt, bạn không cần tải lại trừ khi muốn bổ sung
+        phương thức khác.
+      </p>
+
+      {/* Phone verification row — Phase 10A-Fix-6 merged from the
+          legacy "Xác minh" card. Phone has no separate doc model in
+          the MVP, so it stays a `worker.verifications` flag toggle. */}
+      <div className="mb-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium text-gray-900">
+            Xác minh số điện thoại
+          </span>
+          <Badge tone={phoneVerified ? 'success' : 'neutral'}>
+            {phoneVerified ? 'Đã xác minh' : 'Chưa xác minh'}
+          </Badge>
+        </div>
+        <p className="mt-1 text-xs text-gray-500">
+          Cần thiết trước khi ứng tuyển. Trong bản MVP đây chỉ là mô phỏng,
+          không gửi OTP thật.
+        </p>
+        <ToggleVerifyButton
+          label={phoneVerified ? t('btn.verifyPhone') : t('btn.verifyPhone')}
+          active={phoneVerified}
+          onClick={() => onTogglePhone('phone')}
+        />
+      </div>
+
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        Xác minh danh tính
       </p>
       <div className="flex flex-col gap-2">
         {types.map(({ type, description }) => {

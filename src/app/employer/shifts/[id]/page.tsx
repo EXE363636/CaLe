@@ -9,10 +9,6 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import {
-  useVerificationStore,
-  getWorkerVerificationSummary,
-} from '@/stores';
 import { Badge, Button, EmptyState } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
@@ -69,9 +65,6 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   );
   const cancelShift = useShiftStore((s) => s.cancel);
   const pushNotification = useNotificationStore((s) => s.push);
-  // Phase 10A — read the verification slice so the applicant rows can
-  // surface a public-safe identity-verified chip.
-  const workerVerifications = useVerificationStore((s) => s.workerDocuments);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState(false);

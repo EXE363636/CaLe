@@ -107,13 +107,21 @@ export function ShiftCard({
         </span>
       </div>
 
-      {/* Row 3: wage + positions */}
+      {/* Row 3: wage + positions
+          Phase 10A-Fix-6 — slot label reads "Còn X/Y vị trí" so users
+          don't confuse "{filled}/{total} người" with "the job is full".
+          Full shifts are filtered out at the listing level
+          (`isShiftAvailableForRecruiting` from
+          `@/domain/shiftAvailability`); the card itself just renders
+          the available count derived from the shift's own
+          `positionsFilled` + `positionsTotal`. */}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
         <span className="font-medium text-orange-600">
           {formatVND(shift.hourlyWage)}{t('common.perHour')}
         </span>
         <span className="text-gray-500">
-          {shift.positionsFilled}/{shift.positionsTotal} {t('common.positions')}
+          Còn {Math.max(0, shift.positionsTotal - shift.positionsFilled)}/
+          {shift.positionsTotal} vị trí
         </span>
       </div>
 

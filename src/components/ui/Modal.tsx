@@ -106,8 +106,22 @@ export function Modal({
       />
 
       {/* Centering wrapper — flex on the scrollable container so the
-          panel can overflow vertically when content is tall. */}
-      <div className="relative flex min-h-full items-center justify-center p-4 sm:p-6">
+          panel can overflow vertically when content is tall.
+
+          Phase 10A-Fix-6: clicks on the empty padding area around the
+          panel must also dismiss the modal. The backdrop sibling sits
+          BEHIND this wrapper in the stacking order, so a click on the
+          padding region never reaches the backdrop's `onClick`. We
+          forward those clicks here by checking that the click target
+          is this wrapper itself (not a descendant). Clicks inside
+          `panelRef` bubble up but get filtered out by the
+          `e.target !== e.currentTarget` guard. */}
+      <div
+        className="relative flex min-h-full items-center justify-center p-4 sm:p-6"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
         <div
           ref={panelRef}
           tabIndex={-1}

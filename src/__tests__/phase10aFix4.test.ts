@@ -168,16 +168,22 @@ describe('getWorkerVerificationSummary — Phase 10A-Fix-4 (live derivation)', (
     expect(summary.primaryMethodLabel).toMatch(/CCCD/);
   });
 
-  it('reports pendingCount > 0 while admin review is still in flight', () => {
+  it('public pendingCount counts only types not already approved (Phase 10A-Fix-6)', () => {
     const worker = makeWorker('worker-binh');
     const docs = [
+      // Pending CCCD (no prior approved CCCD) — counts.
       workerDoc(worker.id, 'NationalId', 'Pending'),
+      // NeedsMoreInfo student card — does NOT count toward the public
+      // pending pile (it's a worker action, not an admin action). The
+      // worker-profile badge picks this up via `workerProfileTaskCount`.
       workerDoc(worker.id, 'StudentCard', 'NeedsMoreInfo'),
+      // Approved driver license — has its own approved chip; cannot
+      // simultaneously contribute to pending.
       workerDoc(worker.id, 'DriverLicense', 'Approved'),
     ];
     const summary = getWorkerVerificationSummary(worker, docs);
     expect(summary.identityVerified).toBe(true); // driver license approved
-    expect(summary.pendingCount).toBe(2); // pending + needs-more-info count as pending-ish
+    expect(summary.pendingCount).toBe(1); // only the un-approved CCCD pending
   });
 });
 

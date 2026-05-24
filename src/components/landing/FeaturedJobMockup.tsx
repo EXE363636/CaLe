@@ -33,10 +33,10 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
-import { selectAvailableShiftsForRecruiting } from '@/domain/shiftAvailability';
+import { selectAvailableShiftsForRecruiting, effectiveFilledCount } from '@/domain/shiftAvailability';
 import { formatDateVN, formatVND } from '@/lib/format';
 import { t } from '@/i18n/vi';
-import type { Shift } from '@/types';
+import type { Application, Shift } from '@/types';
 
 /** Same invariant `/shifts/page.tsx` enforces. Pure helper, no side effects. */
 // Phase 10A-Fix-5 — replaced inline `isListable` with the canonical
@@ -155,7 +155,11 @@ export function FeaturedJobMockup() {
           className="motion-lift group sm:col-span-2 rounded-2xl border border-orange-200 bg-white p-4 shadow-md ring-1 ring-orange-100 transition-shadow hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
         >
           {featured ? (
-            <FeaturedCardBody shift={featured} mounted={mounted} />
+            <FeaturedCardBody
+              shift={featured}
+              applications={applications}
+              mounted={mounted}
+            />
           ) : (
             <FeaturedFallbackBody />
           )}
@@ -211,12 +215,19 @@ export function FeaturedJobMockup() {
 
 function FeaturedCardBody({
   shift,
+  applications,
   mounted,
 }: {
   shift: Shift;
+  applications: Application[];
   mounted: boolean;
 }) {
-  const remaining = Math.max(0, shift.positionsTotal - shift.positionsFilled);
+  // Phase 10A-Fix-6 — slot label now uses the canonical effective
+  // occupancy and reads as "Còn X/Y vị trí" instead of the ambiguous
+  // "{filled}/{total} người". `effectiveFilledCount` reconciles a
+  // stale `positionsFilled` field against the live application store.
+  const filled = effectiveFilledCount(shift, applications);
+  const available = Math.max(0, shift.positionsTotal - filled);
   // Phase 10A-Fix-4 — derive countdown only on the client (mount
   // gate) so the SSR markup matches the first client paint and React
   // doesn't throw a hydration mismatch over the dynamic time string.
@@ -251,7 +262,7 @@ function FeaturedCardBody({
         </span>
         <span aria-hidden="true">•</span>
         <span>
-          {remaining}/{shift.positionsTotal} {t('common.positions')}
+          Còn {available}/{shift.positionsTotal} vị trí
         </span>
       </div>
       {/* Phase 10A-Fix-4 — live countdown chip. Mount-gated so SSR

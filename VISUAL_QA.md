@@ -3131,3 +3131,72 @@ Re-run this audit after any change to:
 - `src/app/shifts/page.tsx` — listing filter.
 - `src/app/employer/dashboard/page.tsx` — `LiveVerificationChips`.
 - `src/components/layout/NavBar.tsx` — role-specific nav badges.
+
+
+## Phase 10A-Fix-6 — Unified worker verification UI, public-summary priority, modal outside-click, featured slot label
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-6 — NEEDS MANUAL VISUAL QA**.
+
+This phase removes the duplicated verification UI on the worker profile, fixes the employer-facing public summary so approved methods always beat pending status, makes modals dismiss on outside click, and rewords the homepage featured slot label so a 3/3 full surface never reappears as "đang nổi bật".
+
+### A. Worker profile — single canonical verification card
+
+1. Run `npm run dev`. Clear localStorage, refresh.
+2. Log in as `binh.le@gmail.com`. Open `/worker/profile`.
+3. The right column should render exactly ONE verification card titled "Xác minh".
+4. The card shows:
+   - A phone-verification row at the top with a `Đã xác minh` / `Chưa xác minh` badge and a toggle button.
+   - A "Xác minh danh tính" sub-section listing CCCD / CMND, Thẻ sinh viên, Bằng lái xe.
+   - Each identity row carries a status badge using the canonical `Chưa gửi` / `Đang chờ duyệt` / `Đã xác minh` / `Cần bổ sung` / `Bị từ chối` flow.
+5. Confirm there is NO second card with the legacy "Tải lên CMND/CCCD" / "Tải lên thẻ sinh viên" toggle buttons. If you see two upload paths for the same document type, the legacy card has regressed and must be removed.
+6. Submit a CCCD doc (Gửi tài liệu mô phỏng). The status flips to `Đang chờ duyệt`. As admin in another tab, approve. As the worker, refresh — the status flips to `Đã xác minh` and the resubmit button is hidden.
+
+### B. Public summary priority — approved beats pending
+
+1. As a worker, submit CCCD + Thẻ sinh viên + Bằng lái docs. Have admin approve all three.
+2. Switch to a seeded employer (`lien@quanphoha.vn`) in another tab. Open the worker profile modal from a shift detail page or the employer dashboard pending-applications detail modal.
+3. The "Xác minh" section should read "Đã xác minh danh tính" with three approved-method chips (CCCD / CMND, Thẻ sinh viên, Bằng lái xe). The "Chưa xác minh danh tính" framing must NOT appear.
+4. Add a Pending resubmission of CCCD as the worker (Gửi lại). Refresh the employer modal. The summary should still read "Đã xác minh danh tính" with the same three approved chips and NO "+1 đang chờ duyệt" text — the type is already approved.
+5. As the worker, submit a brand-new method that hasn't been approved yet. The employer modal should now show the existing approved chips PLUS a "+1 đang chờ duyệt" pill for the never-approved type.
+
+### C. Bình Lê regression
+
+1. Reseed: clear localStorage, refresh.
+2. Log in as `binh.le@gmail.com`. Apply to an open shift (e.g. `shift-001`) before submitting any verification docs.
+3. As admin, approve binh.le's CCCD, student card, and driver license docs.
+4. As the employer who owns that shift, open the applicant detail / `WorkerProfileModal`.
+5. Confirm: "Đã xác minh danh tính" is shown, three approved-method chips are visible, no "Chưa xác minh" framing, no "+3 đang chờ duyệt".
+
+### D. Modal outside-click close
+
+1. Open any modal — `EmployerProfileModal`, `WorkerProfileModal`, the dashboard stat-detail modals, the admin verification detail modal, the type-change request modal.
+2. Click the dark backdrop. Modal closes.
+3. Re-open. Click the empty padding area between the panel edge and the viewport edge (outside the white panel but inside the modal viewport). Modal closes.
+4. Re-open. Click anywhere INSIDE the white panel — the modal stays open. Form interactions, links, and buttons inside the panel still work.
+5. Re-open. Press ESC. Modal closes.
+6. Re-open. Click the X button. Modal closes.
+
+### E. Featured slot label + full-shift exclusion
+
+1. Open `/`. The featured card should show "Còn X/Y vị trí" (e.g. "Còn 2/3 vị trí" or "Còn 3/3 vị trí" for a brand-new shift).
+2. As an employer, fill the last seat of the featured shift (apply + approve workers until full). Refresh `/`. The featured card switches to the next eligible shift; a 3/3 full shift is never featured.
+3. Open `/shifts`. Each card on the listing shows "Còn X/Y vị trí" with the same wording.
+4. Confirm: a brand-new shift with `positionsTotal: 3, positionsFilled: 0` reads "Còn 3/3 vị trí" (3 available out of 3). After 1 worker is approved it reads "Còn 2/3 vị trí". After 2 → "Còn 1/3 vị trí". Once the shift becomes full, it leaves the listing entirely.
+
+### F. Privacy non-regression
+
+1. Open the `WorkerProfileModal` and the employer dashboard pending-applications detail modal as an employer.
+2. Open DevTools → Inspector → check the rendered HTML for the modal panel.
+3. Confirm there is NO `fullIdentifier` text, NO image URLs (`mock://...`), NO admin notes, NO rejection reasons in the rendered HTML. Only badge labels, masked identifiers, and pending counts may appear.
+4. The new test in `phase10aFix6.test.ts` pins this via `JSON.stringify` assertions.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/components/ui/Modal.tsx` — outside-click and the four close paths.
+- `src/stores/verificationStore.ts` — `getWorkerVerificationSummary` priority rules.
+- `src/app/worker/profile/page.tsx` — single canonical verification card.
+- `src/components/landing/FeaturedJobMockup.tsx` — slot label.
+- `src/components/shift/ShiftCard.tsx` — listing slot label.
+- HANDOFF Section 11 rules for live verification, single verification UI, modal outside-click, and slot label phrasing.

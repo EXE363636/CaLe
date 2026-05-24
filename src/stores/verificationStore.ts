@@ -554,10 +554,39 @@ export function getWorkerVerificationSummary(
   workerDocuments: WorkerVerificationDocument[],
 ): WorkerVerificationSummary {
   const own = workerDocuments.filter((d) => d.workerId === worker.id);
+
+  // Phase 10A-Fix-6 — latest-per-document-type semantics for the public
+  // summary. A worker who has an Approved CCCD doc AND a more recent
+  // Pending CCCD resubmission should not be reported as pending — the
+  // approved method is still in force, the resubmission just adds an
+  // optional method or refreshes the existing one. The PUBLIC view
+  // here uses simpler rules:
+  //
+  //   1. If the document type ever reached `Approved` and that record
+  //      has not been superseded by a newer `Rejected` review, count
+  //      it as approved (the approved method chip stays).
+  //   2. Pending count counts ONLY document types whose latest status
+  //      is `Pending` AND whose type does not already have an approved
+  //      record.
+  //
+  // The latest-per-type logic for the worker-action badge is enforced
+  // separately in `workerProfileTaskCount` (Phase 10A-Fix-5). Both
+  // selectors agree that a doc type with any approved record is no
+  // longer pending from the public's perspective.
+  type DocType = WorkerIdentityDocumentType;
+  const latestPerType = new Map<DocType, WorkerVerificationDocument>();
+  const everApprovedTypes = new Set<DocType>();
+  for (const d of own) {
+    if (d.status === 'Approved') everApprovedTypes.add(d.documentType);
+    const prev = latestPerType.get(d.documentType);
+    if (!prev || prev.submittedAt < d.submittedAt) {
+      latestPerType.set(d.documentType, d);
+    }
+  }
+
+  // All approved docs (any record, not just latest) — used to populate
+  // the dedupe-by-type approved methods list.
   const approved = own.filter((d) => d.status === 'Approved');
-  const pendingCount = own.filter(
-    (d) => d.status === 'Pending' || d.status === 'NeedsMoreInfo',
-  ).length;
 
   // Pick the most-recent approved document as the primary method.
   const primary =
@@ -585,21 +614,32 @@ export function getWorkerVerificationSummary(
     });
   }
 
+  // Phase 10A-Fix-6 — public-facing pending count: types whose latest
+  // status is Pending AND that have never been approved. A worker who
+  // resubmits a CCCD that was previously approved doesn't generate a
+  // pending chip on employer surfaces — the approved method is still
+  // in force.
+  let pendingCount = 0;
+  for (const [type, doc] of latestPerType.entries()) {
+    if (everApprovedTypes.has(type)) continue;
+    if (doc.status === 'Pending') pendingCount += 1;
+  }
+
   const badges: WorkerTrustBadge[] = [];
   if (worker.verifications.includes('phone')) badges.push('PhoneVerified');
-  if (approved.some((d) => d.documentType === 'NationalId')) {
+  if (everApprovedTypes.has('NationalId')) {
     badges.push('IdentityVerified');
   }
-  if (approved.some((d) => d.documentType === 'StudentCard')) {
+  if (everApprovedTypes.has('StudentCard')) {
     badges.push('StudentVerified');
   }
-  if (approved.some((d) => d.documentType === 'DriverLicense')) {
+  if (everApprovedTypes.has('DriverLicense')) {
     badges.push('DriverLicenseVerified');
   }
 
   return {
     workerId: worker.id,
-    identityVerified: approved.length > 0,
+    identityVerified: approvedMethods.length > 0,
     primaryMethod: primary?.documentType,
     primaryMethodLabel: primary
       ? workerDocLabel(primary.documentType)
