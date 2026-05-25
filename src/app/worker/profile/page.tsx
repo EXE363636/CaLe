@@ -16,6 +16,7 @@ import { Badge, Card, Button, Input, Textarea, StarRating } from '@/components/u
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { averageRating } from '@/domain/rating';
+import { skillBadgeLabel } from '@/domain/skillScore';
 import { formatDateVN } from '@/lib/format';
 import { showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
@@ -126,6 +127,45 @@ function WorkerProfileContent() {
               <StatRow label="Tham gia" value={formatDateVN(worker.createdAt)} />
             </dl>
           </Card>
+
+          {/* Phase 10A-Fix-9 — per-job-type skill scores. Worker can
+              see how they're rated separately for each category they've
+              worked in. Hidden when there are no scores yet. */}
+          {(worker.skillScores ?? []).length > 0 && (
+            <Card>
+              <h2 className="mb-3 font-semibold text-gray-900">
+                Kỹ năng theo loại việc
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {[...(worker.skillScores ?? [])]
+                  .sort((a, b) =>
+                    b.lastUpdatedAt.localeCompare(a.lastUpdatedAt),
+                  )
+                  .map((entry) => (
+                    <li
+                      key={entry.category}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate font-medium text-gray-900">
+                          {entry.category}
+                        </p>
+                        <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-800">
+                          {entry.score} điểm · {skillBadgeLabel(entry)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-gray-500">
+                        Hoàn thành: {entry.completedCount} ca
+                      </p>
+                    </li>
+                  ))}
+              </ul>
+              <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
+                Điểm kỹ năng tách riêng với điểm uy tín tổng. Nhà tuyển
+                dụng xem điểm kỹ năng phù hợp với loại ca khi duyệt.
+              </p>
+            </Card>
+          )}
         </aside>
       </div>
     </div>

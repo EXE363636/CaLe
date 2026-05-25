@@ -3340,3 +3340,121 @@ Re-run this audit after any change to:
 - `src/app/worker/dashboard/page.tsx` — `repTimeline`, the quota modal, and the cancelled-by-employer dashboard section.
 - `src/app/employer/dashboard/page.tsx` — `<EmployerPenaltyLedger>` and the payments modal.
 - HANDOFF Section 11 history-record rule.
+
+
+## Phase 10A-Fix-9 — Lock applicant actions after shift starts + skill-score foundation
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-9 — NEEDS MANUAL VISUAL QA**.
+
+This phase blocks Pending applicants from being approved after the shift has started and lays the per-job-type skill-score foundation alongside the platform-wide reputation score.
+
+### A. Lock-after-start — store gate
+
+1. Run `npm run dev`. Clear localStorage, refresh.
+2. Use DevTools → Application → Local Storage → `cale.shifts` to find a shift whose start datetime is in the past (or set `date`/`startTime` on a published shift to land in the past). Make sure there's at least one Pending application against it.
+3. Log in as the employer. Open `/employer/shifts/[id]` for that shift.
+4. The Pending applicant row's actions area should show a neutral badge "Đơn đã hết hạn xử lý" plus the helper line "Ca đã bắt đầu nên không thể duyệt thêm ứng viên." Approve/Reject buttons must NOT render.
+5. (Defence-in-depth) Use DevTools console: `useApplicationStore.getState().approve('app-id')` against the Pending application. Result: `{ ok: false, error: 'SHIFT_ALREADY_STARTED' }`. No state change.
+6. Repeat with a shift in each of `InProgress`, `AwaitingConfirmation`, `Completed`, `Cancelled`, `Expired` even if the start datetime hasn't passed — same lock applies.
+7. For a future shift in `Published`, the Approve/Reject buttons render normally.
+
+### B. High-risk job soft warning
+
+1. Create or pick a shift with `jobType` set to `Thu ngân` or `Bảo vệ`.
+2. Open the employer shift detail page. Above the applicant list a soft amber warning card must appear with the heading "⚠ Công việc rủi ro cao" and the body "Công việc này có rủi ro cao. Nên chọn người đã xác minh danh tính, có uy tín cao và có lịch sử làm việc phù hợp."
+3. Confirm: applicants are still accepted normally — the warning is informational, not a hard block.
+4. Repeat with a `Phục vụ` / `Pha chế` / `Kho vận` shift — no warning shown.
+5. Repeat with `Phát tờ rơi` / `Hỗ trợ sự kiện` — no warning shown.
+
+### C. Per-category skill score chip on applicant cards
+
+1. As the employer, open a shift detail page.
+2. Each applicant row's verification chip area now includes "Phù hợp công việc: N điểm · {Mới|Khá|Tốt|Nổi bật}" when the worker has rated shifts in the same `jobType`, OR "Phù hợp công việc: Mới" when they have no rating yet for the category.
+3. Confirm a worker who has confirmed shifts in a different category shows "Mới" for the current category — score is per-category, not global.
+
+### D. Skill score updates after rating
+
+1. Find a worker with at least one `CheckedOut` application on a shift.
+2. Open the shift detail as the employer, click "Xác nhận hoàn thành" + submit a rating (e.g. 5 stars).
+3. Open the worker's profile (`/worker/profile` while logged in as that worker, or `WorkerProfileModal` from the employer side).
+4. The new "Kỹ năng theo loại việc" card lists the shift's `jobType` with score 100 (`stars * 20`), badge "Nổi bật", `Hoàn thành: 1 ca`.
+5. Confirm a second shift of the same `jobType` with a 3-star rating — the score updates to round(0.7 × 100 + 0.3 × 60) = 88, completedCount becomes 2.
+6. Confirm reputation also went up by +5 (Phase 6 rule) — the two are stored separately on the worker.
+
+### E. Privacy non-regression
+
+1. Open DevTools → Inspector on the employer applicant list and the worker profile.
+2. The skill chip shows only category, score, completed count. No `fullIdentifier`, no document URLs, no admin notes.
+3. The risk-warning card shows only the standardised Vietnamese sentence — no per-worker data.
+
+### F. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/applicationStore.ts` — `approve()` and `confirmCompletion()`.
+- `src/domain/skillScore.ts` — risk classification + score formula + badge tiers.
+- `src/components/user/WorkerSummaryRow.tsx` — applicant chip.
+- `src/app/employer/shifts/[id]/page.tsx` — `shiftStarted` memo + `ApplicationActionButtons` Pending branch + risk warning.
+- `src/app/worker/profile/page.tsx` — "Kỹ năng theo loại việc" card.
+- HANDOFF Section 11 lock-after-start + reputation-vs-skill rules.
+
+
+## Phase 10A-Fix-10 — Expire pending applications when shift starts
+
+Last reviewed: **2026-05-25, Phase 10A-Fix-10 — NEEDS MANUAL VISUAL QA**.
+
+This phase introduces the new `'Expired'` ApplicationStatus and the centralized expiry action that runs on dashboard mount, on shift-detail mount, and inside `applicationStore.approve()` itself. Worker is never penalised; the cleanup is fully store-driven.
+
+### A. Employer dashboard — stale pending cleanup
+
+1. Run `npm run dev`. Clear localStorage, refresh.
+2. Use DevTools → Application → Local Storage → `cale.shifts` to find a shift whose start datetime is in the past, OR set `date`/`startTime` on a published shift to land in the past. Make sure there's at least one Pending application against it.
+3. Log in as the employer and visit `/employer/dashboard`.
+4. The "Đơn ứng tuyển chờ duyệt" stat tile and the corresponding section in the main column must NOT include the stale Pending record. The "Đơn chờ duyệt" stat count drops to reflect only future-shift Pending records. The nav badge updates accordingly.
+5. Open `cale.applications` in DevTools — the affected record now has `status: "Expired"`, `expiredAt`, and `expiredReason: "Ca đã bắt đầu trước khi đơn được duyệt."`
+
+### B. Worker dashboard — expired application surface
+
+1. Log in as the affected worker and visit `/worker/dashboard`.
+2. The expired application no longer appears in the "Đơn đã ứng tuyển" Pending list.
+3. A new "Đơn ứng tuyển đã hết hạn" section appears with up to 5 most-recent expired records (sorted by `expiredAt` desc).
+4. Each card shows the shift title, date/time, badge "Đã hết hạn", and the helper "Ca đã bắt đầu trước khi đơn của bạn được duyệt. Bạn không bị trừ điểm uy tín hoặc hạn mức hủy."
+5. Clicking the card deep-links to `/shifts/{id}` where the worker can see the same expiry note via the application status row.
+6. Verify that the worker's `reputationScore` is unchanged and `cancellationHistory` is unchanged after expiry.
+
+### C. Notification
+
+1. After triggering expiry, open the worker's notification bell.
+2. A new "Đơn ứng tuyển đã hết hạn" notification is present with the title verbatim and body "Ca {shiftTitle} đã bắt đầu trước khi đơn của bạn được duyệt. Bạn không bị trừ điểm uy tín hoặc hạn mức hủy."
+3. Clicking the notification navigates to `/shifts/{id}`.
+4. Reload the page or navigate to another dashboard — the same worker does NOT receive a second `'ApplicationExpired'` notification (idempotent).
+
+### D. Approve-after-start cleanup
+
+1. Set up a Pending application against a shift whose start datetime is in the past.
+2. As an employer, open DevTools → Console and run `useApplicationStore.getState().approve('app-id')`.
+3. Result: `{ ok: false, error: 'SHIFT_ALREADY_STARTED' }`. The application is now `'Expired'`, not `'Pending'`. Notification was fired.
+4. Repeat the same call — same error result, no new notification, no new state change (idempotent).
+
+### E. Worker shift detail
+
+1. Visit `/shifts/{id}` for a shift where the current worker has an Expired application.
+2. The "Apply section" shows the Expired branch: badge "Đã hết hạn" + helper "Ca đã bắt đầu nên đơn ứng tuyển không còn hiệu lực. Bạn không bị trừ điểm uy tín hoặc hạn mức hủy." No cancel button, no apply button.
+
+### F. Privacy non-regression
+
+1. Inspect the rendered HTML of all the new surfaces.
+2. Confirm only the public-safe expiry fields appear (`expiredReason`, `expiredAt`, shift title). No `fullIdentifier`, image URLs, or admin notes.
+
+### G. Re-run triggers
+
+Re-run this audit after any change to:
+
+- `src/stores/applicationStore.ts` — `expirePendingApplicationsForStartedShifts` and `approve()`.
+- `src/domain/applicationExpiry.ts` — predicate + planner.
+- `src/lib/useLifecycleSync.ts` — trigger wiring.
+- `src/components/layout/AppHydrator.tsx` — boot pass wiring.
+- `src/components/forms/ApplicationActions.tsx` — Expired branch.
+- `src/app/worker/dashboard/page.tsx` — `recentlyExpired` section.
+- `src/app/shifts/[id]/page.tsx` — `useLifecycleSync` usage.
+- HANDOFF Section 11 pending-expiry rule.

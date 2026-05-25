@@ -156,6 +156,7 @@ export const vi: Record<string, string> = {
   'application.status.Rejected': 'Bị từ chối',
   'application.status.CancelledByWorker': 'Người làm đã huỷ',
   'application.status.CancelledByEmployer': 'Đã hủy bởi nhà tuyển dụng',
+  'application.status.Expired': 'Đã hết hạn',
   'application.status.CancellationRequested': 'Yêu cầu huỷ',
   'application.status.NoShow': 'Vắng mặt',
   'application.status.CheckedIn': 'Đã check-in',
@@ -188,6 +189,7 @@ export const vi: Record<string, string> = {
   'notification.kind.EmployerFeedbackReceived': 'Đánh giá từ người làm',
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
   'notification.kind.EmployerCancelledShift': 'Ca làm đã bị hủy bởi nhà tuyển dụng',
+  'notification.kind.ApplicationExpired': 'Đơn ứng tuyển đã hết hạn',
   // Phase 9M — affordance label on dashboard notification cards.
   'notification.viewDetail': 'Xem chi tiết',
 
@@ -290,6 +292,8 @@ export const vi: Record<string, string> = {
   'feedback.error.generic': 'Có lỗi xảy ra. Vui lòng thử lại.',
   'feedback.error.applicationNotFound': 'Không tìm thấy đơn ứng tuyển.',
   'feedback.error.wrongStatus': 'Trạng thái hiện tại không cho phép thao tác này.',
+  'feedback.error.shiftAlreadyStarted':
+    'Ca đã bắt đầu, không thể duyệt thêm ứng viên.',
   'feedback.error.reasonRequired': 'Vui lòng nhập lý do.',
   'feedback.error.positionsBelowFilled':
     'Số người tuyển không thể nhỏ hơn số người đã được duyệt.',

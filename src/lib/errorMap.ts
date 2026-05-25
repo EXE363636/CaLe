@@ -35,6 +35,7 @@ export function toastFromStoreError(code: string | undefined | null): string {
     // applicationStore — cancelByWorker()
     APPLICATION_NOT_FOUND: t('feedback.error.applicationNotFound'),
     WRONG_STATUS: t('feedback.error.wrongStatus'),
+    SHIFT_ALREADY_STARTED: t('feedback.error.shiftAlreadyStarted'),
     REASON_REQUIRED: t('feedback.error.reasonRequired'),
     QUOTA_EXCEEDED: t('cancel.confirm.quotaBlocked'),
 

@@ -15,6 +15,7 @@ import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
+import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
@@ -35,6 +36,10 @@ export default function ShiftDetailPage({ params }: Props) {
 
 // Inner component: receives a guaranteed non-null Shift
 function ShiftDetailContent({ shift }: { shift: Shift }) {
+  // Phase 10A-Fix-10: roll lifecycle (incl. expire stale Pending) on
+  // mount so a worker arriving via a notification deep-link sees the
+  // correct application status without needing a hard refresh.
+  useLifecycleSync();
   const users = useUserStore((s) => s.users);
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const applications = useApplicationStore((s) => s.applications);

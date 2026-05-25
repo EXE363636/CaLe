@@ -171,6 +171,21 @@ function WorkerDashboardContent() {
     [myApps],
   );
 
+  // Phase 10A-Fix-10: keep recently-expired applications visible so
+  // the worker has a clickable surface for the expiry reason and the
+  // no-penalty note. The notification bell also deep-links to
+  // `/shifts/{id}` but the dashboard is the worker's home.
+  const recentlyExpired = useMemo(
+    () =>
+      myApps
+        .filter((a) => a.status === 'Expired')
+        .sort((a, b) =>
+          (b.expiredAt ?? '').localeCompare(a.expiredAt ?? ''),
+        )
+        .slice(0, 5),
+    [myApps],
+  );
+
   // Phase 10A-Fix-7: keep recently-cancelled-by-employer applications
   // visible on the dashboard so the worker has a clickable surface for
   // the cancellation reason + protection note. The notification bell
@@ -659,6 +674,49 @@ function WorkerDashboardContent() {
                         <p className="mt-2 text-xs leading-relaxed text-gray-500">
                           Bạn không bị trừ điểm uy tín hoặc hạn mức hủy
                           vì ca do nhà tuyển dụng hủy.
+                        </p>
+                      </Card>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Phase 10A-Fix-10: recently-expired applications. Pending
+              applications that the employer never approved before the
+              shift started land here. Each card links to the shift
+              detail where the worker can see the same expiry note. */}
+          {recentlyExpired.length > 0 && (
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+                Đơn ứng tuyển đã hết hạn
+              </h2>
+              <div className="flex flex-col gap-3">
+                {recentlyExpired.map((a) => {
+                  const shift = getShift(a.shiftId);
+                  if (!shift) return null;
+                  return (
+                    <Link key={a.id} href={`/shifts/${shift.id}`}>
+                      <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-gray-900">
+                              {shift.title}
+                            </p>
+                            <p className="mt-0.5 text-sm text-gray-500">
+                              {formatDateVN(shift.date)} •{' '}
+                              {formatTimeVN(shift.startTime)}–
+                              {formatTimeVN(shift.endTime)}
+                            </p>
+                          </div>
+                          <Badge tone="neutral">
+                            {t('application.status.Expired')}
+                          </Badge>
+                        </div>
+                        <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                          Ca đã bắt đầu trước khi đơn của bạn được duyệt.
+                          Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.
                         </p>
                       </Card>
                     </Link>
@@ -1674,6 +1732,7 @@ function badgeToneFor(status: Application['status']): 'success' | 'warning' | 'd
     case 'NoShow': return 'danger';
     case 'CancelledByWorker': return 'neutral';
     case 'CancelledByEmployer': return 'danger';
+    case 'Expired': return 'neutral';
     default: return 'neutral';
   }
 }

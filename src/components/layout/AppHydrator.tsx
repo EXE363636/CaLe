@@ -64,6 +64,12 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     // during a single session, but the boot pass ensures the very first
     // render is consistent. No-op when nothing has moved.
     useShiftStore.getState().syncLifecycle();
+    // Phase 10A-Fix-10: also flip stale Pending applications to
+    // `'Expired'` so the very first dashboard paint after page reload
+    // reflects the right state. Idempotent.
+    useApplicationStore
+      .getState()
+      .expirePendingApplicationsForStartedShifts();
 
     // Validate persisted auth: if currentUserId points to a missing or
     // suspended user, force a logout so navigation/role chrome doesn't

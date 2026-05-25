@@ -31,6 +31,8 @@ import {
   classifyCancellation,
 } from '@/domain/reputation';
 import { hasScheduleConflict } from '@/domain/scheduleConflict';
+import { applyRatingToSkillScores } from '@/domain/skillScore';
+import { planExpirePendingApplications } from '@/domain/applicationExpiry';
 import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
 import type {
@@ -65,7 +67,13 @@ export type ApplyError =
 
 export type ApplicationActionError =
   | 'APPLICATION_NOT_FOUND'
-  | 'WRONG_STATUS';
+  | 'WRONG_STATUS'
+  /**
+   * Phase 10A-Fix-9: a Pending applicant cannot be approved after the
+   * shift has started. The employer dashboard / shift detail surfaces
+   * the corresponding "Đơn đã hết hạn xử lý" badge instead.
+   */
+  | 'SHIFT_ALREADY_STARTED';
 
 /** Payload for confirming a shift completion: 1–5 stars + optional feedback. */
 export interface NewRating {
@@ -164,6 +172,20 @@ interface ApplicationStore {
     reason: string,
   ): Result<Application, ApplicationActionError>;
   markNoShow(applicationId: string): Result<Application, ApplicationActionError>;
+
+  /**
+   * Phase 10A-Fix-10 — find every `Pending` application whose shift
+   * has already started (or is otherwise no longer recruitable) and
+   * flip it to `'Expired'`. Idempotent — repeated calls produce no
+   * further state changes and emit no duplicate notifications because
+   * we filter on `status === 'Pending'` before touching anything.
+   *
+   * Returns the list of application IDs that changed in this pass so
+   * callers (or tests) can assert the run was a no-op vs. did work.
+   */
+  expirePendingApplicationsForStartedShifts(nowIso?: string): {
+    expiredIds: string[];
+  };
 
   // Hydration
   hydrateApplications(applications: Application[]): void;
@@ -534,6 +556,29 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       return { ok: false, error: 'WRONG_STATUS' };
     }
 
+    // Phase 10A-Fix-9: a pending applicant must never be approved after
+    // the shift has already started. The shift store may still be in
+    // `'Published'` if the lifecycle sync hasn't promoted it yet, so
+    // we authoritatively check the start datetime here.
+    // Phase 10A-Fix-10: also expire the application inline so callers
+    // who hit this gate don't leave a stale Pending record behind.
+    const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
+    if (Number.isFinite(startMs) && startMs <= Date.now()) {
+      get().expirePendingApplicationsForStartedShifts();
+      return { ok: false, error: 'SHIFT_ALREADY_STARTED' };
+    }
+    // Belt-and-braces: terminal / mid-flight statuses block approval too.
+    if (
+      shift.status === 'InProgress' ||
+      shift.status === 'AwaitingConfirmation' ||
+      shift.status === 'Completed' ||
+      shift.status === 'Cancelled' ||
+      shift.status === 'Expired'
+    ) {
+      get().expirePendingApplicationsForStartedShifts();
+      return { ok: false, error: 'SHIFT_ALREADY_STARTED' };
+    }
+
     const hours = hoursBetween(shift.startTime, shift.endTime);
     const payoutAmount = calculateDeposit(shift.hourlyWage, hours, 1);
 
@@ -741,10 +786,18 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     persistRatings(ratings);
 
     // Reputation: +5 for completion (Req 8.2)
+    // Phase 10A-Fix-9: also update the per-job-type skill score so the
+    // employer applicant view can render "Phù hợp công việc: N điểm".
     patchWorkerScore(app.workerId, (worker) => ({
       reputationScore: applyReputationEvent(worker.reputationScore, { kind: 'Completed' }),
       completedShiftCount: worker.completedShiftCount + 1,
       ratingsReceived: [...worker.ratingsReceived, newRating],
+      skillScores: applyRatingToSkillScores(
+        worker.skillScores,
+        shift.jobType,
+        rating.stars,
+        ts,
+      ),
     }));
 
     // Escrow: Completed -> Released (Req 10.5)
@@ -865,6 +918,49 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     });
 
     return { ok: true, value: updated };
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 10A-Fix-10 — expire stale Pending applications
+  // -------------------------------------------------------------------------
+
+  expirePendingApplicationsForStartedShifts(when) {
+    const at = when ?? nowIso();
+    const shifts = useShiftStore.getState().shifts;
+    const plan = planExpirePendingApplications(
+      get().applications,
+      shifts,
+      at,
+    );
+    if (plan.expiredIds.length === 0) {
+      return { expiredIds: [] };
+    }
+    set({ applications: plan.applications });
+    persistApplications(plan.applications);
+
+    // Index shifts so the notification body can quote the title.
+    const shiftById = new Map<string, typeof shifts[number]>();
+    for (const s of shifts) shiftById.set(s.id, s);
+
+    // One notification per affected worker. The planner only includes
+    // applications that were Pending at this exact tick — any future
+    // call sees them as `'Expired'` and skips them, so we never
+    // duplicate.
+    for (const id of plan.expiredIds) {
+      const app = plan.applications.find((a) => a.id === id);
+      if (!app) continue;
+      const shift = shiftById.get(app.shiftId);
+      const shiftTitle = shift?.title ?? 'ca làm';
+      useNotificationStore.getState().push({
+        userId: app.workerId,
+        kind: 'ApplicationExpired',
+        title: 'Đơn ứng tuyển đã hết hạn',
+        body: `Ca ${shiftTitle} đã bắt đầu trước khi đơn của bạn được duyệt. Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.`,
+        link: shift ? `/shifts/${shift.id}` : '/worker/dashboard',
+      });
+    }
+
+    return { expiredIds: plan.expiredIds };
   },
 
   // -------------------------------------------------------------------------

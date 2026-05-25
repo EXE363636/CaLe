@@ -53,6 +53,14 @@ export type ApplicationStatus =
    * never reappear on a card the worker had no part in cancelling.
    */
   | 'CancelledByEmployer'
+  /**
+   * Phase 10A-Fix-10: terminal state for a `Pending` application that
+   * the employer never approved before the shift started (or the shift
+   * moved into a non-recruitable status). Worker is NOT penalised
+   * — no reputation drop, no quota tick. UI shows "Đã hết hạn" with
+   * the helper "Ca đã bắt đầu nên đơn ứng tuyển không còn hiệu lực."
+   */
+  | 'Expired'
   | 'CancellationRequested'
   | 'NoShow'
   | 'CheckedIn'
@@ -81,7 +89,13 @@ export type NotificationKind =
    * Phase 10A-Fix-7: worker received employer-cancellation protection.
    * Title: "Ca làm đã bị hủy bởi nhà tuyển dụng".
    */
-  | 'EmployerCancelledShift';
+  | 'EmployerCancelledShift'
+  /**
+   * Phase 10A-Fix-10: worker's Pending application expired because
+   * the shift started before the employer approved it.
+   * Title: "Đơn ứng tuyển đã hết hạn".
+   */
+  | 'ApplicationExpired';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -343,6 +357,13 @@ export interface Worker extends BaseUser {
    * back-compat; pre-Fix-7 worker records read this as `[]`.
    */
   protections?: WorkerProtectionRecord[];
+  /**
+   * Phase 10A-Fix-9 — per-job-type skill scores. Separate from
+   * `reputationScore`. Updated when the employer rates a confirmed
+   * shift via `confirmCompletion`. Optional / back-compat: pre-Fix-9
+   * worker records read this as `[]`.
+   */
+  skillScores?: WorkerSkillScore[];
 }
 
 export interface Employer extends BaseUser {
@@ -497,6 +518,14 @@ export interface Application {
    * because Pending applications cancel immediately).
    */
   preCancellationStatus?: 'Approved';
+
+  /**
+   * Phase 10A-Fix-10: when an unapproved Pending application transitions
+   * to `'Expired'` because the shift started, we stamp these so the
+   * worker / employer / admin can audit the lifecycle event later.
+   */
+  expiredAt?: string;
+  expiredReason?: string;
 }
 
 export interface Rating {
@@ -547,6 +576,30 @@ export interface WorkerProtectionRecord {
   reputationPointsRestored: number;
   /** Cancellation quota slots refunded (0 when worker had no recent quota usage). */
   quotaSlotsRefunded: number;
+}
+
+/**
+ * Phase 10A-Fix-9 — per-job-type skill score. Separate from the
+ * platform-wide `reputationScore` so an employer evaluating a worker
+ * for a specific job category sees how the worker has performed on
+ * that exact category, not just their general reputation.
+ *
+ * The score is bounded `[0, 100]`; first rating writes
+ * `stars * 20`, later updates use a weighted average that gives
+ * recent shifts more weight than older ones (see
+ * `src/domain/skillScore.ts`).
+ */
+export interface WorkerSkillScore {
+  /** The shift `jobType` string used as the category key. */
+  category: string;
+  /** Score in [0, 100]; undefined / missing entry means "no data yet". */
+  score: number;
+  /** Number of confirmed shifts that contributed to the score. */
+  completedCount: number;
+  /** Last `stars` value (1-5) used to update the score. */
+  lastRating?: number;
+  /** ISO timestamp of the most recent score update. */
+  lastUpdatedAt: string;
 }
 
 // ---------------------------------------------------------------------------

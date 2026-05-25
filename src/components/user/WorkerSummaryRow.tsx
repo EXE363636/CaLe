@@ -28,6 +28,10 @@ import {
   getWorkerVerificationSummary,
   useVerificationStore,
 } from '@/stores';
+import {
+  getSkillScoreForCategory,
+  skillBadgeLabel,
+} from '@/domain/skillScore';
 import { averageRating } from '@/domain/rating';
 import { t } from '@/i18n/vi';
 import type { ReactNode } from 'react';
@@ -40,6 +44,14 @@ interface WorkerSummaryRowProps {
   /** Bottom action area — typically Approve/Reject + actions. */
   actions?: ReactNode;
   onViewProfile: () => void;
+  /**
+   * Phase 10A-Fix-9 — when set, the row shows a "Phù hợp công việc:
+   * N điểm" chip derived from the worker's per-category skill score
+   * for this `jobType`. Optional so non-employer surfaces (worker
+   * profile preview, admin queue) can keep rendering the row without
+   * an unrelated chip.
+   */
+  jobCategory?: string;
   className?: string;
 }
 
@@ -50,6 +62,7 @@ export function WorkerSummaryRow({
   statusSlot,
   actions,
   onViewProfile,
+  jobCategory,
   className = '',
 }: WorkerSummaryRowProps) {
   const workerDocuments = useVerificationStore((s) => s.workerDocuments);
@@ -57,6 +70,15 @@ export function WorkerSummaryRow({
     () => getWorkerVerificationSummary(worker, workerDocuments),
     [worker, workerDocuments],
   );
+  // Phase 10A-Fix-9: per-category skill score chip. Visible only when
+  // the caller supplies `jobCategory` (e.g. the employer applicant
+  // list passes the shift's `jobType`). Workers with no rating in the
+  // category get a "no data yet" chip so the employer doesn't have to
+  // guess whether the score is missing or just zero.
+  const skillEntry = jobCategory
+    ? getSkillScoreForCategory(worker.skillScores, jobCategory)
+    : undefined;
+  const skillBadge = jobCategory ? skillBadgeLabel(skillEntry) : undefined;
   const avg = averageRating(worker.ratingsReceived);
 
   return (
@@ -103,6 +125,29 @@ export function WorkerSummaryRow({
             {summary.pendingCount > 0 && (
               <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                 {summary.pendingCount} đang chờ duyệt
+              </span>
+            )}
+            {/* Phase 10A-Fix-9: per-category skill score chip (employer
+                applicant view). Always shows — when the worker has no
+                rating in this category yet, the chip reads "Mới" so
+                the employer doesn't see a missing field. */}
+            {jobCategory && (
+              <span
+                className={[
+                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  skillEntry && skillEntry.completedCount > 0
+                    ? 'bg-indigo-50 text-indigo-800'
+                    : 'bg-gray-100 text-gray-600',
+                ].join(' ')}
+                title={
+                  skillEntry && skillEntry.completedCount > 0
+                    ? `Skill score for ${jobCategory}`
+                    : `No data yet for ${jobCategory}`
+                }
+              >
+                {skillEntry && skillEntry.completedCount > 0
+                  ? `Phù hợp công việc: ${skillEntry.score} điểm · ${skillBadge}`
+                  : `Phù hợp công việc: ${skillBadge}`}
               </span>
             )}
           </div>

@@ -123,6 +123,23 @@ export function ApplicationActions({
     );
   }
 
+  if (applicationStatus === 'Expired') {
+    // Phase 10A-Fix-10: Pending applications that the employer never
+    // approved before the shift started land here. No action buttons —
+    // the worker can't cancel something that already expired, and
+    // re-applying to a started shift is blocked separately.
+    return (
+      <div className={['flex flex-col gap-2', className].join(' ')}>
+        <Badge tone="neutral">{t('application.status.Expired')}</Badge>
+        <p className="text-xs text-gray-600">
+          Ca đã bắt đầu nên đơn ứng tuyển không còn hiệu lực. Bạn không
+          bị trừ điểm uy tín hoặc hạn mức hủy.
+        </p>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+      </div>
+    );
+  }
+
   // Not applied yet — show Apply button
   return (
     <div className={['flex flex-col gap-2', className].join(' ')}>

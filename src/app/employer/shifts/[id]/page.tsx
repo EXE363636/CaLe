@@ -19,6 +19,7 @@ import {
   APPROVED_OR_LATER_STATUSES,
   computeEmployerCancellationPenalty,
 } from '@/domain/employerCancellation';
+import { jobCategoryRiskLevel } from '@/domain/skillScore';
 import { shouldMarkNoShow } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError } from '@/lib/toast';
@@ -85,6 +86,25 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
+
+  // Phase 10A-Fix-9: lock applicant approve/reject after the shift
+  // start datetime, in addition to the more obvious terminal states
+  // (`InProgress`, `AwaitingConfirmation`, `Completed`, `Cancelled`,
+  // `Expired`). The same predicate drives the "Đơn đã hết hạn xử lý"
+  // badge inside `ApplicationActionButtons` below.
+  const shiftStarted =
+    new Date(`${shift.date}T${shift.startTime}:00`).getTime() <= Date.now() ||
+    shift.status === 'InProgress' ||
+    shift.status === 'AwaitingConfirmation' ||
+    shift.status === 'Completed' ||
+    shift.status === 'Cancelled' ||
+    shift.status === 'Expired';
+
+  // Phase 10A-Fix-9: surface a soft warning for high-risk job
+  // categories so the employer is reminded to favour verified /
+  // high-reputation workers. Computed live so changes to the job-type
+  // mapping in `src/domain/skillScore.ts` flow through automatically.
+  const riskLevel = jobCategoryRiskLevel(shift.jobType);
 
   function handleApprove(appId: string) {
     setActionLoading(appId);
@@ -432,6 +452,20 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           {t('employer.dashboard.applicants')} ({shiftApps.length})
         </h2>
 
+        {/* Phase 10A-Fix-9: high-risk-job soft warning. Renders above
+            the applicant list so the employer is reminded to favour
+            verified / high-reputation workers. Soft warning only —
+            applicants are not hard-blocked. */}
+        {riskLevel === 'High' && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-medium">⚠ Công việc rủi ro cao</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
+              Công việc này có rủi ro cao. Nên chọn người đã xác minh
+              danh tính, có uy tín cao và có lịch sử làm việc phù hợp.
+            </p>
+          </div>
+        )}
+
         {shiftApps.length === 0 ? (
           <EmptyState
             tone="warm"
@@ -453,6 +487,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 <div key={app.id} className="flex flex-col gap-2">
                   <WorkerSummaryRow
                     worker={worker}
+                    jobCategory={shift.jobType}
                     statusSlot={
                       // Phase 9Z-Fix-1: dropped the inline HelpPopover
                       // next to Approved / Confirmed badges. Manual QA
@@ -476,6 +511,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         loading={actionLoading === app.id}
                         canMarkNoShow={canMarkNoShow}
                         showRating={showRating}
+                        shiftStarted={shiftStarted}
                         onApprove={() => handleApprove(app.id)}
                         onReject={() => handleReject(app.id)}
                         onMarkNoShow={() => handleMarkNoShow(app.id)}
@@ -567,6 +603,7 @@ function ApplicationActionButtons({
   loading,
   canMarkNoShow,
   showRating,
+  shiftStarted,
   onApprove,
   onReject,
   onMarkNoShow,
@@ -579,6 +616,11 @@ function ApplicationActionButtons({
   loading: boolean;
   canMarkNoShow: boolean;
   showRating: boolean;
+  /** Phase 10A-Fix-9 — true when the shift has started or is in a
+   *  terminal state. Pending applicants in this case can no longer be
+   *  approved or rejected; the row shows a neutral "đã hết hạn xử lý"
+   *  badge instead of the action buttons. */
+  shiftStarted: boolean;
   onApprove: () => void;
   onReject: () => void;
   onMarkNoShow: () => void;
@@ -615,6 +657,18 @@ function ApplicationActionButtons({
   }
 
   if (application.status === 'Pending') {
+    if (shiftStarted) {
+      // Phase 10A-Fix-9: shift has started or is in a terminal state.
+      // Pending applicants can no longer be processed.
+      return (
+        <div className="flex flex-col gap-1">
+          <Badge tone="neutral">Đơn đã hết hạn xử lý</Badge>
+          <p className="text-[11px] text-gray-500">
+            Ca đã bắt đầu nên không thể duyệt thêm ứng viên.
+          </p>
+        </div>
+      );
+    }
     return (
       <>
         <Button size="sm" variant="primary" onClick={onApprove} loading={loading}>
@@ -685,6 +739,8 @@ function badgeToneForApp(
       return 'neutral';
     case 'CancelledByEmployer':
       return 'danger';
+    case 'Expired':
+      return 'neutral';
     default:
       return 'neutral';
   }
