@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN } from '@/components/ui';
+import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN, HelpPopover } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { formatVND } from '@/lib/format';
 import {
@@ -10,7 +10,13 @@ import {
   parseVNNumberInput,
 } from '@/lib/numberVN';
 import { hoursBetween, calculateDeposit } from '@/domain/deposit';
+import {
+  EVIDENCE_REQUIREMENT_VALUES,
+  suggestedEvidenceForJobType,
+} from '@/domain/evidence';
+import { jobCategoryRiskLevel } from '@/domain/skillScore';
 import { isRequired } from '@/lib/validate';
+import type { EvidenceRequirement } from '@/types';
 
 export interface ShiftFormValues {
   title: string;
@@ -29,6 +35,14 @@ export interface ShiftFormValues {
   onSiteContactName: string;
   onSiteContactPhone: string;
   requiresVerifiedDocumentOnArrival: boolean;
+  /**
+   * Phase 10C — post-shift evidence requirement chosen by the
+   * employer. Always one of the five `EvidenceRequirement` literals;
+   * pre-seeded from `suggestedEvidenceForJobType(jobType)` on first
+   * paint and re-seeded whenever the employer changes the job
+   * category and hasn't manually overridden the picker yet.
+   */
+  evidenceRequirement: EvidenceRequirement;
 }
 
 interface ShiftFormProps {
@@ -90,6 +104,26 @@ const DEFAULT_VALUES: ShiftFormValues = {
   onSiteContactName: '',
   onSiteContactPhone: '',
   requiresVerifiedDocumentOnArrival: false,
+  // Phase 10C — seeded from `suggestedEvidenceForJobType('')` which
+  // returns the safe default `'RequiredHandoverChecklist'`. The
+  // picker re-seeds itself the first time the employer chooses a
+  // job category (see the `set('jobType', ...)` branch below).
+  evidenceRequirement: suggestedEvidenceForJobType(''),
+};
+
+/**
+ * Phase 10C — minimum evidence level allowed for high-risk jobs. The
+ * picker disables anything below this rank for `'High'` risk job
+ * categories; the validator also rejects an out-of-band submit.
+ */
+const HIGH_RISK_MIN_RANK = 3; // 'RequiredHandoverChecklist' (and above)
+
+const EVIDENCE_RANK: Record<EvidenceRequirement, number> = {
+  None: 0,
+  ChecklistOnly: 1,
+  OptionalPhoto: 2,
+  RequiredHandoverChecklist: 3,
+  RequiredPhoto: 4,
 };
 
 type FormErrors = Partial<Record<keyof ShiftFormValues, string>>;
@@ -107,11 +141,30 @@ export function ShiftForm({
   workplaceImageRequired = false,
   onValuesChange,
 }: ShiftFormProps) {
-  const [values, setValues] = useState<ShiftFormValues>({
-    ...DEFAULT_VALUES,
-    ...initialValues,
+  const [values, setValues] = useState<ShiftFormValues>(() => {
+    const seeded = { ...DEFAULT_VALUES, ...initialValues };
+    // Phase 10C — when the form opens with a `jobType` already in
+    // place (the new-shift page doesn't pass one today, but edit
+    // flows might in the future), pre-seed `evidenceRequirement`
+    // from the suggestion so the picker reflects the same default
+    // the chip points to.
+    if (seeded.jobType && !initialValues?.evidenceRequirement) {
+      seeded.evidenceRequirement = suggestedEvidenceForJobType(
+        seeded.jobType,
+      );
+    }
+    return seeded;
   });
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Phase 10C — has the employer overridden the suggested evidence
+  // requirement? When `false`, changing `jobType` re-seeds the picker
+  // to the new suggestion. Once the employer manually picks an option
+  // we stop re-seeding so their choice survives subsequent jobType
+  // edits.
+  const [evidenceTouched, setEvidenceTouched] = useState<boolean>(
+    Boolean(initialValues?.evidenceRequirement),
+  );
 
   // Phase 6: keep `positionsTotal` editable as a string so the user can
   // briefly clear the field while typing without it snapping back to 0.
@@ -131,6 +184,28 @@ export function ShiftForm({
   function set<K extends keyof ShiftFormValues>(key: K, value: ShiftFormValues[K]) {
     setValues((prev) => {
       const next = { ...prev, [key]: value };
+      // Phase 10C — when the employer changes the job category and
+      // hasn't manually picked an evidence option yet, re-seed the
+      // picker to the new suggestion so the chip and the selected
+      // radio stay in sync. If the new risk level is `High` and the
+      // current value falls below the high-risk minimum, we lift the
+      // selection to the suggestion regardless of the touched flag —
+      // the picker UI also disables sub-min options so this branch
+      // mirrors what a user could click anyway.
+      if (key === 'jobType') {
+        const newJobType = value as string;
+        const suggestion = suggestedEvidenceForJobType(newJobType);
+        const risk = jobCategoryRiskLevel(newJobType);
+        const currentRank = EVIDENCE_RANK[next.evidenceRequirement];
+        if (!evidenceTouched) {
+          next.evidenceRequirement = suggestion;
+        } else if (
+          risk === 'High' &&
+          currentRank < HIGH_RISK_MIN_RANK
+        ) {
+          next.evidenceRequirement = suggestion;
+        }
+      }
       // Phase 10A-Fix-3 — fire the live snapshot for the parent's
       // readiness checklist. We use a microtask so the callback sees
       // the post-update state without triggering React's "setState in
@@ -140,6 +215,11 @@ export function ShiftForm({
       }
       return next;
     });
+    // Track whether the employer has manually chosen an evidence
+    // option so jobType changes don't keep overriding their pick.
+    if (key === 'evidenceRequirement') {
+      setEvidenceTouched(true);
+    }
     // Clear error on change
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
@@ -180,6 +260,19 @@ export function ShiftForm({
     // Company without an approved profile workplace photo.
     if (workplaceImageRequired && !isRequired(values.workplaceImageLabel).ok) {
       errs.workplaceImageLabel = t('error.workplaceImage.required');
+    }
+
+    // Phase 10C — high-risk gating. When the chosen job category
+    // resolves to `'High'` risk, the evidence picker must be at
+    // `'RequiredHandoverChecklist'` or above. The picker UI already
+    // disables sub-min options; this validator is the belt-and-braces
+    // check so a stale form state can't bypass the rule.
+    if (values.jobType) {
+      const risk = jobCategoryRiskLevel(values.jobType);
+      const rank = EVIDENCE_RANK[values.evidenceRequirement];
+      if (risk === 'High' && rank < HIGH_RISK_MIN_RANK) {
+        errs.evidenceRequirement = t('error.evidence.tooLowForHighRisk');
+      }
     }
 
     return errs;
@@ -412,6 +505,19 @@ export function ShiftForm({
             </span>
           </label>
         </div>
+
+        {/* Phase 10C — post-shift evidence requirement picker. Five
+            radio rows; the picker disables the three lower options for
+            high-risk job categories so the rank can never drop below
+            'RequiredHandoverChecklist'. The "Hệ thống đề xuất" chip
+            sits next to the option returned by
+            `suggestedEvidenceForJobType(jobType)`. */}
+        <EvidenceFieldset
+          jobType={values.jobType}
+          value={values.evidenceRequirement}
+          error={errors.evidenceRequirement}
+          onChange={(next) => set('evidenceRequirement', next)}
+        />
       </div>
 
       {/* Live deposit total */}
@@ -439,5 +545,155 @@ export function ShiftForm({
         {submitLabel}
       </Button>
     </form>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10C — Evidence requirement fieldset
+// ---------------------------------------------------------------------------
+
+interface EvidenceFieldsetProps {
+  jobType: string;
+  value: EvidenceRequirement;
+  error?: string;
+  onChange: (next: EvidenceRequirement) => void;
+}
+
+/**
+ * Five-radio picker for `evidenceRequirement`. Renders one row per
+ * `EVIDENCE_REQUIREMENT_VALUES` entry with its Vietnamese label and a
+ * one-line helper. The "Hệ thống đề xuất" chip sits next to the
+ * option returned by `suggestedEvidenceForJobType(jobType)` whenever
+ * `jobType` is non-empty; high-risk job categories disable any option
+ * below `'RequiredHandoverChecklist'` so the rank can never drop
+ * below the gate. Includes a privacy warning beginning with "Không
+ * yêu cầu chụp khách hàng …" and a `<HelpPopover>` explaining how to
+ * choose between levels.
+ */
+function EvidenceFieldset({
+  jobType,
+  value,
+  error,
+  onChange,
+}: EvidenceFieldsetProps) {
+  const suggestion = jobType
+    ? suggestedEvidenceForJobType(jobType)
+    : undefined;
+  const isHighRisk = jobType
+    ? jobCategoryRiskLevel(jobType) === 'High'
+    : false;
+
+  function isOptionDisabled(option: EvidenceRequirement): boolean {
+    if (!isHighRisk) return false;
+    return EVIDENCE_RANK[option] < HIGH_RISK_MIN_RANK;
+  }
+
+  return (
+    <fieldset className="md:col-span-2 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+      {/*
+        Per the HTML5 spec, `<legend>` must be a direct child of
+        `<fieldset>` for assistive tech to associate it as the
+        group's accessible name. We keep the legend as the first
+        child and host the `<HelpPopover>` inline inside it; the
+        popover itself renders a `<button>` (phrasing content,
+        valid inside a legend) and portals the modal via
+        `document.body`.
+      */}
+      <legend className="mb-1 inline-flex flex-wrap items-center gap-2 px-1 text-sm font-semibold text-orange-900">
+        <span>{t('shiftForm.evidence.section.title')}</span>
+        <HelpPopover
+          title={t('help.evidence.title')}
+          description={t('help.evidence.description')}
+        />
+      </legend>
+      <p className="mb-3 text-xs text-orange-800/80">
+        {t('shiftForm.evidence.section.intro')}
+      </p>
+
+      <ul className="flex flex-col gap-2">
+        {EVIDENCE_REQUIREMENT_VALUES.map((option) => {
+          const disabled = isOptionDisabled(option);
+          const isSuggested = suggestion === option;
+          const isSelected = value === option;
+          return (
+            <li key={option}>
+              <label
+                className={[
+                  'flex items-start gap-3 rounded-lg border px-3 py-2 text-sm transition-colors',
+                  disabled
+                    ? 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
+                    : isSelected
+                    ? 'cursor-pointer border-orange-400 bg-white text-gray-900 shadow-sm'
+                    : 'cursor-pointer border-gray-200 bg-white text-gray-800 hover:border-orange-300',
+                ].join(' ')}
+              >
+                <input
+                  type="radio"
+                  name="shiftForm-evidenceRequirement"
+                  value={option}
+                  className="mt-1 h-4 w-4 accent-orange-500 disabled:cursor-not-allowed"
+                  checked={isSelected}
+                  disabled={disabled}
+                  onChange={() => {
+                    if (!disabled) onChange(option);
+                  }}
+                  aria-describedby={
+                    error && isSelected
+                      ? 'shiftForm-evidence-error'
+                      : undefined
+                  }
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">
+                      {t(`evidence.requirement.${option}`)}
+                    </span>
+                    {isSuggested && (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                        {t('evidence.suggestedChip')}
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    className={[
+                      'mt-0.5 text-xs leading-relaxed',
+                      disabled ? 'text-gray-400' : 'text-gray-500',
+                    ].join(' ')}
+                  >
+                    {t(`evidence.helper.${option}`)}
+                  </p>
+                </div>
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Privacy warning — Vietnamese reminder so employers don't ask
+          for photos of customers, ID documents, sensitive invoices, or
+          confidential goods. */}
+      <p
+        className="mt-3 rounded-md bg-white px-3 py-2 text-xs leading-relaxed text-orange-900 ring-1 ring-orange-200"
+        role="note"
+      >
+        {t('evidence.privacy.warning')}
+      </p>
+
+      {/* High-risk note + validator error. */}
+      {isHighRisk && (
+        <p className="mt-2 text-xs text-amber-800">
+          {t('shiftForm.evidence.highRiskNote')}
+        </p>
+      )}
+      {error && (
+        <p
+          id="shiftForm-evidence-error"
+          role="alert"
+          className="mt-2 text-xs text-red-600"
+        >
+          {error}
+        </p>
+      )}
+    </fieldset>
   );
 }

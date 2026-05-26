@@ -162,6 +162,7 @@ export const vi: Record<string, string> = {
   'application.status.CheckedIn': 'Đã check-in',
   'application.status.CheckedOut': 'Đã check-out',
   'application.status.Confirmed': 'Đã xác nhận',
+  'application.status.Disputed': 'Đang khiếu nại',
 
   // -------------------------------------------------------------------------
   // Dispute statuses
@@ -190,6 +191,11 @@ export const vi: Record<string, string> = {
   'notification.kind.DisputeResolved': 'Tranh chấp đã giải quyết',
   'notification.kind.EmployerCancelledShift': 'Ca làm đã bị hủy bởi nhà tuyển dụng',
   'notification.kind.ApplicationExpired': 'Đơn ứng tuyển đã hết hạn',
+  'notification.kind.DisputeFiled': 'Nhà tuyển dụng đang khiếu nại ca làm',
+  'notification.kind.DisputeOpened': 'Có khiếu nại mới cần xử lý',
+  'notification.kind.AutoReleaseSettled': 'Tự động giải ngân tiền công',
+  'notification.kind.ShiftStarted': 'Ca làm đã bắt đầu',
+  'notification.kind.ShiftEnded': 'Ca làm đã kết thúc',
   // Phase 9M — affordance label on dashboard notification cards.
   'notification.viewDetail': 'Xem chi tiết',
 
@@ -1434,6 +1440,198 @@ export const vi: Record<string, string> = {
     'Chưa có ảnh địa điểm làm việc đã xác minh.',
   'employer.profile.firstSet.legacy':
     'Chỉ áp dụng cho tài khoản cũ chưa có loại tài khoản. Tài khoản đăng ký mới đã có loại tài khoản từ bước đăng ký.',
+
+  // -------------------------------------------------------------------------
+  // Phase 10C — Evidence requirement labels, helpers, and copy
+  // -------------------------------------------------------------------------
+  'evidence.requirement.None': 'Không cần bằng chứng',
+  'evidence.requirement.ChecklistOnly': 'Chỉ cần checklist hoàn thành',
+  'evidence.requirement.OptionalPhoto': 'Có thể đính kèm ảnh bàn giao',
+  'evidence.requirement.RequiredPhoto': 'Bắt buộc đính kèm ảnh bàn giao',
+  'evidence.requirement.RequiredHandoverChecklist':
+    'Bắt buộc checklist + ghi chú bàn giao',
+
+  'evidence.helper.None': 'Phù hợp công việc nhẹ, không cần bàn giao.',
+  'evidence.helper.ChecklistOnly':
+    'Người làm xác nhận đã hoàn thành các mục.',
+  'evidence.helper.OptionalPhoto':
+    'Khuyến khích ảnh để minh chứng nếu cần.',
+  'evidence.helper.RequiredPhoto':
+    'Bắt buộc gửi ảnh khi check-out.',
+  'evidence.helper.RequiredHandoverChecklist':
+    'Cần đầy đủ checklist và ghi chú bàn giao.',
+
+  'evidence.privacy.warning':
+    'Không yêu cầu chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm, hàng hoá bảo mật hay không gian riêng tư.',
+  'evidence.suggestedChip': 'Hệ thống đề xuất',
+
+  'error.evidence.tooLowForHighRisk':
+    'Công việc rủi ro cao yêu cầu mức bằng chứng cao hơn.',
+  'error.evidence.checklistIncomplete':
+    'Vui lòng tích đầy đủ các mục trước khi gửi.',
+  'error.evidence.photoRequired':
+    'Vui lòng đính kèm tên tệp ảnh bàn giao.',
+  'error.evidence.noteRequired':
+    'Vui lòng nhập ghi chú bàn giao.',
+  'error.evidence.tooLong':
+    'Nội dung quá dài, vui lòng rút gọn.',
+
+  // Phase 10C — ShiftForm picker section
+  'shiftForm.evidence.section.title': 'Bằng chứng sau ca',
+  'shiftForm.evidence.section.intro':
+    'Chọn mức bằng chứng người làm cần gửi khi check-out. Hệ thống đã đề xuất một mức theo loại công việc — bạn có thể giữ nguyên hoặc đổi sang mức khác.',
+  'shiftForm.evidence.highRiskNote':
+    'Công việc rủi ro cao chỉ cho phép mức “Bắt buộc checklist + ghi chú bàn giao” trở lên.',
+  'help.evidence.title': 'Cách chọn mức bằng chứng',
+  'help.evidence.description':
+    'Bạn có thể chọn 1 trong 5 mức bằng chứng sau ca. Mức cao hơn yêu cầu người làm gửi nhiều minh chứng hơn (checklist, ảnh bàn giao, ghi chú), giúp giảm tranh chấp nhưng tăng công sức cho cả hai bên. Việc làm rủi ro thấp như phát tờ rơi thường chỉ cần checklist; việc tiền mặt hoặc kho hàng nên yêu cầu ảnh bàn giao và ghi chú đầy đủ. Hệ thống đã đề xuất một mức phù hợp dựa trên loại công việc bạn chọn — bạn có thể giữ nguyên hoặc đổi sang mức khác.',
+
+  // Phase 10C — Worker shift detail "Quy trình thanh toán & bằng chứng" card
+  'shifts.detail.paymentEvidence.title': 'Quy trình thanh toán & bằng chứng',
+  'shifts.detail.paymentEvidence.intro':
+    'Sau khi bạn hoàn thành ca, nhà tuyển dụng sẽ xác nhận và tiền công được chuyển cho bạn. Mỗi ca có thể yêu cầu mức bằng chứng khác nhau tuỳ độ rủi ro công việc — không phải ca nào cũng cần ảnh bàn giao.',
+  'shifts.detail.paymentEvidence.confirmRule':
+    'Sau khi bạn check-out, nhà tuyển dụng có tối đa 12 giờ để xác nhận hoặc khiếu nại.',
+  'shifts.detail.paymentEvidence.autoReleaseRule':
+    'Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống sẽ tự động giải ngân tiền công.',
+  'shifts.detail.paymentEvidence.evidenceLabel': 'Mức bằng chứng cho ca này',
+  'shifts.detail.paymentEvidence.required.title':
+    'Ca này yêu cầu bằng chứng bàn giao',
+  'shifts.detail.paymentEvidence.required.body':
+    'Hãy chuẩn bị thực hiện đầy đủ checklist và đính kèm ảnh bàn giao khi check-out để được thanh toán nhanh.',
+  'shifts.detail.paymentEvidence.fallback':
+    'Không tìm thấy thông tin yêu cầu bằng chứng cho ca này. Vui lòng tải lại trang hoặc liên hệ hỗ trợ.',
+  'shifts.detail.paymentEvidence.prepare.None':
+    'Bạn chỉ cần thông báo nhà tuyển dụng khi hoàn thành công việc.',
+  'shifts.detail.paymentEvidence.prepare.ChecklistOnly':
+    'Bạn cần tích đầy đủ các mục checklist hoàn thành khi check-out.',
+  'shifts.detail.paymentEvidence.prepare.OptionalPhoto':
+    'Bạn có thể đính kèm ảnh bàn giao nếu thấy cần thiết — không bắt buộc.',
+  'shifts.detail.paymentEvidence.prepare.RequiredPhoto':
+    'Bạn cần đính kèm ảnh bàn giao khu vực làm việc khi check-out.',
+  'shifts.detail.paymentEvidence.prepare.RequiredHandoverChecklist':
+    'Bạn cần tích đầy đủ checklist và viết ghi chú bàn giao đầy đủ khi check-out.',
+  'help.paymentEvidence.title': 'Khi nào cần bằng chứng?',
+  'help.paymentEvidence.description':
+    'Mức bằng chứng tuỳ thuộc độ rủi ro công việc. Việc nhẹ như phát tờ rơi hoặc hỗ trợ sự kiện thường chỉ cần checklist hoàn thành. Việc liên quan tiền mặt, kho hàng hoặc bàn giao thường yêu cầu ảnh bàn giao và ghi chú để hai bên cùng yên tâm. Sau khi bạn check-out, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn. Bằng chứng chỉ là minh chứng công việc — đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật.',
+
+  // Phase 10C — Worker check-out dialog
+  'checkout.dialog.title': 'Hoàn tất ca làm',
+  'checkout.dialog.intro':
+    'Hãy xác nhận các mục bên dưới trước khi check-out. Sau khi gửi, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại — nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn.',
+  'checkout.dialog.checklist.title': 'Checklist hoàn thành',
+  'checkout.dialog.checklist.empty':
+    'Ca này không yêu cầu checklist riêng — bạn có thể bỏ qua.',
+  'checkout.dialog.note.label': 'Ghi chú bàn giao',
+  'checkout.dialog.note.placeholder':
+    'Ví dụ: đã bàn giao khu vực, dụng cụ và lượt khách cuối.',
+  'checkout.dialog.note.hintRequired':
+    'Bắt buộc — vui lòng mô tả phần bàn giao của bạn (≤1000 ký tự).',
+  'checkout.dialog.note.hintOptional':
+    'Tuỳ chọn — bạn có thể để trống nếu không có gì cần ghi chú (≤1000 ký tự).',
+  'checkout.dialog.evidenceFile.label': 'Tên tệp ảnh bàn giao',
+  'checkout.dialog.evidenceFile.placeholder':
+    'Ví dụ: handover-2025-01-15.jpg',
+  'checkout.dialog.evidenceFile.hintRequired':
+    'Bắt buộc — nhập tên tệp ảnh bàn giao bạn đã chụp (bản MVP không tải tệp thật).',
+  'checkout.dialog.evidenceFile.hintOptional':
+    'Tuỳ chọn — bạn có thể đính kèm tên tệp ảnh nếu thấy cần thiết (bản MVP không tải tệp thật).',
+  'checkout.dialog.submit': 'Hoàn tất ca làm',
+  'checkout.dialog.cancel': 'Đóng',
+  'feedback.checkOut.success.desc':
+    'Nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn.',
+  'help.checkout.title': 'Vì sao cần bằng chứng?',
+  'help.checkout.description':
+    'Bằng chứng giúp nhà tuyển dụng xác nhận ca nhanh hơn và tránh hiểu lầm. Hệ thống chỉ yêu cầu các mục thực sự cần thiết theo loại công việc — bạn không cần chuẩn bị quá nhiều. Đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật. Sau khi bạn gửi, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn.',
+
+  // Phase 10C — Employer confirmation panel + AutoReleaseCountdown
+  'employer.confirm.panel.title': 'Xác nhận hoàn thành ca',
+  'employer.confirm.panel.intro':
+    'Người làm đã check-out. Bạn có thể xác nhận hoàn thành để giải ngân tiền công, hoặc khiếu nại nếu phát hiện vấn đề.',
+  'employer.confirm.checkOutAt': 'Thời điểm check-out',
+  'employer.confirm.checklist.title': 'Checklist hoàn thành',
+  'employer.confirm.checklist.complete': 'Đã tích đầy đủ {n} mục',
+  'employer.confirm.checklist.incomplete': 'Còn {n} mục chưa tích trên tổng số {total}',
+  'employer.confirm.checklist.empty': 'Ca này không yêu cầu checklist.',
+  'employer.confirm.note.title': 'Ghi chú bàn giao của người làm',
+  'employer.confirm.note.empty': 'Người làm không gửi ghi chú bàn giao.',
+  'employer.confirm.evidenceFile.title': 'Tệp ảnh bàn giao',
+  'employer.confirm.evidenceFile.empty': 'Người làm không gửi tệp bằng chứng.',
+  'employer.confirm.countdown.label': 'Thời gian còn lại để xác nhận hoặc khiếu nại',
+  'employer.confirm.countdown.warning':
+    'Nếu bạn không xác nhận hoặc khiếu nại trong 12 giờ, hệ thống sẽ tự động giải ngân tiền công.',
+  'employer.confirm.countdown.expired':
+    'Đã hết thời gian — hệ thống sẽ tự động giải ngân tiền công ở lần đồng bộ kế tiếp.',
+  'employer.confirm.btn.confirm': 'Xác nhận hoàn thành',
+  'employer.confirm.btn.dispute': 'Khiếu nại',
+  'help.autoRelease.title': 'Đếm ngược 12 giờ',
+  'help.autoRelease.description':
+    'Đếm ngược cho biết bạn còn bao nhiêu thời gian để xác nhận hoặc khiếu nại trước khi hệ thống tự động giải ngân tiền công cho người làm. Đồng hồ tính từ lúc người làm check-out. Khi đếm ngược về 00:00:00, hệ thống sẽ tự động xác nhận hoàn thành ở lần đồng bộ kế tiếp; nếu bạn đã khiếu nại, đếm ngược không có hiệu lực và quản trị viên sẽ xử lý.',
+
+  // Phase 10C — Employer DisputeDialog
+  'dispute.dialog.title': 'Khiếu nại ca làm',
+  'dispute.dialog.intro':
+    'Vui lòng cung cấp đầy đủ thông tin để quản trị viên có thể xem xét khiếu nại của bạn. Tiền công sẽ được giữ lại cho đến khi có kết luận.',
+  'dispute.dialog.category.label': 'Loại khiếu nại',
+  'dispute.dialog.category.placeholder': '— Chọn loại khiếu nại —',
+  'dispute.dialog.reason.label': 'Lý do cụ thể',
+  'dispute.dialog.reason.placeholder':
+    'Mô tả ngắn gọn vì sao bạn khiếu nại ca làm này.',
+  'dispute.dialog.reason.hint': 'Bắt buộc — 1 đến 1000 ký tự.',
+  'dispute.dialog.evidenceDescription.label': 'Mô tả bằng chứng',
+  'dispute.dialog.evidenceDescription.placeholder':
+    'Ví dụ: ảnh khu vực còn rác, ghi âm cuộc gọi, log hệ thống.',
+  'dispute.dialog.evidenceDescription.hint': 'Bắt buộc — tối đa 2000 ký tự.',
+  'dispute.dialog.evidenceFile.label': 'Tệp đính kèm (tuỳ chọn)',
+  'dispute.dialog.evidenceFile.placeholder': 'Ví dụ: photo-2025-01-15.jpg',
+  'dispute.dialog.evidenceFile.hint':
+    'Tuỳ chọn — chỉ ghi tên tệp (≤255 ký tự, không có ký tự "/" hoặc "\\"). Bản MVP không tải tệp thật.',
+  'dispute.dialog.privacyWarning':
+    'Đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật.',
+  'dispute.dialog.submit': 'Gửi khiếu nại',
+  'dispute.dialog.cancel': 'Đóng',
+  'dispute.dialog.error.categoryRequired': 'Vui lòng chọn loại khiếu nại.',
+  'dispute.dialog.error.reasonRequired': 'Vui lòng nhập lý do khiếu nại.',
+  'dispute.dialog.error.evidenceDescriptionRequired':
+    'Vui lòng mô tả bằng chứng.',
+  'dispute.dialog.error.fieldTooLong':
+    'Một số trường vượt quá độ dài cho phép, vui lòng rút gọn.',
+  'dispute.dialog.error.invalidFileName':
+    'Tên tệp không được chứa ký tự "/" hoặc "\\".',
+  'feedback.dispute.success': 'Đã gửi khiếu nại',
+  'feedback.dispute.success.desc':
+    'Quản trị viên sẽ xem xét và phản hồi sớm. Tiền công đang được giữ lại.',
+
+  // Phase 10C — employer-side dispute categories (employer DisputeDialog
+  // <select> labels). Worker-side categories live next to these and
+  // ship in Wave 5 with the worker DisputeDialog.
+  'dispute.category.NoShow': 'Người làm không tới',
+  'dispute.category.LeftEarly': 'Rời ca sớm',
+  'dispute.category.ChecklistFailed': 'Checklist chưa hoàn thành',
+  'dispute.category.MisrepresentedSkills': 'Khai sai kỹ năng',
+  'dispute.category.BehaviorIssue': 'Vấn đề thái độ',
+  'dispute.category.Damage': 'Hư hỏng tài sản',
+  'dispute.category.Other': 'Khác',
+
+  // Phase 10C Wave 5 — worker-side dispute categories (worker DisputeDialog).
+  'dispute.category.WrongAddress': 'Sai địa chỉ làm việc',
+  'dispute.category.UnsafeWorksite': 'Môi trường làm việc không an toàn',
+  'dispute.category.EmployerNoShow': 'Nhà tuyển dụng không có mặt',
+  'dispute.category.ScopeChanged': 'Nhà tuyển dụng thay đổi phạm vi công việc',
+  'dispute.category.PaymentDispute': 'Vấn đề thanh toán',
+
+  // Phase 10C Wave 5 — worker-side dispute action wiring.
+  'worker.dispute.openButton': 'Khiếu nại',
+  'worker.dispute.statusLine':
+    'Bạn đã khiếu nại ca này. Quản trị viên đang xử lý — tiền công đang được giữ lại.',
+  'worker.dispute.intro':
+    'Vui lòng cho biết bạn gặp vấn đề gì với ca làm này. Tiền công sẽ được giữ lại cho đến khi quản trị viên có kết luận.',
+
+  // Phase 10C — extended dispute statuses (Open / ResolvedReleased /
+  // ResolvedRefunded already exist above).
+  'dispute.status.PartialRelease': 'Thanh toán một phần',
+  'dispute.status.RequestedMoreEvidence': 'Yêu cầu thêm bằng chứng',
+  'dispute.status.ClosedInvalid': 'Đóng vì không hợp lệ',
 };
 
 // ---------------------------------------------------------------------------
@@ -1489,3 +1687,65 @@ export function disputeStatusLabel(status: DisputeStatus): string {
 export function notificationKindLabel(kind: NotificationKind): string {
   return t(`notification.kind.${kind}`);
 }
+
+// ---------------------------------------------------------------------------
+// Phase 10C — Evidence label + checklist template helpers
+// ---------------------------------------------------------------------------
+
+import type { EvidenceRequirement } from '@/types';
+
+/**
+ * Vietnamese display labels for every `EvidenceRequirement` literal.
+ * Each label is 1–80 characters, contains at least one diacritic, and
+ * is not an English fallback (Requirement 1.7).
+ *
+ * Backed by the `evidence.requirement.*` keys above so consumers can
+ * either read this map directly or call `t('evidence.requirement.<lit>')`
+ * — both routes return the same string.
+ */
+export const EVIDENCE_REQUIREMENT_LABELS: Record<EvidenceRequirement, string> = {
+  None: t('evidence.requirement.None'),
+  ChecklistOnly: t('evidence.requirement.ChecklistOnly'),
+  OptionalPhoto: t('evidence.requirement.OptionalPhoto'),
+  RequiredPhoto: t('evidence.requirement.RequiredPhoto'),
+  RequiredHandoverChecklist: t('evidence.requirement.RequiredHandoverChecklist'),
+};
+
+export function evidenceRequirementLabel(
+  requirement: EvidenceRequirement,
+): string {
+  return EVIDENCE_REQUIREMENT_LABELS[requirement];
+}
+
+/**
+ * Static Vietnamese checklist template per `EvidenceRequirement`. The
+ * worker `CheckoutDialog` renders one tickable row per entry; the
+ * length of the array drives the validator's "every visible item
+ * ticked" rule.
+ *
+ * `'None'` carries no checklist rows; `'OptionalPhoto'` and
+ * `'ChecklistOnly'` share a 2-row template; `'RequiredPhoto'` adds
+ * one photo-handover row; `'RequiredHandoverChecklist'` adds a
+ * handover-note row.
+ */
+export const CHECKOUT_CHECKLIST_ITEMS_VI: Record<EvidenceRequirement, string[]> = {
+  None: [],
+  ChecklistOnly: [
+    'Đã hoàn thành công việc theo mô tả ca làm.',
+    'Đã thông báo nhà tuyển dụng kết quả ca làm.',
+  ],
+  OptionalPhoto: [
+    'Đã hoàn thành công việc theo mô tả ca làm.',
+    'Đã thông báo nhà tuyển dụng kết quả ca làm.',
+  ],
+  RequiredPhoto: [
+    'Đã hoàn thành công việc theo mô tả ca làm.',
+    'Đã chụp ảnh bàn giao khu vực làm việc.',
+    'Đã thông báo nhà tuyển dụng kết quả ca làm.',
+  ],
+  RequiredHandoverChecklist: [
+    'Đã hoàn thành công việc theo mô tả ca làm.',
+    'Đã bàn giao khu vực và dụng cụ.',
+    'Đã viết ghi chú bàn giao đầy đủ.',
+  ],
+};

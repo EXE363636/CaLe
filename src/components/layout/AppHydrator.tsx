@@ -56,20 +56,14 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
         snapshot.employerTypeChangeRequests,
       );
 
-    // Phase 7: roll the shift lifecycle forward once after hydration so
-    // freshly-loaded data reflects any time-driven transitions that
-    // happened while the app was closed (e.g. a Published shift whose
-    // start time has now passed → InProgress / Expired). Page-level
-    // `useEffect` hooks call this again on entry to keep things current
-    // during a single session, but the boot pass ensures the very first
-    // render is consistent. No-op when nothing has moved.
-    useShiftStore.getState().syncLifecycle();
-    // Phase 10A-Fix-10: also flip stale Pending applications to
-    // `'Expired'` so the very first dashboard paint after page reload
-    // reflects the right state. Idempotent.
-    useApplicationStore
-      .getState()
-      .expirePendingApplicationsForStartedShifts();
+    // Phase 10C-Stab-1 B — single canonical orchestrator after
+    // hydration so the very first render reflects time-driven
+    // transitions that happened while the app was closed. Replaces
+    // the prior hand-rolled `syncLifecycle` + `expirePending` +
+    // `autoRelease` trio. Idempotent — repeated boot passes are
+    // safe because every sub-action filters on its own audit
+    // markers.
+    useApplicationStore.getState().runLifecycleSync();
 
     // Validate persisted auth: if currentUserId points to a missing or
     // suspended user, force a logout so navigation/role chrome doesn't

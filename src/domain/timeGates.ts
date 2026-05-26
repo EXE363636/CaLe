@@ -20,10 +20,17 @@ import type { Application, Shift } from '@/types';
 // ---------------------------------------------------------------------------
 
 /** A worker may check in at most this many minutes before the shift starts. */
-export const CHECK_IN_EARLY_MINUTES = 30;
+export const CHECK_IN_EARLY_MINUTES = 15;
 
 /** A worker may check in at most this many minutes after the shift starts. */
 export const CHECK_IN_LATE_MINUTES = 15;
+
+/**
+ * Phase 10C-Stab-1 — grace window after the shift's scheduled end during
+ * which the worker can still check out. Beyond this window the lifecycle
+ * sync rolls the shift to AwaitingConfirmation and check-out is blocked.
+ */
+export const CHECK_OUT_GRACE_MINUTES = 60;
 
 /** Employers can edit a shift only this many hours before start. */
 export const EDIT_DEADLINE_HOURS = 24;
@@ -58,6 +65,7 @@ const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 
 const CHECK_IN_EARLY_MS = CHECK_IN_EARLY_MINUTES * MS_PER_MINUTE;
 const CHECK_IN_LATE_MS = CHECK_IN_LATE_MINUTES * MS_PER_MINUTE;
+const CHECK_OUT_GRACE_MS = CHECK_OUT_GRACE_MINUTES * MS_PER_MINUTE;
 const EDIT_DEADLINE_MS = EDIT_DEADLINE_HOURS * MS_PER_HOUR;
 const CANCEL_DEADLINE_MS = CANCEL_DEADLINE_HOURS * MS_PER_HOUR;
 const WORKER_CANCEL_APPROVAL_MS = WORKER_CANCEL_APPROVAL_HOURS * MS_PER_HOUR;
@@ -92,7 +100,8 @@ function shiftEndMs(shift: Shift): number {
  * Predicate: may the worker check in for this application right now?
  *
  * `true` iff the application is `Approved` and `now` lies in the inclusive
- * window `[shiftStart − 30min, shiftStart + 15min]` (Req 7.1).
+ * window `[shiftStart − 15min, shiftStart + 15min]` (Phase 10C-Stab-1
+ * tightened from the prior 30/15 to 15/15).
  */
 export function canCheckIn(
   nowIso: string,
@@ -111,8 +120,13 @@ export function canCheckIn(
 /**
  * Predicate: may the worker check out for this application right now?
  *
- * `true` iff the application is `CheckedIn` and `now` is at or after the
- * shift's scheduled end time (Req 7.3).
+ * Phase 10C-Stab-1: rebound from "after end" to "after start AND
+ * before end + grace window" so a shift 21:02–21:03 is checkable-out
+ * from 21:02 until 22:03 inclusive, and the lifecycle sync rolls the
+ * shift forward at 22:03 even if the worker hasn't checked out.
+ *
+ * `true` iff the application is `CheckedIn` and `now` lies in the
+ * inclusive window `[shiftStart, shiftEnd + 60min]`.
  */
 export function canCheckOut(
   nowIso: string,
@@ -122,10 +136,11 @@ export function canCheckOut(
   if (application.status !== 'CheckedIn') return false;
 
   const now = toEpochMs(nowIso);
+  const start = shiftStartMs(shift);
   const end = shiftEndMs(shift);
-  if (Number.isNaN(now) || Number.isNaN(end)) return false;
+  if (Number.isNaN(now) || Number.isNaN(start) || Number.isNaN(end)) return false;
 
-  return now >= end;
+  return now >= start && now <= end + CHECK_OUT_GRACE_MS;
 }
 
 /**
@@ -229,4 +244,99 @@ export function requiresEmployerApprovalToCancel(
   const start = shiftStartMs(shift);
   if (Number.isNaN(now) || Number.isNaN(start)) return false;
   return start - now < WORKER_CANCEL_APPROVAL_MS;
+}
+
+
+// ---------------------------------------------------------------------------
+// Phase 10C-Stabilization-1 — canonical lifecycle gates
+// ---------------------------------------------------------------------------
+
+/**
+ * Phase 10C-Stab-1 canonical helpers. These wrap the existing
+ * `canCheckIn` / `canCheckOut` / `shouldMarkNoShow` predicates with
+ * names that match the bug-fix checklist verbatim and add the
+ * employer-side counterparts that QA flagged as missing.
+ *
+ * Naming: `canWorkerCheckIn`, `canEmployerMarkPresent`,
+ * `canWorkerCheckOut`, `canEmployerMarkAbsent`.
+ *
+ * Rules (Phase 10C-Stab-1 spec D):
+ *   - Worker check-in: 15 min before start through 15 min after start.
+ *   - Employer mark-present: same window OR during the shift (start
+ *     → end + grace window).
+ *   - Worker check-out: from start through end + 60 min grace, only
+ *     when the application is `'CheckedIn'`.
+ *   - Employer mark-absent: from `start + CHECK_IN_LATE_MS` (i.e. the
+ *     moment the worker missed the check-in window) through end + grace.
+ *     Available for ALL shifts regardless of `evidenceRequirement`.
+ */
+
+/** Alias of {@link canCheckIn} — canonical Phase 10C-Stab-1 name. */
+export const canWorkerCheckIn = canCheckIn;
+
+/** Alias of {@link canCheckOut} — canonical Phase 10C-Stab-1 name. */
+export const canWorkerCheckOut = canCheckOut;
+
+/**
+ * Predicate: may the employer mark this approved worker as present
+ * right now?
+ *
+ * Returns `true` iff the application is `'Approved'` and `now` lies
+ * inside the inclusive window `[shiftStart − 15min, shiftEnd +
+ * 60min]`. Employers can confirm presence either during the
+ * worker's check-in window OR any time during the shift (or its
+ * grace tail).
+ */
+export function canEmployerMarkPresent(
+  nowIso: string,
+  application: Application,
+  shift: Shift,
+): boolean {
+  if (application.status !== 'Approved') return false;
+
+  const now = toEpochMs(nowIso);
+  const start = shiftStartMs(shift);
+  const end = shiftEndMs(shift);
+  if (Number.isNaN(now) || Number.isNaN(start) || Number.isNaN(end)) {
+    return false;
+  }
+
+  return now >= start - CHECK_IN_EARLY_MS && now <= end + CHECK_OUT_GRACE_MS;
+}
+
+/**
+ * Predicate: may the employer mark this approved worker as absent
+ * (no-show) right now?
+ *
+ * Phase 10C-Stab-1 D.5: "Employer 'Đánh dấu vắng mặt' must exist for
+ * every shift regardless of `evidenceRequirement`." This predicate
+ * intentionally does NOT read `shift.evidenceRequirement` — the no-
+ * show action is a labor-rights affordance, not an evidence flow.
+ *
+ * Returns `true` iff the application is `'Approved'` (worker never
+ * checked in) and `now` is at least at `shiftStart +
+ * CHECK_IN_LATE_MS` (15 min after start — the moment the worker has
+ * definitively missed their window). The upper bound is `end +
+ * grace` so the employer can still mark absence retroactively while
+ * the lifecycle sync is rolling the shift to AwaitingConfirmation.
+ *
+ * Mirror of the existing `shouldMarkNoShow` but inverted to a
+ * "may the employer act?" framing so the UI can decide button
+ * visibility cleanly.
+ */
+export function canEmployerMarkAbsent(
+  nowIso: string,
+  application: Application,
+  shift: Shift,
+): boolean {
+  if (application.status !== 'Approved') return false;
+
+  const now = toEpochMs(nowIso);
+  const start = shiftStartMs(shift);
+  const end = shiftEndMs(shift);
+  if (Number.isNaN(now) || Number.isNaN(start) || Number.isNaN(end)) {
+    return false;
+  }
+
+  return now >= start + CHECK_IN_LATE_MS && now <= end + CHECK_OUT_GRACE_MS;
 }

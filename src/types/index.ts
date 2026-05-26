@@ -65,9 +65,36 @@ export type ApplicationStatus =
   | 'NoShow'
   | 'CheckedIn'
   | 'CheckedOut'
-  | 'Confirmed';
+  | 'Confirmed'
+  /**
+   * Phase 10C: an employer or worker has filed a structured dispute
+   * against the application after the worker checked out. The
+   * application is held until an admin resolves the dispute.
+   * Auto-release is blocked while the application sits in this
+   * state.
+   */
+  | 'Disputed';
 
-export type DisputeStatus = 'Open' | 'ResolvedReleased' | 'ResolvedRefunded';
+export type DisputeStatus =
+  | 'Open'
+  | 'ResolvedReleased'
+  | 'ResolvedRefunded'
+  /**
+   * Phase 10C: admin released a strict subset of the escrow to the
+   * worker and refunded the remainder to the employer. Terminal.
+   */
+  | 'PartialRelease'
+  /**
+   * Phase 10C: admin asked one of the parties for additional context
+   * before deciding. Non-terminal — auto-release stays blocked while
+   * a dispute sits in this state.
+   */
+  | 'RequestedMoreEvidence'
+  /**
+   * Phase 10C: admin closed the dispute as not actionable (no escrow
+   * change). Terminal.
+   */
+  | 'ClosedInvalid';
 
 export type NotificationKind =
   | 'ApplicationReceived'
@@ -95,7 +122,40 @@ export type NotificationKind =
    * the shift started before the employer approved it.
    * Title: "Đơn ứng tuyển đã hết hạn".
    */
-  | 'ApplicationExpired';
+  | 'ApplicationExpired'
+  /**
+   * Phase 10C: an employer filed a dispute on a checked-out
+   * application. Worker is notified ("Nhà tuyển dụng đang khiếu nại
+   * ca làm").
+   */
+  | 'DisputeFiled'
+  /**
+   * Phase 10C: a new dispute was filed and the admin queue should
+   * pick it up. Sent to every active admin via `notifyAdmins`.
+   */
+  | 'DisputeOpened'
+  /**
+   * Phase 10C Wave 5B: the 12-hour auto-release pass settled an
+   * application that the employer had not confirmed or disputed.
+   * Sent to both the worker (income credited) and the employer
+   * (deposit released). The body quotes the payout amount so both
+   * sides have a ledger-grade record.
+   */
+  | 'AutoReleaseSettled'
+  /**
+   * Phase 10C-Stab-1 — emitted to the worker AND employer when the
+   * shift's start time has passed and the lifecycle sync transitions
+   * the shift to `'InProgress'`. Single notification per
+   * `(applicationId, kind)` — the application carries
+   * `shiftStartedNotifiedAt` as the idempotency hook.
+   */
+  | 'ShiftStarted'
+  /**
+   * Phase 10C-Stab-1 — emitted to both sides when the shift's end +
+   * grace window has passed and the worker hasn't checked out yet.
+   * Idempotent via `shiftEndedNotifiedAt`.
+   */
+  | 'ShiftEnded';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -477,6 +537,18 @@ export interface Shift {
   employerCancellationPenaltyRate?: number;
   /** VND amount = round(depositAmount * rate). */
   employerCancellationPenaltyAmount?: number;
+
+  /**
+   * Phase 10C: post-shift evidence level chosen by the employer in
+   * `ShiftForm`. Optional at the type level so legacy snapshots
+   * hydrate without rewrites; new shifts created via Phase 10C UI
+   * always carry an explicit value seeded from the
+   * `suggestedEvidenceForJobType(jobType)` helper.
+   *
+   * The five literal values are documented in
+   * `src/domain/evidence.ts`.
+   */
+  evidenceRequirement?: EvidenceRequirement;
 }
 
 export interface Application {
@@ -526,6 +598,58 @@ export interface Application {
    */
   expiredAt?: string;
   expiredReason?: string;
+
+  /**
+   * Phase 10C: per-item state of the worker's check-out checklist.
+   * Shape mirrors `CHECKOUT_CHECKLIST_ITEMS_VI[shift.evidenceRequirement]`
+   * in `src/i18n/vi.ts`; a `true` entry means the corresponding
+   * checklist row was ticked at submit time. Optional / back-compat.
+   */
+  checkoutChecklist?: boolean[];
+
+  /**
+   * Phase 10C: optional or required handover note submitted at
+   * check-out. Bounded to 1000 characters by the dialog and store.
+   */
+  workerCheckoutNote?: string;
+
+  /**
+   * Phase 10C: filename only (≤255 chars, no path separators).
+   * Public-safe mock string — no actual file content is ever stored.
+   * Required when `Shift.evidenceRequirement === 'RequiredPhoto'`.
+   */
+  workerEvidenceFileName?: string;
+
+  /**
+   * Phase 10C: ISO 8601 timestamp = `checkOutAt + 12h`. Set on a
+   * successful `applicationStore.checkOut(...)`; never modified
+   * afterwards. Drives the auto-release eligibility predicate in
+   * `applicationStore.autoReleaseEligibleApplications(...)`.
+   */
+  autoReleaseAt?: string;
+
+  /**
+   * Phase 10C: marks an Application that was confirmed by the
+   * automatic 12-hour auto-release pass rather than by an explicit
+   * employer confirmation. Audit marker only — does NOT change the
+   * outward `status` from `'Confirmed'`.
+   */
+  autoReleased?: boolean;
+
+  /**
+   * Phase 10C-Stab-1 — set once the lifecycle sync has fired the
+   * "ca làm đã bắt đầu" notification pair (worker + employer) for
+   * this application. Idempotency hook so repeated `useLifecycleSync`
+   * mounts don't spam duplicate notifications.
+   */
+  shiftStartedNotifiedAt?: string;
+
+  /**
+   * Phase 10C-Stab-1 — set once the lifecycle sync has fired the
+   * "ca đã kết thúc" notification pair for this application. Same
+   * idempotency rationale as `shiftStartedNotifiedAt`.
+   */
+  shiftEndedNotifiedAt?: string;
 }
 
 export interface Rating {
@@ -629,7 +753,101 @@ export interface Dispute {
   resolutionNote?: string;
   createdAt: string;
   resolvedAt?: string;
+
+  /**
+   * Phase 10C: structured dispute category from the side-specific
+   * enum. Required for new disputes created by Phase 10C actions
+   * (`reportIssue` / `workerOpenDispute`). Optional at the type level
+   * so pre-Phase-10C seed data hydrates without rewrites — the store
+   * lazily migrates legacy records by setting `category: 'Other'` on
+   * first read.
+   */
+  category?: EmployerDisputeCategory | WorkerDisputeCategory;
+
+  /**
+   * Phase 10C: optional free-text description supplied with the
+   * dispute. Bounded to 2000 characters by the dialog and store.
+   * Public-safe — never PII or document content.
+   */
+  evidenceDescription?: string;
+
+  /**
+   * Phase 10C: filename only (≤255 chars, no path separators).
+   * Public-safe mock string — no actual file content is ever stored.
+   */
+  evidenceFileName?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 10C — Evidence + dispute category enums
+// ---------------------------------------------------------------------------
+
+/**
+ * Post-shift evidence level attached to every `Shift`. The employer
+ * picks one in `ShiftForm`; the worker's `CheckoutDialog` validates
+ * its checklist / photo / note payload against this value.
+ *
+ * The mapping from job-category risk level to a recommended value is
+ * exposed by `getSuggestedEvidenceLevel(jobType, riskLevel)` and the
+ * composition `suggestedEvidenceForJobType(jobType)` in
+ * `src/domain/evidence.ts`. Out-of-enum or missing input falls back to
+ * the safe default `'RequiredHandoverChecklist'`.
+ */
+export type EvidenceRequirement =
+  | 'None'
+  | 'ChecklistOnly'
+  | 'OptionalPhoto'
+  | 'RequiredPhoto'
+  | 'RequiredHandoverChecklist';
+
+/**
+ * Phase 10C: employer-side dispute categories. Used by
+ * `applicationStore.reportIssue(...)`. Wrong-role categories submitted
+ * to that action are rejected with `'CATEGORY_INVALID'`.
+ */
+export type EmployerDisputeCategory =
+  | 'NoShow'
+  | 'LeftEarly'
+  | 'ChecklistFailed'
+  | 'MisrepresentedSkills'
+  | 'BehaviorIssue'
+  | 'Damage'
+  | 'Other';
+
+/**
+ * Phase 10C: worker-side dispute categories. Used by
+ * `applicationStore.workerOpenDispute(applicationId, payload)`.
+ * Wrong-role categories submitted to that action are rejected with
+ * `'CATEGORY_INVALID'`.
+ */
+export type WorkerDisputeCategory =
+  | 'WrongAddress'
+  | 'UnsafeWorksite'
+  | 'EmployerNoShow'
+  | 'ScopeChanged'
+  | 'PaymentDispute'
+  | 'Other';
+
+/** Stable iteration order for the employer-side category picker. */
+export const EMPLOYER_DISPUTE_CATEGORIES: readonly EmployerDisputeCategory[] = [
+  'NoShow',
+  'LeftEarly',
+  'ChecklistFailed',
+  'MisrepresentedSkills',
+  'BehaviorIssue',
+  'Damage',
+  'Other',
+] as const;
+
+/** Stable iteration order for the worker-side category picker. */
+export const WORKER_DISPUTE_CATEGORIES: readonly WorkerDisputeCategory[] = [
+  'WrongAddress',
+  'UnsafeWorksite',
+  'EmployerNoShow',
+  'ScopeChanged',
+  'PaymentDispute',
+  'Other',
+] as const;
 
 export interface BoostCreditLedgerEntry {
   id: string;

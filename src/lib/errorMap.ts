@@ -14,11 +14,41 @@
 import { t } from '@/i18n/vi';
 
 /**
+ * Phase 10C — `EVIDENCE_REQUIRED` is a structured error so the
+ * caller can pattern-match the `code` discriminator. We accept the
+ * full union here so worker `CheckoutDialog` and any future
+ * structured errors get a single, central Vietnamese mapping.
+ */
+type StructuredStoreError =
+  | { code: 'EVIDENCE_REQUIRED'; reason: string };
+
+/**
  * Look up a Vietnamese message for a known store error code.
  * Returns the generic fallback when the code isn't recognised.
+ *
+ * Accepts either a bare string error code (legacy callers) or a
+ * structured `{ code, reason }` object (Phase 10C `EVIDENCE_REQUIRED`).
  */
-export function toastFromStoreError(code: string | undefined | null): string {
+export function toastFromStoreError(
+  code: string | StructuredStoreError | undefined | null,
+): string {
   if (!code) return t('feedback.error.generic');
+
+  // Phase 10C — structured EVIDENCE_REQUIRED error. The `reason` field
+  // identifies which validator branch fired; we map each branch to a
+  // precise Vietnamese error message keyed under `error.evidence.*`.
+  if (typeof code === 'object') {
+    if (code.code === 'EVIDENCE_REQUIRED') {
+      const reasonMap: Record<string, string> = {
+        CHECKLIST_INCOMPLETE: t('error.evidence.checklistIncomplete'),
+        PHOTO_REQUIRED: t('error.evidence.photoRequired'),
+        NOTE_REQUIRED: t('error.evidence.noteRequired'),
+        FIELD_TOO_LONG: t('error.evidence.tooLong'),
+      };
+      return reasonMap[code.reason] ?? t('feedback.error.generic');
+    }
+    return t('feedback.error.generic');
+  }
 
   const map: Record<string, string> = {
     // applicationStore — apply()
@@ -38,6 +68,11 @@ export function toastFromStoreError(code: string | undefined | null): string {
     SHIFT_ALREADY_STARTED: t('feedback.error.shiftAlreadyStarted'),
     REASON_REQUIRED: t('feedback.error.reasonRequired'),
     QUOTA_EXCEEDED: t('cancel.confirm.quotaBlocked'),
+
+    // applicationStore — reportIssue() / dispute action
+    CATEGORY_REQUIRED: t('dispute.dialog.error.categoryRequired'),
+    CATEGORY_INVALID: t('dispute.dialog.error.categoryRequired'),
+    FIELD_TOO_LONG: t('dispute.dialog.error.fieldTooLong'),
 
     // shiftStore — cancel()
     NOT_FOUND: t('shift.error.NOT_FOUND'),

@@ -26,6 +26,7 @@ import {
   refundOneLateCancel,
 } from '@/domain/employerCancellation';
 import { transitionEscrow } from '@/domain/escrow';
+import { suggestedEvidenceForJobType } from '@/domain/evidence';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
 import { canEditShift } from '@/domain/timeGates';
@@ -33,6 +34,7 @@ import { newPrefixedId } from '@/lib/ids';
 import type {
   Application,
   ApplicationStatus,
+  EvidenceRequirement,
   Result,
   Shift,
   ShiftStatus,
@@ -69,6 +71,15 @@ export interface NewShiftInput {
   onSiteContactName?: string;
   onSiteContactPhone?: string;
   requiresVerifiedDocumentOnArrival?: boolean;
+
+  /**
+   * Phase 10C — post-shift evidence requirement. The new-shift UI
+   * always supplies a value seeded from
+   * `suggestedEvidenceForJobType(jobType)`. Optional in the input
+   * type so legacy / programmatic callers still compile; when
+   * omitted, `create` falls back to the same suggestion helper.
+   */
+  evidenceRequirement?: EvidenceRequirement;
 }
 
 /** Editable subset of a shift (Req 25.1 — wage and date are NOT editable). */
@@ -222,6 +233,12 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       onSiteContactPhone: input.onSiteContactPhone?.trim() || undefined,
       requiresVerifiedDocumentOnArrival:
         input.requiresVerifiedDocumentOnArrival ?? false,
+      // Phase 10C — persist the post-shift evidence requirement.
+      // Defaults to the suggestion for legacy / programmatic callers
+      // that don't supply one (the new-shift UI always does).
+      evidenceRequirement:
+        input.evidenceRequirement ??
+        suggestedEvidenceForJobType(input.jobType),
     };
 
     const next = [...get().shifts, shift];
@@ -402,7 +419,21 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
   },
 
   hydrate(shifts) {
-    set({ shifts });
+    // Phase 10C — backfill `evidenceRequirement` on legacy seeded
+    // shifts that pre-date the field so worker / employer surfaces
+    // can rely on a non-undefined value. Uses
+    // `suggestedEvidenceForJobType` so each backfilled shift gets a
+    // sensible level instead of the hardest one. Idempotent: shifts
+    // that already carry the field round-trip unchanged.
+    const backfilled = shifts.map((s) =>
+      s.evidenceRequirement
+        ? s
+        : {
+            ...s,
+            evidenceRequirement: suggestedEvidenceForJobType(s.jobType),
+          },
+    );
+    set({ shifts: backfilled });
   },
 }));
 

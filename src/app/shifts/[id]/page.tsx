@@ -9,8 +9,13 @@ import { useAuthStore } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
+import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
+import {
+  DisputeDialog,
+  type DisputePayload,
+} from '@/components/forms/DisputeDialog';
 import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
@@ -45,11 +50,15 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const applications = useApplicationStore((s) => s.applications);
   const apply = useApplicationStore((s) => s.apply);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
+  const workerOpenDispute = useApplicationStore((s) => s.workerOpenDispute);
 
   const [applyError, setApplyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [employerModalOpen, setEmployerModalOpen] = useState(false);
+  // Phase 10C Wave 5 — worker-side dispute dialog state.
+  const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
+  const [disputeError, setDisputeError] = useState<string | null>(null);
 
   const employerUser = users.find((u) => u.id === shift.employerId);
   const employer = asEmployer(employerUser);
@@ -266,6 +275,13 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         </Section>
       )}
 
+      {/* Phase 10C — Worker-facing payment & evidence education.
+          Mounted ABOVE the apply section so workers see what they
+          need to prepare and the 12-hour payment release rules
+          before deciding to apply. Read-only card — Wave 2 does not
+          change checkout validation, escrow flows, or dispute UI. */}
+      <PaymentEvidenceCard shift={shift} />
+
       {/* Apply section */}
       <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         {!currentUserId && (
@@ -306,7 +322,83 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             error={applyError}
           />
         )}
+
+        {/* Phase 10C Wave 5 — worker dispute action. Visible after the
+            worker has checked out and is waiting for employer
+            confirmation. Once a dispute exists the application status
+            flips to `'Disputed'` and the button is replaced by a
+            read-only status line. */}
+        {worker && myApp?.status === 'CheckedOut' && (
+          <div className="mt-4 flex flex-col items-start gap-2 border-t border-gray-100 pt-4">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setDisputeError(null);
+                setDisputeDialogOpen(true);
+              }}
+              disabled={loading}
+            >
+              {t('worker.dispute.openButton')}
+            </Button>
+          </div>
+        )}
+        {worker && myApp?.status === 'Disputed' && (
+          <p
+            role="status"
+            className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+          >
+            {t('worker.dispute.statusLine')}
+          </p>
+        )}
       </div>
+
+      {/* Phase 10C Wave 5 — worker dispute dialog. Mounts only when
+          the worker has a checked-out application on this shift and
+          opens the dispute action via the apply section. Re-uses the
+          existing `<DisputeDialog/>` with `side="worker"`. */}
+      {worker && myApp?.status === 'CheckedOut' && (
+        <DisputeDialog
+          open={disputeDialogOpen}
+          onClose={() => {
+            setDisputeDialogOpen(false);
+            setDisputeError(null);
+          }}
+          side="worker"
+          subjectTitle={shift.title}
+          onSubmit={(payload: DisputePayload) => {
+            if (!myApp) return;
+            setLoading(true);
+            const result = workerOpenDispute(myApp.id, {
+              category: payload.category as
+                | 'WrongAddress'
+                | 'UnsafeWorksite'
+                | 'EmployerNoShow'
+                | 'ScopeChanged'
+                | 'PaymentDispute'
+                | 'Other',
+              reason: payload.reason,
+              evidenceDescription: payload.evidenceDescription,
+              evidenceFileName: payload.evidenceFileName,
+            });
+            setLoading(false);
+            if (result.ok) {
+              showSuccess(
+                t('feedback.dispute.success'),
+                t('feedback.dispute.success.desc'),
+              );
+              setDisputeDialogOpen(false);
+              setDisputeError(null);
+              return;
+            }
+            const message = toastFromStoreError(result.error);
+            setDisputeError(message);
+            showError(message);
+          }}
+          loading={loading}
+          errorMessage={disputeError}
+        />
+      )}
 
       {/* Cancel confirmation dialog */}
       {myApp && (

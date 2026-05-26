@@ -11,10 +11,15 @@ import { useApplicationStore } from '@/stores/applicationStore';
 import { Badge, Button, EmptyState, Modal, Textarea } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
+import { EmployerConfirmationPanel } from '@/components/shift/EmployerConfirmationPanel';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
 import { WorkerProfileModal } from '@/components/user/WorkerProfileModal';
 import { RatingForm } from '@/components/forms/RatingForm';
 import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
+import {
+  DisputeDialog,
+  type DisputePayload,
+} from '@/components/forms/DisputeDialog';
 import {
   APPROVED_OR_LATER_STATUSES,
   computeEmployerCancellationPenalty,
@@ -83,6 +88,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   // currently being rejected; null when the dialog is closed.
   const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
   const [rejectError, setRejectError] = useState<string | null>(null);
+  // Phase 10C — employer dispute dialog state. Holds the target
+  // application id when the dialog is open; reset on close or success.
+  const [disputeAppId, setDisputeAppId] = useState<string | null>(null);
+  const [disputeError, setDisputeError] = useState<string | null>(null);
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
@@ -157,7 +166,47 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   }
 
   function handleReportIssue(appId: string) {
-    reportIssue(appId, 'Người làm không hoàn thành đúng yêu cầu.');
+    // Phase 10C — open the structured dispute dialog instead of the
+    // pre-Phase-9 instant "Người làm không hoàn thành đúng yêu cầu"
+    // shortcut. The dialog gathers category + reason + evidence and
+    // forwards them to `applicationStore.reportIssue(payload)`.
+    setDisputeError(null);
+    setDisputeAppId(appId);
+  }
+
+  function handleDisputeSubmit(payload: DisputePayload) {
+    if (!disputeAppId) return;
+    setActionLoading(disputeAppId);
+    const result = reportIssue({
+      applicationId: disputeAppId,
+      // Worker-side categories are filtered out at the dialog level
+      // (the dialog renders only the employer enum on this surface),
+      // so the cast is safe here.
+      category: payload.category as
+        | 'NoShow'
+        | 'LeftEarly'
+        | 'ChecklistFailed'
+        | 'MisrepresentedSkills'
+        | 'BehaviorIssue'
+        | 'Damage'
+        | 'Other',
+      reason: payload.reason,
+      evidenceDescription: payload.evidenceDescription,
+      evidenceFileName: payload.evidenceFileName,
+    });
+    setActionLoading(null);
+    if (result.ok) {
+      showSuccess(
+        t('feedback.dispute.success'),
+        t('feedback.dispute.success.desc'),
+      );
+      setDisputeAppId(null);
+      setDisputeError(null);
+      return;
+    }
+    const message = toastFromStoreError(result.error);
+    setDisputeError(message);
+    showError(message);
   }
 
   function handleApproveCancellation(appId: string) {
@@ -540,6 +589,23 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     </div>
                   )}
 
+                  {/* Phase 10C — employer confirmation panel.
+                      Renders below the row when the application is
+                      checked-out and the inline rating form is not
+                      already open (so we don't double up the
+                      confirm CTA). The panel hosts the read-only
+                      evidence summary, the 12-hour countdown, and
+                      the Confirm + Dispute actions. */}
+                  {app.status === 'CheckedOut' && !showRating && (
+                    <EmployerConfirmationPanel
+                      application={app}
+                      shift={shift}
+                      onConfirm={() => setRatingForAppId(app.id)}
+                      onDispute={() => handleReportIssue(app.id)}
+                      loading={actionLoading === app.id}
+                    />
+                  )}
+
                   {/* Rating panel — opens below the summary row */}
                   {showRating && app.status === 'CheckedOut' && (
                     <div className="ml-2 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
@@ -591,6 +657,25 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         <p role="alert" className="mt-2 text-xs text-red-600">
           {rejectError}
         </p>
+      )}
+
+      {/* Phase 10C — employer dispute dialog. Opens from the
+          confirmation panel's "Khiếu nại" button. Closes on success
+          or when the employer cancels; on store rejection the
+          dialog stays open with `errorMessage` set. */}
+      {disputeAppId && (
+        <DisputeDialog
+          open={true}
+          onClose={() => {
+            setDisputeAppId(null);
+            setDisputeError(null);
+          }}
+          side="employer"
+          subjectTitle={shift.title}
+          onSubmit={handleDisputeSubmit}
+          loading={actionLoading === disputeAppId}
+          errorMessage={disputeError}
+        />
       )}
     </div>
   );
@@ -690,15 +775,19 @@ function ApplicationActionButtons({
   }
 
   if (application.status === 'CheckedOut' && !showRating) {
+    // Phase 10C — Confirm + Dispute live inside the new
+    // `<EmployerConfirmationPanel/>` mounted below this row. The row
+    // itself shows no inline action buttons in this state so the
+    // panel can present the read-only evidence + countdown + actions
+    // together.
+    return null;
+  }
+
+  if (application.status === 'Disputed') {
     return (
-      <>
-        <Button size="sm" variant="primary" onClick={onConfirm}>
-          {t('btn.confirmCompletion')}
-        </Button>
-        <Button size="sm" variant="danger" onClick={onReport}>
-          {t('btn.reportIssue')}
-        </Button>
-      </>
+      <span className="text-sm text-amber-700">
+        Đang khiếu nại — chờ quản trị viên xử lý
+      </span>
     );
   }
 
@@ -741,6 +830,8 @@ function badgeToneForApp(
       return 'danger';
     case 'Expired':
       return 'neutral';
+    case 'Disputed':
+      return 'warning';
     default:
       return 'neutral';
   }

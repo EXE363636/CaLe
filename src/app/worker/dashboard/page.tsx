@@ -12,6 +12,7 @@ import { useNotificationStore } from '@/stores/notificationStore';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
+import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { quotaUsage } from '@/domain/cancellationQuota';
@@ -58,6 +59,11 @@ function WorkerDashboardContent() {
   const worker = asWorker(users.find((u) => u.id === currentUserId));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Application | null>(null);
+  // Phase 10C — worker check-out dialog target. We open the dialog
+  // instead of triggering an instant check-out so the worker can
+  // submit the per-shift evidence payload.
+  const [checkoutTargetId, setCheckoutTargetId] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [feedbackForAppId, setFeedbackForAppId] = useState<string | null>(null);
   // Phase 9F — which detail modal is open (or null).
   // Phase 9G adds 'income' and 'completed' so the corresponding tiles
@@ -349,14 +355,37 @@ function WorkerDashboardContent() {
   }
 
   function handleCheckOut(appId: string) {
-    setActionLoading(appId);
-    const result = checkOut(appId);
+    // Phase 10C — open the dialog instead of instant check-out.
+    // The dialog gathers the per-shift evidence payload and forwards
+    // it to the new `checkOut({ applicationId, ... })` action.
+    setCheckoutError(null);
+    setCheckoutTargetId(appId);
+  }
+
+  function handleCheckoutSubmit(payload: {
+    checklist?: boolean[];
+    note?: string;
+    evidenceFileName?: string;
+  }) {
+    if (!checkoutTargetId) return;
+    setActionLoading(checkoutTargetId);
+    const result = checkOut({ applicationId: checkoutTargetId, ...payload });
     setActionLoading(null);
     if (result.ok) {
-      showSuccess(t('feedback.checkOut.success'));
-    } else {
-      showError(toastFromStoreError(result.error));
+      showSuccess(
+        t('feedback.checkOut.success'),
+        t('feedback.checkOut.success.desc'),
+      );
+      setCheckoutTargetId(null);
+      setCheckoutError(null);
+      return;
     }
+    // Surface the typed EVIDENCE_REQUIRED reason (or any other store
+    // error) inside the dialog AND as a toast. The dialog stays open
+    // so the worker can correct the payload.
+    const message = toastFromStoreError(result.error);
+    setCheckoutError(message);
+    showError(message);
   }
 
   function handleCancelRequest(appId: string) {
@@ -848,6 +877,33 @@ function WorkerDashboardContent() {
               onConfirm={handleCancelConfirm}
               loading={actionLoading === cancelTarget.id}
               quota={cancelQuota}
+            />
+          );
+        })()}
+
+      {/* Phase 10C — Worker check-out dialog. Mounted as a sibling of
+          the cancel dialog so it can be opened from any upcoming-card
+          row. Resolves the live application + shift on render so a
+          background lifecycle update doesn't leave the dialog
+          showing stale data. */}
+      {checkoutTargetId &&
+        (() => {
+          const targetApp = myApps.find((a) => a.id === checkoutTargetId);
+          if (!targetApp) return null;
+          const shift = getShift(targetApp.shiftId);
+          if (!shift) return null;
+          return (
+            <CheckoutDialog
+              open={true}
+              onClose={() => {
+                setCheckoutTargetId(null);
+                setCheckoutError(null);
+              }}
+              application={targetApp}
+              shift={shift}
+              onSubmit={handleCheckoutSubmit}
+              loading={actionLoading === targetApp.id}
+              errorMessage={checkoutError}
             />
           );
         })()}
@@ -1646,6 +1702,19 @@ function UpcomingShiftCard({
               {t('btn.cancel')}
             </Button>
           )}
+        {/* Phase 10C Wave 5 — worker can open a structured dispute
+            after check-out while waiting for employer confirmation.
+            The dispute dialog lives on the shift detail page so the
+            dashboard card just deep-links there to keep the dialog
+            state in one place. */}
+        {application.status === 'CheckedOut' && (
+          <Link
+            href={`/shifts/${shift.id}`}
+            className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-amber-300 bg-white px-3 text-xs font-medium text-amber-800 hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          >
+            {t('worker.dispute.openButton')}
+          </Link>
+        )}
       </div>
     </Card>
   );
@@ -1733,6 +1802,7 @@ function badgeToneFor(status: Application['status']): 'success' | 'warning' | 'd
     case 'CancelledByWorker': return 'neutral';
     case 'CancelledByEmployer': return 'danger';
     case 'Expired': return 'neutral';
+    case 'Disputed': return 'warning';
     default: return 'neutral';
   }
 }

@@ -26,6 +26,11 @@ import { hasConflict, type TimeRange } from '@/domain/conflict';
 import { calculateDeposit, hoursBetween } from '@/domain/deposit';
 import { transitionEscrow } from '@/domain/escrow';
 import {
+  validateCheckoutPayload,
+  type CheckoutPayload,
+  type EvidenceValidationFailure,
+} from '@/domain/evidence';
+import {
   applyReputationEvent,
   canApplyToShifts,
   classifyCancellation,
@@ -35,6 +40,13 @@ import { applyRatingToSkillScores } from '@/domain/skillScore';
 import { planExpirePendingApplications } from '@/domain/applicationExpiry';
 import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
+import { notifyAdmins } from '@/lib/adminNotifications';
+import {
+  EMPLOYER_DISPUTE_CATEGORIES,
+  WORKER_DISPUTE_CATEGORIES,
+  type EmployerDisputeCategory,
+  type WorkerDisputeCategory,
+} from '@/types';
 import type {
   Application,
   ApplicationStatus,
@@ -74,6 +86,81 @@ export type ApplicationActionError =
    * the corresponding "Đơn đã hết hạn xử lý" badge instead.
    */
   | 'SHIFT_ALREADY_STARTED';
+
+/**
+ * Phase 10C — `checkOut` payload. The application id discriminates
+ * the target row; the optional fields drive the per-evidence-level
+ * validation in `domain/evidence.validateCheckoutPayload`.
+ */
+export interface CheckoutInput {
+  applicationId: string;
+  checklist?: boolean[];
+  note?: string;
+  evidenceFileName?: string;
+}
+
+/**
+ * Phase 10C — error union returned by the refactored `checkOut`.
+ *
+ * The `EVIDENCE_REQUIRED` variant is a structured object (not a bare
+ * string) per Requirement 4.9 so callers can pattern-match the
+ * `code` discriminator to render a precise Vietnamese message
+ * without round-tripping through string equality.
+ */
+export type CheckOutError =
+  | 'APPLICATION_NOT_FOUND'
+  | 'WRONG_STATUS'
+  | { code: 'EVIDENCE_REQUIRED'; reason: EvidenceValidationFailure };
+
+/**
+ * Phase 10C — payload for the structured employer dispute action.
+ *
+ * `category` must come from the employer-side enum
+ * (`EmployerDisputeCategory`); the Wave 5 worker action will use the
+ * mirror enum. Length bounds are enforced symmetrically by the
+ * `<DisputeDialog/>` UX so the rejection paths below are reachable
+ * only via direct store calls or race conditions.
+ */
+export interface ReportIssuePayload {
+  applicationId: string;
+  category: EmployerDisputeCategory;
+  reason: string;
+  /** ≤2000 characters; trimmed before persistence. */
+  evidenceDescription?: string;
+  /** ≤255 characters, no path separators. */
+  evidenceFileName?: string;
+}
+
+/**
+ * Phase 10C Wave 5 — payload for the worker-side dispute action. The
+ * worker-side action takes the application id as a positional
+ * argument (matching the design's `workerOpenDispute(applicationId,
+ * payload)` shape) so the call site reads symmetrically with
+ * `cancelByWorker(applicationId, reason)` and the rest of the
+ * worker actions in this store.
+ */
+export interface WorkerOpenDisputePayload {
+  category: WorkerDisputeCategory;
+  reason: string;
+  /** ≤2000 characters; trimmed before persistence. */
+  evidenceDescription?: string;
+  /** ≤255 characters, no path separators. */
+  evidenceFileName?: string;
+}
+
+/**
+ * Phase 10C — error union for `reportIssue`. `WRONG_STATUS` covers
+ * both "application is not in a disputable state" and "application
+ * is already `'Disputed'`" (Requirement 7.9 — no duplicate
+ * disputes).
+ */
+export type ReportIssueError =
+  | 'APPLICATION_NOT_FOUND'
+  | 'WRONG_STATUS'
+  | 'CATEGORY_REQUIRED'
+  | 'CATEGORY_INVALID'
+  | 'REASON_REQUIRED'
+  | 'FIELD_TOO_LONG';
 
 /** Payload for confirming a shift completion: 1–5 stars + optional feedback. */
 export interface NewRating {
@@ -132,7 +219,29 @@ interface ApplicationStore {
    */
   getCancellationQuota(workerId: string, nowIso?: string): QuotaUsage | undefined;
   checkIn(applicationId: string): Result<Application, ApplicationActionError>;
-  checkOut(applicationId: string): Result<Application, ApplicationActionError>;
+  /**
+   * Phase 10C — refactored to take a single payload object so the
+   * worker `CheckoutDialog` can submit checklist booleans, an
+   * optional or required handover note, and an optional or required
+   * mock evidence filename in one call.
+   *
+   * Validation:
+   *   - Resolves the linked `Shift` and reads `shift.evidenceRequirement`
+   *     (defaults to `'None'` only for legacy seed shifts).
+   *   - Calls `validateCheckoutPayload(requirement, payload)`.
+   *   - On failure returns
+   *     `{ ok: false, error: { code: 'EVIDENCE_REQUIRED', reason } }`
+   *     and leaves the application untouched (no field writes,
+   *     status / `checkOutAt` / evidence fields all remain at
+   *     their pre-call values).
+   *
+   * On success persists `status: 'CheckedOut'`, `checkOutAt`,
+   * `checkoutChecklist`, `workerCheckoutNote`, and
+   * `workerEvidenceFileName` and drives the existing escrow + shift
+   * status transitions (`'WorkerCheckOut'` event +
+   * `'AwaitingConfirmation'` rollover when applicable).
+   */
+  checkOut(input: CheckoutInput): Result<Application, CheckOutError>;
 
   // Employer actions
   approve(applicationId: string): Result<Application, ApplicationActionError>;
@@ -167,10 +276,54 @@ interface ApplicationStore {
     applicationId: string,
     rating: NewRating,
   ): Result<Application, ApplicationActionError>;
+  /**
+   * Phase 10C — structured employer-side dispute action. Replaces
+   * the pre-Phase-10C two-arg `(applicationId, reason)` shape with
+   * a single payload object that also carries the new `category`,
+   * `evidenceDescription`, and `evidenceFileName` fields per
+   * Requirement 7.1.
+   *
+   * Validation order:
+   *   1. Resolve application; reject `APPLICATION_NOT_FOUND` if
+   *      missing.
+   *   2. Reject `WRONG_STATUS` when the application is not in
+   *      `'CheckedOut'` (only checked-out applications can be
+   *      disputed in this phase) or is already `'Disputed'`.
+   *   3. Reject `CATEGORY_REQUIRED` / `CATEGORY_INVALID` when the
+   *      category is missing or out of the employer-side enum.
+   *   4. Reject `REASON_REQUIRED` when the trimmed reason is empty.
+   *   5. Reject `FIELD_TOO_LONG` when any string field exceeds its
+   *      bound or `evidenceFileName` contains `/` or `\`.
+   *
+   * On success: appends a new `Dispute` (status `'Open'`, raisedBy
+   * `'employer'`), flips the application's status to `'Disputed'`,
+   * drives the existing `'EmployerReportIssue'` escrow event, and
+   * fires worker + admin notifications.
+   */
   reportIssue(
+    payload: ReportIssuePayload,
+  ): Result<Dispute, ReportIssueError>;
+  /**
+   * Phase 10C Wave 5 — worker-side structured dispute action.
+   * Mirrors `reportIssue` but accepts a worker-side category and
+   * sets `Dispute.raisedBy = 'worker'`. The application id is the
+   * first positional argument so the call site reads
+   * `workerOpenDispute(app.id, { category, reason, ... })`.
+   *
+   * Validation: same shape and rejection codes as `reportIssue`.
+   * `CATEGORY_INVALID` fires when an employer-side category is
+   * supplied to this worker-side action (Requirement 7.4 / 7.5).
+   *
+   * On success: appends a `Dispute` (status `'Open'`, raisedBy
+   * `'worker'`), flips the application's status to `'Disputed'`,
+   * drives the existing `'EmployerReportIssue'` escrow event so
+   * the linked Shift's escrow becomes `'Disputed'`, and fires
+   * employer + admin notifications.
+   */
+  workerOpenDispute(
     applicationId: string,
-    reason: string,
-  ): Result<Application, ApplicationActionError>;
+    payload: WorkerOpenDisputePayload,
+  ): Result<Dispute, ReportIssueError>;
   markNoShow(applicationId: string): Result<Application, ApplicationActionError>;
 
   /**
@@ -185,6 +338,70 @@ interface ApplicationStore {
    */
   expirePendingApplicationsForStartedShifts(nowIso?: string): {
     expiredIds: string[];
+  };
+
+  /**
+   * Phase 10C-Stabilization-1 B — canonical single-call lifecycle
+   * sync. Fans out to:
+   *
+   *   1. `useShiftStore.syncLifecycle()` — rolls shift statuses
+   *      (Published → InProgress / Expired, etc.).
+   *   2. `expirePendingApplicationsForStartedShifts()` — flips
+   *      stale Pending applications to Expired.
+   *   3. Emits idempotent `ShiftStarted` / `ShiftEnded` notification
+   *      pairs for newly-active / newly-ended shifts. Applications
+   *      carry `shiftStartedNotifiedAt` / `shiftEndedNotifiedAt`
+   *      markers so re-running the sync produces no duplicates.
+   *   4. `autoReleaseEligibleApplications()` — the 12 h auto-release
+   *      pass, gated by the per-application `autoReleased` audit
+   *      marker.
+   *
+   * This is the canonical entry point that `useLifecycleSync` and
+   * `AppHydrator` should call. Pure orchestration over existing
+   * actions — no new state shape, no timers, no polling.
+   */
+  runLifecycleSync(nowIso?: string): {
+    changedShiftIds: string[];
+    expiredApplicationIds: string[];
+    notifiedStartIds: string[];
+    notifiedEndIds: string[];
+    releasedIds: string[];
+  };
+
+  /**
+   * Phase 10C Wave 5B — idempotent 12-hour auto-release pass.
+   *
+   * Walks the application list and, for every record that:
+   *   - has `status === 'CheckedOut'`,
+   *   - has `autoReleased !== true` (audit marker — not yet
+   *     auto-released in a previous pass),
+   *   - carries a non-empty `autoReleaseAt` ISO string whose
+   *     deadline is `≤ nowIso ?? new Date().toISOString()`, AND
+   *   - has NO associated dispute in a non-terminal status,
+   *
+   * runs the equivalent of `confirmCompletion(id, { stars: 5 })`
+   * to drive the existing escrow `'EmployerConfirm'` event,
+   * reputation bump, skill score update, rating creation, and
+   * shift-Completed rollover. Then sets `autoReleased = true` on
+   * the application as the audit marker.
+   *
+   * Each per-record block is wrapped in `try { ... } catch { ... }`
+   * so one malformed record never blocks the rest of the pass
+   * (Requirement 6.10). The persistence step writes only the
+   * records that actually flipped, identified by the returned
+   * `releasedIds`.
+   *
+   * MUST NOT be called from any code path other than
+   * `useLifecycleSync` and `AppHydrator` (Requirement 6.9). MUST
+   * NOT use `setTimeout`, `setInterval`, polling, or any external
+   * API (Requirement 6.8).
+   *
+   * Returns the application IDs that were auto-released in this
+   * pass. A second invocation against the same state returns an
+   * empty list (idempotent).
+   */
+  autoReleaseEligibleApplications(nowIso?: string): {
+    releasedIds: string[];
   };
 
   // Hydration
@@ -217,18 +434,69 @@ function shiftToTimeRange(shiftId: string): TimeRange | undefined {
   return { date: shift.date, startTime: shift.startTime, endTime: shift.endTime };
 }
 
+/**
+ * Phase 10C-Stab-1 F — application statuses that count as "currently
+ * holding the worker's calendar." Filtering on this set ALONE was the
+ * pre-Stab-1 bug: a `Confirmed` shift in the past was blocking new
+ * applications even though the worker was no longer occupied. The
+ * fix pairs this set with a `now < shift.endTime + grace` check in
+ * `approvedRangesForWorker` below so terminal-but-past shifts drop
+ * out of the conflict pool.
+ *
+ * Statuses listed:
+ *   - `'Approved'`             — worker hasn't started yet, must show up.
+ *   - `'CheckedIn'`            — worker is mid-shift.
+ *   - `'CheckedOut'`           — worker is past their commitment but
+ *                                the shift end + grace might still
+ *                                overlap a new commitment, so we keep
+ *                                them in the pool until end+grace.
+ *   - `'CancellationRequested'` — held in limbo while the employer
+ *                                decides; safer to treat as a real
+ *                                commitment until resolved.
+ *
+ * Notably absent:
+ *   - `'Confirmed'`            — past shifts must NEVER block future
+ *                                applications. The escrow-released
+ *                                state is the explicit "we're done"
+ *                                marker.
+ *   - `'Disputed'`             — payment is held but the worker is
+ *                                no longer expected to be on-site.
+ */
 const ACTIVE_STATUSES: ReadonlySet<ApplicationStatus> = new Set([
   'Approved',
   'CancellationRequested',
   'CheckedIn',
   'CheckedOut',
-  'Confirmed',
 ]);
 
-function approvedRangesForWorker(workerId: string, applications: Application[]): TimeRange[] {
+/**
+ * Phase 10C-Stab-1 F — conflict candidates for `workerId`. Filters on
+ * BOTH `ACTIVE_STATUSES` AND a "shift end + 60min grace is in the
+ * future" check so a checked-out worker's past shift doesn't keep
+ * blocking new applications. The 60-minute tail mirrors
+ * `CHECK_OUT_GRACE_MINUTES` so the conflict window stays consistent
+ * with the lifecycle sync.
+ */
+function approvedRangesForWorker(
+  workerId: string,
+  applications: Application[],
+  nowIso: string,
+): TimeRange[] {
+  const nowMs = new Date(nowIso).getTime();
+  if (!Number.isFinite(nowMs)) return [];
+  const graceMs = 60 * 60 * 1000;
+
   return applications
     .filter((a) => a.workerId === workerId && ACTIVE_STATUSES.has(a.status))
-    .map((a) => shiftToTimeRange(a.shiftId))
+    .map((a) => {
+      const range = shiftToTimeRange(a.shiftId);
+      if (!range) return undefined;
+      // Drop shifts whose end + grace has already passed.
+      const endMs = new Date(`${range.date}T${range.endTime}:00`).getTime();
+      if (!Number.isFinite(endMs)) return range;
+      if (endMs + graceMs < nowMs) return undefined;
+      return range;
+    })
     .filter((r): r is TimeRange => r !== undefined);
 }
 
@@ -292,7 +560,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     if (duplicate) return { ok: false, error: 'ALREADY_APPLIED' };
 
     const target = shiftToTimeRange(shiftId);
-    if (target && hasConflict(target, approvedRangesForWorker(workerId, all))) {
+    if (target && hasConflict(target, approvedRangesForWorker(workerId, all, nowIso()))) {
       return { ok: false, error: 'CONFLICT' };
     }
 
@@ -510,17 +778,62 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     return { ok: true, value: updated };
   },
 
-  checkOut(applicationId) {
-    const app = get().getById(applicationId);
+  checkOut(input) {
+    // Phase 10C — refactored signature. `input.applicationId` is the
+    // discriminator; the rest of the payload is validated against the
+    // shift's evidence requirement before any state change.
+    const app = get().getById(input.applicationId);
     if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
     if (app.status !== 'CheckedIn') return { ok: false, error: 'WRONG_STATUS' };
 
-    const updated: Application = { ...app, status: 'CheckedOut', checkOutAt: nowIso() };
-    const next = get().applications.map((a) => (a.id === applicationId ? updated : a));
+    // Resolve the linked shift first so the evidence validator gets
+    // the correct level. Legacy shifts that pre-date Phase 10C fall
+    // back to `'None'` (the most permissive level) so existing seed
+    // data continues to check out cleanly.
+    const shift = useShiftStore.getState().getById(app.shiftId);
+    const requirement = shift?.evidenceRequirement ?? 'None';
+
+    const payload: CheckoutPayload = {
+      checklist: input.checklist,
+      note: input.note,
+      evidenceFileName: input.evidenceFileName,
+    };
+    const validation = validateCheckoutPayload(requirement, payload);
+    if (!validation.ok) {
+      // EVIDENCE_REQUIRED contract — leave the application strictly
+      // unchanged (no writes to status, checkOutAt, evidence fields,
+      // or autoReleaseAt). Caller receives the typed reason so the
+      // dialog can render a precise Vietnamese message.
+      return {
+        ok: false,
+        error: { code: 'EVIDENCE_REQUIRED', reason: validation.reason },
+      };
+    }
+
+    const checkOutAt = nowIso();
+    // Phase 10C — pre-compute the auto-release deadline as
+    // `checkOutAt + 12h`. Wave 4 only persists the field so the
+    // employer countdown component can render it; the actual
+    // auto-release lifecycle (idempotent flip to Confirmed) ships
+    // in Wave 7 with `autoReleaseEligibleApplications`.
+    const autoReleaseAt = new Date(
+      Date.parse(checkOutAt) + 12 * 60 * 60 * 1000,
+    ).toISOString();
+    const updated: Application = {
+      ...app,
+      status: 'CheckedOut',
+      checkOutAt,
+      autoReleaseAt,
+      checkoutChecklist: payload.checklist ?? [],
+      workerCheckoutNote: (payload.note ?? '').trim(),
+      workerEvidenceFileName: payload.evidenceFileName ?? '',
+    };
+    const next = get().applications.map((a) =>
+      a.id === input.applicationId ? updated : a,
+    );
     set({ applications: next });
     persistApplications(next);
 
-    const shift = useShiftStore.getState().getById(app.shiftId);
     if (shift) {
       const others = get().applications.filter((a) => a.shiftId === shift.id && a.id !== app.id);
       const allDone = others.every(
@@ -828,10 +1141,45 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     return { ok: true, value: updated };
   },
 
-  reportIssue(applicationId, reason) {
-    const app = get().getById(applicationId);
+  reportIssue(payload) {
+    // Phase 10C — structured employer-side dispute. Validate every
+    // field before any state change so a rejection leaves the
+    // application + dispute slice strictly unchanged.
+    const trimmedReason = (payload?.reason ?? '').trim();
+    const evidenceDescription = (payload?.evidenceDescription ?? '').trim();
+    const evidenceFileName = (payload?.evidenceFileName ?? '').trim();
+
+    if (!payload?.category) {
+      return { ok: false, error: 'CATEGORY_REQUIRED' };
+    }
+    if (!EMPLOYER_DISPUTE_CATEGORIES.includes(payload.category)) {
+      return { ok: false, error: 'CATEGORY_INVALID' };
+    }
+    if (trimmedReason.length === 0) {
+      return { ok: false, error: 'REASON_REQUIRED' };
+    }
+    if (
+      trimmedReason.length > 1000 ||
+      evidenceDescription.length > 2000 ||
+      evidenceFileName.length > 255
+    ) {
+      return { ok: false, error: 'FIELD_TOO_LONG' };
+    }
+    if (
+      evidenceFileName.length > 0 &&
+      (evidenceFileName.includes('/') || evidenceFileName.includes('\\'))
+    ) {
+      return { ok: false, error: 'FIELD_TOO_LONG' };
+    }
+
+    const app = get().getById(payload.applicationId);
     if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
-    if (app.status !== 'CheckedOut') return { ok: false, error: 'WRONG_STATUS' };
+    // Disputable status set: only `'CheckedOut'` for now. The wider
+    // set (CheckedIn / Confirmed / etc.) ships with worker-side
+    // disputes in Wave 5 and admin escalation in Wave 8.
+    if (app.status !== 'CheckedOut') {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
 
     const shift = useShiftStore.getState().getById(app.shiftId);
     if (!shift) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
@@ -842,15 +1190,31 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       shiftId: shift.id,
       applicationId: app.id,
       raisedBy: 'employer',
-      reason,
+      category: payload.category,
+      reason: trimmedReason,
+      evidenceDescription:
+        evidenceDescription.length > 0 ? evidenceDescription : undefined,
+      evidenceFileName:
+        evidenceFileName.length > 0 ? evidenceFileName : undefined,
       status: 'Open',
       createdAt: ts,
     };
     const disputes = [...get().disputes, dispute];
-    set({ disputes });
-    persistDisputes(disputes);
 
-    // Escrow: Completed -> Disputed (Req 9.5)
+    // Flip the application to `'Disputed'` so auto-release skips it
+    // (auto-release wiring lands in Wave 7 but the predicate it will
+    // use already excludes this status).
+    const apps = get().applications.map((a) =>
+      a.id === payload.applicationId ? { ...a, status: 'Disputed' as const } : a,
+    );
+
+    set({ disputes, applications: apps });
+    persistDisputes(disputes);
+    persistApplications(apps);
+
+    // Drive the existing `'Completed' -> 'Disputed'` escrow
+    // transition so the shift's escrow status reflects the held
+    // payment.
     const shifts = useShiftStore.getState().shifts.map((s) =>
       s.id === shift.id
         ? { ...s, escrowStatus: transitionEscrow(s.escrowStatus, 'EmployerReportIssue') }
@@ -859,7 +1223,136 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     useShiftStore.getState().hydrate(shifts);
     write(STORAGE_KEYS.shifts, shifts);
 
-    return { ok: true, value: app };
+    // Notify the worker.
+    const categoryLabel = `dispute.category.${payload.category}`;
+    useNotificationStore.getState().push({
+      userId: app.workerId,
+      kind: 'DisputeFiled',
+      title: 'Nhà tuyển dụng đang khiếu nại ca làm',
+      body: `Khiếu nại về ca "${shift.title}". Tiền công đang được giữ lại cho đến khi quản trị viên xử lý.`,
+      link: `/shifts/${shift.id}`,
+    });
+    // Notify every active admin so the disputes queue picks it up.
+    notifyAdmins({
+      users: useUserStore.getState().users,
+      push: useNotificationStore.getState().push,
+      kind: 'DisputeOpened',
+      title: 'Có khiếu nại mới cần xử lý',
+      body: `Khiếu nại trên ca "${shift.title}" — loại "${categoryLabel}".`,
+      link: '/admin/dashboard?tab=disputes',
+    });
+
+    return { ok: true, value: dispute };
+  },
+
+  workerOpenDispute(applicationId, payload) {
+    // Phase 10C Wave 5 — worker-side structured dispute. Mirrors
+    // `reportIssue` but writes `raisedBy: 'worker'` and notifies the
+    // employer + admins instead. Validates BEFORE any state change so
+    // a rejection leaves the application + dispute slice byte-identical
+    // to its pre-call snapshot.
+    const trimmedReason = (payload?.reason ?? '').trim();
+    const evidenceDescription = (payload?.evidenceDescription ?? '').trim();
+    const evidenceFileName = (payload?.evidenceFileName ?? '').trim();
+
+    if (!payload?.category) {
+      return { ok: false, error: 'CATEGORY_REQUIRED' };
+    }
+    if (!WORKER_DISPUTE_CATEGORIES.includes(payload.category)) {
+      // Employer-side category supplied to the worker-side action,
+      // or any out-of-enum value.
+      return { ok: false, error: 'CATEGORY_INVALID' };
+    }
+    if (trimmedReason.length === 0) {
+      return { ok: false, error: 'REASON_REQUIRED' };
+    }
+    if (
+      trimmedReason.length > 1000 ||
+      evidenceDescription.length > 2000 ||
+      evidenceFileName.length > 255
+    ) {
+      return { ok: false, error: 'FIELD_TOO_LONG' };
+    }
+    if (
+      evidenceFileName.length > 0 &&
+      (evidenceFileName.includes('/') || evidenceFileName.includes('\\'))
+    ) {
+      return { ok: false, error: 'FIELD_TOO_LONG' };
+    }
+
+    const app = get().getById(applicationId);
+    if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+    // Worker-side disputable status set: `'CheckedOut'` only for now —
+    // a worker can dispute after they've finished their side and are
+    // waiting for employer confirmation. The wider set ships in
+    // future waves alongside admin escalation.
+    if (app.status !== 'CheckedOut') {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    const shift = useShiftStore.getState().getById(app.shiftId);
+    if (!shift) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+
+    const ts = nowIso();
+    const dispute: Dispute = {
+      id: newPrefixedId('dispute'),
+      shiftId: shift.id,
+      applicationId: app.id,
+      raisedBy: 'worker',
+      category: payload.category,
+      reason: trimmedReason,
+      evidenceDescription:
+        evidenceDescription.length > 0 ? evidenceDescription : undefined,
+      evidenceFileName:
+        evidenceFileName.length > 0 ? evidenceFileName : undefined,
+      status: 'Open',
+      createdAt: ts,
+    };
+    const disputes = [...get().disputes, dispute];
+
+    // Flip the application to `'Disputed'`. The Wave 7 auto-release
+    // predicate already excludes this status; once admin resolution
+    // ships in Wave 8 the same status drives both predicates.
+    const apps = get().applications.map((a) =>
+      a.id === applicationId ? { ...a, status: 'Disputed' as const } : a,
+    );
+
+    set({ disputes, applications: apps });
+    persistDisputes(disputes);
+    persistApplications(apps);
+
+    // Drive the existing `'Completed' -> 'Disputed'` escrow
+    // transition so the shift's escrow status reflects the held
+    // payment. Same event used by employer-side `reportIssue` —
+    // single source of truth for the escrow state machine.
+    const shifts = useShiftStore.getState().shifts.map((s) =>
+      s.id === shift.id
+        ? { ...s, escrowStatus: transitionEscrow(s.escrowStatus, 'EmployerReportIssue') }
+        : s,
+    );
+    useShiftStore.getState().hydrate(shifts);
+    write(STORAGE_KEYS.shifts, shifts);
+
+    // Notify the employer.
+    const categoryLabel = `dispute.category.${payload.category}`;
+    useNotificationStore.getState().push({
+      userId: shift.employerId,
+      kind: 'DisputeFiled',
+      title: 'Người làm đang khiếu nại ca làm',
+      body: `Khiếu nại về ca "${shift.title}". Tiền công đang được giữ lại cho đến khi quản trị viên xử lý.`,
+      link: `/employer/shifts/${shift.id}`,
+    });
+    // Notify every active admin so the disputes queue picks it up.
+    notifyAdmins({
+      users: useUserStore.getState().users,
+      push: useNotificationStore.getState().push,
+      kind: 'DisputeOpened',
+      title: 'Có khiếu nại mới cần xử lý',
+      body: `Khiếu nại trên ca "${shift.title}" — loại "${categoryLabel}".`,
+      link: '/admin/dashboard?tab=disputes',
+    });
+
+    return { ok: true, value: dispute };
   },
 
   markNoShow(applicationId) {
@@ -961,6 +1454,271 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     }
 
     return { expiredIds: plan.expiredIds };
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 10C-Stabilization-1 B — central lifecycle sync orchestrator
+  // -------------------------------------------------------------------------
+
+  runLifecycleSync(when) {
+    const at = when ?? nowIso();
+    const nowMs = Date.parse(at);
+
+    // Step 1: roll shift statuses forward.
+    const { changedIds: changedShiftIds } = useShiftStore
+      .getState()
+      .syncLifecycle(at);
+
+    // Step 2: expire stale Pending applications.
+    const { expiredIds: expiredApplicationIds } = get()
+      .expirePendingApplicationsForStartedShifts(at);
+
+    // Step 3: idempotent ShiftStarted / ShiftEnded notifications.
+    // Read the live application + shift snapshot AFTER steps 1+2 so we
+    // see the freshly-rolled statuses.
+    const apps = get().applications;
+    const shifts = useShiftStore.getState().shifts;
+    const shiftById = new Map<string, typeof shifts[number]>();
+    for (const s of shifts) shiftById.set(s.id, s);
+
+    const notifiedStartIds: string[] = [];
+    const notifiedEndIds: string[] = [];
+    const startedAppIds = new Set<string>();
+    const endedAppIds = new Set<string>();
+
+    // Notification windows mirror the time-gate constants.
+    const CHECK_IN_LATE_MS = 15 * 60 * 1000;
+    const CHECK_OUT_GRACE_MS = 60 * 60 * 1000;
+
+    for (const a of apps) {
+      // Only approved-or-later applications care about start/end.
+      if (
+        a.status !== 'Approved' &&
+        a.status !== 'CheckedIn' &&
+        a.status !== 'CheckedOut'
+      ) {
+        continue;
+      }
+      const shift = shiftById.get(a.shiftId);
+      if (!shift) continue;
+      const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
+      const endMs = new Date(`${shift.date}T${shift.endTime}:00`).getTime();
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) continue;
+
+      // ShiftStarted: now ≥ start, application not yet notified.
+      if (
+        a.shiftStartedNotifiedAt === undefined &&
+        nowMs >= startMs &&
+        // Don't fire for applications that already moved past the
+        // start window without checking in (no-show is its own flow).
+        nowMs < startMs + CHECK_IN_LATE_MS + CHECK_OUT_GRACE_MS
+      ) {
+        startedAppIds.add(a.id);
+        useNotificationStore.getState().push({
+          userId: a.workerId,
+          kind: 'ShiftStarted',
+          title: 'Ca làm đã bắt đầu',
+          body: `Ca làm "${shift.title}" đã bắt đầu. Vui lòng check-in nếu bạn đã có mặt.`,
+          link: `/shifts/${shift.id}`,
+        });
+        useNotificationStore.getState().push({
+          userId: shift.employerId,
+          kind: 'ShiftStarted',
+          title: 'Ca làm đã bắt đầu',
+          body: `Ca làm "${shift.title}" đã bắt đầu. Hãy kiểm tra người làm đã có mặt.`,
+          link: `/employer/shifts/${shift.id}`,
+        });
+        notifiedStartIds.push(a.id);
+      }
+
+      // ShiftEnded: now ≥ end, application not yet notified, only
+      // when the worker actually started (CheckedIn) — for
+      // approved-but-no-show records the ShiftStarted line is
+      // sufficient.
+      if (
+        a.shiftEndedNotifiedAt === undefined &&
+        nowMs >= endMs &&
+        a.status === 'CheckedIn'
+      ) {
+        endedAppIds.add(a.id);
+        useNotificationStore.getState().push({
+          userId: a.workerId,
+          kind: 'ShiftEnded',
+          title: 'Ca làm đã kết thúc',
+          body: `Ca "${shift.title}" đã kết thúc. Vui lòng check-out và hoàn tất checklist.`,
+          link: `/shifts/${shift.id}`,
+        });
+        useNotificationStore.getState().push({
+          userId: shift.employerId,
+          kind: 'ShiftEnded',
+          title: 'Ca làm đã kết thúc',
+          body: `Ca "${shift.title}" đã kết thúc. Hãy xác nhận sau khi người làm check-out.`,
+          link: `/employer/shifts/${shift.id}`,
+        });
+        notifiedEndIds.push(a.id);
+      }
+    }
+
+    // Stamp the idempotency markers in a single batched write so a
+    // partial failure can't leave us with notifications fired but
+    // markers absent.
+    if (startedAppIds.size > 0 || endedAppIds.size > 0) {
+      const updatedApps = get().applications.map((a) => {
+        const next: Application = a;
+        let mutated = false;
+        let copy: Application = next;
+        if (startedAppIds.has(a.id) && copy.shiftStartedNotifiedAt === undefined) {
+          copy = { ...copy, shiftStartedNotifiedAt: at };
+          mutated = true;
+        }
+        if (endedAppIds.has(a.id) && copy.shiftEndedNotifiedAt === undefined) {
+          copy = { ...copy, shiftEndedNotifiedAt: at };
+          mutated = true;
+        }
+        return mutated ? copy : a;
+      });
+      set({ applications: updatedApps });
+      persistApplications(updatedApps);
+    }
+
+    // Step 4: 12 h auto-release pass.
+    const { releasedIds } = get().autoReleaseEligibleApplications(at);
+
+    return {
+      changedShiftIds,
+      expiredApplicationIds,
+      notifiedStartIds,
+      notifiedEndIds,
+      releasedIds,
+    };
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 10C Wave 5B — idempotent 12-hour auto-release pass
+  // -------------------------------------------------------------------------
+
+  autoReleaseEligibleApplications(when) {
+    // Resolve the current clock once so every per-record predicate
+    // reads the same "now" — keeps the pass deterministic under
+    // fake-timer harnesses.
+    const nowMs = Date.parse(when ?? nowIso());
+
+    // Build the set of applications that currently have a dispute in
+    // a non-terminal status. Dispute-locked applications are NEVER
+    // auto-released — admin resolution (Wave 8) is the only path
+    // out of dispute.
+    const TERMINAL_DISPUTE_STATUSES = new Set([
+      'ResolvedReleased',
+      'ResolvedRefunded',
+      'PartialRelease',
+      'ClosedInvalid',
+    ]);
+    const openDisputeAppIds = new Set<string>();
+    for (const d of get().disputes) {
+      if (!TERMINAL_DISPUTE_STATUSES.has(d.status)) {
+        openDisputeAppIds.add(d.applicationId);
+      }
+    }
+
+    // Filter eligible applications. The predicate intentionally
+    // matches the Wave 0 design exactly so the same predicate can be
+    // tested in isolation and the test pins behavior across waves.
+    const eligible = get().applications.filter((a) => {
+      if (a.status !== 'CheckedOut') return false;
+      if (a.autoReleased === true) return false;
+      if (typeof a.autoReleaseAt !== 'string' || a.autoReleaseAt.length === 0) {
+        return false;
+      }
+      const deadlineMs = Date.parse(a.autoReleaseAt);
+      if (!Number.isFinite(deadlineMs)) return false;
+      if (deadlineMs > nowMs) return false;
+      if (openDisputeAppIds.has(a.id)) return false;
+      return true;
+    });
+
+    if (eligible.length === 0) {
+      return { releasedIds: [] };
+    }
+
+    const releasedIds: string[] = [];
+    // Process each eligible record under per-record error isolation
+    // so one bad row never blocks the rest. We delegate to
+    // `confirmCompletion` so all existing side effects fire exactly
+    // once per release: rating record, reputation bump, skill score
+    // update, escrow `'EmployerConfirm'` event, shift-Completed
+    // rollover, and the standard `'ShiftCompletedConfirmed'`
+    // notification. We then mark `autoReleased: true` as the audit
+    // marker distinguishing auto from manual confirmation, and push
+    // an extra `'AutoReleaseSettled'` notification to BOTH parties
+    // so the worker income + employer payment release are visible
+    // as separate ledger entries.
+    for (const a of eligible) {
+      try {
+        const result = get().confirmCompletion(a.id, { stars: 5 });
+        if (!result.ok) {
+          // confirmCompletion only rejects on APPLICATION_NOT_FOUND
+          // or WRONG_STATUS — neither should fire after our
+          // predicate, but if it does we skip cleanly.
+          continue;
+        }
+
+        // Mark the application as auto-released so a second pass
+        // (or any future re-run) skips it.
+        const updatedApps = get().applications.map((x) =>
+          x.id === a.id ? { ...x, autoReleased: true } : x,
+        );
+        set({ applications: updatedApps });
+        persistApplications(updatedApps);
+
+        // Push the auto-release-specific notifications. The worker
+        // already received the `'ShiftCompletedConfirmed'` toast
+        // from `confirmCompletion`; the additional
+        // `'AutoReleaseSettled'` entry quotes the payout amount
+        // so both sides have a ledger-grade record of WHY the
+        // release happened (12-hour timeout vs. employer
+        // confirmation).
+        const shift = useShiftStore.getState().getById(a.shiftId);
+        const payout = a.payoutAmount ?? 0;
+        if (shift) {
+          // Worker income credit notification.
+          useNotificationStore.getState().push({
+            userId: a.workerId,
+            kind: 'AutoReleaseSettled',
+            title: 'Tự động giải ngân tiền công',
+            body:
+              `Hệ thống tự động xác nhận ca "${shift.title}" sau 12 giờ ` +
+              `nhà tuyển dụng không thao tác. Tiền công ${payout.toLocaleString('vi-VN')}đ ` +
+              `đã được chuyển cho bạn (mô phỏng).`,
+            link: '/worker/dashboard?modal=income',
+          });
+          // Employer deposit-released notification.
+          useNotificationStore.getState().push({
+            userId: shift.employerId,
+            kind: 'AutoReleaseSettled',
+            title: 'Tự động giải ngân tiền công',
+            body:
+              `Ca "${shift.title}" đã được hệ thống tự động xác nhận sau 12 giờ ` +
+              `(không có khiếu nại). Tiền cọc ${payout.toLocaleString('vi-VN')}đ ` +
+              `đã được giải ngân cho người làm.`,
+            link: `/employer/shifts/${shift.id}`,
+          });
+        }
+
+        releasedIds.push(a.id);
+      } catch (err) {
+        // Per-record error isolation. Log in dev so the bug surfaces;
+        // in production / MVP this branch is unreachable because
+        // `confirmCompletion` never throws — it returns a `Result`.
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn(
+            `[autoReleaseEligibleApplications] skipped ${a.id}:`,
+            err,
+          );
+        }
+      }
+    }
+
+    return { releasedIds };
   },
 
   // -------------------------------------------------------------------------
