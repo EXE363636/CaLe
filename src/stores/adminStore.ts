@@ -17,10 +17,15 @@ import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
 import { MAX_SCORE, MIN_SCORE } from '@/domain/reputation';
+import { appendShiftTimelineEntry } from '@/domain/shiftTimeline';
+import { formatVND } from '@/lib/format';
 import type {
+  Application,
+  ApplicationStatus,
   Dispute,
   DisputeStatus,
   EscrowStatus,
+  NotificationKind,
   Result,
   Worker,
 } from '@/types';
@@ -30,6 +35,7 @@ import { useAuthStore } from './authStore';
 import { useNotificationStore } from './notificationStore';
 import { useShiftStore } from './shiftStore';
 import { useUserStore, asWorker } from './userStore';
+import { useWalletStore } from './walletStore';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -44,7 +50,12 @@ export type AdminError =
   | 'INVALID_SCORE'
   | 'REASON_REQUIRED'
   | 'CANNOT_SUSPEND_SELF'
-  | 'CANNOT_SUSPEND_LAST_ADMIN';
+  | 'CANNOT_SUSPEND_LAST_ADMIN'
+  /**
+   * Phase 10C-Stab-1 Batch 3 F — admin tried to resolve a dispute
+   * that is already resolved or in an otherwise non-resolvable state.
+   */
+  | 'WRONG_STATUS';
 
 interface AdminStore {
   suspend(userId: string): Result<true, AdminError>;
@@ -72,6 +83,17 @@ interface AdminStore {
     outcome: 'ResolvedReleased' | 'ResolvedRefunded',
     note: string,
   ): Result<Dispute, AdminError>;
+  /**
+   * Phase 10C-Stab-1 Batch 4 H — admin asks worker / employer / both
+   * sides for additional evidence on a dispute. Idempotent re-requests
+   * are allowed: a dispute already in `'RequestedMoreEvidence'` can be
+   * re-requested with a different note.
+   */
+  requestMoreEvidence(
+    disputeId: string,
+    target: 'worker' | 'employer' | 'both',
+    note: string,
+  ): Result<Dispute, AdminError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +104,30 @@ const nowIso = (): string => new Date().toISOString();
 
 function persistShifts(): void {
   write(STORAGE_KEYS.shifts, useShiftStore.getState().shifts);
+}
+
+/**
+ * Phase 10C-Stab-1 Batch 4B — append a timeline entry to the
+ * specified shift and persist. Same pattern as the helper in
+ * applicationStore but kept here to avoid a cross-store cycle.
+ */
+function appendTimelineToShift(
+  shiftId: string,
+  kind: import('@/types').ShiftTimelineEntry['kind'],
+  note: string,
+): void {
+  const shiftStore = useShiftStore.getState();
+  const shift = shiftStore.getById(shiftId);
+  if (!shift) return;
+  const nextTimeline = appendShiftTimelineEntry(shift.timeline, {
+    kind,
+    note,
+  });
+  const nextShifts = shiftStore.shifts.map((s) =>
+    s.id === shiftId ? { ...s, timeline: nextTimeline } : s,
+  );
+  shiftStore.hydrate(nextShifts);
+  write(STORAGE_KEYS.shifts, nextShifts);
 }
 
 // ---------------------------------------------------------------------------
@@ -212,6 +258,16 @@ export const useAdminStore = create<AdminStore>(() => ({
     const dispute = appStore.disputes.find((d) => d.id === disputeId);
     if (!dispute) return { ok: false, error: 'DISPUTE_NOT_FOUND' };
 
+    // Phase 10C-Stab-1 Batch 3 F — block re-resolution. Disputes
+    // remain resolvable while in `'Open'` or `'RequestedMoreEvidence'`;
+    // every other status is terminal.
+    if (
+      dispute.status !== 'Open' &&
+      dispute.status !== 'RequestedMoreEvidence'
+    ) {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
     const ts = nowIso();
     const updated: Dispute = {
       ...dispute,
@@ -234,6 +290,210 @@ export const useAdminStore = create<AdminStore>(() => ({
     );
     shiftStore.hydrate(shifts);
     persistShifts();
+
+    // ---------------------------------------------------------------
+    // Phase 10C-Stab-1 Batch 3 F — flip the linked application out of
+    // 'Disputed' into the appropriate terminal status, then notify
+    // both sides.
+    // ---------------------------------------------------------------
+    const linkedApp = appStore.applications.find(
+      (a) => a.id === dispute.applicationId,
+    );
+    if (linkedApp) {
+      let nextStatus: ApplicationStatus = linkedApp.status;
+      let appPatch: Partial<Application> = {};
+      if (outcome === 'ResolvedReleased') {
+        nextStatus = 'Confirmed';
+        appPatch = { status: 'Confirmed', confirmedAt: ts };
+      } else if (outcome === 'ResolvedRefunded') {
+        nextStatus = 'NoShow';
+        appPatch = { status: 'NoShow', noShowAt: ts };
+      }
+      if (nextStatus !== linkedApp.status) {
+        const updatedApp: Application = { ...linkedApp, ...appPatch };
+        const apps = appStore.applications.map((a) =>
+          a.id === linkedApp.id ? updatedApp : a,
+        );
+        useApplicationStore.setState({ applications: apps });
+        write(STORAGE_KEYS.applications, apps);
+      }
+
+      // Compose notifications for the worker + employer. Body quotes
+      // the shift title and the deposit amount so both sides have a
+      // ledger-grade record of the resolution.
+      const shift = useShiftStore.getState().getById(dispute.shiftId);
+      const shiftTitle = shift?.title ?? 'ca làm';
+      const amountVN = shift ? formatVND(shift.depositAmount) : '';
+      const kind: NotificationKind = 'DisputeResolved';
+      if (outcome === 'ResolvedReleased') {
+        useNotificationStore.getState().push({
+          userId: linkedApp.workerId,
+          kind,
+          title: 'Tranh chấp đã được giải quyết',
+          body:
+            `Quản trị viên đã thanh toán cho bạn cho ca "${shiftTitle}".` +
+            (amountVN ? ` Tiền công ${amountVN} đã được giải ngân.` : ''),
+          link: `/shifts/${dispute.shiftId}`,
+        });
+        if (shift) {
+          useNotificationStore.getState().push({
+            userId: shift.employerId,
+            kind,
+            title: 'Tranh chấp đã được giải quyết',
+            body:
+              `Quản trị viên đã thanh toán toàn bộ tiền cọc cho người lao động cho ca "${shiftTitle}".` +
+              (amountVN ? ` Số tiền: ${amountVN}.` : ''),
+            link: `/employer/shifts/${dispute.shiftId}`,
+          });
+        }
+      } else {
+        // ResolvedRefunded
+        useNotificationStore.getState().push({
+          userId: linkedApp.workerId,
+          kind,
+          title: 'Tranh chấp đã được giải quyết',
+          body:
+            `Quản trị viên đã hoàn tiền đặt cọc cho nhà tuyển dụng cho ca "${shiftTitle}".` +
+            (amountVN ? ` Số tiền hoàn: ${amountVN}.` : ''),
+          link: `/shifts/${dispute.shiftId}`,
+        });
+        if (shift) {
+          useNotificationStore.getState().push({
+            userId: shift.employerId,
+            kind,
+            title: 'Tranh chấp đã được giải quyết',
+            body:
+              `Quản trị viên đã hoàn tiền đặt cọc cho bạn cho ca "${shiftTitle}".` +
+              (amountVN ? ` Số tiền hoàn: ${amountVN}.` : ''),
+            link: `/employer/shifts/${dispute.shiftId}`,
+          });
+        }
+      }
+
+      // Stamp the application-level idempotency marker so a future
+      // re-resolve attempt (which is now blocked anyway) wouldn't
+      // re-fire the notification.
+      const finalApps = useApplicationStore.getState().applications.map((a) =>
+        a.id === linkedApp.id
+          ? { ...a, disputeResolutionNotifiedAt: ts }
+          : a,
+      );
+      useApplicationStore.setState({ applications: finalApps });
+      write(STORAGE_KEYS.applications, finalApps);
+
+      // Phase 10C-Stab-1 Batch 4 J — settle wallet ledger.
+      const shiftFinal = useShiftStore.getState().getById(dispute.shiftId);
+      if (shiftFinal) {
+        const amount =
+          linkedApp.payoutAmount && linkedApp.payoutAmount > 0
+            ? linkedApp.payoutAmount
+            : shiftFinal.depositAmount;
+        if (outcome === 'ResolvedReleased') {
+          useWalletStore
+            .getState()
+            .credit(linkedApp.workerId, amount, 'WorkerWageReleased', {
+              shiftId: shiftFinal.id,
+              applicationId: linkedApp.id,
+              note: `Tranh chấp giải quyết — thanh toán cho ca "${shiftFinal.title}"`,
+            });
+        } else if (outcome === 'ResolvedRefunded') {
+          useWalletStore
+            .getState()
+            .credit(shiftFinal.employerId, amount, 'EmployerDisputeRefund', {
+              shiftId: shiftFinal.id,
+              applicationId: linkedApp.id,
+              note: `Tranh chấp giải quyết — hoàn cọc cho ca "${shiftFinal.title}"`,
+            });
+        }
+      }
+
+      // Phase 10C-Stab-1 Batch 4B — timeline emission. Two entries
+      // so the audit log records both the resolution decision and
+      // the resulting wallet movement.
+      if (shiftFinal) {
+        appendTimelineToShift(
+          shiftFinal.id,
+          'AdminResolvedDispute',
+          outcome === 'ResolvedReleased'
+            ? `Quản trị viên giải quyết: thanh toán cho người làm.`
+            : `Quản trị viên giải quyết: hoàn cọc cho nhà tuyển dụng.`,
+        );
+        appendTimelineToShift(
+          shiftFinal.id,
+          outcome === 'ResolvedReleased' ? 'WageReleased' : 'WageRefunded',
+          outcome === 'ResolvedReleased'
+            ? `Đã giải ngân tiền công sau khiếu nại.`
+            : `Đã hoàn cọc cho nhà tuyển dụng sau khiếu nại.`,
+        );
+      }
+    }
+
+    return { ok: true, value: updated };
+  },
+
+  // -----------------------------------------------------------------
+  // Phase 10C-Stab-1 Batch 4 H — request more evidence
+  // -----------------------------------------------------------------
+  requestMoreEvidence(disputeId, target, note) {
+    const trimmedNote = (note ?? '').trim();
+    if (trimmedNote === '') return { ok: false, error: 'REASON_REQUIRED' };
+
+    const appStore = useApplicationStore.getState();
+    const dispute = appStore.disputes.find((d) => d.id === disputeId);
+    if (!dispute) return { ok: false, error: 'DISPUTE_NOT_FOUND' };
+    if (
+      dispute.status !== 'Open' &&
+      dispute.status !== 'RequestedMoreEvidence'
+    ) {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    const ts = nowIso();
+    const updated: Dispute = {
+      ...dispute,
+      status: 'RequestedMoreEvidence',
+      resolutionNote: trimmedNote,
+      evidenceRequestTarget: target,
+    };
+    const disputes = appStore.disputes.map((d) =>
+      d.id === disputeId ? updated : d,
+    );
+    appStore.hydrateDisputes(disputes);
+    write(STORAGE_KEYS.disputes, disputes);
+
+    const shift = useShiftStore.getState().getById(dispute.shiftId);
+    const shiftTitle = shift?.title ?? 'ca làm';
+    const linkedApp = appStore.applications.find(
+      (a) => a.id === dispute.applicationId,
+    );
+    const targets: Array<'worker' | 'employer'> =
+      target === 'both' ? ['worker', 'employer'] : [target];
+    for (const t of targets) {
+      const userId =
+        t === 'worker'
+          ? linkedApp?.workerId
+          : shift?.employerId;
+      if (!userId) continue;
+      useNotificationStore.getState().push({
+        userId,
+        kind: 'AdminRequestedEvidence',
+        title: 'Quản trị viên yêu cầu bổ sung bằng chứng',
+        body: `Quản trị viên cần thêm thông tin về tranh chấp ca "${shiftTitle}". Lý do: ${trimmedNote}`,
+        link:
+          t === 'worker'
+            ? `/shifts/${dispute.shiftId}`
+            : `/employer/shifts/${dispute.shiftId}`,
+      });
+    }
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    if (shift) {
+      appendTimelineToShift(
+        shift.id,
+        'AdminRequestedEvidence',
+        `Quản trị viên yêu cầu ${target === 'both' ? 'cả hai bên' : target === 'worker' ? 'người làm' : 'nhà tuyển dụng'} bổ sung bằng chứng — ${trimmedNote.slice(0, 120)}`,
+      );
+    }
 
     return { ok: true, value: updated };
   },

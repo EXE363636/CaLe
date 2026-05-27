@@ -131,7 +131,12 @@ export function suggestShiftStatus(
 
     // Start passed but end hasn't yet.
     if (startedPast) {
-      if (hasActiveWorker) return 'InProgress';
+      // Phase 10C-Stab-1 Batch 3 C — only flip to InProgress when at
+      // least one worker has actually checked in (or beyond). An
+      // Approved-only roster does NOT promote the shift to
+      // InProgress because we have no proof of presence yet.
+      if (hasCheckedIn) return 'InProgress';
+      if (hasActiveWorker) return shift.status;
       // Start passed without anyone approved → still expired (no one
       // showed up). Falls through to the normal time-only branch.
       return 'Expired';
@@ -179,4 +184,147 @@ export function syncLifecycle(
     return { ...s, status: suggested, updatedAt: nowIso };
   });
   return { shifts: next, changedIds, syncedAt: nowIso };
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10C-Stab-1 Batch 3 C — display phase helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Phase 10C-Stab-1 Batch 3 C / Batch 4 B — narrow display phase used
+ * by worker / employer / public UI to render an at-a-glance "what's
+ * happening to this shift right now" chip without the user having to
+ * interpret the full lifecycle status. Distinct from `Shift.status`
+ * because it accounts for actual check-in presence and dispute /
+ * post-checkout state.
+ *
+ *   - `'Upcoming'`                       — start has not yet been
+ *                                          reached AND no check-in
+ *                                          window is open yet, OR the
+ *                                          start time has just passed
+ *                                          but no one has checked in.
+ *   - `'CheckInOpen'`                    — within the 15-minute
+ *                                          pre-start check-in window.
+ *   - `'InProgress'`                     — start has passed and at
+ *                                          least one worker has
+ *                                          self-checked-in (or been
+ *                                          employer-marked-present).
+ *   - `'AwaitingWorkerCheckout'`         — end has passed AND at least
+ *                                          one app is `'CheckedIn'`
+ *                                          (worker still needs to
+ *                                          check out).
+ *   - `'AwaitingEmployerConfirmation'`   — `Shift.status` is
+ *                                          `'AwaitingConfirmation'`
+ *                                          OR an app is `'CheckedOut'`
+ *                                          and not yet
+ *                                          `'Confirmed'/'NoShow'`.
+ *   - `'Disputed'`                       — `Shift.escrowStatus` is
+ *                                          `'Disputed'` OR any app on
+ *                                          the shift is
+ *                                          `status === 'Disputed'`.
+ *   - `'Completed'`                      — `Shift.status` is
+ *                                          `'Completed'`.
+ *   - `'Expired'`                        — `Shift.status` is
+ *                                          `'Expired'`.
+ *   - `'Cancelled'`                      — shift was cancelled
+ *                                          (employer or admin).
+ */
+export type ShiftDisplayPhase =
+  | 'Upcoming'
+  | 'CheckInOpen'
+  | 'InProgress'
+  | 'AwaitingWorkerCheckout'
+  | 'AwaitingEmployerConfirmation'
+  | 'Disputed'
+  | 'Completed'
+  | 'Expired'
+  | 'Cancelled';
+
+const CHECK_IN_OPEN_MINUTES = 15;
+
+/**
+ * Phase 10C-Stab-1 Batch 4 F — "Sắp bắt đầu" worker-facing window.
+ * Distinct from `CHECK_IN_OPEN_MINUTES` (which drives the 15-minute
+ * "Bạn có thể check-in sớm" affordance). The 6-hour window controls
+ * when the worker / discovery surfaces tag a shift as "starting
+ * soon" so the user can plan their day.
+ */
+export const STARTING_SOON_HOURS = 6;
+const STARTING_SOON_MS = STARTING_SOON_HOURS * 60 * 60_000;
+
+/**
+ * Predicate: should we tag this shift as "Sắp bắt đầu" right now?
+ *
+ * Returns `true` iff `start - now <= 6h && start - now > 0`. Pure /
+ * deterministic.
+ */
+export function isShiftStartingSoon(
+  shift: Pick<Shift, 'date' | 'startTime'>,
+  nowIso: string,
+): boolean {
+  const now = new Date(nowIso).getTime();
+  const start = shiftMomentMs(shift.date, shift.startTime);
+  if (Number.isNaN(now) || Number.isNaN(start)) return false;
+  const delta = start - now;
+  return delta > 0 && delta <= STARTING_SOON_MS;
+}
+
+/**
+ * Compute the display phase for a single shift given the wall clock
+ * and the application list. Pure / deterministic.
+ *
+ * Distinct from `suggestShiftStatus` because it answers a UI
+ * question ("what chip do we render next to this shift?") and
+ * therefore reads check-in presence directly. The lifecycle status
+ * machine remains the source of truth for storage and audit; this
+ * helper exists strictly for the user-facing chip.
+ */
+export function getShiftDisplayPhase(
+  shift: Shift,
+  applications: Application[],
+  nowIso: string,
+): ShiftDisplayPhase {
+  if (shift.status === 'Cancelled') return 'Cancelled';
+  if (shift.status === 'Completed') return 'Completed';
+  if (shift.status === 'Expired') return 'Expired';
+
+  const myApps = applications.filter((a) => a.shiftId === shift.id);
+  const hasDispute =
+    shift.escrowStatus === 'Disputed' ||
+    myApps.some((a) => a.status === 'Disputed');
+  if (hasDispute) return 'Disputed';
+
+  const now = new Date(nowIso).getTime();
+  const start = shiftMomentMs(shift.date, shift.startTime);
+  const end = shiftMomentMs(shift.date, shift.endTime);
+  if (Number.isNaN(now) || Number.isNaN(start) || Number.isNaN(end)) {
+    return 'Upcoming';
+  }
+
+  // AwaitingEmployerConfirmation: lifecycle status flagged or any
+  // app is CheckedOut waiting for confirm/dispute.
+  const hasCheckedOutWaiting = myApps.some((a) => a.status === 'CheckedOut');
+  if (
+    shift.status === 'AwaitingConfirmation' ||
+    hasCheckedOutWaiting
+  ) {
+    return 'AwaitingEmployerConfirmation';
+  }
+
+  // AwaitingWorkerCheckout: end has passed AND at least one app is
+  // still CheckedIn (hasn't checked out yet).
+  const hasMidShift = myApps.some((a) => a.status === 'CheckedIn');
+  if (now >= end && hasMidShift) return 'AwaitingWorkerCheckout';
+
+  // InProgress: now in [start, end) AND at least one app is checked in.
+  if (now >= start && now < end) {
+    if (hasMidShift) return 'InProgress';
+    return 'Upcoming';
+  }
+
+  // CheckInOpen: within the 15-minute pre-start window.
+  if (now < start && now >= start - CHECK_IN_OPEN_MINUTES * 60_000) {
+    return 'CheckInOpen';
+  }
+  return 'Upcoming';
 }

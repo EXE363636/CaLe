@@ -14,7 +14,9 @@ import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
+import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
+import { getShiftDisplayPhase } from '@/domain/shiftLifecycle';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
@@ -567,6 +569,11 @@ function WorkerDashboardContent() {
           onClick={() => setStatDetail('quota')}
           ariaLabel="Xem chi tiết hạn mức huỷ"
         />
+      </section>
+
+      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. */}
+      <section className="mb-8">
+        <WalletPanel userId={worker.id} />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -1660,6 +1667,11 @@ function UpcomingShiftCard({
   // worker's calendar shows whether their self-check-in / employer
   // mark-present pair matches; misaligned states surface a banner so
   // the worker knows whether to wait or to self-check-in.
+  //
+  // Phase 10C-Stab-1 Batch 3 D — when the application status is
+  // Approved (worker has not yet self-checked in) AND the employer
+  // has stamped `markedPresentAt`, surface the dedicated worker-side
+  // mismatch warning so the worker knows to self-check-in.
   const mismatchWorkerOnly =
     application.status === 'CheckedIn' &&
     Boolean(application.checkInAt) &&
@@ -1668,6 +1680,25 @@ function UpcomingShiftCard({
     application.status === 'CheckedIn' &&
     !application.checkInAt &&
     Boolean(application.markedPresentAt);
+  const mismatchWorkerNotCheckedIn =
+    Boolean(application.markedPresentAt) && !application.checkInAt;
+  const phase = getShiftDisplayPhase(
+    shift,
+    [application],
+    nowIso,
+  );
+  const phaseTone =
+    phase === 'InProgress'
+      ? 'success'
+      : phase === 'CheckInOpen'
+        ? 'info'
+        : phase === 'Cancelled' ||
+            phase === 'Completed' ||
+            phase === 'Expired'
+          ? 'neutral'
+          : phase === 'Disputed'
+            ? 'danger'
+            : 'warning';
 
   return (
     <Card>
@@ -1681,7 +1712,11 @@ function UpcomingShiftCard({
           </Link>
           <p className="mt-0.5 text-sm text-gray-500">{shift.location}</p>
         </div>
-        <ShiftStatusBadge status={shift.status} />
+        <div className="flex flex-col items-end gap-1">
+          <ShiftStatusBadge status={shift.status} />
+          {/* Phase 10C-Stab-1 Batch 3 C — display phase chip. */}
+          <Badge tone={phaseTone}>{t(`shift.phase.${phase}`)}</Badge>
+        </div>
       </div>
 
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
@@ -1700,6 +1735,18 @@ function UpcomingShiftCard({
           {mismatchWorkerOnly
             ? t('lifecycle.mismatch.workerOnly')
             : t('lifecycle.mismatch.employerOnly')}
+        </p>
+      )}
+
+      {/* Phase 10C-Stab-1 Batch 3 D — worker-side mismatch warning
+          when employer has marked the worker present but the worker
+          has not self-checked in. Visible above the check-in button. */}
+      {mismatchWorkerNotCheckedIn && !mismatchEmployerOnly && (
+        <p
+          role="status"
+          className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+        >
+          {t('lifecycle.mismatch.workerNotCheckedIn')}
         </p>
       )}
 

@@ -633,8 +633,14 @@ describe('Stab-1 Bug 8: applicationStore.apply does not block on stale shifts', 
     // Use real-future epoch (a year ahead of now) so
     // `approvedRangesForWorker`'s "endMs + grace > now" guard keeps
     // the existing approved shift in the conflict pool.
-    const nowMs = Date.now();
-    const sharedStart = nowMs + 365 * 24 * 60 * 60_000;
+    //
+    // Pin the future timestamp to a deterministic mid-day hour so a
+    // late-night test run doesn't roll endTime past midnight: when
+    // start = 23:30 + 1h, the legacy fixture computed end = 00:30
+    // on the same date string, collapsing the conflict window.
+    const inOneYear = new Date(Date.now() + 365 * 24 * 60 * 60_000);
+    inOneYear.setHours(12, 0, 0, 0); // noon, deterministic across local TZs
+    const sharedStart = inOneYear.getTime();
     const sharedEnd = sharedStart + 60 * 60_000;
     const ongoingShift = shiftFromEpoch(sharedStart, sharedEnd, {
       id: 's-ongoing',

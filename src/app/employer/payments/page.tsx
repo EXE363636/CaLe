@@ -18,14 +18,14 @@ export default function EmployerPaymentsPage() {
       <InfoSection title="Cấp độ tin cậy và tỷ lệ đặt cọc">
         <InfoList
           items={[
-            'Mới (Low): cần đặt cọc 100% tiền công của ca.',
-            'Đã xác minh hoặc đã hoàn thành ≥ 3 ca (Medium): cần đặt cọc 70%.',
-            'Đã xác minh và đã hoàn thành ≥ 5 ca (High): cần đặt cọc 50%.',
+            'Trong giai đoạn dùng thử, mọi nhà tuyển dụng đều đặt cọc 100% tiền công của ca, không phụ thuộc cấp độ tin cậy.',
+            'Cấp độ tin cậy (Mới / Đã xác minh / Tin cậy cao) sẽ ảnh hưởng đến hiển thị, ưu tiên và phí dịch vụ trong tương lai, nhưng không làm giảm tỷ lệ ký quỹ.',
+            'Mục tiêu là bảo vệ tiền công cho người lao động ngay cả khi nhà tuyển dụng không liên hệ được.',
           ]}
         />
-        Tỷ lệ này được tính trên tổng tiền công (mức theo giờ × số giờ
-        × số vị trí). Phần còn lại được thanh toán sau khi ca hoàn
-        thành.
+        Tổng tiền cọc = mức theo giờ × số giờ × số vị trí. Toàn bộ
+        khoản này được giữ trong ví ký quỹ cho đến khi ca hoàn thành
+        hoặc được hoàn theo quy định huỷ.
       </InfoSection>
 
       <InfoSection title="Khi nào tiền được giải ngân">

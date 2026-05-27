@@ -170,7 +170,35 @@ export type NotificationKind =
    * Phase 10C-Stab-1 Batch 2 — worker checked out. Reminds the
    * employer to confirm or dispute within 12 hours.
    */
-  | 'WorkerCheckedOut';
+  | 'WorkerCheckedOut'
+  /**
+   * Phase 10C-Stab-1 Batch 3 B — fired to the employer when a
+   * shift's start is within 10 minutes and there are still unfilled
+   * positions. Idempotent via `Shift.startingSoonNotifiedAt`.
+   */
+  | 'ShiftStartingSoon'
+  /**
+   * Phase 10C-Stab-1 Batch 3 B — fired to the employer when the
+   * lifecycle sync transitions a shift to `'Expired'` with zero
+   * approved positions. Idempotent via `Shift.expiredEmptyNotifiedAt`.
+   */
+  | 'ShiftExpiredEmpty'
+  /**
+   * Phase 10C-Stab-1 Batch 4 E — fired to the worker after wage
+   * release (manual confirm or auto-release) reminding them to rate
+   * the employer.
+   */
+  | 'WorkerPostPaymentRatingRequired'
+  /**
+   * Phase 10C-Stab-1 Batch 4 E — fired to the employer when the
+   * worker submits their post-payment rating.
+   */
+  | 'WorkerRatedEmployer'
+  /**
+   * Phase 10C-Stab-1 Batch 4 H — admin asked one or both sides for
+   * additional evidence on a dispute.
+   */
+  | 'AdminRequestedEvidence';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -439,6 +467,12 @@ export interface Worker extends BaseUser {
    * worker records read this as `[]`.
    */
   skillScores?: WorkerSkillScore[];
+  /**
+   * Phase 10C-Stab-1 Batch 4 J — wallet balance in Vietnamese đồng.
+   * Optional for backwards compatibility; legacy snapshots default
+   * to 0 in the wallet store hydrate.
+   */
+  walletBalance?: number;
 }
 
 export interface Employer extends BaseUser {
@@ -468,6 +502,12 @@ export interface Employer extends BaseUser {
    * subsequent edits.
    */
   employerType10A?: EmployerType10A;
+  /**
+   * Phase 10C-Stab-1 Batch 4 J — wallet balance in Vietnamese đồng.
+   * Optional for backwards compatibility; legacy snapshots default
+   * to 0 in the wallet store hydrate.
+   */
+  walletBalance?: number;
 }
 
 export interface Admin extends BaseUser {
@@ -613,17 +653,53 @@ export interface Shift {
    *                               to the source.
    */
   timeline?: ShiftTimelineEntry[];
+
+  /**
+   * Phase 10C-Stab-1 Batch 3 B — ISO timestamp set when the
+   * lifecycle sync fired the `'ShiftStartingSoon'` employer
+   * notification. Idempotency hook so re-running the sync at the
+   * same `now` produces no duplicate notifications.
+   */
+  startingSoonNotifiedAt?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 3 B — ISO timestamp set when the
+   * lifecycle sync fired the `'ShiftExpiredEmpty'` employer
+   * notification (i.e. the shift transitioned to Expired with zero
+   * approved positions). Idempotency hook for the same reason.
+   */
+  expiredEmptyNotifiedAt?: string;
 }
 
 /**
- * Phase 10C-Stab-1 Batch 2 — typed audit-log entry on `Shift.timeline`.
- * Always carries a second-resolution ISO timestamp.
+ * Phase 10C-Stab-1 Batch 2 / Batch 4 L — typed audit-log entry on
+ * `Shift.timeline`. Always carries a second-resolution ISO timestamp.
  */
 export interface ShiftTimelineEntry {
   id: string;
   /** ISO 8601 with seconds. */
   occurredAt: string;
-  kind: 'CreatedFromRepost' | 'EmployerCancelled' | 'AutoExpired' | 'Reposted';
+  kind:
+    | 'CreatedFromRepost'
+    | 'EmployerCancelled'
+    | 'AutoExpired'
+    | 'Reposted'
+    | 'ShiftPublished'
+    | 'DepositHeld'
+    | 'WorkerApplied'
+    | 'EmployerApprovedApplicant'
+    | 'WorkerCheckedIn'
+    | 'EmployerMarkedPresent'
+    | 'EmployerMarkedAbsent'
+    | 'WorkerCheckedOut'
+    | 'EmployerOpenedDispute'
+    | 'WorkerOpenedDispute'
+    | 'WorkerRespondedToDispute'
+    | 'EmployerRespondedToDispute'
+    | 'AdminRequestedEvidence'
+    | 'AdminResolvedDispute'
+    | 'WageReleased'
+    | 'WageRefunded';
   /**
    * Free-form Vietnamese note. May contain quoted shift IDs / titles.
    * UI is responsible for any escaping / truncation.
@@ -647,11 +723,50 @@ export interface Application {
   payoutAmount?: number;
 
   /**
+   * Phase 10C-Stab-1 Batch 3 F — partial-release amount applied by
+   * the admin when resolving a dispute with `'PartialRelease'`. In
+   * the MVP only `ResolvedReleased` and `ResolvedRefunded` are
+   * wired, but the field is reserved so the schema doesn't need to
+   * change again when partial resolution lands.
+   */
+  partialPayoutAmount?: number;
+
+  /**
+   * Phase 10C-Stab-1 Batch 3 F — ISO timestamp set when an admin
+   * resolved a dispute against the worker (`ResolvedRefunded`),
+   * flipping the application to `'NoShow'`. Mirrors `confirmedAt`
+   * on the released path.
+   */
+  noShowAt?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 3 F — idempotency guard for the
+   * dispute-resolution notification. Set when admin resolution
+   * pushed `'DisputeResolved'` notifications to both sides; future
+   * passes that re-read the same dispute skip the notification.
+   */
+  disputeResolutionNotifiedAt?: string;
+
+  /**
    * Phase 6: required reason supplied by the employer when rejecting a
    * `Pending` application. Mirrored into the worker's
    * `ApplicationRejected` notification so they can see why.
    */
   rejectionReason?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 4 E — set when the employer confirms
+   * completion / wage is released. Cleared once the worker submits
+   * their post-payment rating. Drives the prominent
+   * "Đánh giá nhà tuyển dụng" CTA on the worker dashboard.
+   */
+  paidAwaitingRatingAt?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 4 E — ISO timestamp the worker submitted
+   * the post-payment rating of the employer.
+   */
+  workerRatedEmployerAt?: string;
 
   // -------------------------------------------------------------------------
   // Worker cancellation request (Phase 2)
@@ -876,6 +991,36 @@ export interface Dispute {
    * Public-safe mock string — no actual file content is ever stored.
    */
   evidenceFileName?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 3 E — append-only list of follow-up
+   * responses to the dispute from either side. Used so a worker can
+   * respond to an employer-filed dispute (and vice versa) without
+   * spawning a duplicate dispute record.
+   */
+  responses?: DisputeResponse[];
+
+  /**
+   * Phase 10C-Stab-1 Batch 4 H — admin-supplied evidence request
+   * target. Set only when `status === 'RequestedMoreEvidence'`.
+   */
+  evidenceRequestTarget?: 'worker' | 'employer' | 'both';
+}
+
+/**
+ * Phase 10C-Stab-1 Batch 3 E — single response/reply on a dispute.
+ * Side identifies the author role; `authorUserId` carries the actual
+ * worker / employer id so the admin queue can render attributable
+ * statements.
+ */
+export interface DisputeResponse {
+  id: string;
+  side: 'employer' | 'worker';
+  authorUserId: string;
+  reason: string;
+  evidenceDescription?: string;
+  evidenceFileName?: string;
+  createdAt: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -926,6 +1071,11 @@ export type WorkerDisputeCategory =
   | 'EmployerNoShow'
   | 'ScopeChanged'
   | 'PaymentDispute'
+  /**
+   * Phase 10C-Stab-1 Batch 4 I — worker disputes an employer's
+   * `markNoShow` decision. Eligible from `Application.status === 'NoShow'`.
+   */
+  | 'AbsentDispute'
   | 'Other';
 
 /** Stable iteration order for the employer-side category picker. */
@@ -946,8 +1096,53 @@ export const WORKER_DISPUTE_CATEGORIES: readonly WorkerDisputeCategory[] = [
   'EmployerNoShow',
   'ScopeChanged',
   'PaymentDispute',
+  'AbsentDispute',
   'Other',
 ] as const;
+
+// ---------------------------------------------------------------------------
+// Phase 10C-Stab-1 Batch 4 J — Wallet model
+// ---------------------------------------------------------------------------
+
+/**
+ * Wallet ledger entry kinds. Each transaction in the wallet ledger
+ * carries one of these labels so admin / employer / worker views can
+ * render a human-readable Vietnamese description without inferring
+ * intent from the amount sign.
+ */
+export type WalletLedgerEntryKind =
+  | 'EmployerDepositHeld'
+  | 'WorkerWageReleased'
+  | 'EmployerUnusedRefund'
+  | 'EmployerDisputeRefund'
+  | 'EmployerPartialRefund'
+  | 'WorkerPartialRelease'
+  | 'EmployerCancellationPenalty';
+
+/**
+ * Single wallet ledger entry. Append-only; never mutated.
+ *
+ *   - `amount` is signed: positive = credit (received), negative =
+ *     debit (paid out).
+ *   - `occurredAt` carries seconds-resolution ISO 8601.
+ */
+export interface WalletLedgerEntry {
+  id: string;
+  occurredAt: string;
+  userId: string;
+  kind: WalletLedgerEntryKind;
+  amount: number;
+  shiftId?: string;
+  applicationId?: string;
+  note?: string;
+}
+
+/** Per-user wallet aggregate. */
+export interface UserWallet {
+  userId: string;
+  balance: number;
+  updatedAt: string;
+}
 
 export interface BoostCreditLedgerEntry {
   id: string;

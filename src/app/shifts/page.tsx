@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useAuthStore } from '@/stores/authStore';
 import { isShiftAvailableForRecruiting } from '@/domain/shiftAvailability';
+import { compareShiftsForWorker } from '@/domain/shiftSorting';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { ShiftFilters } from '@/components/shift/ShiftFilters';
 import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
 import { EmptyState } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { t } from '@/i18n/vi';
+import type { ApplicationStatus } from '@/types';
 import type { FilterCriteria } from '@/domain/filter';
 
 const JOB_TYPE_OPTIONS = [
@@ -25,9 +28,28 @@ export default function ShiftsPage() {
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
+  const currentUserId = useAuthStore((s) => s.currentUserId);
 
   const [criteria, setCriteria] = useState<FilterCriteria>({});
   const [searchText, setSearchText] = useState('');
+
+  // Phase 10C-Stab-1 Batch 3 I — index the current worker's
+  // applications by shiftId so the card can show an already-applied
+  // chip instead of the standard apply CTA. Returns an empty map
+  // when no user is signed in.
+  const myAppByShift = useMemo(() => {
+    const map = new Map<string, ApplicationStatus>();
+    if (!currentUserId) return map;
+    // Pick the most recent application per shift (sort desc by
+    // appliedAt, write last-wins).
+    const sorted = [...applications]
+      .filter((a) => a.workerId === currentUserId)
+      .sort((a, b) => a.appliedAt.localeCompare(b.appliedAt));
+    for (const a of sorted) {
+      map.set(a.shiftId, a.status);
+    }
+    return map;
+  }, [applications, currentUserId]);
 
   // Employer name lookup
   const employerMap = useMemo(() => {
@@ -45,7 +67,7 @@ export default function ShiftsPage() {
     // Phase 10A-Fix-5: canonical recruiting predicate. Reconciles
     // `positionsFilled` against the live application store so a
     // stale field can't let a 3/3 shift leak through.
-    return shifts.filter((s) => {
+    const matched = shifts.filter((s) => {
       if (!isShiftAvailableForRecruiting(s, applications, nowMs)) return false;
       if (merged.text) {
         const q = merged.text.toLowerCase();
@@ -63,7 +85,26 @@ export default function ShiftsPage() {
       if (merged.jobType && s.jobType !== merged.jobType) return false;
       return true;
     });
-  }, [shifts, applications, criteria, searchText]);
+    // Phase 10C-Stab-1 Batch 4 G — sort by preferred-location match
+    // first, then soonest start. Sort runs over the already-filtered
+    // result so the existing publication / criteria gates run first.
+    const currentWorker = currentUserId
+      ? users.find(
+          (u) => u.id === currentUserId && u.role === 'worker',
+        ) ?? null
+      : null;
+    const workerForSort = currentWorker
+      ? {
+          preferredLocations:
+            currentWorker.role === 'worker'
+              ? currentWorker.preferredLocations
+              : [],
+        }
+      : null;
+    return [...matched].sort((a, b) =>
+      compareShiftsForWorker(a, b, workerForSort),
+    );
+  }, [shifts, applications, criteria, searchText, currentUserId, users]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -117,6 +158,7 @@ export default function ShiftsPage() {
               key={shift.id}
               shift={shift}
               employerName={employerMap[shift.employerId]}
+              workerApplicationStatus={myAppByShift.get(shift.id)}
               onClick={() => router.push(`/shifts/${shift.id}`)}
             />
           ))}

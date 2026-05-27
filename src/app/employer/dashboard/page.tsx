@@ -15,6 +15,7 @@ import {
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
+import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
@@ -251,6 +252,13 @@ function EmployerDashboardContent() {
           ariaLabel="Xem tóm tắt thanh toán"
         />
       </section>
+
+      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. */}
+      {currentUserId && (
+        <section className="mb-8">
+          <WalletPanel userId={currentUserId} />
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main */}

@@ -929,6 +929,26 @@ function formatSyncTime(iso: string): string {
   );
 }
 
+/**
+ * Phase 10C-Stab-1 Batch 3 J — exact-second formatter for visible
+ * audit logs (admin disputes, etc.). Always renders the seconds slot
+ * so a viewer can correlate a notification with a server-side event.
+ */
+const VN_LOG_DATETIME = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
+function formatLogDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return VN_LOG_DATETIME.format(d);
+}
+
 const ESCROW_OPTIONS: EscrowStatus[] = [
   'PendingDeposit',
   'Deposited',
@@ -1129,7 +1149,7 @@ function DisputeRow({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-gray-900">{shiftTitle}</p>
           <p className="mt-0.5 text-xs text-gray-500">
-            {employerName} ↔ {workerName} • {formatDateVN(dispute.createdAt)}
+            {employerName} ↔ {workerName} • {formatLogDateTime(dispute.createdAt)}
           </p>
           <p className="mt-2 text-sm text-gray-700">
             <span className="font-medium">Lý do:</span> {dispute.reason}

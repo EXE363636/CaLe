@@ -13,7 +13,8 @@ export default function SafetyPage() {
         Mọi người dùng cần xác minh số điện thoại để có thể ứng tuyển hoặc
         đăng ca. Người lao động có thể bổ sung CMND/CCCD và thẻ sinh viên
         để mở khoá nhiều ca hơn. Nhà tuyển dụng có thể đăng ký xác minh
-        doanh nghiệp để giảm tỷ lệ đặt cọc.
+        doanh nghiệp để được ưu tiên hiển thị và giảm phí dịch vụ trong
+        tương lai. Mọi nhà tuyển dụng đều đặt cọc 100% tổng tiền công.
       </InfoSection>
 
       <InfoSection title="Đặt cọc trước khi công khai ca">

@@ -25,6 +25,8 @@ import type {
   ScheduleBlock,
   Shift,
   User,
+  UserWallet,
+  WalletLedgerEntry,
   WorkerVerificationDocument,
 } from '@/types';
 
@@ -43,7 +45,7 @@ import verificationsSeed from './seed/verifications.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -61,6 +63,9 @@ export const STORAGE_KEYS = {
   workerVerifications: 'cale.workerVerifications',
   employerVerifications: 'cale.employerVerifications',
   employerTypeChangeRequests: 'cale.employerTypeChangeRequests',
+  /** Phase 10C-Stab-1 Batch 4 J — wallet model. */
+  wallets: 'cale.wallets',
+  walletLedger: 'cale.walletLedger',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -95,6 +100,10 @@ export interface Snapshot {
   employerVerifications: EmployerVerificationDocument[];
   /** Phase 10A-Fix-1: pending/decided employer type change requests. */
   employerTypeChangeRequests: EmployerTypeChangeRequest[];
+  /** Phase 10C-Stab-1 Batch 4 J: per-user wallet aggregates. */
+  wallets: UserWallet[];
+  /** Phase 10C-Stab-1 Batch 4 J: append-only wallet ledger. */
+  walletLedger: WalletLedgerEntry[];
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +146,9 @@ export function seedSnapshot(): Snapshot {
     // Phase 10A-Fix-1: type-change requests start empty; employers
     // submit them at runtime.
     employerTypeChangeRequests: [],
+    // Phase 10C-Stab-1 Batch 4 J: wallets + ledger start empty.
+    wallets: [],
+    walletLedger: [],
   };
 }
 
@@ -236,6 +248,11 @@ export function loadAll(): Snapshot {
       STORAGE_KEYS.employerTypeChangeRequests,
       seed.employerTypeChangeRequests,
     ),
+    wallets: read<UserWallet[]>(STORAGE_KEYS.wallets, seed.wallets),
+    walletLedger: read<WalletLedgerEntry[]>(
+      STORAGE_KEYS.walletLedger,
+      seed.walletLedger,
+    ),
   };
 }
 
@@ -265,6 +282,8 @@ export function persistAll(snapshot: Snapshot): void {
     STORAGE_KEYS.employerTypeChangeRequests,
     snapshot.employerTypeChangeRequests,
   );
+  write(STORAGE_KEYS.wallets, snapshot.wallets);
+  write(STORAGE_KEYS.walletLedger, snapshot.walletLedger);
 }
 
 // ---------------------------------------------------------------------------
@@ -331,6 +350,8 @@ export function exportSnapshot(): string {
     [STORAGE_KEYS.employerVerifications]: seed.employerVerifications,
     [STORAGE_KEYS.employerTypeChangeRequests]:
       seed.employerTypeChangeRequests,
+    [STORAGE_KEYS.wallets]: seed.wallets,
+    [STORAGE_KEYS.walletLedger]: seed.walletLedger,
   };
 
   const payload: Record<string, unknown> = {};

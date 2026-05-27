@@ -14,8 +14,11 @@ import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import {
   DisputeDialog,
+  DisputeResponseDialog,
   type DisputePayload,
-} from '@/components/forms/DisputeDialog';
+  type DisputeResponsePayload,
+} from '@/components/forms';
+import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
@@ -25,6 +28,7 @@ import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
+import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { Shift } from '@/types';
 
 interface Props {
@@ -63,6 +67,26 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   // Phase 10C Wave 5 — worker-side dispute dialog state.
   const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
   const [disputeError, setDisputeError] = useState<string | null>(null);
+  // Phase 10C-Stab-1 Batch 3 E — worker-side response affordance for
+  // an employer-initiated dispute. Opens a slim follow-up dialog that
+  // appends to the existing Dispute record (no duplicate row).
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [responseError, setResponseError] = useState<string | null>(null);
+  const appendDisputeResponse = useApplicationStore(
+    (s) => s.appendDisputeResponse,
+  );
+
+  // Phase 10C-Stab-1 Batch 4B — post-payment rating + absent dispute.
+  const submitEmployerFeedback = useEmployerFeedbackStore((s) => s.submit);
+  const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
+  const [ratingFormOpen, setRatingFormOpen] = useState(false);
+  // Absent-dispute dialog state — distinct from the regular
+  // worker-side dispute dialog so we can preset the category.
+  const [absentDisputeDialogOpen, setAbsentDisputeDialogOpen] =
+    useState(false);
+  const [absentDisputeError, setAbsentDisputeError] = useState<string | null>(
+    null,
+  );
 
   const employerUser = users.find((u) => u.id === shift.employerId);
   const employer = asEmployer(employerUser);
@@ -80,6 +104,15 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           a.status !== 'CancelledByWorker',
       )
     : undefined;
+
+  // Phase 10C-Stab-1 Batch 4B — Worker's already-submitted feedback
+  // for this shift (idempotency for the post-payment rating banner).
+  const submittedFeedbackForApp = useMemo(() => {
+    if (!worker || !myApp) return undefined;
+    return allFeedback.find(
+      (f) => f.applicationId === myApp.id && f.fromUserId === worker.id,
+    );
+  }, [allFeedback, worker, myApp]);
 
   // Phase 3: derive cancellation quota for the current worker only when
   // the cancel dialog is open. Selectors above already return stable
@@ -372,6 +405,92 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           />
         )}
 
+        {/* Phase 10C-Stab-1 Batch 4B — absent dispute banner.
+            Renders when the worker has been marked absent / no-show
+            so they have a clear path to file an `'AbsentDispute'`
+            via the existing `<DisputeDialog side="worker">`.
+            Distinct from the standard CheckedOut dispute path
+            because the application is in a terminal-ish state
+            and the category is preset. */}
+        {worker && myApp?.status === 'NoShow' && (
+          <div className="mt-4 flex flex-col items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+            <p className="font-semibold">
+              {t('worker.absentDispute.banner.title')}
+            </p>
+            <p className="text-xs leading-relaxed text-red-900/80">
+              {t('worker.absentDispute.banner.body')}
+            </p>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                setAbsentDisputeError(null);
+                setAbsentDisputeDialogOpen(true);
+              }}
+              disabled={loading}
+            >
+              {t('worker.absentDispute.banner.button')}
+            </Button>
+          </div>
+        )}
+
+        {/* Phase 10C-Stab-1 Batch 4B — post-payment rating banner.
+            Renders when wage has been released to the worker but the
+            worker hasn't yet rated the employer. The form mounts
+            inline below the banner; on submit it calls the existing
+            `useEmployerFeedbackStore.submit` which clears
+            `paidAwaitingRatingAt` and stamps `workerRatedEmployerAt`
+            on the application atomically. */}
+        {worker &&
+          myApp &&
+          myApp.paidAwaitingRatingAt &&
+          !myApp.workerRatedEmployerAt &&
+          !submittedFeedbackForApp && (
+            <div className="mt-4 flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
+              <p className="font-semibold">
+                {t('worker.postPaymentRating.banner.title')}
+              </p>
+              <p className="text-xs leading-relaxed text-orange-900/80">
+                {t('worker.postPaymentRating.banner.body')}
+              </p>
+              {!ratingFormOpen ? (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => setRatingFormOpen(true)}
+                >
+                  {t('worker.postPaymentRating.banner.button')}
+                </Button>
+              ) : (
+                <EmployerFeedbackForm
+                  loading={loading}
+                  onSubmit={(input) => {
+                    if (!worker || !myApp) return;
+                    setLoading(true);
+                    const result = submitEmployerFeedback({
+                      shiftId: shift.id,
+                      applicationId: myApp.id,
+                      fromUserId: worker.id,
+                      toEmployerId: shift.employerId,
+                      stars: input.stars,
+                      comment: input.comment,
+                      tags: input.tags,
+                    });
+                    setLoading(false);
+                    if (result.ok) {
+                      showSuccess(
+                        t('feedback.dispute.success'),
+                      );
+                      setRatingFormOpen(false);
+                    } else {
+                      showError(toastFromStoreError(result.error));
+                    }
+                  }}
+                />
+              )}
+            </div>
+          )}
+
         {/* Phase 10C Wave 5 — worker dispute action. Visible after the
             worker has checked out and is waiting for employer
             confirmation. Once a dispute exists the application status
@@ -448,21 +567,115 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                         t('worker.dispute.employerStatement.empty')}
                     </dd>
                   </dl>
-                  {/* Response affordance — opens a future "respond"
-                      dialog. Wave 6 / Stabilization-2 will wire this
-                      to a real action; for now it deep-links to the
-                      support page. */}
-                  <p className="mt-3 text-[11px] italic text-red-800">
-                    Bạn có thể bổ sung bằng chứng hoặc phản hồi qua
-                    quản trị viên. Tính năng phản hồi trực tiếp sẽ
-                    sớm có mặt.
-                  </p>
+                  {/* Phase 10C-Stab-1 Batch 3 E — wire the response
+                      affordance to the new DisputeResponseDialog. The
+                      dialog dispatches `appendDisputeResponse` so the
+                      worker statement is appended to the existing
+                      Dispute record (no duplicate). */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setResponseError(null);
+                        setResponseDialogOpen(true);
+                      }}
+                    >
+                      {t('worker.dispute.respondButton')}
+                    </Button>
+                  </div>
+                  {/* Render any prior responses chronologically so
+                      both sides can read the back-and-forth without
+                      leaving the page. */}
+                  {ourDispute.responses && ourDispute.responses.length > 0 && (
+                    <ul className="mt-3 flex flex-col gap-2 border-t border-red-200 pt-2 text-[12px] text-red-900">
+                      {[...ourDispute.responses]
+                        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+                        .map((r) => (
+                          <li
+                            key={r.id}
+                            className="rounded-md border border-red-200 bg-white/70 px-2 py-1.5"
+                          >
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-red-700">
+                              {r.side === 'worker'
+                                ? 'Người làm'
+                                : 'Nhà tuyển dụng'}
+                              {' · '}
+                              {new Intl.DateTimeFormat('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              }).format(new Date(r.createdAt))}
+                            </p>
+                            <p className="mt-1 whitespace-pre-line">{r.reason}</p>
+                            {r.evidenceDescription && (
+                              <p className="mt-1 italic">
+                                {r.evidenceDescription}
+                              </p>
+                            )}
+                            {r.evidenceFileName && (
+                              <p className="mt-1 break-all font-mono text-[11px]">
+                                {r.evidenceFileName}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>
           );
         })()}
       </div>
+
+      {/* Phase 10C-Stab-1 Batch 3 E — worker response dialog. Opens
+          when the worker clicks "Phản hồi khiếu nại" on an
+          employer-initiated dispute. */}
+      {worker && myApp?.status === 'Disputed' && (() => {
+        const ourDispute = disputes
+          .filter((d) => d.applicationId === myApp.id)
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+        if (!ourDispute) return null;
+        return (
+          <DisputeResponseDialog
+            open={responseDialogOpen}
+            onClose={() => {
+              setResponseDialogOpen(false);
+              setResponseError(null);
+            }}
+            side="worker"
+            subjectTitle={shift.title}
+            onSubmit={(payload: DisputeResponsePayload) => {
+              if (!worker) return;
+              setLoading(true);
+              const result = appendDisputeResponse(ourDispute.id, 'worker', {
+                authorUserId: worker.id,
+                reason: payload.reason,
+                evidenceDescription: payload.evidenceDescription,
+                evidenceFileName: payload.evidenceFileName,
+              });
+              setLoading(false);
+              if (result.ok) {
+                showSuccess(
+                  t('dispute.response.feedback.success'),
+                  t('dispute.response.feedback.success.desc'),
+                );
+                setResponseDialogOpen(false);
+                setResponseError(null);
+                return;
+              }
+              const message = toastFromStoreError(result.error);
+              setResponseError(message);
+              showError(message);
+            }}
+            loading={loading}
+            errorMessage={responseError}
+          />
+        );
+      })()}
 
       {/* Phase 10C Wave 5 — worker dispute dialog. Mounts only when
           the worker has a checked-out application on this shift and
@@ -508,6 +721,49 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           }}
           loading={loading}
           errorMessage={disputeError}
+        />
+      )}
+
+      {/* Phase 10C-Stab-1 Batch 4B — absent dispute dialog. Re-uses
+          `<DisputeDialog/>` with the category preset to
+          `'AbsentDispute'` so the worker only fills in reason and
+          evidence. The store action accepts AbsentDispute only when
+          the application is in `'NoShow'`. */}
+      {worker && myApp?.status === 'NoShow' && (
+        <DisputeDialog
+          open={absentDisputeDialogOpen}
+          onClose={() => {
+            setAbsentDisputeDialogOpen(false);
+            setAbsentDisputeError(null);
+          }}
+          side="worker"
+          subjectTitle={shift.title}
+          defaultCategory="AbsentDispute"
+          onSubmit={(payload: DisputePayload) => {
+            if (!myApp) return;
+            setLoading(true);
+            const result = workerOpenDispute(myApp.id, {
+              category: 'AbsentDispute',
+              reason: payload.reason,
+              evidenceDescription: payload.evidenceDescription,
+              evidenceFileName: payload.evidenceFileName,
+            });
+            setLoading(false);
+            if (result.ok) {
+              showSuccess(
+                t('feedback.dispute.success'),
+                t('feedback.dispute.success.desc'),
+              );
+              setAbsentDisputeDialogOpen(false);
+              setAbsentDisputeError(null);
+              return;
+            }
+            const message = toastFromStoreError(result.error);
+            setAbsentDisputeError(message);
+            showError(message);
+          }}
+          loading={loading}
+          errorMessage={absentDisputeError}
         />
       )}
 

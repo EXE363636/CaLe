@@ -200,7 +200,13 @@ describe('applicationStore.workerOpenDispute — Phase 10C Wave 5A', () => {
   it("flips the application to 'Disputed' and the shift escrow to 'Disputed'", () => {
     const { app, shift } = reset();
     useApplicationStore.getState().workerOpenDispute(app.id, {
-      category: 'PaymentDispute',
+      // Phase 10C-Stab-1 Batch 4 D — `'PaymentDispute'` now requires
+      // we be inside the 1-hour pre-auto-release window. The fixture's
+      // autoReleaseAt is 2026-06-03 so a real-clock test would return
+      // `'TOO_EARLY'`. Use a non-payment category to keep the legacy
+      // behavior pinned here; the 4-D test in Batch 4 covers the new
+      // gate explicitly.
+      category: 'EmployerNoShow',
       reason: 'Tiền công không đúng cam kết.',
     });
     expect(snapshotApp(app.id)?.status).toBe('Disputed');

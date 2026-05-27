@@ -85,6 +85,9 @@ export const vi: Record<string, string> = {
   // Buttons
   // -------------------------------------------------------------------------
   'btn.apply': 'Ứng tuyển',
+  // Phase 10C-Stab-1 Batch 3 I — link affordance for already-applied
+  // shifts in the worker shift listing.
+  'btn.viewApplication': 'Xem chi tiết →',
   'btn.cancel': 'Huỷ',
   'btn.confirm': 'Xác nhận',
   'btn.save': 'Lưu',
@@ -137,6 +140,49 @@ export const vi: Record<string, string> = {
   'shift.status.Cancelled': 'Đã huỷ',
   'shift.status.Expired': 'Đã hết hạn',
 
+  // Phase 10C-Stab-1 Batch 4 C — employer applicant bucket headings + hints.
+  'applicantBucket.Pending': 'Đơn chờ duyệt',
+  'applicantBucket.Pending.hint':
+    'Quyết định nhận hoặc từ chối từng người ứng tuyển.',
+  'applicantBucket.Approved': 'Đơn đã duyệt',
+  'applicantBucket.Approved.hint':
+    'Đợi người lao động check-in khi đến giờ.',
+  'applicantBucket.CheckedIn': 'Người làm đã check-in',
+  'applicantBucket.CheckedIn.hint':
+    'Hãy bấm Đánh dấu có mặt khi gặp được người lao động tại điểm làm.',
+  'applicantBucket.PresenceConfirmed': 'Đã xác nhận có mặt',
+  'applicantBucket.PresenceConfirmed.hint':
+    'Cả hai bên đã xác nhận có mặt. Đợi đến hết ca.',
+  'applicantBucket.AwaitingCheckout': 'Chờ check-out',
+  'applicantBucket.AwaitingCheckout.hint':
+    'Ca đã hết giờ nhưng người lao động chưa check-out. Bạn có thể nhắc nhở hoặc đánh dấu vắng mặt nếu không liên lạc được.',
+  'applicantBucket.AwaitingConfirmation': 'Chờ xác nhận hoàn thành',
+  'applicantBucket.AwaitingConfirmation.hint':
+    'Người làm đã check-out. Hãy xác nhận hoàn thành để giải ngân hoặc khiếu nại nếu có vấn đề. Tự động xác nhận sau 12 giờ.',
+  'applicantBucket.Disputed': 'Đang khiếu nại',
+  'applicantBucket.Disputed.hint':
+    'Quản trị viên đang xử lý tranh chấp. Bạn có thể bổ sung phản hồi nếu cần.',
+  'applicantBucket.Absent': 'Vắng mặt',
+  'applicantBucket.Absent.hint':
+    'Người lao động không có mặt theo lịch.',
+  'applicantBucket.Confirmed': 'Đã hoàn thành',
+  'applicantBucket.Confirmed.hint':
+    'Đã thanh toán cho người lao động.',
+
+
+  'shift.phase.Upcoming': 'Sắp diễn ra',
+  'shift.phase.CheckInOpen': 'Sắp bắt đầu',
+  'shift.phase.InProgress': 'Đang diễn ra',
+  'shift.phase.AwaitingWorkerCheckout': 'Chờ người làm check-out',
+  'shift.phase.AwaitingEmployerConfirmation': 'Chờ nhà tuyển dụng xác nhận',
+  'shift.phase.Disputed': 'Đang khiếu nại',
+  'shift.phase.Completed': 'Đã hoàn thành',
+  'shift.phase.Expired': 'Đã hết hạn',
+  'shift.phase.Cancelled': 'Đã hủy',
+  // Legacy alias kept so imports still resolve until call sites are
+  // migrated to the new phase keys above.
+  'shift.phase.Ended': 'Đã kết thúc',
+
   // -------------------------------------------------------------------------
   // Escrow / payment statuses
   // -------------------------------------------------------------------------
@@ -163,6 +209,22 @@ export const vi: Record<string, string> = {
   'application.status.CheckedOut': 'Đã check-out',
   'application.status.Confirmed': 'Đã xác nhận',
   'application.status.Disputed': 'Đang khiếu nại',
+
+  // Phase 10C-Stab-1 Batch 3 I — already-applied chip labels for the
+  // worker shift listing. Worker-friendly phrasing distinct from the
+  // operator-facing `application.status.*` pool.
+  'apply.applied.Pending': 'Đã ứng tuyển',
+  'apply.applied.Approved': 'Đã được duyệt',
+  'apply.applied.CheckedIn': 'Đã check-in',
+  'apply.applied.CheckedOut': 'Đã check-out',
+  'apply.applied.Confirmed': 'Đã hoàn thành',
+  'apply.applied.Disputed': 'Đang khiếu nại',
+  'apply.applied.Rejected': 'Bị từ chối',
+  'apply.applied.Expired': 'Đã hết hạn',
+  'apply.applied.CancelledByWorker': 'Bạn đã hủy',
+  'apply.applied.CancelledByEmployer': 'Nhà tuyển dụng đã hủy',
+  'apply.applied.NoShow': 'Vắng mặt',
+  'apply.applied.CancellationRequested': 'Đang yêu cầu hủy',
 
   // -------------------------------------------------------------------------
   // Dispute statuses
@@ -199,6 +261,13 @@ export const vi: Record<string, string> = {
   'notification.kind.WorkerCheckedIn': 'Người làm đã check-in',
   'notification.kind.EmployerMarkedPresent': 'Nhà tuyển dụng đã xác nhận có mặt',
   'notification.kind.WorkerCheckedOut': 'Người làm đã check-out',
+  // Phase 10C-Stab-1 Batch 3 B — employer expiry notifications.
+  'notification.kind.ShiftStartingSoon': 'Ca sắp bắt đầu',
+  'notification.kind.ShiftExpiredEmpty': 'Ca đã hết hạn',
+  // Phase 10C-Stab-1 Batch 4 — post-payment rating + admin evidence.
+  'notification.kind.WorkerPostPaymentRatingRequired': 'Hãy đánh giá nhà tuyển dụng',
+  'notification.kind.WorkerRatedEmployer': 'Người làm đã đánh giá bạn',
+  'notification.kind.AdminRequestedEvidence': 'Quản trị viên yêu cầu bổ sung bằng chứng',
   // Phase 9M — affordance label on dashboard notification cards.
   'notification.viewDetail': 'Xem chi tiết',
 
@@ -1017,7 +1086,7 @@ export const vi: Record<string, string> = {
   'help.shiftCreate.item1':
     'Lương theo giờ nhập số nguyên — hệ thống tự đọc thành chữ Việt.',
   'help.shiftCreate.item2':
-    'Tỷ lệ đặt cọc dựa trên mức tin cậy: cao 50%, trung bình 70%, thấp 100%.',
+    'Mọi nhà tuyển dụng đều đặt cọc 100% tổng tiền công. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai, không ảnh hưởng đến tỷ lệ đặt cọc.',
   'help.shiftCreate.item3':
     'Bấm "Xác nhận đã thanh toán" để mô phỏng đặt cọc — không có giao dịch thật.',
   'help.shiftCreate.item4':
@@ -1262,19 +1331,22 @@ export const vi: Record<string, string> = {
 
   // -------------------------------------------------------------------------
   // Phase 6 — deposit ratio explainer
+  //
+  // Phase 10C-Stab-1 Batch 3: every employer deposits 100% tiền công.
+  // Trust tier still matters for visibility / priority / fees in future.
   // -------------------------------------------------------------------------
-  'deposit.trust.title': 'Tỷ lệ đặt cọc theo độ uy tín',
+  'deposit.trust.title': 'Đặt cọc 100% tiền công',
   'deposit.trust.low':
-    'Độ uy tín: Thấp. Nhà tuyển dụng mới hoặc chưa xác minh.',
+    'Độ uy tín: Thấp. Nhà tuyển dụng mới hoặc chưa xác minh. Cọc 100% tiền công; cấp độ tin cậy vẫn ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
   'deposit.trust.medium':
-    'Độ uy tín: Trung bình. Đã xác minh hoặc đã hoàn thành ít nhất 3 ca.',
+    'Độ uy tín: Trung bình. Đã xác minh hoặc đã hoàn thành ít nhất 3 ca. Cọc 100% tiền công; cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
   'deposit.trust.high':
-    'Độ uy tín: Cao. Đã xác minh và hoàn thành ít nhất 5 ca.',
+    'Độ uy tín: Cao. Đã xác minh và hoàn thành ít nhất 5 ca. Cọc 100% tiền công; cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
   'deposit.trust.label.low': 'Thấp',
   'deposit.trust.label.medium': 'Trung bình',
   'deposit.trust.label.high': 'Cao',
   'deposit.trust.ratio':
-    'Bạn cần đặt cọc {percent}% tổng tiền lương trước khi đăng ca.',
+    'Bạn cần đặt cọc 100% tổng tiền công trước khi đăng ca. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai.',
   'deposit.breakdown.fullWage': 'Tổng tiền lương',
   'deposit.breakdown.trust': 'Độ uy tín',
   'deposit.breakdown.ratio': 'Tỷ lệ đặt cọc',
@@ -1489,9 +1561,28 @@ export const vi: Record<string, string> = {
   'shift.timeline.kind.EmployerCancelled': 'Nhà tuyển dụng đã huỷ ca',
   'shift.timeline.kind.AutoExpired': 'Hệ thống đã chuyển sang đã hết hạn',
   'shift.timeline.kind.Reposted': 'Tạo lại từ ca cũ',
-  'feedback.repost.success': 'Đã tạo bản nháp mới',
+  // Phase 10C-Stab-1 Batch 4B — additional timeline kinds emitted by
+  // the store actions (apply / approve / check-in / mark-present /
+  // mark-absent / check-out / dispute / wage-release / etc.).
+  'shift.timeline.kind.ShiftPublished': 'Ca đã được đăng',
+  'shift.timeline.kind.DepositHeld': 'Đã giữ cọc',
+  'shift.timeline.kind.WorkerApplied': 'Người làm đã ứng tuyển',
+  'shift.timeline.kind.EmployerApprovedApplicant': 'Nhà tuyển dụng đã duyệt người làm',
+  'shift.timeline.kind.WorkerCheckedIn': 'Người làm đã check-in',
+  'shift.timeline.kind.EmployerMarkedPresent': 'Nhà tuyển dụng xác nhận có mặt',
+  'shift.timeline.kind.EmployerMarkedAbsent': 'Nhà tuyển dụng đánh dấu vắng mặt',
+  'shift.timeline.kind.WorkerCheckedOut': 'Người làm đã check-out',
+  'shift.timeline.kind.EmployerOpenedDispute': 'Nhà tuyển dụng mở khiếu nại',
+  'shift.timeline.kind.WorkerOpenedDispute': 'Người làm mở khiếu nại',
+  'shift.timeline.kind.WorkerRespondedToDispute': 'Người làm phản hồi khiếu nại',
+  'shift.timeline.kind.EmployerRespondedToDispute': 'Nhà tuyển dụng phản hồi khiếu nại',
+  'shift.timeline.kind.AdminRequestedEvidence': 'Quản trị viên yêu cầu bổ sung bằng chứng',
+  'shift.timeline.kind.AdminResolvedDispute': 'Quản trị viên đã giải quyết khiếu nại',
+  'shift.timeline.kind.WageReleased': 'Đã giải ngân tiền công',
+  'shift.timeline.kind.WageRefunded': 'Đã hoàn cọc',
+  'feedback.repost.success': 'Đang chuyển sang biểu mẫu',
   'feedback.repost.success.desc':
-    'Bản nháp đã được tạo từ ca cũ. Hãy kiểm tra thông tin và đặt cọc để đăng.',
+    'Vui lòng chỉnh sửa ca mới và chọn ngày giờ trước khi đặt cọc.',
 
   // Phase 10C-Stab-1 Batch 2 — employer verification gate.
   'shift.create.error.EMPLOYER_NOT_VERIFIED':
@@ -1510,6 +1601,9 @@ export const vi: Record<string, string> = {
     'Người làm đã check-in nhưng nhà tuyển dụng chưa xác nhận. Hãy chờ nhà tuyển dụng xác nhận có mặt.',
   'lifecycle.mismatch.employerOnly':
     'Nhà tuyển dụng đã xác nhận bạn có mặt. Vui lòng tự check-in để bắt đầu ca.',
+  // Phase 10C-Stab-1 Batch 3 D — worker-facing mismatch warning.
+  'lifecycle.mismatch.workerNotCheckedIn':
+    'Nhà tuyển dụng đã xác nhận bạn có mặt. Nếu bạn đã bắt đầu làm, hãy check-in để ghi nhận.',
   'lifecycle.checkIn.outsideWindow':
     'Hiện chưa đến giờ check-in. Bạn có thể check-in trong khoảng 15 phút trước giờ bắt đầu.',
   'lifecycle.checkOut.outsideWindow':
@@ -1544,6 +1638,29 @@ export const vi: Record<string, string> = {
     'Bạn đã khiếu nại ca này. Quản trị viên đang xử lý — tiền công đang được giữ lại.',
   'employer.dispute.statusLine.byWorker':
     'Người làm đang khiếu nại ca này. Quản trị viên đang xem xét — tiền công đang được giữ lại.',
+  // Phase 10C-Stab-1 Batch 3 E — symmetric response affordance for the
+  // employer side of a worker-initiated dispute.
+  'employer.dispute.respondButton': 'Phản hồi khiếu nại / Bổ sung bằng chứng',
+  'employer.dispute.workerStatement.title': 'Khiếu nại của người làm',
+
+  // Phase 10C-Stab-1 Batch 3 E — DisputeResponseDialog (worker /
+  // employer follow-up statements appended to an existing dispute).
+  'dispute.response.dialog.title': 'Phản hồi khiếu nại',
+  'dispute.response.dialog.intro':
+    'Hãy mô tả phản hồi của bạn và bổ sung bằng chứng nếu có. Phản hồi sẽ được đính kèm vào hồ sơ khiếu nại để quản trị viên xem xét.',
+  'dispute.response.dialog.reason.label': 'Phản hồi / lời khai',
+  'dispute.response.dialog.reason.placeholder':
+    'Ví dụ: Tôi đã làm đầy đủ thời gian và bàn giao cho quản lý ca lúc 22:05.',
+  'dispute.response.dialog.evidenceDescription.label': 'Mô tả bằng chứng (nếu có)',
+  'dispute.response.dialog.evidenceDescription.placeholder':
+    'Ví dụ: ảnh checklist sau ca, tin nhắn bàn giao với quản lý ca…',
+  'dispute.response.dialog.evidenceFileName.label': 'Tên tệp bằng chứng (nếu có)',
+  'dispute.response.dialog.evidenceFileName.placeholder': 'evidence-2026-05-25.jpg',
+  'dispute.response.dialog.evidenceFileName.hint':
+    'Bản MVP không tải tệp thật — chỉ ghi lại tên tệp để quản trị viên đối chiếu.',
+  'dispute.response.feedback.success': 'Đã gửi phản hồi khiếu nại',
+  'dispute.response.feedback.success.desc':
+    'Phản hồi của bạn đã được đính kèm vào hồ sơ khiếu nại.',
 
   // Phase 10C-Stab-1 Batch 2 — evidence education improvements.
   'evidence.examples.checklist.title': 'Ví dụ checklist',
@@ -1736,6 +1853,7 @@ export const vi: Record<string, string> = {
   'dispute.category.EmployerNoShow': 'Nhà tuyển dụng không có mặt',
   'dispute.category.ScopeChanged': 'Nhà tuyển dụng thay đổi phạm vi công việc',
   'dispute.category.PaymentDispute': 'Vấn đề thanh toán',
+  'dispute.category.AbsentDispute': 'Bị đánh vắng mặt không đúng',
 
   // Phase 10C Wave 5 — worker-side dispute action wiring.
   'worker.dispute.openButton': 'Khiếu nại',
@@ -1749,6 +1867,37 @@ export const vi: Record<string, string> = {
   'dispute.status.PartialRelease': 'Thanh toán một phần',
   'dispute.status.RequestedMoreEvidence': 'Yêu cầu thêm bằng chứng',
   'dispute.status.ClosedInvalid': 'Đóng vì không hợp lệ',
+
+  // -----------------------------------------------------------------
+  // Phase 10C-Stab-1 Batch 4B — wallet, post-payment rating, absent
+  // dispute banners.
+  // -----------------------------------------------------------------
+  'wallet.title': 'Ví tiền',
+  'wallet.balance.label': 'Số dư hiện tại',
+  'wallet.balance.empty': 'Chưa có giao dịch nào.',
+  'wallet.ledger.openButton': 'Xem lịch sử giao dịch',
+  'wallet.ledger.modal.title': 'Lịch sử giao dịch ví',
+  'wallet.ledger.modal.close': 'Đóng',
+  'wallet.ledger.recent': 'Giao dịch gần đây',
+  'wallet.kind.EmployerDepositHeld': 'Đã giữ cọc ca làm',
+  'wallet.kind.WorkerWageReleased': 'Đã nhận tiền công',
+  'wallet.kind.EmployerUnusedRefund': 'Hoàn cọc vị trí không sử dụng',
+  'wallet.kind.EmployerDisputeRefund': 'Hoàn cọc sau khiếu nại',
+  'wallet.kind.EmployerPartialRefund': 'Hoàn cọc một phần',
+  'wallet.kind.WorkerPartialRelease': 'Nhận thanh toán một phần',
+  'wallet.kind.EmployerCancellationPenalty': 'Phí huỷ ca',
+
+  'worker.absentDispute.banner.title':
+    'Bạn đã bị đánh dấu vắng mặt cho ca này.',
+  'worker.absentDispute.banner.body':
+    'Tiền công đang được giữ lại. Nếu bạn cho rằng việc đánh dấu là không đúng, hãy gửi khiếu nại để quản trị viên xem xét.',
+  'worker.absentDispute.banner.button': 'Khiếu nại vắng mặt',
+
+  'worker.postPaymentRating.banner.title':
+    'Bạn đã nhận lương. Hãy đánh giá nhà tuyển dụng để hoàn tất ca.',
+  'worker.postPaymentRating.banner.body':
+    'Đánh giá giúp các bạn làm khác có thông tin trước khi nhận ca.',
+  'worker.postPaymentRating.banner.button': 'Đánh giá ngay',
 };
 
 // ---------------------------------------------------------------------------

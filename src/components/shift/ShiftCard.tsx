@@ -3,7 +3,7 @@ import { ShiftStatusBadge } from './ShiftStatusBadge';
 import { EscrowStatusBadge } from './EscrowStatusBadge';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
-import type { Shift } from '@/types';
+import type { ApplicationStatus, Shift } from '@/types';
 
 interface ShiftCardProps {
   shift: Shift;
@@ -11,6 +11,14 @@ interface ShiftCardProps {
   onClick?: () => void;
   showEscrow?: boolean;
   className?: string;
+  /**
+   * Phase 10C-Stab-1 Batch 3 I — when set, the card renders an
+   * already-applied badge in place of the regular apply CTA. The
+   * worker shifts listing builds a `Map<shiftId, ApplicationStatus>`
+   * keyed off the current user's applications and passes the
+   * matching status here.
+   */
+  workerApplicationStatus?: ApplicationStatus;
 }
 
 function LocationIcon() {
@@ -78,6 +86,7 @@ export function ShiftCard({
   onClick,
   showEscrow = false,
   className = '',
+  workerApplicationStatus,
 }: ShiftCardProps) {
   return (
     <Card
@@ -134,6 +143,20 @@ export function ShiftCard({
       {showEscrow && (
         <div className="mt-2">
           <EscrowStatusBadge status={shift.escrowStatus} />
+        </div>
+      )}
+
+      {/* Phase 10C-Stab-1 Batch 3 I — already-applied affordance.
+          Replaces the standard apply CTA with a localized status
+          chip + a "Xem chi tiết" affordance. The card itself remains
+          clickable to /shifts/{id}; this just gives the worker an
+          at-a-glance status pin. */}
+      {workerApplicationStatus && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs">
+          <span className="font-semibold text-orange-900">
+            {t(`apply.applied.${workerApplicationStatus}`)}
+          </span>
+          <span className="text-orange-700">{t('btn.viewApplication')}</span>
         </div>
       )}
     </Card>

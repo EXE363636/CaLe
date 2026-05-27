@@ -60,6 +60,13 @@ export interface DisputeDialogProps {
   loading?: boolean;
   /** Vietnamese error string set by the parent on store rejection. */
   errorMessage?: string | null;
+  /**
+   * Phase 10C-Stab-1 Batch 4B — when supplied, the dialog opens with
+   * this category pre-selected. Used by the worker absent-dispute
+   * banner to skip the category step and go straight to reason +
+   * evidence input.
+   */
+  defaultCategory?: EmployerDisputeCategory | WorkerDisputeCategory;
 }
 
 export function DisputeDialog({
@@ -70,6 +77,7 @@ export function DisputeDialog({
   onSubmit,
   loading = false,
   errorMessage = null,
+  defaultCategory,
 }: DisputeDialogProps) {
   const categories =
     side === 'employer'
@@ -92,13 +100,16 @@ export function DisputeDialog({
   // worker-side mount starts blank.
   useEffect(() => {
     if (open) {
-      setCategory('');
+      // Phase 10C-Stab-1 Batch 4B — honour the optional
+      // `defaultCategory` prop (e.g. preset `'AbsentDispute'` from
+      // the worker absent-dispute banner).
+      setCategory(defaultCategory ?? '');
       setReason('');
       setEvidenceDescription('');
       setEvidenceFileName('');
       setTouched({});
     }
-  }, [open, side]);
+  }, [open, side, defaultCategory]);
 
   // Per-field validity (UX-only — the store re-runs its own checks).
   const reasonTrimmed = reason.trim();

@@ -13,3 +13,9 @@ export type {
   DisputePayload,
   DisputeSide,
 } from './DisputeDialog';
+export { DisputeResponseDialog } from './DisputeResponseDialog';
+export type {
+  DisputeResponseDialogProps,
+  DisputeResponsePayload,
+  DisputeResponseSide,
+} from './DisputeResponseDialog';

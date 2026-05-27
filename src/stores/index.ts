@@ -64,3 +64,6 @@ export type {
   EmployerDocumentSubmission,
   VerifyError,
 } from './verificationStore';
+
+export { useWalletStore } from './walletStore';
+export type { WalletStore } from './walletStore';

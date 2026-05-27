@@ -8,10 +8,16 @@
  *
  * Rules (intentionally simple; no per-shift scoring yet):
  *   - **High trust** — `verifiedBusiness === true` AND
- *     `completedShiftCount >= 5`. Pays 50% of the wage upfront.
+ *     `completedShiftCount >= 5`.
  *   - **Medium trust** — `verifiedBusiness === true` (any completed count)
- *     OR `completedShiftCount >= 3`. Pays 70% of the wage upfront.
- *   - **Low trust** — everyone else. Pays the full 100% upfront.
+ *     OR `completedShiftCount >= 3`.
+ *   - **Low trust** — everyone else.
+ *
+ * Phase 10C-Stab-1 Batch 3 — every employer deposits 100% of wage in MVP.
+ * Trust tier still matters for visibility / priority / fees later, not
+ * escrow. The trust classification logic is preserved so the UI can
+ * surface the tier even though all tiers currently share the same
+ * deposit ratio.
  *
  * `completedShiftCount` is computed from the live `shiftStore` slice in
  * the caller (so this module stays framework-free) and passed in.
@@ -28,11 +34,16 @@ export const MEDIUM_COMPLETED_THRESHOLD = 3;
 /** Minimum completed shifts to reach `high` trust (must also be verified). */
 export const HIGH_COMPLETED_THRESHOLD = 5;
 
-/** Per-tier deposit ratio, expressed as a fraction of the base shift wage. */
+/**
+ * Per-tier deposit ratio, expressed as a fraction of the base shift wage.
+ *
+ * Phase 10C-Stab-1 Batch 3: every employer deposits 100% of wage in MVP.
+ * Trust tier still drives visibility / priority / fees in future, not escrow.
+ */
 export const DEPOSIT_RATIO: Readonly<Record<EmployerTrustLevel, number>> = {
   low: 1.0,
-  medium: 0.7,
-  high: 0.5,
+  medium: 1.0,
+  high: 1.0,
 };
 
 // ---------------------------------------------------------------------------

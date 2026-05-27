@@ -18,8 +18,10 @@ import { RatingForm } from '@/components/forms/RatingForm';
 import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
 import {
   DisputeDialog,
+  DisputeResponseDialog,
   type DisputePayload,
-} from '@/components/forms/DisputeDialog';
+  type DisputeResponsePayload,
+} from '@/components/forms';
 import {
   APPROVED_OR_LATER_STATUSES,
   computeEmployerCancellationPenalty,
@@ -30,6 +32,8 @@ import {
   canEmployerMarkPresent,
   shouldMarkNoShow,
 } from '@/domain/timeGates';
+import { getShiftDisplayPhase } from '@/domain/shiftLifecycle';
+import { bucketApplicants } from '@/domain/applicantBuckets';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -72,6 +76,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     (s) => s.markPresentByEmployer,
   );
   const reportIssue = useApplicationStore((s) => s.reportIssue);
+  const appendDisputeResponse = useApplicationStore(
+    (s) => s.appendDisputeResponse,
+  );
+  const disputes = useApplicationStore((s) => s.disputes);
   const confirmCompletion = useApplicationStore((s) => s.confirmCompletion);
   const approveCancellationRequest = useApplicationStore(
     (s) => s.approveCancellationRequest,
@@ -100,6 +108,14 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   // application id when the dialog is open; reset on close or success.
   const [disputeAppId, setDisputeAppId] = useState<string | null>(null);
   const [disputeError, setDisputeError] = useState<string | null>(null);
+  // Phase 10C-Stab-1 Batch 3 E — employer-side response dialog state
+  // for worker-initiated disputes. Holds the target dispute id when
+  // the dialog is open.
+  const [responseTargetDisputeId, setResponseTargetDisputeId] = useState<
+    string | null
+  >(null);
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [responseError, setResponseError] = useState<string | null>(null);
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
@@ -254,10 +270,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     }
   }
 
-  // Phase 10C-Stab-1 Batch 2 — repost from cancelled / expired /
-  // completed shift. Creates a fresh Draft prefilled from the source
-  // and navigates the employer to the new shift detail so they can
-  // tweak fields and run the deposit flow.
+  // Phase 10C-Stab-1 Batch 3 A — repost no longer auto-creates a
+  // Draft. Instead it appends a `'CreatedFromRepost'` timeline
+  // entry on the source shift and navigates the employer to
+  // `/employer/shifts/new?from={id}` where they edit and confirm
+  // before any new shift is persisted.
   const [repostLoading, setRepostLoading] = useState(false);
   function handleRepost() {
     if (repostLoading) return;
@@ -272,7 +289,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
       t('feedback.repost.success'),
       t('feedback.repost.success.desc'),
     );
-    router.push(`/employer/shifts/${result.value.id}`);
+    router.push(`/employer/shifts/new?from=${result.value.id}`);
   }
 
   function handleCancelShift() {
@@ -370,6 +387,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         <div className="flex items-center gap-2">
           <ShiftStatusBadge status={shift.status} />
           <EscrowStatusBadge status={shift.escrowStatus} />
+          {/* Phase 10C-Stab-1 Batch 3 C — display phase chip. */}
+          <ShiftPhaseChip shift={shift} applications={applications} />
         </div>
       </div>
 
@@ -603,8 +622,30 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
             description={t('employer.manageShift.empty.applicants.description')}
           />
         ) : (
-          <div className="flex flex-col gap-3">
-            {shiftApps.map((app) => {
+          <div className="flex flex-col gap-6">
+            {bucketApplicants(shift, shiftApps, new Date().toISOString()).map(
+              (bucket) => (
+                <section
+                  key={bucket.bucket}
+                  className="flex flex-col gap-3"
+                  aria-labelledby={`applicant-bucket-${bucket.bucket}`}
+                >
+                  <header className="flex flex-col gap-0.5">
+                    <h3
+                      id={`applicant-bucket-${bucket.bucket}`}
+                      className="text-sm font-semibold text-gray-900"
+                    >
+                      {t(`applicantBucket.${bucket.bucket}`)}
+                      <span className="ml-2 text-xs font-normal text-gray-500">
+                        ({bucket.applications.length})
+                      </span>
+                    </h3>
+                    <p className="text-xs leading-relaxed text-gray-500">
+                      {t(`applicantBucket.${bucket.bucket}.hint`)}
+                    </p>
+                  </header>
+                  <div className="flex flex-col gap-3">
+                    {bucket.applications.map((app) => {
               const worker = asWorker(users.find((u) => u.id === app.workerId));
               if (!worker) return null;
 
@@ -718,6 +759,122 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     />
                   )}
 
+                  {/* Phase 10C-Stab-1 Batch 3 E — Disputed panel.
+                      When the application is in `'Disputed'`, render
+                      a panel below the row with the right copy
+                      depending on who initiated, the linked
+                      statement (category / reason / evidence), every
+                      back-and-forth response, and a "Phản hồi khiếu
+                      nại" button when the employer is the responding
+                      side (i.e. worker initiated). */}
+                  {app.status === 'Disputed' && (() => {
+                    const ourDispute = disputes
+                      .filter((d) => d.applicationId === app.id)
+                      .sort((a2, b2) =>
+                        b2.createdAt.localeCompare(a2.createdAt),
+                      )[0];
+                    if (!ourDispute) return null;
+                    const initiatedByWorker =
+                      ourDispute.raisedBy === 'worker';
+                    return (
+                      <div className="ml-2 flex flex-col gap-2">
+                        <p
+                          role="status"
+                          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+                        >
+                          {initiatedByWorker
+                            ? t('employer.dispute.statusLine.byWorker')
+                            : t('employer.dispute.statusLine.byEmployer')}
+                        </p>
+                        {initiatedByWorker && (
+                          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-900">
+                            <p className="font-semibold">
+                              {t('employer.dispute.workerStatement.title')}
+                            </p>
+                            <dl className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-[max-content_1fr] sm:gap-x-3">
+                              <dt className="font-medium">Loại:</dt>
+                              <dd>
+                                {ourDispute.category
+                                  ? t(`dispute.category.${ourDispute.category}`)
+                                  : 'Không có'}
+                              </dd>
+                              <dt className="font-medium">Lý do:</dt>
+                              <dd className="whitespace-pre-line">
+                                {ourDispute.reason}
+                              </dd>
+                              <dt className="font-medium">
+                                Mô tả bằng chứng:
+                              </dt>
+                              <dd className="whitespace-pre-line">
+                                {ourDispute.evidenceDescription || 'Không có'}
+                              </dd>
+                              <dt className="font-medium">Tệp đính kèm:</dt>
+                              <dd className="break-all font-mono">
+                                {ourDispute.evidenceFileName || 'Không có'}
+                              </dd>
+                            </dl>
+                            <div className="mt-3 flex flex-wrap items-center gap-2">
+                              <Button
+                                variant="primary"
+                                onClick={() => {
+                                  setResponseTargetDisputeId(ourDispute.id);
+                                  setResponseError(null);
+                                  setResponseDialogOpen(true);
+                                }}
+                              >
+                                {t('employer.dispute.respondButton')}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {/* Render every back-and-forth response. */}
+                        {ourDispute.responses &&
+                          ourDispute.responses.length > 0 && (
+                            <ul className="flex flex-col gap-2 border-t border-amber-200 pt-2 text-[12px] text-amber-900">
+                              {[...ourDispute.responses]
+                                .sort((a2, b2) =>
+                                  a2.createdAt.localeCompare(b2.createdAt),
+                                )
+                                .map((r) => (
+                                  <li
+                                    key={r.id}
+                                    className="rounded-md border border-amber-200 bg-white/70 px-2 py-1.5"
+                                  >
+                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                      {r.side === 'worker'
+                                        ? 'Người làm'
+                                        : 'Nhà tuyển dụng'}
+                                      {' · '}
+                                      {new Intl.DateTimeFormat('vi-VN', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        second: '2-digit',
+                                      }).format(new Date(r.createdAt))}
+                                    </p>
+                                    <p className="mt-1 whitespace-pre-line">
+                                      {r.reason}
+                                    </p>
+                                    {r.evidenceDescription && (
+                                      <p className="mt-1 italic">
+                                        {r.evidenceDescription}
+                                      </p>
+                                    )}
+                                    {r.evidenceFileName && (
+                                      <p className="mt-1 break-all font-mono text-[11px]">
+                                        {r.evidenceFileName}
+                                      </p>
+                                    )}
+                                  </li>
+                                ))}
+                            </ul>
+                          )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Rating panel — opens below the summary row */}
                   {showRating && app.status === 'CheckedOut' && (
                     <div className="ml-2 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
@@ -732,6 +889,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 </div>
               );
             })}
+                  </div>
+                </section>
+              ),
+            )}
           </div>
         )}
       </section>
@@ -787,6 +948,49 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           onSubmit={handleDisputeSubmit}
           loading={actionLoading === disputeAppId}
           errorMessage={disputeError}
+        />
+      )}
+
+      {/* Phase 10C-Stab-1 Batch 3 E — employer-side response dialog
+          for worker-initiated disputes. Mounts when the employer
+          clicks "Phản hồi khiếu nại" on the Disputed panel. */}
+      {responseDialogOpen && responseTargetDisputeId && (
+        <DisputeResponseDialog
+          open={true}
+          onClose={() => {
+            setResponseDialogOpen(false);
+            setResponseTargetDisputeId(null);
+            setResponseError(null);
+          }}
+          side="employer"
+          subjectTitle={shift.title}
+          onSubmit={(payload: DisputeResponsePayload) => {
+            const targetId = responseTargetDisputeId;
+            if (!targetId) return;
+            setActionLoading(targetId);
+            const result = appendDisputeResponse(targetId, 'employer', {
+              authorUserId: shift.employerId,
+              reason: payload.reason,
+              evidenceDescription: payload.evidenceDescription,
+              evidenceFileName: payload.evidenceFileName,
+            });
+            setActionLoading(null);
+            if (result.ok) {
+              showSuccess(
+                t('dispute.response.feedback.success'),
+                t('dispute.response.feedback.success.desc'),
+              );
+              setResponseDialogOpen(false);
+              setResponseTargetDisputeId(null);
+              setResponseError(null);
+              return;
+            }
+            const message = toastFromStoreError(result.error);
+            setResponseError(message);
+            showError(message);
+          }}
+          loading={actionLoading === responseTargetDisputeId}
+          errorMessage={responseError}
         />
       )}
     </div>
@@ -1033,4 +1237,35 @@ function ShiftTimelineSection({
       </ul>
     </section>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Phase 10C-Stab-1 Batch 3 C — display phase chip.
+// ---------------------------------------------------------------------------
+
+function ShiftPhaseChip({
+  shift,
+  applications,
+}: {
+  shift: Shift;
+  applications: Application[];
+}) {
+  const phase = getShiftDisplayPhase(
+    shift,
+    applications,
+    new Date().toISOString(),
+  );
+  const tone =
+    phase === 'InProgress'
+      ? 'success'
+      : phase === 'CheckInOpen'
+        ? 'info'
+        : phase === 'Cancelled' ||
+            phase === 'Completed' ||
+            phase === 'Expired'
+          ? 'neutral'
+          : phase === 'Disputed'
+            ? 'danger'
+            : 'warning';
+  return <Badge tone={tone}>{t(`shift.phase.${phase}`)}</Badge>;
 }

@@ -22,6 +22,8 @@ import type {
 import { useNotificationStore } from './notificationStore';
 import { useShiftStore } from './shiftStore';
 import { useUserStore } from './userStore';
+import { useApplicationStore } from './applicationStore';
+import { STORAGE_KEYS as APP_STORAGE_KEYS, write as appWrite } from '@/data/persistence';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -119,6 +121,23 @@ export const useEmployerFeedbackStore = create<EmployerFeedbackStore>((set, get)
     set({ feedback: next });
     persist(next);
 
+    // Phase 10C-Stab-1 Batch 4 E — clear paidAwaitingRatingAt and
+    // stamp workerRatedEmployerAt on the matching application.
+    {
+      const appsState = useApplicationStore.getState();
+      const updatedApps = appsState.applications.map((a) =>
+        a.id === input.applicationId
+          ? {
+              ...a,
+              workerRatedEmployerAt: record.createdAt,
+              paidAwaitingRatingAt: undefined,
+            }
+          : a,
+      );
+      useApplicationStore.setState({ applications: updatedApps });
+      appWrite(APP_STORAGE_KEYS.applications, updatedApps);
+    }
+
     // Phase 6: notify the employer that they have new feedback. Body
     // includes the worker name + shift title so it's actionable from the
     // bell. Mock / localStorage only — no real push.
@@ -128,8 +147,8 @@ export const useEmployerFeedbackStore = create<EmployerFeedbackStore>((set, get)
       worker && worker.role === 'worker' ? worker.fullName : 'Người làm';
     useNotificationStore.getState().push({
       userId: input.toEmployerId,
-      kind: 'EmployerFeedbackReceived',
-      title: 'Nhận được đánh giá từ người làm',
+      kind: 'WorkerRatedEmployer',
+      title: 'Người làm đã đánh giá bạn',
       body: shift
         ? `${workerName} đã gửi đánh giá ${input.stars}/5 sao cho ca "${shift.title}".`
         : `${workerName} đã gửi đánh giá ${input.stars}/5 sao.`,

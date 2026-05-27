@@ -484,6 +484,7 @@ describe('Phase 10C dispute category enums', () => {
       'EmployerNoShow',
       'ScopeChanged',
       'PaymentDispute',
+      'AbsentDispute',
       'Other',
     ]);
   });

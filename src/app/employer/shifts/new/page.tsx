@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
@@ -15,6 +15,10 @@ import {
   trustForEmployer,
 } from '@/domain/employerTrust';
 import { computePostingReadiness } from '@/domain/postingReadiness';
+import {
+  sanitizeRepostDescription,
+  sanitizeRepostTitle,
+} from '@/domain/repostSanitize';
 import { formatVND } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
@@ -30,6 +34,8 @@ export default function NewShiftPage() {
 
 function NewShiftContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams?.get('from') ?? null;
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
@@ -47,6 +53,47 @@ function NewShiftContent() {
   // the readiness checklist updates as the employer types. Mirrored
   // out of `<ShiftForm>` via the `onValuesChange` callback.
   const [workplaceImageDraft, setWorkplaceImageDraft] = useState('');
+
+  // Phase 10C-Stab-1 Batch 3 A — when the employer arrives via
+  // `?from={id}` we resolve the source shift and pre-fill the form
+  // with everything except date / startTime / endTime (the employer
+  // must pick a fresh future date).
+  const sourceShift = useMemo(() => {
+    if (!fromParam) return null;
+    return shifts.find((s) => s.id === fromParam) ?? null;
+  }, [shifts, fromParam]);
+
+  const initialValues = useMemo<Partial<ShiftFormValues> | undefined>(() => {
+    if (!sourceShift) return undefined;
+    return {
+      title: sanitizeRepostTitle(sourceShift.title),
+      description: sanitizeRepostDescription(sourceShift.description),
+      requirements: sourceShift.requirements,
+      jobType: sourceShift.jobType,
+      customJobTypeName: sourceShift.customJobTypeName ?? '',
+      location: sourceShift.location,
+      hourlyWage: sourceShift.hourlyWage,
+      positionsTotal: sourceShift.positionsTotal,
+      evidenceRequirement: sourceShift.evidenceRequirement,
+      workplaceImageLabel: sourceShift.workplaceImageLabel ?? '',
+      workplaceNotes: sourceShift.workplaceNotes ?? '',
+      onSiteContactName: sourceShift.onSiteContactName ?? '',
+      onSiteContactPhone: sourceShift.onSiteContactPhone ?? '',
+      requiresVerifiedDocumentOnArrival:
+        sourceShift.requiresVerifiedDocumentOnArrival ?? false,
+      // Date / startTime / endTime intentionally omitted — employer
+      // must pick a fresh future date.
+    };
+  }, [sourceShift]);
+
+  // Mirror the source shift's workplace image label into the live
+  // draft so the readiness checklist reflects the prefilled value
+  // on first render.
+  useEffect(() => {
+    if (sourceShift?.workplaceImageLabel) {
+      setWorkplaceImageDraft(sourceShift.workplaceImageLabel);
+    }
+  }, [sourceShift]);
 
   // Phase 6: derive the employer's trust tier so we can show the deposit
   // breakdown live as they fill the form. Both selectors return stable
@@ -209,6 +256,18 @@ function NewShiftContent() {
         </div>
       </header>
 
+      {/* Phase 10C-Stab-1 Batch 3 A — repost-from banner. Visible
+          when the employer arrived via /employer/shifts/new?from={id}
+          so they understand they're cloning a previous shift and
+          must pick a fresh date. */}
+      {!createdShiftId && sourceShift && (
+        <Card className="mb-4 border-orange-200 bg-orange-50">
+          <p className="text-sm text-orange-900">
+            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi đặt cọc.
+          </p>
+        </Card>
+      )}
+
       {/* Phase 6: trust tier + deposit ratio explainer. Visible from the
           first paint so the employer sees what they'll be charged before
           they finish filling out the form. */}
@@ -254,6 +313,7 @@ function NewShiftContent() {
           mode="create"
           onSubmit={handleSubmit}
           workplaceImageRequired={workplaceImageRequired}
+          initialValues={initialValues}
           onValuesChange={(v) => setWorkplaceImageDraft(v.workplaceImageLabel)}
         />
       )}

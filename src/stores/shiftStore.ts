@@ -47,6 +47,7 @@ import type {
 import { useApplicationStore } from './applicationStore';
 import { useNotificationStore } from './notificationStore';
 import { asEmployer, useUserStore } from './userStore';
+import { useWalletStore } from './walletStore';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -159,16 +160,14 @@ interface ShiftStore {
    */
   cancel(shiftId: string, reason: string, nowIso?: string): Result<Shift, CancelError>;
   /**
-   * Phase 10C-Stab-1 Batch 2 G — create a new Draft shift prefilled
-   * from a `Cancelled` / `Expired` / `Completed` source shift.
+   * Phase 10C-Stab-1 Batch 3 A — append a `'CreatedFromRepost'`
+   * timeline entry to the source shift and return it so the caller
+   * can route the employer to `/employer/shifts/new?from={id}` for
+   * editing. No new shift is persisted by this action — the
+   * employer must complete the form (with a fresh date / time) and
+   * submit a deposit before any new shift exists.
    *
-   * The OLD shift is left unchanged except for an appended
-   * `'CreatedFromRepost'` timeline entry pointing at the new shift's
-   * id + title. The new shift gets a fresh id, status `'Draft'`,
-   * escrow `'PendingDeposit'`, and a `repostedFromShiftId` pointer
-   * back to the source.
-   *
-   * Returns the new shift on success. Rejects:
+   * Returns the source shift on success. Rejects:
    *   - `'NOT_FOUND'`         — source id has no matching shift
    *   - `'WRONG_STATUS'`      — source is not in a repost-eligible
    *                             state (must be `Cancelled`,
@@ -336,7 +335,47 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     });
     set({ shifts: next });
     persist(next);
-    return { ok: true, value: next.find((s) => s.id === shiftId)! };
+    const updated = next.find((s) => s.id === shiftId)!;
+    // Phase 10C-Stab-1 Batch 4 J — debit employer wallet for the
+    // deposit. Mock-only; just records the simulated transfer in the
+    // ledger.
+    useWalletStore
+      .getState()
+      .debit(updated.employerId, updated.depositAmount, 'EmployerDepositHeld', {
+        shiftId: updated.id,
+        note: `Đặt cọc cho ca "${updated.title}"`,
+      });
+    // Phase 10C-Stab-1 Batch 4B — append timeline entries directly.
+    // Done inline (not via `appendShiftTimelineEntry`) because we
+    // already hold the just-persisted shift list.
+    {
+      const ts = nowIso();
+      const stamped = get().shifts.map((s) =>
+        s.id === shiftId
+          ? {
+              ...s,
+              timeline: [
+                ...(s.timeline ?? []),
+                {
+                  id: newPrefixedId('timeline'),
+                  occurredAt: ts,
+                  kind: 'DepositHeld' as const,
+                  note: `Đã giữ cọc ${updated.depositAmount.toLocaleString('vi-VN')} đồng cho ca "${updated.title}".`,
+                },
+                {
+                  id: newPrefixedId('timeline'),
+                  occurredAt: ts,
+                  kind: 'ShiftPublished' as const,
+                  note: `Ca "${updated.title}" đã được công bố.`,
+                },
+              ],
+            }
+          : s,
+      );
+      set({ shifts: stamped });
+      persist(stamped);
+    }
+    return { ok: true, value: updated };
   },
 
   setStatus(shiftId, status) {
@@ -472,72 +511,31 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       return { ok: false, error: 'WRONG_STATUS' };
     }
 
-    // Re-run the deposit math against the source's wage / duration so
-    // the new draft has a fresh `depositAmount` matching the
-    // employer's current trust tier (which may have improved since
-    // the source was created).
-    const employer = asEmployer(useUserStore.getState().findById(source.employerId));
-    const completedCount = get().shifts.filter(
-      (s) => s.employerId === source.employerId && s.status === 'Completed',
-    ).length;
-    const trust = employer ? trustForEmployer(employer, completedCount) : 'low';
-    const hours = hoursBetween(source.startTime, source.endTime);
-    const fullWage = calculateDeposit(source.hourlyWage, hours, 1);
-    const depositAmount = depositForTrust(fullWage, source.positionsTotal, trust);
-
+    // Phase 10C-Stab-1 Batch 3 A — do NOT auto-create a Draft. The
+    // employer is navigated to /employer/shifts/new?from={id} where
+    // they edit and confirm before any new shift is persisted. Append
+    // the source-side timeline marker so the audit log captures the
+    // intent at click time.
     const created = nowIso();
-    const newId = newPrefixedId('shift');
-    const newShift: Shift = {
-      ...source,
-      id: newId,
-      status: 'Draft',
-      escrowStatus: 'PendingDeposit',
-      depositAmount,
-      positionsFilled: 0,
-      createdAt: created,
-      updatedAt: created,
-      // Clear cancellation / lifecycle metadata from the source.
-      cancelledAt: undefined,
-      cancelledBy: undefined,
-      employerCancellationReason: undefined,
-      employerCancelledAfterApproval: undefined,
-      employerCancellationPenaltyRate: undefined,
-      employerCancellationPenaltyAmount: undefined,
-      boostedAt: undefined,
-      // Phase 10C-Stab-1 Batch 2 — lineage pointer for audit views.
-      repostedFromShiftId: source.id,
-      timeline: [
-        {
-          id: newPrefixedId('timeline'),
-          occurredAt: created,
-          kind: 'Reposted',
-          note: `Tạo lại từ ca cũ "${source.title}" (id: ${source.id}).`,
-        },
-      ],
-    };
-
-    // Append a CreatedFromRepost log entry on the SOURCE shift so its
-    // detail page shows the lineage. The source shift is otherwise
-    // unchanged (status / escrowStatus / cancellation metadata
-    // preserved exactly as the user instructed).
     const sourceTimeline: ShiftTimelineEntry[] = [
       ...(source.timeline ?? []),
       {
         id: newPrefixedId('timeline'),
         occurredAt: created,
         kind: 'CreatedFromRepost',
-        note: `Nhà tuyển dụng đã tạo ca mới "${newShift.title}" (id: ${newId}) dựa trên ca này.`,
+        note: `Nhà tuyển dụng bắt đầu tạo ca mới từ ca này.`,
       },
     ];
-
     const next = get().shifts.map((s) =>
       s.id === source.id ? { ...s, timeline: sourceTimeline } : s,
     );
-    next.push(newShift);
     set({ shifts: next });
     persist(next);
 
-    return { ok: true, value: newShift };
+    // Return the SOURCE shift with the appended timeline so the
+    // caller can route to /employer/shifts/new?from=source.id.
+    const updatedSource = next.find((s) => s.id === source.id) ?? source;
+    return { ok: true, value: updatedSource };
   },
 
   useBoostCredit(shiftId) {

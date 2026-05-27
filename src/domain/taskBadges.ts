@@ -137,3 +137,21 @@ export function employerDashboardTaskCount(
   }
   return count;
 }
+
+/**
+ * Phase 10C-Stab-1 Batch 4 H — count of disputes that still need
+ * admin attention. `Open` and `RequestedMoreEvidence` are
+ * non-terminal statuses that block payment / resolution; every other
+ * status is terminal.
+ */
+export function adminDisputeTaskCount(
+  disputes: Array<{ status: import('@/types').DisputeStatus }>,
+): number {
+  let count = 0;
+  for (const d of disputes) {
+    if (d.status === 'Open' || d.status === 'RequestedMoreEvidence') {
+      count += 1;
+    }
+  }
+  return count;
+}

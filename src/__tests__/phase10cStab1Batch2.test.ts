@@ -380,13 +380,18 @@ describe('Batch 2 H: simulateDeposit employer verification gate', () => {
 });
 
 // ---------------------------------------------------------------------------
-// G — repostFromShift creates a Draft and logs the lineage
+// G — repostFromShift logs lineage on the source shift
+//
+// Phase 10C-Stab-1 Batch 3 A — repost no longer auto-creates a Draft.
+// The action appends a `'CreatedFromRepost'` timeline entry on the
+// source and returns the source so the caller can route to
+// `/employer/shifts/new?from={id}` for editing.
 // ---------------------------------------------------------------------------
 
 describe('Batch 2 G: repostFromShift', () => {
   beforeEach(resetStores);
 
-  it('creates a fresh Draft from a Cancelled source and appends timeline entries', () => {
+  it('appends a CreatedFromRepost timeline entry on the source and DOES NOT create a new shift', () => {
     const employer = buildEmployer();
     useUserStore.setState({ users: [employer] });
     // Inject a cancelled shift directly so we can repost from it.
@@ -405,13 +410,11 @@ describe('Batch 2 G: repostFromShift', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    const draft = result.value;
-    expect(draft.id).not.toBe(cancelled.id);
-    expect(draft.status).toBe('Draft');
-    expect(draft.escrowStatus).toBe('PendingDeposit');
-    expect(draft.repostedFromShiftId).toBe(cancelled.id);
-    expect(draft.timeline?.length).toBe(1);
-    expect(draft.timeline?.[0]?.kind).toBe('Reposted');
+    // No new shift is persisted.
+    expect(useShiftStore.getState().shifts.length).toBe(1);
+
+    // Result.value is the source shift (with the appended timeline).
+    expect(result.value.id).toBe(cancelled.id);
 
     // The original shift is preserved (status / escrow unchanged) and
     // gets a CreatedFromRepost timeline entry.
@@ -419,6 +422,7 @@ describe('Batch 2 G: repostFromShift', () => {
       .getState()
       .shifts.find((s) => s.id === cancelled.id);
     expect(updatedSource?.status).toBe('Cancelled');
+    expect(updatedSource?.escrowStatus).toBe('Refunded');
     expect(updatedSource?.timeline?.length).toBe(1);
     expect(updatedSource?.timeline?.[0]?.kind).toBe('CreatedFromRepost');
   });
@@ -758,7 +762,7 @@ describe('Batch 2 16: exportSnapshot / importSnapshot round-trip', () => {
       version: number;
       payload: Record<string, unknown>;
     };
-    expect(parsed.version).toBe(8);
+    expect(parsed.version).toBe(9);
     expect(parsed.payload[STORAGE_KEYS.users]).toEqual([employer, worker]);
     expect(parsed.payload[STORAGE_KEYS.shifts]).toEqual([shift]);
 
@@ -796,7 +800,7 @@ describe('Batch 2 16: exportSnapshot / importSnapshot round-trip', () => {
 
   it('rejects a JSON document missing the expected payload keys', () => {
     const bad = JSON.stringify({
-      version: 8,
+      version: 9,
       exportedAt: '2030-01-01T00:00:00.000Z',
       payload: {},
     });

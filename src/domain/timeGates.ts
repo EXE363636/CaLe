@@ -23,7 +23,7 @@ import type { Application, Shift } from '@/types';
 export const CHECK_IN_EARLY_MINUTES = 15;
 
 /** A worker may check in at most this many minutes after the shift starts. */
-export const CHECK_IN_LATE_MINUTES = 15;
+export const CHECK_IN_LATE_MINUTES = 5;
 
 /**
  * Phase 10C-Stab-1 — grace window after the shift's scheduled end during
@@ -281,18 +281,32 @@ export const canWorkerCheckOut = canCheckOut;
  * Predicate: may the employer mark this approved worker as present
  * right now?
  *
- * Returns `true` iff the application is `'Approved'` and `now` lies
- * inside the inclusive window `[shiftStart − 15min, shiftEnd +
- * 60min]`. Employers can confirm presence either during the
- * worker's check-in window OR any time during the shift (or its
- * grace tail).
+ * Phase 10C-Stab-1 Batch 3 D — extended to also accept applications
+ * that are already `'CheckedIn'` (worker self-checked-in but the
+ * employer has not yet confirmed presence). Once `markedPresentAt`
+ * is set the predicate returns `false` so the action becomes
+ * idempotent at the gate level.
+ *
+ * Returns `true` iff:
+ *   - the application is `'Approved'` OR (`'CheckedIn'` and not yet
+ *     marked present), AND
+ *   - `now` lies inside the inclusive window `[shiftStart − 15min,
+ *     shiftEnd + 60min]`. Employers can confirm presence either
+ *     during the worker's check-in window OR any time during the
+ *     shift (or its grace tail).
  */
 export function canEmployerMarkPresent(
   nowIso: string,
   application: Application,
   shift: Shift,
 ): boolean {
-  if (application.status !== 'Approved') return false;
+  if (
+    application.status !== 'Approved' &&
+    application.status !== 'CheckedIn'
+  ) {
+    return false;
+  }
+  if (application.markedPresentAt) return false;
 
   const now = toEpochMs(nowIso);
   const start = shiftStartMs(shift);

@@ -39,6 +39,7 @@ import { hasScheduleConflict } from '@/domain/scheduleConflict';
 import { applyRatingToSkillScores } from '@/domain/skillScore';
 import { planExpirePendingApplications } from '@/domain/applicationExpiry';
 import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
+import { appendShiftTimelineEntry } from '@/domain/shiftTimeline';
 import { newPrefixedId } from '@/lib/ids';
 import { notifyAdmins } from '@/lib/adminNotifications';
 import {
@@ -52,6 +53,7 @@ import type {
   ApplicationStatus,
   CancellationRecord,
   Dispute,
+  DisputeResponse,
   Rating,
   Result,
   Worker,
@@ -61,6 +63,7 @@ import { useNotificationStore } from './notificationStore';
 import { useScheduleStore } from './scheduleStore';
 import { useShiftStore } from './shiftStore';
 import { asWorker, useUserStore } from './userStore';
+import { useWalletStore } from './walletStore';
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -160,7 +163,12 @@ export type ReportIssueError =
   | 'CATEGORY_REQUIRED'
   | 'CATEGORY_INVALID'
   | 'REASON_REQUIRED'
-  | 'FIELD_TOO_LONG';
+  | 'FIELD_TOO_LONG'
+  /**
+   * Phase 10C-Stab-1 Batch 4 D — worker tried to file a
+   * `'PaymentDispute'` before the 1-hour pre-auto-release window.
+   */
+  | 'TOO_EARLY';
 
 /** Payload for confirming a shift completion: 1–5 stars + optional feedback. */
 export interface NewRating {
@@ -338,6 +346,39 @@ interface ApplicationStore {
     applicationId: string,
     payload: WorkerOpenDisputePayload,
   ): Result<Dispute, ReportIssueError>;
+  /**
+   * Phase 10C-Stab-1 Batch 3 E — append a follow-up response to an
+   * existing dispute. Either side can respond; an employer-filed
+   * dispute receives worker responses and vice versa. Does NOT
+   * create a new dispute record — `disputes.length` stays unchanged
+   * after this call.
+   *
+   * Validation:
+   *   - Resolves the dispute; rejects `'WRONG_STATUS'` when the
+   *     dispute is in a terminal status
+   *     (`'ResolvedReleased' | 'ResolvedRefunded' | 'PartialRelease'
+   *     | 'ClosedInvalid'`).
+   *   - Trimmed `reason` must be non-empty (`'REASON_REQUIRED'`).
+   *   - `reason ≤ 1000`, `evidenceDescription ≤ 2000`,
+   *     `evidenceFileName ≤ 255` and may not contain `/` or `\`
+   *     (else `'FIELD_TOO_LONG'`).
+   *
+   * On success: persists the response onto `dispute.responses`,
+   * notifies the OTHER side and admins.
+   */
+  appendDisputeResponse(
+    disputeId: string,
+    side: 'employer' | 'worker',
+    payload: {
+      authorUserId: string;
+      reason: string;
+      evidenceDescription?: string;
+      evidenceFileName?: string;
+    },
+  ): Result<
+    DisputeResponse,
+    'NOT_FOUND' | 'WRONG_STATUS' | 'REASON_REQUIRED' | 'FIELD_TOO_LONG'
+  >;
   markNoShow(applicationId: string): Result<Application, ApplicationActionError>;
 
   /**
@@ -440,6 +481,32 @@ function persistRatings(ratings: Rating[]): void {
 
 function persistDisputes(disputes: Dispute[]): void {
   write(STORAGE_KEYS.disputes, disputes);
+}
+
+/**
+ * Phase 10C-Stab-1 Batch 4B — append a single timeline entry to the
+ * shift identified by `shiftId` and persist. Idempotent at the
+ * caller level: callers must guard duplicate emissions with the
+ * relevant idempotency stamp on the application / shift before
+ * invoking this. The helper itself does NOT dedupe.
+ */
+function appendTimelineToShift(
+  shiftId: string,
+  kind: import('@/types').ShiftTimelineEntry['kind'],
+  note: string,
+): void {
+  const shiftStore = useShiftStore.getState();
+  const shift = shiftStore.getById(shiftId);
+  if (!shift) return;
+  const nextTimeline = appendShiftTimelineEntry(shift.timeline, {
+    kind,
+    note,
+  });
+  const nextShifts = shiftStore.shifts.map((s) =>
+    s.id === shiftId ? { ...s, timeline: nextTimeline } : s,
+  );
+  shiftStore.hydrate(nextShifts);
+  write(STORAGE_KEYS.shifts, nextShifts);
 }
 
 function shiftToTimeRange(shiftId: string): TimeRange | undefined {
@@ -609,6 +676,13 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       body: `${worker.fullName} vừa ứng tuyển ca "${shift.title}".`,
       link: `/employer/shifts/${shift.id}`,
     });
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    appendTimelineToShift(
+      shift.id,
+      'WorkerApplied',
+      `${worker.fullName} đã ứng tuyển.`,
+    );
 
     return { ok: true, value: application };
   },
@@ -801,6 +875,13 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
         body: `${workerName} đã check-in cho ca "${shift.title}".`,
         link: `/employer/shifts/${shift.id}`,
       });
+
+      // Phase 10C-Stab-1 Batch 4B — timeline emission.
+      appendTimelineToShift(
+        shift.id,
+        'WorkerCheckedIn',
+        `${workerName} đã check-in.`,
+      );
     }
 
     return { ok: true, value: updated };
@@ -812,22 +893,34 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
    * either side moves the application status to `'CheckedIn'`. The
    * worker is notified.
    *
+   * Phase 10C-Stab-1 Batch 3 D — extended to accept already-
+   * CheckedIn applications (worker self-checked-in but employer
+   * had not yet confirmed). Once `markedPresentAt` is stamped the
+   * action becomes idempotent: a second call returns
+   * `WRONG_STATUS`.
+   *
    * Validation:
-   *   - Application must exist and currently be `'Approved'`.
+   *   - Application must exist and currently be `'Approved'` OR
+   *     `'CheckedIn'`.
+   *   - `markedPresentAt` must NOT already be set (idempotency).
    *   - The time window is enforced by the UI via
    *     `canEmployerMarkPresent`; this store action accepts any
-   *     `'Approved'` application so the wall-clock check stays in
-   *     one place.
+   *     `'Approved'` or unmarked `'CheckedIn'` application so the
+   *     wall-clock check stays in one place.
    *
-   * On success: flips `status` to `'CheckedIn'`, sets
-   * `markedPresentAt` + `markedPresentByEmployerId`, drives the same
-   * escrow transition as worker self-check-in, fires a
+   * On success: flips `status` to `'CheckedIn'` (no-op when
+   * already CheckedIn), sets `markedPresentAt` +
+   * `markedPresentByEmployerId`, drives the same escrow
+   * transition as worker self-check-in, fires a
    * `'EmployerMarkedPresent'` notification to the worker.
    */
   markPresentByEmployer(applicationId) {
     const app = get().getById(applicationId);
     if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
-    if (app.status !== 'Approved') return { ok: false, error: 'WRONG_STATUS' };
+    if (app.status !== 'Approved' && app.status !== 'CheckedIn') {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+    if (app.markedPresentAt) return { ok: false, error: 'WRONG_STATUS' };
 
     const ts = nowIso();
     const shift = useShiftStore.getState().getById(app.shiftId);
@@ -865,6 +958,17 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       body: `Nhà tuyển dụng đã xác nhận bạn có mặt cho ca "${shift.title}".`,
       link: `/shifts/${shift.id}`,
     });
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    {
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      appendTimelineToShift(
+        shift.id,
+        'EmployerMarkedPresent',
+        `Nhà tuyển dụng xác nhận ${workerName} có mặt.`,
+      );
+    }
 
     return { ok: true, value: updated };
   },
@@ -953,6 +1057,13 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
         body: `${workerName} đã check-out cho ca "${shift.title}". Vui lòng xác nhận hoặc khiếu nại trong 12 giờ.`,
         link: `/employer/shifts/${shift.id}`,
       });
+
+      // Phase 10C-Stab-1 Batch 4B — timeline emission.
+      appendTimelineToShift(
+        shift.id,
+        'WorkerCheckedOut',
+        `${workerName} đã check-out.`,
+      );
     }
 
     return { ok: true, value: updated };
@@ -1021,6 +1132,17 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       // immediately review what they were approved for.
       link: `/shifts/${shift.id}`,
     });
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    {
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      appendTimelineToShift(
+        shift.id,
+        'EmployerApprovedApplicant',
+        `Nhà tuyển dụng đã duyệt ${workerName}.`,
+      );
+    }
 
     return { ok: true, value: updated };
   },
@@ -1242,6 +1364,74 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       link: '/worker/dashboard?modal=income',
     });
 
+    // Phase 10C-Stab-1 Batch 4 E — stamp paidAwaitingRatingAt and
+    // notify the worker to rate the employer.
+    const ratedAt = ts;
+    const appsAfter = useApplicationStore.getState().applications.map((a) =>
+      a.id === applicationId ? { ...a, paidAwaitingRatingAt: ratedAt } : a,
+    );
+    useApplicationStore.setState({ applications: appsAfter });
+    persistApplications(appsAfter);
+    useNotificationStore.getState().push({
+      userId: app.workerId,
+      kind: 'WorkerPostPaymentRatingRequired',
+      title: 'Hãy đánh giá nhà tuyển dụng',
+      body: `Bạn đã nhận lương cho ca "${shift.title}". Hãy đánh giá nhà tuyển dụng để hoàn tất ca.`,
+      link: `/shifts/${shift.id}`,
+    });
+
+    // Phase 10C-Stab-1 Batch 4 J — credit the worker wallet with the
+    // payout, then refund any unused deposit (positions not filled
+    // and all applications now in terminal states) to the employer.
+    const payoutAmount = updated.payoutAmount ?? 0;
+    if (payoutAmount > 0) {
+      useWalletStore
+        .getState()
+        .credit(app.workerId, payoutAmount, 'WorkerWageReleased', {
+          shiftId: shift.id,
+          applicationId: app.id,
+          note: `Lương ca "${shift.title}"`,
+        });
+    }
+    const TERMINAL_APP = new Set([
+      'Confirmed',
+      'NoShow',
+      'Rejected',
+      'CancelledByWorker',
+      'CancelledByEmployer',
+      'Expired',
+    ]);
+    const allTerminal = apps
+      .filter((a) => a.shiftId === shift.id)
+      .every((a) => TERMINAL_APP.has(a.status));
+    if (allTerminal && shift.positionsFilled < shift.positionsTotal) {
+      const perWorkerWage = payoutAmount > 0
+        ? payoutAmount
+        : Math.floor(shift.depositAmount / Math.max(1, shift.positionsTotal));
+      const unused = perWorkerWage * (shift.positionsTotal - shift.positionsFilled);
+      if (unused > 0) {
+        useWalletStore
+          .getState()
+          .credit(shift.employerId, unused, 'EmployerUnusedRefund', {
+            shiftId: shift.id,
+            note: `Hoàn cọc vị trí không sử dụng cho ca "${shift.title}"`,
+          });
+      }
+    }
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    {
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      appendTimelineToShift(
+        shift.id,
+        'WageReleased',
+        payoutAmount > 0
+          ? `Đã giải ngân ${payoutAmount.toLocaleString('vi-VN')} đồng cho ${workerName}.`
+          : `Đã xác nhận hoàn thành cho ${workerName}.`,
+      );
+    }
+
     return { ok: true, value: updated };
   },
 
@@ -1346,6 +1536,13 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       link: '/admin/dashboard?tab=disputes',
     });
 
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    appendTimelineToShift(
+      shift.id,
+      'EmployerOpenedDispute',
+      `Nhà tuyển dụng mở khiếu nại — ${trimmedReason.slice(0, 120)}`,
+    );
+
     return { ok: true, value: dispute };
   },
 
@@ -1390,8 +1587,24 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // a worker can dispute after they've finished their side and are
     // waiting for employer confirmation. The wider set ships in
     // future waves alongside admin escalation.
-    if (app.status !== 'CheckedOut') {
+    // Phase 10C-Stab-1 Batch 4 I — `'AbsentDispute'` is the only
+    // category accepted on `'NoShow'` applications.
+    if (payload.category === 'AbsentDispute') {
+      if (app.status !== 'NoShow') {
+        return { ok: false, error: 'WRONG_STATUS' };
+      }
+    } else if (app.status !== 'CheckedOut') {
       return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    // Phase 10C-Stab-1 Batch 4 D — block PaymentDispute when filed
+    // before `autoReleaseAt - 1h`. Other categories pass through.
+    if (payload.category === 'PaymentDispute' && app.autoReleaseAt) {
+      const nowMs = Date.now();
+      const autoMs = Date.parse(app.autoReleaseAt);
+      if (Number.isFinite(autoMs) && nowMs < autoMs - 60 * 60 * 1000) {
+        return { ok: false, error: 'TOO_EARLY' };
+      }
     }
 
     const shift = useShiftStore.getState().getById(app.shiftId);
@@ -1456,7 +1669,122 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       link: '/admin/dashboard?tab=disputes',
     });
 
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    appendTimelineToShift(
+      shift.id,
+      'WorkerOpenedDispute',
+      `Người làm mở khiếu nại — ${trimmedReason.slice(0, 120)}`,
+    );
+
     return { ok: true, value: dispute };
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 10C-Stab-1 Batch 3 E — appendDisputeResponse
+  // -------------------------------------------------------------------------
+
+  appendDisputeResponse(disputeId, side, payload) {
+    const trimmedReason = (payload?.reason ?? '').trim();
+    const evidenceDescription = (payload?.evidenceDescription ?? '').trim();
+    const evidenceFileName = (payload?.evidenceFileName ?? '').trim();
+
+    if (trimmedReason.length === 0) {
+      return { ok: false, error: 'REASON_REQUIRED' };
+    }
+    if (
+      trimmedReason.length > 1000 ||
+      evidenceDescription.length > 2000 ||
+      evidenceFileName.length > 255
+    ) {
+      return { ok: false, error: 'FIELD_TOO_LONG' };
+    }
+    if (
+      evidenceFileName.length > 0 &&
+      (evidenceFileName.includes('/') || evidenceFileName.includes('\\'))
+    ) {
+      return { ok: false, error: 'FIELD_TOO_LONG' };
+    }
+
+    const dispute = get().disputes.find((d) => d.id === disputeId);
+    if (!dispute) return { ok: false, error: 'NOT_FOUND' };
+
+    const TERMINAL: ReadonlySet<string> = new Set([
+      'ResolvedReleased',
+      'ResolvedRefunded',
+      'PartialRelease',
+      'ClosedInvalid',
+    ]);
+    if (TERMINAL.has(dispute.status)) {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    const ts = nowIso();
+    const response: DisputeResponse = {
+      id: newPrefixedId('dispute-response'),
+      side,
+      authorUserId: payload.authorUserId,
+      reason: trimmedReason,
+      evidenceDescription:
+        evidenceDescription.length > 0 ? evidenceDescription : undefined,
+      evidenceFileName:
+        evidenceFileName.length > 0 ? evidenceFileName : undefined,
+      createdAt: ts,
+    };
+
+    const updatedDispute: Dispute = {
+      ...dispute,
+      responses: [...(dispute.responses ?? []), response],
+    };
+    const disputes = get().disputes.map((d) =>
+      d.id === disputeId ? updatedDispute : d,
+    );
+    set({ disputes });
+    persistDisputes(disputes);
+
+    // Notify the OTHER side + admins.
+    const shift = useShiftStore.getState().getById(dispute.shiftId);
+    const shiftTitle = shift?.title ?? 'ca làm';
+    const otherUserId =
+      side === 'worker'
+        ? shift?.employerId
+        : useApplicationStore
+            .getState()
+            .applications.find((a) => a.id === dispute.applicationId)?.workerId;
+    if (otherUserId) {
+      useNotificationStore.getState().push({
+        userId: otherUserId,
+        kind: 'DisputeFiled',
+        title: 'Có phản hồi khiếu nại mới',
+        body: `Có phản hồi mới trên khiếu nại ca "${shiftTitle}".`,
+        link:
+          side === 'worker'
+            ? `/employer/shifts/${dispute.shiftId}`
+            : `/shifts/${dispute.shiftId}`,
+      });
+    }
+    notifyAdmins({
+      users: useUserStore.getState().users,
+      push: useNotificationStore.getState().push,
+      kind: 'DisputeOpened',
+      title: 'Phản hồi khiếu nại mới',
+      body: `Có phản hồi mới trên khiếu nại ca "${shiftTitle}".`,
+      link: '/admin/dashboard?tab=disputes',
+    });
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    if (shift) {
+      appendTimelineToShift(
+        shift.id,
+        side === 'worker'
+          ? 'WorkerRespondedToDispute'
+          : 'EmployerRespondedToDispute',
+        side === 'worker'
+          ? `Người làm phản hồi khiếu nại — ${trimmedReason.slice(0, 120)}`
+          : `Nhà tuyển dụng phản hồi khiếu nại — ${trimmedReason.slice(0, 120)}`,
+      );
+    }
+
+    return { ok: true, value: response };
   },
 
   markNoShow(applicationId) {
@@ -1513,6 +1841,17 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       // see the −20 event on their score timeline.
       link: '/worker/dashboard?modal=reputation',
     });
+
+    // Phase 10C-Stab-1 Batch 4B — timeline emission.
+    {
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      appendTimelineToShift(
+        shift.id,
+        'EmployerMarkedAbsent',
+        `Nhà tuyển dụng đánh dấu ${workerName} vắng mặt.`,
+      );
+    }
 
     return { ok: true, value: updated };
   },
@@ -1683,6 +2022,84 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       });
       set({ applications: updatedApps });
       persistApplications(updatedApps);
+    }
+
+    // -------------------------------------------------------------------
+    // Phase 10C-Stab-1 Batch 3 B — employer expiry notifications.
+    //
+    //   - `'ShiftStartingSoon'` fires inside the 10-minute pre-start
+    //     window when there is at least one unfilled position on a
+    //     Published / FullyBooked shift. Idempotent via
+    //     `Shift.startingSoonNotifiedAt`.
+    //
+    //   - `'ShiftExpiredEmpty'` fires once per shift after the
+    //     lifecycle sync transitions it to `'Expired'` with zero
+    //     approved positions. Idempotent via
+    //     `Shift.expiredEmptyNotifiedAt`.
+    // -------------------------------------------------------------------
+    const NOTIF_WINDOW_MS = 10 * 60_000;
+    // Re-read shifts after the syncLifecycle pass so we see the most
+    // recent statuses (e.g. Published → Expired transitions).
+    const liveShifts = useShiftStore.getState().shifts;
+    const startingSoonStamps = new Map<string, string>();
+    const expiredEmptyStamps = new Map<string, string>();
+    for (const shift of liveShifts) {
+      const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
+      const endMs = new Date(`${shift.date}T${shift.endTime}:00`).getTime();
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) continue;
+
+      // ShiftStartingSoon: 10-min pre-start window, only when the
+      // shift is still recruiting and has unfilled positions.
+      if (
+        !shift.startingSoonNotifiedAt &&
+        (shift.status === 'Published' || shift.status === 'FullyBooked') &&
+        nowMs >= startMs - NOTIF_WINDOW_MS &&
+        nowMs < startMs &&
+        shift.positionsTotal > shift.positionsFilled
+      ) {
+        const remaining = shift.positionsTotal - shift.positionsFilled;
+        useNotificationStore.getState().push({
+          userId: shift.employerId,
+          kind: 'ShiftStartingSoon',
+          title: 'Ca sắp bắt đầu',
+          body:
+            `Ca "${shift.title}" sắp bắt đầu lúc ${shift.startTime}. ` +
+            `Bạn còn ${remaining} vị trí chưa duyệt.`,
+          link: `/employer/shifts/${shift.id}`,
+        });
+        startingSoonStamps.set(shift.id, at);
+      }
+
+      // ShiftExpiredEmpty: shift is Expired with zero approved
+      // positions and we haven't already notified.
+      if (
+        !shift.expiredEmptyNotifiedAt &&
+        shift.status === 'Expired' &&
+        shift.positionsFilled === 0
+      ) {
+        useNotificationStore.getState().push({
+          userId: shift.employerId,
+          kind: 'ShiftExpiredEmpty',
+          title: 'Ca đã hết hạn',
+          body: `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ.`,
+          link: `/employer/shifts/${shift.id}`,
+        });
+        expiredEmptyStamps.set(shift.id, at);
+      }
+    }
+    if (startingSoonStamps.size > 0 || expiredEmptyStamps.size > 0) {
+      const nextShifts = useShiftStore.getState().shifts.map((s) => {
+        const startStamp = startingSoonStamps.get(s.id);
+        const expiredStamp = expiredEmptyStamps.get(s.id);
+        if (!startStamp && !expiredStamp) return s;
+        return {
+          ...s,
+          ...(startStamp ? { startingSoonNotifiedAt: startStamp } : {}),
+          ...(expiredStamp ? { expiredEmptyNotifiedAt: expiredStamp } : {}),
+        };
+      });
+      useShiftStore.setState({ shifts: nextShifts });
+      write(STORAGE_KEYS.shifts, nextShifts);
     }
 
     // Step 4: 12 h auto-release pass.

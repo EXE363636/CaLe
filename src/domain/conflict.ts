@@ -5,10 +5,13 @@
  * to prevent a worker from double-booking shifts when applying:
  *
  *   "Two ranges conflict iff
- *      (targetStart − 60min) < rEnd  &&  (targetEnd + 60min) > rStart"
+ *      targetStart < rEnd  &&  targetEnd > rStart"
  *
- * The 60-minute buffer (Req 22.3) is applied symmetrically around the
- * `target` range only. Each `approved` range contributes its raw start/end.
+ * Phase 10C-Stab-1 Batch 3 H — the previous 60-minute symmetric buffer
+ * was removed. Workers can now book back-to-back shifts so long as the
+ * ranges do not actually overlap. The `BUFFER_MINUTES` constant stays
+ * for backwards compatibility but is set to `0` so the formula
+ * collapses to pure interval overlap.
  *
  * Inputs are wall-clock pairs:
  *   - `date`      — calendar date as `YYYY-MM-DD`
@@ -39,8 +42,15 @@ export interface TimeRange {
   endTime: string;
 }
 
-/** Symmetric buffer applied around the target range, in minutes (Req 22.3). */
-export const BUFFER_MINUTES = 60;
+/**
+ * Symmetric buffer applied around the target range, in minutes.
+ *
+ * Phase 10C-Stab-1 Batch 3 H — set to `0` so the conflict formula
+ * collapses to pure interval overlap. Kept as an exported constant
+ * for backwards compatibility with callers / tests that referenced
+ * the old name.
+ */
+export const BUFFER_MINUTES = 0;
 
 const MS_PER_MINUTE = 60 * 1000;
 const BUFFER_MS = BUFFER_MINUTES * MS_PER_MINUTE;
@@ -55,10 +65,16 @@ function momentMs(date: string, time: string): number {
 }
 
 /**
- * Two ranges conflict iff the buffered target window overlaps the raw
- * approved window:
+ * Two ranges conflict iff the target window overlaps the approved
+ * window:
  *
- *   (targetStart − 60min) < rEnd  &&  (targetEnd + 60min) > rStart
+ *   targetStart < rEnd  &&  targetEnd > rStart
+ *
+ * Phase 10C-Stab-1 Batch 3 H — the 60-minute symmetric buffer was
+ * removed; with `BUFFER_MS = 0` the formula collapses to pure
+ * interval overlap. The `targetStart - BUFFER_MS` / `targetEnd +
+ * BUFFER_MS` arithmetic is preserved so any future re-introduction
+ * of a buffer requires only a constant change.
  *
  * Returns `false` when any input produces `NaN` (malformed strings).
  */

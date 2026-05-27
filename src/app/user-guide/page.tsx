@@ -96,7 +96,7 @@ const EMPLOYER_STEPS: Step[] = [
   {
     title: 'Đăng ký tài khoản nhà tuyển dụng.',
     body:
-      'Mở trang Đăng ký, chọn "Tôi cần tuyển người làm", rồi chọn loại tài khoản: Cá nhân/Freelance hoặc Doanh nghiệp. Doanh nghiệp đã xác minh được hưởng tỷ lệ đặt cọc thấp hơn.',
+      'Mở trang Đăng ký, chọn "Tôi cần tuyển người làm", rồi chọn loại tài khoản: Cá nhân/Freelance hoặc Doanh nghiệp. Mọi nhà tuyển dụng đều đặt cọc 100% tổng tiền công; cấp độ tin cậy giúp tăng độ ưu tiên hiển thị và giảm phí dịch vụ trong tương lai.',
   },
   {
     title: 'Hoàn thiện hồ sơ doanh nghiệp.',
@@ -111,7 +111,7 @@ const EMPLOYER_STEPS: Step[] = [
   {
     title: 'Đặt cọc tiền công.',
     body:
-      'Hệ thống tự tính số tiền đặt cọc dựa trên cấp độ tin cậy: Thấp 100%, Trung bình 70%, Cao 50% tổng tiền lương. Bấm "Xác nhận đã thanh toán" để mô phỏng đặt cọc — ca chuyển từ Bản nháp sang Đang tuyển.',
+      'Hệ thống yêu cầu nhà tuyển dụng đặt cọc 100% tổng tiền công cho mọi cấp độ tin cậy trong bản MVP. Bấm "Xác nhận đã thanh toán" để mô phỏng đặt cọc — ca chuyển từ Bản nháp sang Đang tuyển. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai.',
   },
   {
     title: 'Nhận đơn ứng tuyển.',
@@ -483,11 +483,11 @@ export default function UserGuidePage() {
         title="Đăng ca tuyển diễn ra như thế nào?"
         bullets={[
           'Nhà tuyển dụng nhập tên ca, thời gian, địa điểm, mức lương theo giờ và số lượng người cần tuyển.',
-          'Hệ thống tự tính số tiền đặt cọc dựa trên cấp độ tin cậy: Thấp 100%, Trung bình 70%, Cao 50% tổng tiền lương.',
+          'Mọi nhà tuyển dụng đặt cọc 100% tổng tiền công trước khi ca công khai. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai.',
           'Ca chỉ hiển thị cho người lao động sau khi đặt cọc thành công — đảm bảo tiền công được bảo đảm trước khi ai đó đến nhận việc.',
           'Trong bản MVP, thanh toán và đặt cọc được giả lập trong trình duyệt — không có giao dịch tiền thật.',
         ]}
-        example="Bạn đăng một ca phục vụ 4 giờ tối thứ Bảy, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Cấp độ tin cậy của bạn là Trung bình, hệ thống yêu cầu đặt cọc 70% tức 196.000 đ trước khi ca công khai."
+        example="Bạn đăng một ca phục vụ 4 giờ tối thứ Bảy, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Hệ thống yêu cầu đặt cọc 100% tức 280.000 đ trước khi ca công khai. Cấp độ tin cậy của bạn ảnh hưởng đến độ ưu tiên hiển thị, không ảnh hưởng đến số tiền cọc."
         nextAction="Trong menu Nhà tuyển dụng, chọn Đăng ca tuyển và điền đầy đủ thông tin để tiến hành đặt cọc."
         primaryCta={{ label: 'Đăng nhập để đăng ca tuyển', href: '/login' }}
         secondaryCta={{ label: 'Xem cách đặt cọc', href: '/employer/payments' }}
@@ -577,8 +577,8 @@ export default function UserGuidePage() {
           'Cơ chế đặt cọc trước giúp người lao động yên tâm về thanh toán mà không phải tự đặt cọc bất kỳ khoản nào.',
           'Trong bản MVP, mọi giao dịch được mô phỏng trong trình duyệt; không có thanh toán thật.',
         ]}
-        example="Bạn đăng một ca trị giá 280.000 đ. Cấp độ tin cậy Trung bình, đặt cọc 70% = 196.000 đ. Số tiền này được giữ tạm trong hệ thống đến khi ca hoàn thành — lúc đó tiền sẽ được chuyển cho người lao động."
-        nextAction="Xem cấp độ tin cậy hiện tại của bạn và cách nâng cấp để được hưởng tỷ lệ đặt cọc thấp hơn."
+        example="Bạn đăng một ca trị giá 280.000 đ. Hệ thống yêu cầu đặt cọc 100% tức 280.000 đ. Số tiền này được giữ tạm trong hệ thống đến khi ca hoàn thành — lúc đó tiền sẽ được chuyển cho người lao động. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ tương lai, không ảnh hưởng đến tỷ lệ cọc."
+        nextAction="Xem cấp độ tin cậy hiện tại của bạn và cách nâng cấp để được ưu tiên hiển thị và giảm phí dịch vụ trong tương lai."
         primaryCta={{ label: 'Tìm hiểu cấp độ tin cậy', href: '/employer/payments' }}
         secondaryCta={{ label: 'Đăng nhập', href: '/login' }}
       />
@@ -593,7 +593,7 @@ export default function UserGuidePage() {
           'Số tiền này sẽ được giải ngân thành tiền công khi ca hoàn thành — nó không phải chi phí đã mất, mà là tiền đang được giữ tạm.',
           'Trong bản MVP, thao tác đặt cọc chỉ là mô phỏng, chưa có giao dịch thật.',
         ]}
-        example="Bạn đăng một ca 4 giờ, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Mức đặt cọc 70% là 196.000 đ. Sau khi đặt cọc, ô Tổng đã đặt cọc tăng thêm 196.000 đ."
+        example="Bạn đăng một ca 4 giờ, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Mức đặt cọc 100% là 280.000 đ. Sau khi đặt cọc, ô Tổng đã đặt cọc tăng thêm 280.000 đ."
         nextAction="Bấm vào ô Tổng đã đặt cọc trên Tổng quan nhà tuyển dụng để xem danh sách các ca đang giữ tiền."
       />
 
@@ -658,7 +658,7 @@ export default function UserGuidePage() {
           />
           <FaqEntry
             question="Tỷ lệ đặt cọc của nhà tuyển dụng được tính như thế nào?"
-            answer="Cấp độ tin cậy thấp 100%, trung bình 70% (đã xác minh hoặc ≥ 3 ca hoàn thành), cao 50% (đã xác minh và ≥ 5 ca hoàn thành). Tiền cọc giữ trong hệ thống, chỉ giải ngân khi ca hoàn thành."
+            answer="Mọi nhà tuyển dụng đều đặt cọc 100% tổng tiền công cho mọi cấp độ tin cậy trong bản MVP. Tiền cọc giữ trong hệ thống, chỉ giải ngân khi ca hoàn thành. Cấp độ tin cậy (thấp, trung bình, cao) ảnh hưởng đến độ ưu tiên hiển thị ca và phí dịch vụ trong tương lai, không ảnh hưởng đến tỷ lệ đặt cọc."
           />
           <FaqEntry
             question="Phiên bản này có giao dịch tiền thật không?"

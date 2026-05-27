@@ -25,6 +25,7 @@ import {
   useShiftStore,
   useUserStore,
   useVerificationStore,
+  useWalletStore,
 } from '@/stores';
 
 interface AppHydratorProps {
@@ -55,6 +56,9 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
         snapshot.employerVerifications,
         snapshot.employerTypeChangeRequests,
       );
+    useWalletStore
+      .getState()
+      .hydrate(snapshot.wallets, snapshot.walletLedger);
 
     // Phase 10C-Stab-1 B — single canonical orchestrator after
     // hydration so the very first render reflects time-driven
