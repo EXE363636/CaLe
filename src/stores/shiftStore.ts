@@ -28,9 +28,11 @@ import {
 import { transitionEscrow } from '@/domain/escrow';
 import { suggestedEvidenceForJobType } from '@/domain/evidence';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
+import { computePostingReadiness } from '@/domain/postingReadiness';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
 import { canEditShift } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
+import { useVerificationStore } from './verificationStore';
 import type {
   Application,
   ApplicationStatus,
@@ -38,6 +40,7 @@ import type {
   Result,
   Shift,
   ShiftStatus,
+  ShiftTimelineEntry,
   Worker,
 } from '@/types';
 
@@ -80,6 +83,12 @@ export interface NewShiftInput {
    * omitted, `create` falls back to the same suggestion helper.
    */
   evidenceRequirement?: EvidenceRequirement;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — when the employer chose `'Khác'` as
+   * jobType, the form supplies the free-text custom name here.
+   */
+  customJobTypeName?: string;
 }
 
 /** Editable subset of a shift (Req 25.1 — wage and date are NOT editable). */
@@ -106,6 +115,16 @@ export type CancelError =
   | 'REASON_REQUIRED';
 export type EditError = 'NOT_FOUND' | 'TOO_LATE' | 'POSITIONS_BELOW_FILLED';
 
+/**
+ * Phase 10C-Stab-1 Batch 2 H — error codes returned by
+ * `simulateDeposit` when the store-side verification gate blocks a
+ * publish action.
+ */
+export type SimulateDepositError =
+  | 'NOT_FOUND'
+  | 'EMPLOYER_TYPE_REQUIRED'
+  | 'EMPLOYER_NOT_VERIFIED';
+
 interface ShiftStore {
   shifts: Shift[];
   /** Phase 7: ISO timestamp of the last successful lifecycle sync. */
@@ -118,7 +137,13 @@ interface ShiftStore {
 
   // Mutators
   create(input: NewShiftInput): Shift;
-  simulateDeposit(shiftId: string): void;
+  /**
+   * Simulate the deposit transition (PendingDeposit → Deposited) and
+   * flip the shift to `'Published'`. Phase 10C-Stab-1 Batch 2 H added
+   * a store-side verification gate; the action now returns a
+   * structured `Result` instead of `void`.
+   */
+  simulateDeposit(shiftId: string): Result<Shift, SimulateDepositError>;
   setStatus(shiftId: string, status: ShiftStatus): void;
   incrementFilled(shiftId: string, delta: number): void;
   edit(shiftId: string, patch: ShiftEditablePatch, nowIso?: string): Result<Shift, EditError>;
@@ -133,6 +158,25 @@ interface ShiftStore {
    * notified but receive no protection record.
    */
   cancel(shiftId: string, reason: string, nowIso?: string): Result<Shift, CancelError>;
+  /**
+   * Phase 10C-Stab-1 Batch 2 G — create a new Draft shift prefilled
+   * from a `Cancelled` / `Expired` / `Completed` source shift.
+   *
+   * The OLD shift is left unchanged except for an appended
+   * `'CreatedFromRepost'` timeline entry pointing at the new shift's
+   * id + title. The new shift gets a fresh id, status `'Draft'`,
+   * escrow `'PendingDeposit'`, and a `repostedFromShiftId` pointer
+   * back to the source.
+   *
+   * Returns the new shift on success. Rejects:
+   *   - `'NOT_FOUND'`         — source id has no matching shift
+   *   - `'WRONG_STATUS'`      — source is not in a repost-eligible
+   *                             state (must be `Cancelled`,
+   *                             `Expired`, or `Completed`)
+   */
+  repostFromShift(
+    sourceShiftId: string,
+  ): Result<Shift, 'NOT_FOUND' | 'WRONG_STATUS'>;
   useBoostCredit(shiftId: string): void;
 
   /**
@@ -239,6 +283,13 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       evidenceRequirement:
         input.evidenceRequirement ??
         suggestedEvidenceForJobType(input.jobType),
+      // Phase 10C-Stab-1 Batch 2 — only persist when non-empty so
+      // the JSON snapshot doesn't carry empty strings around.
+      customJobTypeName:
+        typeof input.customJobTypeName === 'string' &&
+        input.customJobTypeName.trim().length > 0
+          ? input.customJobTypeName.trim()
+          : undefined,
     };
 
     const next = [...get().shifts, shift];
@@ -249,8 +300,35 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
 
   simulateDeposit(shiftId) {
     const shift = get().getById(shiftId);
-    if (!shift) return;
-    if (shift.escrowStatus !== 'PendingDeposit') return;
+    if (!shift) return { ok: false, error: 'NOT_FOUND' };
+    if (shift.escrowStatus !== 'PendingDeposit') {
+      return { ok: false, error: 'NOT_FOUND' };
+    }
+
+    // Phase 10C-Stab-1 Batch 2 H — store-side employer verification
+    // gate. The UI's `<ReadinessChecklist/>` already prevents
+    // unverified employers from clicking "Mô phỏng đặt cọc", but
+    // the gate must fire on the store action itself so a stale UI
+    // state or a programmatic call site cannot bypass it.
+    const employerCandidate = useUserStore.getState().findById(shift.employerId);
+    if (employerCandidate && employerCandidate.role === 'employer') {
+      const docs = useVerificationStore.getState().employerDocuments;
+      const employerHasOtherShifts = get().shifts.some(
+        (s) => s.employerId === employerCandidate.id && s.id !== shift.id,
+      );
+      const readiness = computePostingReadiness({
+        employer: employerCandidate,
+        employerDocuments: docs,
+        hasPostedShifts: employerHasOtherShifts,
+        workplaceImageInForm: shift.workplaceImageLabel,
+      });
+      if (!readiness.resolvedType) {
+        return { ok: false, error: 'EMPLOYER_TYPE_REQUIRED' };
+      }
+      if (!readiness.ready) {
+        return { ok: false, error: 'EMPLOYER_NOT_VERIFIED' };
+      }
+    }
 
     const next = patchShift(get().shifts, shiftId, {
       escrowStatus: transitionEscrow(shift.escrowStatus, 'Deposit'),
@@ -258,6 +336,7 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     });
     set({ shifts: next });
     persist(next);
+    return { ok: true, value: next.find((s) => s.id === shiftId)! };
   },
 
   setStatus(shiftId, status) {
@@ -381,6 +460,86 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     return { ok: true, value: updated };
   },
 
+  // -------------------------------------------------------------------------
+  // Phase 10C-Stab-1 Batch 2 G — repost from cancelled / expired / completed
+  // -------------------------------------------------------------------------
+
+  repostFromShift(sourceShiftId) {
+    const source = get().getById(sourceShiftId);
+    if (!source) return { ok: false, error: 'NOT_FOUND' };
+    const repostable: ShiftStatus[] = ['Cancelled', 'Expired', 'Completed'];
+    if (!repostable.includes(source.status)) {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
+
+    // Re-run the deposit math against the source's wage / duration so
+    // the new draft has a fresh `depositAmount` matching the
+    // employer's current trust tier (which may have improved since
+    // the source was created).
+    const employer = asEmployer(useUserStore.getState().findById(source.employerId));
+    const completedCount = get().shifts.filter(
+      (s) => s.employerId === source.employerId && s.status === 'Completed',
+    ).length;
+    const trust = employer ? trustForEmployer(employer, completedCount) : 'low';
+    const hours = hoursBetween(source.startTime, source.endTime);
+    const fullWage = calculateDeposit(source.hourlyWage, hours, 1);
+    const depositAmount = depositForTrust(fullWage, source.positionsTotal, trust);
+
+    const created = nowIso();
+    const newId = newPrefixedId('shift');
+    const newShift: Shift = {
+      ...source,
+      id: newId,
+      status: 'Draft',
+      escrowStatus: 'PendingDeposit',
+      depositAmount,
+      positionsFilled: 0,
+      createdAt: created,
+      updatedAt: created,
+      // Clear cancellation / lifecycle metadata from the source.
+      cancelledAt: undefined,
+      cancelledBy: undefined,
+      employerCancellationReason: undefined,
+      employerCancelledAfterApproval: undefined,
+      employerCancellationPenaltyRate: undefined,
+      employerCancellationPenaltyAmount: undefined,
+      boostedAt: undefined,
+      // Phase 10C-Stab-1 Batch 2 — lineage pointer for audit views.
+      repostedFromShiftId: source.id,
+      timeline: [
+        {
+          id: newPrefixedId('timeline'),
+          occurredAt: created,
+          kind: 'Reposted',
+          note: `Tạo lại từ ca cũ "${source.title}" (id: ${source.id}).`,
+        },
+      ],
+    };
+
+    // Append a CreatedFromRepost log entry on the SOURCE shift so its
+    // detail page shows the lineage. The source shift is otherwise
+    // unchanged (status / escrowStatus / cancellation metadata
+    // preserved exactly as the user instructed).
+    const sourceTimeline: ShiftTimelineEntry[] = [
+      ...(source.timeline ?? []),
+      {
+        id: newPrefixedId('timeline'),
+        occurredAt: created,
+        kind: 'CreatedFromRepost',
+        note: `Nhà tuyển dụng đã tạo ca mới "${newShift.title}" (id: ${newId}) dựa trên ca này.`,
+      },
+    ];
+
+    const next = get().shifts.map((s) =>
+      s.id === source.id ? { ...s, timeline: sourceTimeline } : s,
+    );
+    next.push(newShift);
+    set({ shifts: next });
+    persist(next);
+
+    return { ok: true, value: newShift };
+  },
+
   useBoostCredit(shiftId) {
     const shift = get().getById(shiftId);
     if (!shift) return;
@@ -425,14 +584,64 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     // `suggestedEvidenceForJobType` so each backfilled shift gets a
     // sensible level instead of the hardest one. Idempotent: shifts
     // that already carry the field round-trip unchanged.
-    const backfilled = shifts.map((s) =>
-      s.evidenceRequirement
+    //
+    // Phase 10C-Stab-1 Batch 2 — also flag legacy public shifts whose
+    // owning employer hasn't completed verification under the Batch
+    // 2 H gate. We read the verification slice lazily so the shifts
+    // and verification stores don't have to be hydrated in a fixed
+    // order. The flag is informational only — `simulateDeposit`
+    // already blocks NEW postings; this surfaces an "ca này cần xác
+    // minh nhà tuyển dụng" banner on the shift detail of legacy
+    // records that slipped through before the gate landed.
+    const verificationDocs =
+      useVerificationStore.getState().employerDocuments;
+    const employerById = new Map(
+      useUserStore.getState().users
+        .filter((u) => u.role === 'employer')
+        .map((u) => [u.id, u]),
+    );
+
+    const backfilled = shifts.map((s) => {
+      let next: Shift = s.evidenceRequirement
         ? s
         : {
             ...s,
             evidenceRequirement: suggestedEvidenceForJobType(s.jobType),
-          },
-    );
+          };
+
+      // Only flag PUBLIC (non-Draft, non-Cancelled, non-Expired)
+      // shifts. Drafts haven't been published yet so the gate can
+      // still fire for them; cancelled / expired shifts no longer
+      // recruit so the flag is moot.
+      const isPublic =
+        next.status === 'Published' ||
+        next.status === 'FullyBooked' ||
+        next.status === 'InProgress' ||
+        next.status === 'AwaitingConfirmation';
+
+      if (isPublic) {
+        const employer = employerById.get(next.employerId);
+        if (employer && employer.role === 'employer') {
+          const readiness = computePostingReadiness({
+            employer,
+            employerDocuments: verificationDocs,
+            hasPostedShifts: true,
+            workplaceImageInForm: next.workplaceImageLabel,
+          });
+          if (!readiness.ready) {
+            if (next.requiresEmployerVerification !== true) {
+              next = { ...next, requiresEmployerVerification: true };
+            }
+          } else if (next.requiresEmployerVerification === true) {
+            // Verification has since been completed — clear the
+            // legacy flag so the banner stops rendering.
+            next = { ...next, requiresEmployerVerification: undefined };
+          }
+        }
+      }
+
+      return next;
+    });
     set({ shifts: backfilled });
   },
 }));

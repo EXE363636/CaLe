@@ -155,7 +155,22 @@ export type NotificationKind =
    * grace window has passed and the worker hasn't checked out yet.
    * Idempotent via `shiftEndedNotifiedAt`.
    */
-  | 'ShiftEnded';
+  | 'ShiftEnded'
+  /**
+   * Phase 10C-Stab-1 Batch 2 — worker self-checked-in. Notifies
+   * the employer.
+   */
+  | 'WorkerCheckedIn'
+  /**
+   * Phase 10C-Stab-1 Batch 2 — employer marked worker present
+   * without the worker self-checking-in. Notifies the worker.
+   */
+  | 'EmployerMarkedPresent'
+  /**
+   * Phase 10C-Stab-1 Batch 2 — worker checked out. Reminds the
+   * employer to confirm or dispute within 12 hours.
+   */
+  | 'WorkerCheckedOut';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -549,6 +564,71 @@ export interface Shift {
    * `src/domain/evidence.ts`.
    */
   evidenceRequirement?: EvidenceRequirement;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — when the employer chose `'Khác'` as
+   * the job type, this carries the free-text custom name they
+   * supplied. Required by the Wage validation rule (I.4): "If job
+   * type is 'Khác', require customJobTypeName."
+   */
+  customJobTypeName?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — when this shift was created by
+   * "Đăng lại từ ca này" on a cancelled / expired prior shift,
+   * carries the source shift's id so admin / employer audit views
+   * can trace the lineage.
+   */
+  repostedFromShiftId?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — retroactive verification flag for
+   * legacy shifts that were posted by employers who hadn't yet
+   * completed verification under the Batch 2 H gate. Set by
+   * `shiftStore.hydrate(...)` when a public shift's owning
+   * employer lacks an approved verification summary; surfaces a
+   * "Ca này cần xác minh nhà tuyển dụng" banner on shift detail.
+   * The flag is informational only — it does NOT auto-cancel the
+   * shift.
+   */
+  requiresEmployerVerification?: boolean;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — append-only audit log for surface-
+   * facing events. Every entry stamps an exact-second ISO
+   * timestamp. Used by the shift-detail repost banner and by the
+   * employer's payments / dashboard timeline.
+   *
+   * Kinds:
+   *   - `'CreatedFromRepost'`  → "Nhà tuyển dụng đã tạo ca mới
+   *                               dựa trên ca này" (logged on the
+   *                               OLD shift; carries the new shift's
+   *                               id + title in `note`).
+   *   - `'EmployerCancelled'`  → mirror of `cancelledAt` for
+   *                               consistency in the timeline view.
+   *   - `'AutoExpired'`        → lifecycle sync transitioned the
+   *                               shift to Expired.
+   *   - `'Reposted'`           → reciprocal of `'CreatedFromRepost'`
+   *                               on the NEW shift, pointing back
+   *                               to the source.
+   */
+  timeline?: ShiftTimelineEntry[];
+}
+
+/**
+ * Phase 10C-Stab-1 Batch 2 — typed audit-log entry on `Shift.timeline`.
+ * Always carries a second-resolution ISO timestamp.
+ */
+export interface ShiftTimelineEntry {
+  id: string;
+  /** ISO 8601 with seconds. */
+  occurredAt: string;
+  kind: 'CreatedFromRepost' | 'EmployerCancelled' | 'AutoExpired' | 'Reposted';
+  /**
+   * Free-form Vietnamese note. May contain quoted shift IDs / titles.
+   * UI is responsible for any escaping / truncation.
+   */
+  note: string;
 }
 
 export interface Application {
@@ -650,6 +730,26 @@ export interface Application {
    * idempotency rationale as `shiftStartedNotifiedAt`.
    */
   shiftEndedNotifiedAt?: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — ISO timestamp the employer marked
+   * the worker as physically present. Independent from
+   * `checkInAt` (which the worker sets when they self-check-in).
+   * Used to detect mismatch states:
+   *
+   *   - worker `checkInAt` set + employer `markedPresentAt` unset
+   *     → "Người làm đã check-in nhưng nhà tuyển dụng chưa xác nhận"
+   *   - employer `markedPresentAt` set + worker `checkInAt` unset
+   *     → "Nhà tuyển dụng đã xác nhận nhưng người làm chưa check-in"
+   *
+   * Application status flips to `'CheckedIn'` when EITHER side
+   * confirms (so escrow can flip and the shift can roll forward).
+   * Mismatch detection is a UI overlay on top of the underlying
+   * status, not a new status value.
+   */
+  markedPresentAt?: string;
+  /** Snake-cased actor id of who marked them present (employer id). */
+  markedPresentByEmployerId?: string;
 }
 
 export interface Rating {

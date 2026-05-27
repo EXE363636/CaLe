@@ -4,6 +4,19 @@ A handoff document for the next developer (or new Kiro session) picking up this 
 
 ---
 
+## ⚠ MVP Limitation: localStorage scope
+
+This MVP is **client-only**. There is no backend, no server-side database, and no real auth. All persistence happens in `window.localStorage` via `src/data/persistence.ts`. That has three immediate consequences for QA and demo work:
+
+- **localStorage is per browser profile.** Two Chrome profiles, an Incognito window, or two different browsers each have their own copy of `cale.*` storage keys.
+- **Manual QA across two profiles will NOT share data.** If you log in as an employer in profile A and a worker in profile B, the two profiles see two completely independent worlds. A shift posted in profile A simply does not exist in profile B.
+- **Recommended workaround: snapshot export/import.** The admin dashboard ships a "Tiện ích nhà phát triển: snapshot dữ liệu mock" panel with two buttons — "Tải snapshot mock data" and "Nạp snapshot mock data". Export from profile A, save the resulting `cale-mock-snapshot-<isoDate>.json`, then import it in profile B. The import writes every `STORAGE_KEYS.*` slice and reloads the page so the stores re-hydrate cleanly.
+- **Do not rely on cross-profile sync.** When the QA script needs both sides to see the same shift, it must export/import (or use a single browser profile and switch logins via the in-app auth flow).
+
+Wave-3 will introduce a real server; until then, the snapshot utility is the canonical sharing path.
+
+---
+
 ## 1. Current Project Status
 
 - **CaLẻ / Now** is a student MVP — a responsive web app that connects employers in Vietnam with short-term workers (students, freelancers).

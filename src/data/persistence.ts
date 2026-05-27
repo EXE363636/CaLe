@@ -266,3 +266,154 @@ export function persistAll(snapshot: Snapshot): void {
     snapshot.employerTypeChangeRequests,
   );
 }
+
+// ---------------------------------------------------------------------------
+// Phase 10C-Stab-1 Batch 2 — admin snapshot export/import dev utility
+// ---------------------------------------------------------------------------
+
+/**
+ * Result discriminator used by the admin export/import flow. Mirrors
+ * the convention used by the Zustand stores so the admin dashboard can
+ * `result.ok` / `result.error` against it.
+ */
+export type SnapshotResult<T, E> =
+  | { ok: true; value: T }
+  | { ok: false; error: E };
+
+/** Error codes returned by `importSnapshot`. */
+export type ImportSnapshotError =
+  | 'INVALID_JSON'
+  | 'VERSION_MISMATCH'
+  | 'INVALID_PAYLOAD';
+
+/**
+ * Wire shape of the JSON document produced by `exportSnapshot`. The
+ * payload is keyed by the canonical `STORAGE_KEYS.*` storage key strings
+ * so the importer can iterate without relying on a fixed property
+ * ordering. The version stamp + ISO export timestamp make the file
+ * self-describing for QA / dev use.
+ */
+export interface SnapshotDocument {
+  version: number;
+  exportedAt: string;
+  payload: Record<string, unknown>;
+}
+
+/** Storage keys included in the snapshot document. */
+const SNAPSHOT_KEYS: ReadonlyArray<string> = Object.values(STORAGE_KEYS).filter(
+  (k) => k !== STORAGE_KEYS.schemaVersion,
+);
+
+/**
+ * Serialise every persisted slice into a single JSON string. Reads
+ * each slice via `read(...)` (which falls back to the seed when the
+ * slice has never been written), so the export works even on the
+ * server (returns the seed snapshot) — though the admin dashboard
+ * only ever invokes it from a Client Component.
+ *
+ * The output is pretty-printed so a human can diff snapshots in the
+ * filesystem.
+ */
+export function exportSnapshot(): string {
+  const seed = seedSnapshot();
+  const seedByKey: Record<string, unknown> = {
+    [STORAGE_KEYS.auth]: seed.auth,
+    [STORAGE_KEYS.users]: seed.users,
+    [STORAGE_KEYS.shifts]: seed.shifts,
+    [STORAGE_KEYS.applications]: seed.applications,
+    [STORAGE_KEYS.ratings]: seed.ratings,
+    [STORAGE_KEYS.notifications]: seed.notifications,
+    [STORAGE_KEYS.disputes]: seed.disputes,
+    [STORAGE_KEYS.boostLedger]: seed.boostLedger,
+    [STORAGE_KEYS.scheduleBlocks]: seed.scheduleBlocks,
+    [STORAGE_KEYS.employerFeedback]: seed.employerFeedback,
+    [STORAGE_KEYS.workerVerifications]: seed.workerVerifications,
+    [STORAGE_KEYS.employerVerifications]: seed.employerVerifications,
+    [STORAGE_KEYS.employerTypeChangeRequests]:
+      seed.employerTypeChangeRequests,
+  };
+
+  const payload: Record<string, unknown> = {};
+  for (const key of SNAPSHOT_KEYS) {
+    payload[key] = read<unknown>(key, seedByKey[key]);
+  }
+
+  const document: SnapshotDocument = {
+    version: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    payload,
+  };
+  return JSON.stringify(document, null, 2);
+}
+
+/**
+ * Parse + validate + persist a snapshot JSON document. Returns
+ * `Result<{ keysImported }, ImportSnapshotError>` so the admin
+ * dashboard can show a precise localized error.
+ *
+ * Validation order:
+ *   1. JSON parse — `'INVALID_JSON'` on syntax error.
+ *   2. Top-level shape — must be a non-null object with numeric
+ *      `version` and a `payload` object: `'INVALID_PAYLOAD'`.
+ *   3. Version match — `SCHEMA_VERSION`: `'VERSION_MISMATCH'`.
+ *   4. Each slice value must be present in `payload`. Missing keys
+ *      → `'INVALID_PAYLOAD'`.
+ *
+ * On success, writes every slice (and stamps the schema version)
+ * before returning. The caller is expected to refresh the page so
+ * Zustand re-hydrates from the new state — we do not push the data
+ * into stores from inside this module to avoid the persistence
+ * layer pulling on Zustand.
+ */
+export function importSnapshot(
+  json: string,
+): SnapshotResult<{ keysImported: string[] }, ImportSnapshotError> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return { ok: false, error: 'INVALID_JSON' };
+  }
+
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    Array.isArray(parsed)
+  ) {
+    return { ok: false, error: 'INVALID_PAYLOAD' };
+  }
+
+  const document = parsed as Partial<SnapshotDocument>;
+  if (typeof document.version !== 'number') {
+    return { ok: false, error: 'INVALID_PAYLOAD' };
+  }
+  if (document.version !== SCHEMA_VERSION) {
+    return { ok: false, error: 'VERSION_MISMATCH' };
+  }
+
+  const payload = document.payload;
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    Array.isArray(payload)
+  ) {
+    return { ok: false, error: 'INVALID_PAYLOAD' };
+  }
+
+  for (const key of SNAPSHOT_KEYS) {
+    if (!(key in payload)) {
+      return { ok: false, error: 'INVALID_PAYLOAD' };
+    }
+  }
+
+  // Persist after every gate has passed so a partial / failed import
+  // never half-rewrites localStorage.
+  if (isBrowser()) {
+    write(STORAGE_KEYS.schemaVersion, SCHEMA_VERSION);
+    for (const key of SNAPSHOT_KEYS) {
+      write(key, (payload as Record<string, unknown>)[key]);
+    }
+  }
+
+  return { ok: true, value: { keysImported: [...SNAPSHOT_KEYS] } };
+}

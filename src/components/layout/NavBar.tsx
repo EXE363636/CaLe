@@ -656,6 +656,14 @@ function EmployerNav({
       <NavLink href="/employer/schedule" pathname={pathname}>
         {t('nav.employerSchedule')}
       </NavLink>
+      {/* Phase 10C-Stab-1 Batch 2 P — direct link to the public
+          listing so employers can preview how their shifts appear
+          to workers. Distinct label ("Danh sách ca công khai") to
+          avoid being confused with the worker-only "Tìm ca làm"
+          entry. */}
+      <NavLink href="/shifts" pathname={pathname}>
+        Danh sách ca công khai
+      </NavLink>
       <NavLink href="/employer/profile" pathname={pathname}>
         Hồ sơ doanh nghiệp
       </NavLink>

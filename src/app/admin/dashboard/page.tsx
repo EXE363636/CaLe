@@ -22,6 +22,7 @@ import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN } from '@/lib/format';
+import { exportSnapshot, importSnapshot } from '@/data/persistence';
 import { t } from '@/i18n/vi';
 import type { Dispute, EscrowStatus, Shift, User } from '@/types';
 
@@ -240,6 +241,11 @@ function AdminDashboardContent() {
       {tab === 'shifts' && <ShiftsPanel initialFilter={shiftsInitialFilter} />}
       {tab === 'disputes' && <DisputesPanel />}
       {tab === 'verifications' && <VerificationsPanel />}
+
+      {/* Phase 10C-Stab-1 Batch 2 — admin-only snapshot dev utility.
+          Mounted inline on `/admin/dashboard` so it does not add a
+          new route. */}
+      <SnapshotDevUtility />
     </div>
   );
 }
@@ -1195,5 +1201,120 @@ function DisputeRow({
         </div>
       )}
     </Card>
+  );
+}
+// ---------------------------------------------------------------------------
+// Phase 10C-Stab-1 Batch 2 — admin-only snapshot dev utility
+// ---------------------------------------------------------------------------
+
+/**
+ * Mounted inline on `/admin/dashboard` (not a new route). Visible only
+ * to admin users (the page-level `RoleGuard` already enforces this so
+ * the component can render unconditionally inside the dashboard).
+ *
+ * Two affordances:
+ *   - "Tải snapshot mock data"  → calls `exportSnapshot()` and triggers
+ *                                  a client-side `Blob` download named
+ *                                  `cale-mock-snapshot-<isoDate>.json`.
+ *   - "Nạp snapshot mock data"  → renders a hidden `<input type="file">`,
+ *                                  reads the selected file via
+ *                                  `File.text()`, calls `importSnapshot()`,
+ *                                  and `window.location.reload()` on
+ *                                  success.
+ *
+ * Mock-only — no backend, no real fetch. All persistence is localStorage.
+ */
+function SnapshotDevUtility() {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  function handleExport() {
+    try {
+      const json = exportSnapshot();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const isoDate = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `cale-mock-snapshot-${isoDate}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSuccess(t('admin.snapshot.export.success'));
+    } catch {
+      showError(t('admin.snapshot.import.error.INVALID_PAYLOAD'));
+    }
+  }
+
+  function handleImportClick() {
+    if (importing) return;
+    fileRef.current?.click();
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const result = importSnapshot(text);
+      if (!result.ok) {
+        const key = `admin.snapshot.import.error.${result.error}` as const;
+        showError(t(key));
+        setImporting(false);
+        return;
+      }
+      showSuccess(t('admin.snapshot.import.success'));
+      // Force a reload so every Zustand store re-hydrates from the
+      // freshly-written localStorage. We do not push the imported
+      // payload through `useXxxStore.setState` because some slices
+      // (verifications, applications, shifts) carry derived state
+      // and the simplest correct strategy is a full refresh.
+      window.location.reload();
+    } catch {
+      showError(t('admin.snapshot.import.error.INVALID_JSON'));
+      setImporting(false);
+    } finally {
+      // Reset the input so re-selecting the same file fires `change`.
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  return (
+    <section
+      aria-labelledby="admin-snapshot-title"
+      className="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+    >
+      <h2
+        id="admin-snapshot-title"
+        className="text-base font-semibold text-gray-900"
+      >
+        {t('admin.snapshot.section.title')}
+      </h2>
+      <p className="mt-1 text-sm leading-relaxed text-gray-600">
+        {t('admin.snapshot.section.intro')}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="primary" onClick={handleExport}>
+          {t('admin.snapshot.export.button')}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={handleImportClick}
+          loading={importing}
+        >
+          {t('admin.snapshot.import.button')}
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+    </section>
   );
 }

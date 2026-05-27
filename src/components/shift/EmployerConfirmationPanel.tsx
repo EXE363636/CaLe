@@ -100,7 +100,7 @@ export function EmployerConfirmationPanel({
           </dt>
           <dd className="mt-1 text-sm text-gray-900">{checkOutAtLabel}</dd>
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
             {t('employer.confirm.checklist.title')}
           </dt>
@@ -116,6 +116,56 @@ export function EmployerConfirmationPanel({
                     .replace('{n}', String(totalRows - tickedCount))
                     .replace('{total}', String(totalRows))}
           </dd>
+          {/* Phase 10C-Stab-1 Batch 2 M — checklist transparency.
+              Render every item label + tick state so the employer
+              sees what the worker actually confirmed, not just an
+              aggregate count. The tick state is derived from
+              `checkoutChecklist[index]`; rows the worker didn't
+              submit (e.g. legacy data) render as
+              "Người làm chưa gửi checklist này". */}
+          {totalRows > 0 && (
+            <ul className="mt-2 flex flex-col gap-1 text-xs">
+              {checklistTemplate.map((label, idx) => {
+                const ticked = checklistState[idx] === true;
+                const submitted = checklistState[idx] !== undefined;
+                return (
+                  <li
+                    key={`${idx}-${label}`}
+                    className={[
+                      'flex items-start gap-2 leading-relaxed',
+                      submitted
+                        ? ticked
+                          ? 'text-gray-700'
+                          : 'text-amber-800'
+                        : 'italic text-gray-400',
+                    ].join(' ')}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={[
+                        'mt-0.5 inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-sm text-[9px] font-bold',
+                        submitted
+                          ? ticked
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-amber-300 text-amber-900'
+                          : 'bg-gray-200 text-gray-500',
+                      ].join(' ')}
+                    >
+                      {submitted ? (ticked ? '✓' : '–') : '?'}
+                    </span>
+                    <span>
+                      {label}
+                      {!submitted && (
+                        <span className="ml-2 text-[10px] uppercase tracking-wide">
+                          ({t('checklist.row.notSubmitted')})
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
         <div className="sm:col-span-2">
           <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">

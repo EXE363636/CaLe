@@ -25,7 +25,11 @@ import {
   computeEmployerCancellationPenalty,
 } from '@/domain/employerCancellation';
 import { jobCategoryRiskLevel } from '@/domain/skillScore';
-import { shouldMarkNoShow } from '@/domain/timeGates';
+import {
+  canEmployerMarkAbsent,
+  canEmployerMarkPresent,
+  shouldMarkNoShow,
+} from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -64,6 +68,9 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const approve = useApplicationStore((s) => s.approve);
   const reject = useApplicationStore((s) => s.reject);
   const markNoShow = useApplicationStore((s) => s.markNoShow);
+  const markPresentByEmployer = useApplicationStore(
+    (s) => s.markPresentByEmployer,
+  );
   const reportIssue = useApplicationStore((s) => s.reportIssue);
   const confirmCompletion = useApplicationStore((s) => s.confirmCompletion);
   const approveCancellationRequest = useApplicationStore(
@@ -73,6 +80,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     (s) => s.rejectCancellationRequest,
   );
   const cancelShift = useShiftStore((s) => s.cancel);
+  const repostFromShift = useShiftStore((s) => s.repostFromShift);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   // Phase 10A-Fix-7: cancellation now goes through a modal that
@@ -165,6 +173,21 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     }
   }
 
+  // Phase 10C-Stab-1 Batch 2 D — employer marks an Approved
+  // applicant as physically present. Always available regardless of
+  // `evidenceRequirement` (D.5). The button visibility is gated by
+  // `canEmployerMarkPresent` from `domain/timeGates`.
+  function handleMarkPresent(appId: string) {
+    setActionLoading(appId);
+    const result = markPresentByEmployer(appId);
+    setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('lifecycle.toast.markPresent.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
+  }
+
   function handleReportIssue(appId: string) {
     // Phase 10C — open the structured dispute dialog instead of the
     // pre-Phase-9 instant "Người làm không hoàn thành đúng yêu cầu"
@@ -229,6 +252,27 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     } else {
       showError(toastFromStoreError(result.error));
     }
+  }
+
+  // Phase 10C-Stab-1 Batch 2 — repost from cancelled / expired /
+  // completed shift. Creates a fresh Draft prefilled from the source
+  // and navigates the employer to the new shift detail so they can
+  // tweak fields and run the deposit flow.
+  const [repostLoading, setRepostLoading] = useState(false);
+  function handleRepost() {
+    if (repostLoading) return;
+    setRepostLoading(true);
+    const result = repostFromShift(shift.id);
+    setRepostLoading(false);
+    if (!result.ok) {
+      showError(toastFromStoreError(result.error));
+      return;
+    }
+    showSuccess(
+      t('feedback.repost.success'),
+      t('feedback.repost.success.desc'),
+    );
+    router.push(`/employer/shifts/${result.value.id}`);
   }
 
   function handleCancelShift() {
@@ -360,6 +404,37 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         </div>
       )}
 
+      {/* Phase 10C-Stab-1 Batch 2 — Repost banner. Surfaces a "Đăng
+          lại từ ca này" CTA on cancelled / expired / completed
+          shifts so the employer can quickly clone the source. The
+          store action creates a fresh Draft and we navigate to the
+          new shift's detail. */}
+      {(shift.status === 'Cancelled' ||
+        shift.status === 'Expired' ||
+        shift.status === 'Completed') && (
+        <div
+          role="note"
+          className="mt-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900"
+        >
+          <p className="font-medium text-orange-900">
+            {t('employer.repost.banner.title')}
+          </p>
+          <p className="mt-1 text-xs text-orange-900/80">
+            {t('employer.repost.banner.body')}
+          </p>
+          <div className="mt-2">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={handleRepost}
+              loading={repostLoading}
+            >
+              {t('employer.repost.button')}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Already cancelled — informational banner so the page is not blank
           where the cancel button used to be. Phase 10A-Fix-7 — also
           shows the cancellation reason and the penalty applied so the
@@ -412,6 +487,12 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
             })()}
         </div>
       )}
+
+      {/* Phase 10C-Stab-1 Batch 2 — append-only audit timeline.
+          Shown when the shift has at least one entry; renders each
+          event with a vi-VN second-resolution timestamp so the
+          employer can audit the lineage. */}
+      <ShiftTimelineSection timeline={shift.timeline} />
 
       {/* Phase 10A-Fix-7 — employer cancellation modal. */}
       <Modal
@@ -528,8 +609,25 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               if (!worker) return null;
 
               const nowIso = new Date().toISOString();
-              const canMarkNoShow =
-                app.status === 'Approved' && shouldMarkNoShow(nowIso, app, shift);
+              // Phase 10C-Stab-1 Batch 2 D — canonical lifecycle
+              // gates. The Mark Absent button uses the new
+              // `canEmployerMarkAbsent` predicate (independent of
+              // `evidenceRequirement`); the legacy `shouldMarkNoShow`
+              // call is preserved as the fallback inside the helper.
+              const canMarkAbsent =
+                app.status === 'Approved' &&
+                (canEmployerMarkAbsent(nowIso, app, shift) ||
+                  shouldMarkNoShow(nowIso, app, shift));
+              const canMarkPresent = canEmployerMarkPresent(nowIso, app, shift);
+              // Mismatch states for the per-row warning slot.
+              const mismatchWorkerOnly =
+                app.status === 'CheckedIn' &&
+                Boolean(app.checkInAt) &&
+                !app.markedPresentAt;
+              const mismatchEmployerOnly =
+                app.status === 'CheckedIn' &&
+                !app.checkInAt &&
+                Boolean(app.markedPresentAt);
               const showRating = ratingForAppId === app.id;
 
               return (
@@ -538,17 +636,6 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     worker={worker}
                     jobCategory={shift.jobType}
                     statusSlot={
-                      // Phase 9Z-Fix-1: dropped the inline HelpPopover
-                      // next to Approved / Confirmed badges. Manual QA
-                      // flagged that only two of the six status types
-                      // carried a `?` (the Pending / Rejected / etc.
-                      // states had none), creating inconsistent UI on
-                      // applicant cards. Per the Phase 9Y-Fix-3 rule
-                      // ("overview/list cards stay clean; help lives in
-                      // drill-down/detail surfaces"), all per-row help
-                      // is removed. Status meaning is conveyed by the
-                      // tinted badge alone; `/user-guide` carries the
-                      // long-form explanation.
                       <Badge tone={badgeToneForApp(app.status)}>
                         {t(`application.status.${app.status}`)}
                       </Badge>
@@ -558,12 +645,14 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                       <ApplicationActionButtons
                         application={app}
                         loading={actionLoading === app.id}
-                        canMarkNoShow={canMarkNoShow}
+                        canMarkAbsent={canMarkAbsent}
+                        canMarkPresent={canMarkPresent}
                         showRating={showRating}
                         shiftStarted={shiftStarted}
                         onApprove={() => handleApprove(app.id)}
                         onReject={() => handleReject(app.id)}
-                        onMarkNoShow={() => handleMarkNoShow(app.id)}
+                        onMarkAbsent={() => handleMarkNoShow(app.id)}
+                        onMarkPresent={() => handleMarkPresent(app.id)}
                         onConfirm={() => setRatingForAppId(app.id)}
                         onReport={() => handleReportIssue(app.id)}
                         onApproveCancellation={() => handleApproveCancellation(app.id)}
@@ -587,6 +676,29 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         {t('cancel.request.employerHint')}
                       </p>
                     </div>
+                  )}
+
+                  {/* Phase 10C-Stab-1 Batch 2 D — mismatch state
+                      warnings. Surfaces a banner under the row when
+                      the worker has self-checked-in but the employer
+                      hasn't confirmed (or vice versa), so the
+                      employer can resolve the discrepancy without
+                      reading store state. */}
+                  {mismatchWorkerOnly && (
+                    <p
+                      role="status"
+                      className="ml-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+                    >
+                      {t('lifecycle.mismatch.workerOnly')}
+                    </p>
+                  )}
+                  {mismatchEmployerOnly && (
+                    <p
+                      role="status"
+                      className="ml-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+                    >
+                      {t('lifecycle.mismatch.employerOnly')}
+                    </p>
                   )}
 
                   {/* Phase 10C — employer confirmation panel.
@@ -686,12 +798,14 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 function ApplicationActionButtons({
   application,
   loading,
-  canMarkNoShow,
+  canMarkAbsent,
+  canMarkPresent,
   showRating,
   shiftStarted,
   onApprove,
   onReject,
-  onMarkNoShow,
+  onMarkAbsent,
+  onMarkPresent,
   onConfirm,
   onReport,
   onApproveCancellation,
@@ -699,7 +813,8 @@ function ApplicationActionButtons({
 }: {
   application: Application;
   loading: boolean;
-  canMarkNoShow: boolean;
+  canMarkAbsent: boolean;
+  canMarkPresent: boolean;
   showRating: boolean;
   /** Phase 10A-Fix-9 — true when the shift has started or is in a
    *  terminal state. Pending applicants in this case can no longer be
@@ -708,7 +823,8 @@ function ApplicationActionButtons({
   shiftStarted: boolean;
   onApprove: () => void;
   onReject: () => void;
-  onMarkNoShow: () => void;
+  onMarkAbsent: () => void;
+  onMarkPresent: () => void;
   onConfirm: () => void;
   onReport: () => void;
   onApproveCancellation: () => void;
@@ -766,11 +882,34 @@ function ApplicationActionButtons({
     );
   }
 
-  if (canMarkNoShow) {
+  if (canMarkPresent || canMarkAbsent) {
+    // Phase 10C-Stab-1 Batch 2 D — pair the canonical
+    // "Xác nhận có mặt" / "Đánh dấu vắng mặt" buttons.
+    // Both are gated by their own predicate so the row only
+    // renders the actions actually available right now.
     return (
-      <Button size="sm" variant="danger" onClick={onMarkNoShow} loading={loading}>
-        Đánh dấu vắng mặt
-      </Button>
+      <>
+        {canMarkPresent && (
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={onMarkPresent}
+            loading={loading}
+          >
+            {t('lifecycle.btn.employerMarkPresent')}
+          </Button>
+        )}
+        {canMarkAbsent && (
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={onMarkAbsent}
+            loading={loading}
+          >
+            {t('lifecycle.btn.employerMarkAbsent')}
+          </Button>
+        )}
+      </>
     );
   }
 
@@ -835,4 +974,63 @@ function badgeToneForApp(
     default:
       return 'neutral';
   }
+}
+// ---------------------------------------------------------------------------
+// Phase 10C-Stab-1 Batch 2 — append-only audit timeline rendering.
+// ---------------------------------------------------------------------------
+
+const TIMELINE_DATETIME = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
+function ShiftTimelineSection({
+  timeline,
+}: {
+  timeline?: Shift['timeline'];
+}) {
+  if (!timeline || timeline.length === 0) return null;
+  // Newest first so an employer auditing the lineage reads the most
+  // recent event without scrolling.
+  const ordered = [...timeline].sort((a, b) =>
+    b.occurredAt.localeCompare(a.occurredAt),
+  );
+  return (
+    <section
+      aria-labelledby="shift-timeline-title"
+      className="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+    >
+      <h2
+        id="shift-timeline-title"
+        className="text-sm font-semibold text-gray-900"
+      >
+        {t('shift.timeline.title')}
+      </h2>
+      <ul className="mt-2 flex flex-col gap-2">
+        {ordered.map((entry) => {
+          const when = (() => {
+            const d = new Date(entry.occurredAt);
+            if (Number.isNaN(d.getTime())) return entry.occurredAt;
+            return TIMELINE_DATETIME.format(d);
+          })();
+          return (
+            <li
+              key={entry.id}
+              className="flex flex-col gap-0.5 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-700"
+            >
+              <span className="font-medium text-gray-900">
+                {t(`shift.timeline.kind.${entry.kind}`)}
+              </span>
+              <span className="font-mono text-[11px] text-gray-500">{when}</span>
+              <span className="leading-relaxed">{entry.note}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
 }

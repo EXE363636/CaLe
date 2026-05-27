@@ -128,7 +128,15 @@ function NewShiftContent() {
 
   function handleDeposit() {
     if (!createdShiftId) return;
-    simulateDeposit(createdShiftId);
+    const result = simulateDeposit(createdShiftId);
+    if (!result.ok) {
+      // Phase 10C-Stab-1 Batch 2 H — store-side verification gate
+      // rejects the publish. Surface the localized message; do not
+      // flip the deposited UI.
+      const messageKey = `shift.create.error.${result.error}` as const;
+      showError(t(messageKey));
+      return;
+    }
     setDeposited(true);
     showSuccess(t('feedback.shift.deposit.success'));
     setTimeout(() => router.push(`/employer/shifts/${createdShiftId}`), 1200);

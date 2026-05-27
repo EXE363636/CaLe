@@ -157,6 +157,38 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
       >
         {t('evidence.privacy.warning')}
       </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-orange-800/80">
+        {t('evidence.privacy.warning.detailed')}
+      </p>
+
+      {/* Phase 10C-Stab-1 Batch 2 — concrete checklist + photo
+          examples. Renders only when the requirement actually asks
+          for that kind of evidence so workers see only the rows
+          relevant to their next check-out. */}
+      {(requirement === 'ChecklistOnly' ||
+        requirement === 'RequiredHandoverChecklist') && (
+        <div className="mt-3 rounded-md bg-white/80 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+          <p className="font-semibold">{t('evidence.examples.checklist.title')}</p>
+          <ul className="mt-1 list-disc pl-5">
+            <li>{t('evidence.examples.checklist.item1')}</li>
+            <li>{t('evidence.examples.checklist.item2')}</li>
+            <li>{t('evidence.examples.checklist.item3')}</li>
+          </ul>
+        </div>
+      )}
+      {(requirement === 'OptionalPhoto' ||
+        requirement === 'RequiredPhoto' ||
+        requirement === 'RequiredHandoverChecklist') && (
+        <div className="mt-3 rounded-md bg-white/80 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+          <p className="font-semibold">{t('evidence.examples.photo.title')}</p>
+          <ul className="mt-1 list-disc pl-5">
+            <li>{t('evidence.examples.photo.item1')}</li>
+            <li>{t('evidence.examples.photo.item2')}</li>
+            <li>{t('evidence.examples.photo.item3')}</li>
+            <li>{t('evidence.examples.photo.item4')}</li>
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

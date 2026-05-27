@@ -243,6 +243,20 @@ interface ApplicationStore {
    */
   checkOut(input: CheckoutInput): Result<Application, CheckOutError>;
 
+  /**
+   * Phase 10C-Stab-1 Batch 2 D — employer marks an Approved worker
+   * as physically present without waiting for the worker's self-
+   * check-in. Status flips to `'CheckedIn'` so the rest of the
+   * lifecycle (check-out, escrow, etc.) proceeds normally.
+   *
+   * Returns `WRONG_STATUS` when the application is not `'Approved'`.
+   * The wall-clock window is enforced by the UI via
+   * `canEmployerMarkPresent`.
+   */
+  markPresentByEmployer(
+    applicationId: string,
+  ): Result<Application, ApplicationActionError>;
+
   // Employer actions
   approve(applicationId: string): Result<Application, ApplicationActionError>;
   /**
@@ -775,6 +789,83 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       write(STORAGE_KEYS.shifts, shifts);
     }
 
+    // Phase 10C-Stab-1 Batch 2 E.2 — notify the employer that the
+    // worker has self-checked-in.
+    if (shift) {
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      useNotificationStore.getState().push({
+        userId: shift.employerId,
+        kind: 'WorkerCheckedIn',
+        title: 'Người làm đã check-in',
+        body: `${workerName} đã check-in cho ca "${shift.title}".`,
+        link: `/employer/shifts/${shift.id}`,
+      });
+    }
+
+    return { ok: true, value: updated };
+  },
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 D — employer marks the worker as
+   * physically present. Independent from the worker self-checking-in;
+   * either side moves the application status to `'CheckedIn'`. The
+   * worker is notified.
+   *
+   * Validation:
+   *   - Application must exist and currently be `'Approved'`.
+   *   - The time window is enforced by the UI via
+   *     `canEmployerMarkPresent`; this store action accepts any
+   *     `'Approved'` application so the wall-clock check stays in
+   *     one place.
+   *
+   * On success: flips `status` to `'CheckedIn'`, sets
+   * `markedPresentAt` + `markedPresentByEmployerId`, drives the same
+   * escrow transition as worker self-check-in, fires a
+   * `'EmployerMarkedPresent'` notification to the worker.
+   */
+  markPresentByEmployer(applicationId) {
+    const app = get().getById(applicationId);
+    if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+    if (app.status !== 'Approved') return { ok: false, error: 'WRONG_STATUS' };
+
+    const ts = nowIso();
+    const shift = useShiftStore.getState().getById(app.shiftId);
+    if (!shift) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+
+    const updated: Application = {
+      ...app,
+      status: 'CheckedIn',
+      checkInAt: app.checkInAt ?? ts,
+      markedPresentAt: ts,
+      markedPresentByEmployerId: shift.employerId,
+    };
+    const next = get().applications.map((a) =>
+      a.id === applicationId ? updated : a,
+    );
+    set({ applications: next });
+    persistApplications(next);
+
+    // Mirror the escrow transition that worker self-check-in does.
+    if (shift.escrowStatus === 'Deposited') {
+      useShiftStore.getState().setStatus(shift.id, 'InProgress');
+      const shifts = useShiftStore.getState().shifts.map((s) =>
+        s.id === shift.id
+          ? { ...s, escrowStatus: transitionEscrow(s.escrowStatus, 'WorkerCheckIn') }
+          : s,
+      );
+      useShiftStore.getState().hydrate(shifts);
+      write(STORAGE_KEYS.shifts, shifts);
+    }
+
+    useNotificationStore.getState().push({
+      userId: app.workerId,
+      kind: 'EmployerMarkedPresent',
+      title: 'Nhà tuyển dụng đã xác nhận có mặt',
+      body: `Nhà tuyển dụng đã xác nhận bạn có mặt cho ca "${shift.title}".`,
+      link: `/shifts/${shift.id}`,
+    });
+
     return { ok: true, value: updated };
   },
 
@@ -849,6 +940,19 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       );
       useShiftStore.getState().hydrate(shifts);
       write(STORAGE_KEYS.shifts, shifts);
+
+      // Phase 10C-Stab-1 Batch 2 E.5 — notify the employer that the
+      // worker checked out, with the 12-hour confirm-or-dispute
+      // reminder.
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      useNotificationStore.getState().push({
+        userId: shift.employerId,
+        kind: 'WorkerCheckedOut',
+        title: 'Người làm đã check-out',
+        body: `${workerName} đã check-out cho ca "${shift.title}". Vui lòng xác nhận hoặc khiếu nại trong 12 giờ.`,
+        link: `/employer/shifts/${shift.id}`,
+      });
     }
 
     return { ok: true, value: updated };

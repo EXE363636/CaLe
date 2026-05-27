@@ -51,6 +51,10 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const apply = useApplicationStore((s) => s.apply);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
   const workerOpenDispute = useApplicationStore((s) => s.workerOpenDispute);
+  // Phase 10C-Stab-1 Batch 2 — dispute tracking. We need the current
+  // dispute (if any) to render the right status copy depending on
+  // who initiated it.
+  const disputes = useApplicationStore((s) => s.disputes);
 
   const [applyError, setApplyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -97,7 +101,38 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     const result = apply(shift.id, worker.id);
     setLoading(false);
     if (!result.ok) {
-      const message = toastFromStoreError(result.error);
+      // Phase 10C-Stab-1 Batch 2 F — when the apply was blocked by
+      // a schedule conflict, name the conflicting shift in the
+      // error so the worker doesn't have to hunt for it. We
+      // re-derive the conflicting shift from the worker's active
+      // applications using the same active-status set as the store.
+      let message = toastFromStoreError(result.error);
+      if (result.error === 'CONFLICT') {
+        const ACTIVE = new Set([
+          'Approved',
+          'CancellationRequested',
+          'CheckedIn',
+          'CheckedOut',
+        ]);
+        const conflicting = applications
+          .filter(
+            (a) => a.workerId === worker.id && ACTIVE.has(a.status),
+          )
+          .map((a) => useShiftStore.getState().getById(a.shiftId))
+          .find((s) => {
+            if (!s) return false;
+            // Same-date overlap (cheap check; the store already
+            // ran the canonical predicate and returned CONFLICT).
+            return s.date === shift.date;
+          });
+        if (conflicting) {
+          message = t('apply.error.CONFLICT.detailed')
+            .replace('{title}', conflicting.title)
+            .replace('{date}', conflicting.date)
+            .replace('{startTime}', conflicting.startTime)
+            .replace('{endTime}', conflicting.endTime);
+        }
+      }
       setApplyError(message);
       showError(message);
       return;
@@ -242,6 +277,20 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           contact info. Never reveals private employer documents. */}
       <WorkplaceCard shift={shift} />
 
+      {/* Phase 10C-Stab-1 Batch 2 — retroactive verification flag.
+          Surfaces a banner on shift detail when the legacy employer
+          hasn't completed verification yet. The flag is set during
+          `shiftStore.hydrate(...)`; we do NOT auto-cancel — workers
+          can still apply but should review the employer profile. */}
+      {shift.requiresEmployerVerification && (
+        <div
+          role="status"
+          className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          {t('shift.requiresEmployerVerification.banner')}
+        </div>
+      )}
+
       {/* Phase 10A-Fix-7 — employer cancellation banner. When the
           employer cancelled this shift, every worker who lands on the
           detail page (often via a notification deep link) sees the
@@ -343,14 +392,76 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             </Button>
           </div>
         )}
-        {worker && myApp?.status === 'Disputed' && (
-          <p
-            role="status"
-            className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
-          >
-            {t('worker.dispute.statusLine')}
-          </p>
-        )}
+        {worker && myApp?.status === 'Disputed' && (() => {
+          // Phase 10C-Stab-1 Batch 2 L — render the right dispute
+          // status copy depending on who initiated it. The worker
+          // shouldn't see "Bạn đã khiếu nại ca này" when the
+          // employer is the one who filed.
+          const ourDispute = disputes
+            .filter((d) => d.applicationId === myApp.id)
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+          const initiatedByEmployer = ourDispute?.raisedBy === 'employer';
+          return (
+            <div className="mt-4 flex flex-col gap-3">
+              <p
+                role="status"
+                className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+              >
+                {initiatedByEmployer
+                  ? t('worker.dispute.statusLine.byEmployer')
+                  : t('worker.dispute.statusLine.byWorker')}
+              </p>
+              {/* Phase 10C-Stab-1 Batch 2 L — when the employer
+                  initiated, surface their statement (category /
+                  reason / evidence description / filename) so the
+                  worker can read what they're being accused of. */}
+              {initiatedByEmployer && ourDispute && (
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-900">
+                  <p className="font-semibold">
+                    {t('worker.dispute.employerStatement.title')}
+                  </p>
+                  <dl className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-[max-content_1fr] sm:gap-x-3">
+                    <dt className="font-medium">
+                      {t('worker.dispute.employerStatement.category')}:
+                    </dt>
+                    <dd>
+                      {ourDispute.category
+                        ? t(`dispute.category.${ourDispute.category}`)
+                        : t('worker.dispute.employerStatement.empty')}
+                    </dd>
+                    <dt className="font-medium">
+                      {t('worker.dispute.employerStatement.reason')}:
+                    </dt>
+                    <dd className="whitespace-pre-line">{ourDispute.reason}</dd>
+                    <dt className="font-medium">
+                      {t('worker.dispute.employerStatement.evidenceDescription')}:
+                    </dt>
+                    <dd className="whitespace-pre-line">
+                      {ourDispute.evidenceDescription ||
+                        t('worker.dispute.employerStatement.empty')}
+                    </dd>
+                    <dt className="font-medium">
+                      {t('worker.dispute.employerStatement.evidenceFile')}:
+                    </dt>
+                    <dd className="break-all font-mono">
+                      {ourDispute.evidenceFileName ||
+                        t('worker.dispute.employerStatement.empty')}
+                    </dd>
+                  </dl>
+                  {/* Response affordance — opens a future "respond"
+                      dialog. Wave 6 / Stabilization-2 will wire this
+                      to a real action; for now it deep-links to the
+                      support page. */}
+                  <p className="mt-3 text-[11px] italic text-red-800">
+                    Bạn có thể bổ sung bằng chứng hoặc phản hồi qua
+                    quản trị viên. Tính năng phản hồi trực tiếp sẽ
+                    sớm có mặt.
+                  </p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Phase 10C Wave 5 — worker dispute dialog. Mounts only when

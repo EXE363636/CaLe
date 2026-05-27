@@ -1656,6 +1656,18 @@ function UpcomingShiftCard({
   const nowIso = new Date().toISOString();
   const showCheckIn = canCheckIn(nowIso, application, shift);
   const showCheckOut = canCheckOut(nowIso, application, shift);
+  // Phase 10C-Stab-1 Batch 2 D — mismatch state warnings. The
+  // worker's calendar shows whether their self-check-in / employer
+  // mark-present pair matches; misaligned states surface a banner so
+  // the worker knows whether to wait or to self-check-in.
+  const mismatchWorkerOnly =
+    application.status === 'CheckedIn' &&
+    Boolean(application.checkInAt) &&
+    !application.markedPresentAt;
+  const mismatchEmployerOnly =
+    application.status === 'CheckedIn' &&
+    !application.checkInAt &&
+    Boolean(application.markedPresentAt);
 
   return (
     <Card>
@@ -1679,6 +1691,17 @@ function UpcomingShiftCard({
         </span>
         <span className="font-medium text-orange-600">{formatVND(shift.hourlyWage)}/giờ</span>
       </div>
+
+      {(mismatchWorkerOnly || mismatchEmployerOnly) && (
+        <p
+          role="status"
+          className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+        >
+          {mismatchWorkerOnly
+            ? t('lifecycle.mismatch.workerOnly')
+            : t('lifecycle.mismatch.employerOnly')}
+        </p>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <Badge tone={badgeToneFor(application.status)}>

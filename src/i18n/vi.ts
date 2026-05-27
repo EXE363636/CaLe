@@ -196,6 +196,9 @@ export const vi: Record<string, string> = {
   'notification.kind.AutoReleaseSettled': 'Tự động giải ngân tiền công',
   'notification.kind.ShiftStarted': 'Ca làm đã bắt đầu',
   'notification.kind.ShiftEnded': 'Ca làm đã kết thúc',
+  'notification.kind.WorkerCheckedIn': 'Người làm đã check-in',
+  'notification.kind.EmployerMarkedPresent': 'Nhà tuyển dụng đã xác nhận có mặt',
+  'notification.kind.WorkerCheckedOut': 'Người làm đã check-out',
   // Phase 9M — affordance label on dashboard notification cards.
   'notification.viewDetail': 'Xem chi tiết',
 
@@ -1440,6 +1443,120 @@ export const vi: Record<string, string> = {
     'Chưa có ảnh địa điểm làm việc đã xác minh.',
   'employer.profile.firstSet.legacy':
     'Chỉ áp dụng cho tài khoản cũ chưa có loại tài khoản. Tài khoản đăng ký mới đã có loại tài khoản từ bước đăng ký.',
+
+  // Phase 10C-Stab-1 Batch 2 — Wage validation copy.
+  'shiftForm.wage.recommendedMin.title': 'Mức khuyến nghị tối thiểu',
+  'shiftForm.wage.recommendedMin.warning':
+    'Mức lương bạn đặt thấp hơn mức khuyến nghị tối thiểu cho loại công việc này. Bạn có thể tiếp tục, nhưng nên cân nhắc tăng để thu hút người làm.',
+  'shiftForm.wage.recommendedMin.disclaimer':
+    'Đây là mức khuyến nghị nội bộ — không phải mức lương tối thiểu pháp lý.',
+  'shiftForm.wage.recommendedMin.acknowledge':
+    'Tôi hiểu và muốn tiếp tục với mức lương này',
+  'shiftForm.customJobType.label': 'Tên loại công việc tuỳ chỉnh',
+  'shiftForm.customJobType.placeholder': 'Ví dụ: Hỗ trợ chuyển nhà',
+  'shiftForm.customJobType.hint':
+    'Bắt buộc khi chọn loại công việc "Khác".',
+  'shiftForm.customJobType.required':
+    'Vui lòng nhập tên loại công việc khi chọn "Khác".',
+
+  // Phase 10C-Stab-1 Batch 2 — admin snapshot dev utility.
+  'admin.snapshot.section.title': 'Tiện ích nhà phát triển: snapshot dữ liệu mock',
+  'admin.snapshot.section.intro':
+    'Bản MVP lưu mọi thứ trong localStorage trên trình duyệt hiện tại. Tải xuống snapshot để chia sẻ dữ liệu mẫu giữa các trình duyệt hoặc thiết bị, sau đó nạp lại bằng nút bên dưới.',
+  'admin.snapshot.export.button': 'Tải snapshot mock data',
+  'admin.snapshot.import.button': 'Nạp snapshot mock data',
+  'admin.snapshot.import.success': 'Đã nạp snapshot, đang tải lại trang…',
+  'admin.snapshot.export.success': 'Đã tải xuống snapshot mock data',
+  'admin.snapshot.import.error.INVALID_JSON':
+    'Tệp snapshot không phải JSON hợp lệ.',
+  'admin.snapshot.import.error.VERSION_MISMATCH':
+    'Phiên bản snapshot không khớp phiên bản hiện tại của ứng dụng.',
+  'admin.snapshot.import.error.INVALID_PAYLOAD':
+    'Snapshot không có cấu trúc hợp lệ.',
+
+  // Phase 10C-Stab-1 Batch 2 — repost cancelled/expired shift.
+  'employer.repost.button': 'Đăng lại từ ca này',
+  'employer.repost.banner.title': 'Ca này đã kết thúc hoặc đã huỷ',
+  'employer.repost.banner.body':
+    'Bạn có thể tạo một ca mới với cùng thông tin để đăng lại.',
+  'employer.repost.timeline.created':
+    'Nhà tuyển dụng đã tạo ca mới dựa trên ca này',
+  'employer.repost.timeline.fromSource':
+    'Tạo lại từ ca cũ',
+  'shift.timeline.title': 'Lịch sử ca làm',
+  'shift.timeline.empty': 'Chưa có sự kiện nào.',
+  'shift.timeline.kind.CreatedFromRepost': 'Đã tạo ca mới từ ca này',
+  'shift.timeline.kind.EmployerCancelled': 'Nhà tuyển dụng đã huỷ ca',
+  'shift.timeline.kind.AutoExpired': 'Hệ thống đã chuyển sang đã hết hạn',
+  'shift.timeline.kind.Reposted': 'Tạo lại từ ca cũ',
+  'feedback.repost.success': 'Đã tạo bản nháp mới',
+  'feedback.repost.success.desc':
+    'Bản nháp đã được tạo từ ca cũ. Hãy kiểm tra thông tin và đặt cọc để đăng.',
+
+  // Phase 10C-Stab-1 Batch 2 — employer verification gate.
+  'shift.create.error.EMPLOYER_NOT_VERIFIED':
+    'Bạn cần hoàn tất xác minh tài khoản trước khi đăng ca công khai.',
+  'shift.create.error.EMPLOYER_TYPE_REQUIRED':
+    'Bạn cần chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.',
+  'shift.requiresEmployerVerification.banner':
+    'Ca này cần xác minh nhà tuyển dụng. Bạn có thể vẫn xem thông tin, nhưng nên kiểm tra kỹ trước khi ứng tuyển.',
+
+  // Phase 10C-Stab-1 Batch 2 — check-in/out canonical UI copy.
+  'lifecycle.btn.workerCheckIn': 'Tôi đã có mặt',
+  'lifecycle.btn.employerMarkPresent': 'Xác nhận có mặt',
+  'lifecycle.btn.employerMarkAbsent': 'Đánh dấu vắng mặt',
+  'lifecycle.btn.workerCheckOut': 'Check-out & hoàn tất checklist',
+  'lifecycle.mismatch.workerOnly':
+    'Người làm đã check-in nhưng nhà tuyển dụng chưa xác nhận. Hãy chờ nhà tuyển dụng xác nhận có mặt.',
+  'lifecycle.mismatch.employerOnly':
+    'Nhà tuyển dụng đã xác nhận bạn có mặt. Vui lòng tự check-in để bắt đầu ca.',
+  'lifecycle.checkIn.outsideWindow':
+    'Hiện chưa đến giờ check-in. Bạn có thể check-in trong khoảng 15 phút trước giờ bắt đầu.',
+  'lifecycle.checkOut.outsideWindow':
+    'Bạn chỉ có thể check-out từ giờ bắt đầu đến 60 phút sau giờ kết thúc.',
+  'lifecycle.toast.markPresent.success': 'Đã xác nhận người làm có mặt',
+
+  // Phase 10C-Stab-1 Batch 2 — schedule overlap deep-link copy.
+  'apply.error.CONFLICT.detailed':
+    'Bạn đã có ca làm trùng giờ: "{title}" ngày {date}, {startTime}–{endTime}.',
+  'apply.error.CONFLICT.cta': 'Xem lịch cá nhân',
+
+  // Phase 10C-Stab-1 Batch 2 — checklist transparency.
+  'checklist.heading.full': 'Chi tiết checklist',
+  'checklist.heading.template': 'Mục checklist',
+  'checklist.row.checked': 'Đã tích',
+  'checklist.row.unchecked': 'Chưa tích',
+  'checklist.row.notSubmitted': 'Người làm chưa gửi checklist này',
+
+  // Phase 10C-Stab-1 Batch 2 — dispute tracking copy fixes.
+  'worker.dispute.statusLine.byWorker':
+    'Bạn đã khiếu nại ca này. Quản trị viên đang xử lý — tiền công đang được giữ lại.',
+  'worker.dispute.statusLine.byEmployer':
+    'Nhà tuyển dụng đang khiếu nại ca này. Quản trị viên đang xem xét — tiền công đang được giữ lại.',
+  'worker.dispute.respondButton': 'Phản hồi khiếu nại / Bổ sung bằng chứng',
+  'worker.dispute.employerStatement.title': 'Khiếu nại của nhà tuyển dụng',
+  'worker.dispute.employerStatement.category': 'Loại',
+  'worker.dispute.employerStatement.reason': 'Lý do',
+  'worker.dispute.employerStatement.evidenceDescription': 'Mô tả bằng chứng',
+  'worker.dispute.employerStatement.evidenceFile': 'Tệp đính kèm',
+  'worker.dispute.employerStatement.empty': 'Không có',
+  'employer.dispute.statusLine.byEmployer':
+    'Bạn đã khiếu nại ca này. Quản trị viên đang xử lý — tiền công đang được giữ lại.',
+  'employer.dispute.statusLine.byWorker':
+    'Người làm đang khiếu nại ca này. Quản trị viên đang xem xét — tiền công đang được giữ lại.',
+
+  // Phase 10C-Stab-1 Batch 2 — evidence education improvements.
+  'evidence.examples.checklist.title': 'Ví dụ checklist',
+  'evidence.examples.checklist.item1': 'Đã làm đủ thời gian theo cam kết.',
+  'evidence.examples.checklist.item2': 'Đã hoàn thành đầu việc chính.',
+  'evidence.examples.checklist.item3': 'Đã bàn giao cho người phụ trách.',
+  'evidence.examples.photo.title': 'Ví dụ ảnh bàn giao',
+  'evidence.examples.photo.item1': 'Khu vực làm việc sau khi hoàn thành.',
+  'evidence.examples.photo.item2': 'Sản phẩm hoặc khu vực đã được đóng gói.',
+  'evidence.examples.photo.item3': 'Booth sự kiện sau khi setup xong.',
+  'evidence.examples.photo.item4': 'Bàn giao dụng cụ hoặc hàng hoá cho người phụ trách.',
+  'evidence.privacy.warning.detailed':
+    'Không chụp mặt khách hàng nếu chưa được phép. Không chụp giấy tờ cá nhân, hoá đơn, mã đơn, thông tin nhạy cảm hoặc hàng hoá bảo mật.',
 
   // -------------------------------------------------------------------------
   // Phase 10C — Evidence requirement labels, helpers, and copy

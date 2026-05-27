@@ -15,6 +15,10 @@ import {
   suggestedEvidenceForJobType,
 } from '@/domain/evidence';
 import { jobCategoryRiskLevel } from '@/domain/skillScore';
+import {
+  isBelowRecommendedMinimum,
+  recommendedHourlyMinimum,
+} from '@/domain/wage';
 import { isRequired } from '@/lib/validate';
 import type { EvidenceRequirement } from '@/types';
 
@@ -43,6 +47,21 @@ export interface ShiftFormValues {
    * category and hasn't manually overridden the picker yet.
    */
   evidenceRequirement: EvidenceRequirement;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — when `jobType === 'Khác'`, the
+   * employer must supply a free-text custom name (Bug 3.4). Empty
+   * for any other job type. The store `create` action persists this
+   * onto `Shift.customJobTypeName`.
+   */
+  customJobTypeName: string;
+
+  /**
+   * Phase 10C-Stab-1 Batch 2 — set to `true` once the employer has
+   * acknowledged the "below recommended minimum" warning. Required
+   * to submit when `hourlyWage < recommendedHourlyMinimum(jobType)`.
+   */
+  wageBelowMinAcknowledged: boolean;
 }
 
 interface ShiftFormProps {
@@ -109,6 +128,8 @@ const DEFAULT_VALUES: ShiftFormValues = {
   // picker re-seeds itself the first time the employer chooses a
   // job category (see the `set('jobType', ...)` branch below).
   evidenceRequirement: suggestedEvidenceForJobType(''),
+  customJobTypeName: '',
+  wageBelowMinAcknowledged: false,
 };
 
 /**
@@ -236,6 +257,25 @@ export function ShiftForm({
     if (!isRequired(values.endTime).ok) errs.endTime = t('error.required');
     if (!values.hourlyWage || values.hourlyWage <= 0) errs.hourlyWage = t('error.wage.invalid');
 
+    // Phase 10C-Stab-1 Batch 2 — wage warning + acknowledgement
+    // gate. If the wage is below the recommended minimum for the
+    // job type, require the employer to tick the "I understand"
+    // checkbox before submitting. Soft warning, not a hard block.
+    if (
+      values.hourlyWage > 0 &&
+      values.jobType &&
+      isBelowRecommendedMinimum(values.jobType, values.hourlyWage) &&
+      !values.wageBelowMinAcknowledged
+    ) {
+      errs.hourlyWage = t('shiftForm.wage.recommendedMin.warning');
+    }
+
+    // Phase 10C-Stab-1 Batch 2 — custom job type name required when
+    // the picker is set to "Khác".
+    if (values.jobType === 'Khác' && !isRequired(values.customJobTypeName).ok) {
+      errs.customJobTypeName = t('shiftForm.customJobType.required');
+    }
+
     // Phase 6: positionsTotal validation — accepts any positive integer
     // ≥ `minPositions` (1 in create mode; the already-approved count in
     // edit mode). Empty / non-positive / non-integer / below-min input
@@ -312,6 +352,21 @@ export function ShiftForm({
           error={errors.jobType}
         />
 
+        {/* Phase 10C-Stab-1 Batch 2 — custom job type name. Required
+            when the picker is set to "Khác" so the listing UI doesn't
+            render a generic "Khác" label. */}
+        {values.jobType === 'Khác' && (
+          <Input
+            label={t('shiftForm.customJobType.label')}
+            value={values.customJobTypeName}
+            onChange={(e) => set('customJobTypeName', e.target.value)}
+            placeholder={t('shiftForm.customJobType.placeholder')}
+            hint={t('shiftForm.customJobType.hint')}
+            error={errors.customJobTypeName}
+            required
+          />
+        )}
+
         {/* Location */}
         <Input
           label={t('form.location')}
@@ -365,8 +420,18 @@ export function ShiftForm({
             placeholder="0"
             value={formatNumberVNInput(values.hourlyWage)}
             onChange={(e) => {
-              const parsed = parseVNNumberInput(e.target.value);
+              // Phase 10C-Stab-1 Batch 2 — wage input must accept
+              // numbers only. Strip every non-digit before parsing
+              // so pasted text containing letters / symbols is
+              // dropped silently.
+              const numericOnly = e.target.value.replace(/[^\d]/g, '');
+              const parsed = parseVNNumberInput(numericOnly);
               set('hourlyWage', Number.isFinite(parsed) ? parsed : 0);
+              // Reset the wage-below-min ack when the wage changes
+              // so the warning re-arms on every adjustment.
+              if (values.wageBelowMinAcknowledged) {
+                set('wageBelowMinAcknowledged', false);
+              }
             }}
             aria-invalid={!!errors.hourlyWage}
             aria-describedby={
@@ -402,6 +467,40 @@ export function ShiftForm({
                 : t('form.hourlyWage.hint')}
             </p>
           )}
+          {/* Phase 10C-Stab-1 Batch 2 — recommended-minimum warning.
+              Soft warning + acknowledgement checkbox. The disclaimer
+              line explicitly says this is NOT a legal compliance
+              floor. */}
+          {values.hourlyWage > 0 &&
+            values.jobType &&
+            isBelowRecommendedMinimum(values.jobType, values.hourlyWage) && (
+              <div
+                role="note"
+                className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+              >
+                <p className="font-semibold">
+                  {t('shiftForm.wage.recommendedMin.title')}:{' '}
+                  {recommendedHourlyMinimum(values.jobType).toLocaleString('vi-VN')}đ/giờ
+                </p>
+                <p className="mt-1 leading-relaxed">
+                  {t('shiftForm.wage.recommendedMin.warning')}
+                </p>
+                <p className="mt-1 italic leading-relaxed text-amber-800">
+                  {t('shiftForm.wage.recommendedMin.disclaimer')}
+                </p>
+                <label className="mt-2 flex items-start gap-2 leading-relaxed">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-orange-500"
+                    checked={values.wageBelowMinAcknowledged}
+                    onChange={(e) =>
+                      set('wageBelowMinAcknowledged', e.target.checked)
+                    }
+                  />
+                  <span>{t('shiftForm.wage.recommendedMin.acknowledge')}</span>
+                </label>
+              </div>
+            )}
         </div>
 
         {/* Positions total — Phase 6 fix: keep as a controlled string so
@@ -678,6 +777,37 @@ function EvidenceFieldset({
       >
         {t('evidence.privacy.warning')}
       </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-orange-800/80">
+        {t('evidence.privacy.warning.detailed')}
+      </p>
+
+      {/* Phase 10C-Stab-1 Batch 2 — concrete examples for the
+          chosen requirement so employers and workers see the same
+          guidance from both sides. */}
+      {(value === 'ChecklistOnly' ||
+        value === 'RequiredHandoverChecklist') && (
+        <div className="mt-3 rounded-md bg-white px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+          <p className="font-semibold">{t('evidence.examples.checklist.title')}</p>
+          <ul className="mt-1 list-disc pl-5">
+            <li>{t('evidence.examples.checklist.item1')}</li>
+            <li>{t('evidence.examples.checklist.item2')}</li>
+            <li>{t('evidence.examples.checklist.item3')}</li>
+          </ul>
+        </div>
+      )}
+      {(value === 'OptionalPhoto' ||
+        value === 'RequiredPhoto' ||
+        value === 'RequiredHandoverChecklist') && (
+        <div className="mt-3 rounded-md bg-white px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+          <p className="font-semibold">{t('evidence.examples.photo.title')}</p>
+          <ul className="mt-1 list-disc pl-5">
+            <li>{t('evidence.examples.photo.item1')}</li>
+            <li>{t('evidence.examples.photo.item2')}</li>
+            <li>{t('evidence.examples.photo.item3')}</li>
+            <li>{t('evidence.examples.photo.item4')}</li>
+          </ul>
+        </div>
+      )}
 
       {/* High-risk note + validator error. */}
       {isHighRisk && (
