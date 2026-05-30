@@ -1,0 +1,13 @@
+shift-008 "Đang khiếu nại" bucket present: true
+shift-008 confirm-and-pay buttons (expect 0): 0
+worker income: 1.280.000 đ | wallet: 1.280.000 đ
+worker wallet still "Chưa có giao dịch": false
+upcoming region "Đang tuyển" present (expect false): false
+upcoming region: Ca làm sắp tới | Phục vụ cafe cuối tuần | 120 Lê Lợi, Quận 1, TP.HCM | Sắp diễn ra | 30/05/2026 | 13:00–21:00 | 50.000 đ/giờ | Đã duyệt | Huỷ | Đơn đã ứng tuyển | Bạn chưa ứng tuyển ca nào. | Khi bạn ứng tuyển một ca, đơn của bạn sẽ hiển thị ở đây trong khi chờ nhà tuyển dụng duyệt. | Khám phá ca là
+shift-001 (Expired) mark-absent buttons (expect 0): 0
+shift-001 parent heading "Tình trạng đơn" present: true
+admin body contains raw "dispute.category." (expect false): false
+admin dispute expandable cards: 2
+admin request-more-evidence buttons: 1
+employer wallet before top-up: 0 đ
+employer wallet after top-up: 500.000 đ

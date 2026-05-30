@@ -22,6 +22,7 @@ import type {
   EmployerVerificationDocument,
   Notification,
   Rating,
+  ReviewReport,
   ScheduleBlock,
   Shift,
   User,
@@ -45,7 +46,7 @@ import verificationsSeed from './seed/verifications.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -66,6 +67,8 @@ export const STORAGE_KEYS = {
   /** Phase 10C-Stab-1 Batch 4 J — wallet model. */
   wallets: 'cale.wallets',
   walletLedger: 'cale.walletLedger',
+  /** CORE-STABILITY-7 Part 6 — review reports ("Báo cáo đánh giá"). */
+  reviewReports: 'cale.reviewReports',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -104,6 +107,8 @@ export interface Snapshot {
   wallets: UserWallet[];
   /** Phase 10C-Stab-1 Batch 4 J: append-only wallet ledger. */
   walletLedger: WalletLedgerEntry[];
+  /** CORE-STABILITY-7 Part 6: review reports. */
+  reviewReports: ReviewReport[];
 }
 
 // ---------------------------------------------------------------------------
@@ -149,6 +154,8 @@ export function seedSnapshot(): Snapshot {
     // Phase 10C-Stab-1 Batch 4 J: wallets + ledger start empty.
     wallets: [],
     walletLedger: [],
+    // CORE-STABILITY-7 Part 6: review reports start empty.
+    reviewReports: [],
   };
 }
 
@@ -253,6 +260,10 @@ export function loadAll(): Snapshot {
       STORAGE_KEYS.walletLedger,
       seed.walletLedger,
     ),
+    reviewReports: read<ReviewReport[]>(
+      STORAGE_KEYS.reviewReports,
+      seed.reviewReports,
+    ),
   };
 }
 
@@ -284,6 +295,7 @@ export function persistAll(snapshot: Snapshot): void {
   );
   write(STORAGE_KEYS.wallets, snapshot.wallets);
   write(STORAGE_KEYS.walletLedger, snapshot.walletLedger);
+  write(STORAGE_KEYS.reviewReports, snapshot.reviewReports);
 }
 
 // ---------------------------------------------------------------------------
@@ -352,6 +364,7 @@ export function exportSnapshot(): string {
       seed.employerTypeChangeRequests,
     [STORAGE_KEYS.wallets]: seed.wallets,
     [STORAGE_KEYS.walletLedger]: seed.walletLedger,
+    [STORAGE_KEYS.reviewReports]: seed.reviewReports,
   };
 
   const payload: Record<string, unknown> = {};

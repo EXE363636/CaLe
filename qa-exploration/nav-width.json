@@ -1,0 +1,23 @@
+{
+  "worker": {
+    "navScrollWidth": 541,
+    "navWidth": 541,
+    "logoWidth": 100,
+    "rightWidth": 249,
+    "navItemCount": 6
+  },
+  "employer": {
+    "navScrollWidth": 870,
+    "navWidth": 870,
+    "logoWidth": 100,
+    "rightWidth": 337,
+    "navItemCount": 7
+  },
+  "admin": {
+    "navScrollWidth": 305,
+    "navWidth": 305,
+    "logoWidth": 100,
+    "rightWidth": 309,
+    "navItemCount": 3
+  }
+}

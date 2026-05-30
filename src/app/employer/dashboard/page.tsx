@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,6 +21,7 @@ import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
+import { getUserInitials } from '@/lib/initials';
 import { t } from '@/i18n/vi';
 import type { Shift } from '@/types';
 
@@ -69,14 +70,28 @@ function EmployerDashboardContent() {
     | null;
   const [statDetail, setStatDetail] = useState<StatDetail>(null);
 
+  // CORE-STABILITY-7 Part 1 — wallet-history deeplink signal (see
+  // worker dashboard). Opens the WalletPanel ledger modal on a
+  // `?modal=wallet` deeplink or same-route notification event (deposit
+  // held, refund, wage release, top-up, withdraw).
+  const [walletLedgerSignal, setWalletLedgerSignal] = useState(0);
+  const openWalletHistory = useCallback(() => {
+    setWalletLedgerSignal((n) => n + 1);
+  }, []);
+
   // Phase 9L — open a stat-detail modal when arriving with a `?modal=...`
   // query param (notification deep links).
   useModalFromQuery(
-    ['posted', 'active', 'pending', 'completed', 'payments'] as const,
-    (m) =>
+    ['posted', 'active', 'pending', 'completed', 'payments', 'wallet'] as const,
+    (m) => {
+      if (m === 'wallet') {
+        openWalletHistory();
+        return;
+      }
       setStatDetail(
         m as 'posted' | 'active' | 'pending' | 'completed' | 'payments',
-      ),
+      );
+    },
   );
 
   // Phase 9N — same-page modal handoff (see worker dashboard for rationale).
@@ -93,6 +108,10 @@ function EmployerDashboardContent() {
       (allowed as readonly string[]).includes(detail.modal)
     ) {
       setStatDetail(detail.modal as (typeof allowed)[number]);
+    }
+    // CORE-STABILITY-7 Part 1 — same-route wallet-history intent.
+    if (detail.modal === 'wallet') {
+      openWalletHistory();
     }
   });
 
@@ -129,7 +148,7 @@ function EmployerDashboardContent() {
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
-            {employer.companyName.charAt(0).toUpperCase()}
+            {getUserInitials(employer.companyName)}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
@@ -256,7 +275,11 @@ function EmployerDashboardContent() {
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. */}
       {currentUserId && (
         <section className="mb-8">
-          <WalletPanel userId={currentUserId} />
+          <WalletPanel
+            userId={currentUserId}
+            role="employer"
+            openLedgerSignal={walletLedgerSignal}
+          />
         </section>
       )}
 

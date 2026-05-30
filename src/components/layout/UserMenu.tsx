@@ -43,10 +43,12 @@ import {
 } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import { showSuccess } from '@/lib/toast';
+import { navigateWithIntent } from '@/lib/notificationAction';
 import { t } from '@/i18n/vi';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import type { Admin, Employer, User, Worker } from '@/types';
@@ -65,7 +67,13 @@ function workerItems(): MenuItem[] {
     { href: '/worker/dashboard', label: t('nav.userMenu.worker.dashboard') },
     { href: '/worker/profile', label: t('nav.userMenu.worker.profile') },
     { href: '/worker/schedule', label: t('nav.userMenu.worker.schedule') },
-    { href: '/worker/dashboard', label: t('nav.userMenu.worker.applications') },
+    {
+      // CORE-STABILITY-6 Part 1 — explicit section intent so this works
+      // same-route (scrolls/highlights the applied-jobs section even
+      // when already on the worker dashboard).
+      href: '/worker/dashboard?section=applications',
+      label: t('nav.userMenu.worker.applications'),
+    },
     {
       href: '/worker/dashboard?modal=reputation',
       label: t('nav.userMenu.worker.reputation'),
@@ -283,16 +291,16 @@ export function UserMenu() {
         aria-expanded={open}
         aria-label={open ? t('nav.userMenu.closeLabel') : t('nav.userMenu.openLabel')}
         className={[
-          'flex min-h-[40px] items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium transition-colors',
+          'flex min-h-[40px] min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium transition-colors',
           'text-gray-700 hover:bg-orange-50 hover:text-orange-700',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
         ].join(' ')}
       >
         <UserAvatar name={name} avatarUrl={avatarUrl} size="sm" />
-        <span className="hidden xl:inline-flex max-w-[10rem] truncate">
+        <span className="hidden min-w-0 max-w-[10rem] truncate xl:inline-block">
           {name}
         </span>
-        <span className="hidden xl:inline-flex text-xs text-gray-500">
+        <span className="hidden shrink-0 whitespace-nowrap text-xs text-gray-500 xl:inline-flex">
           {role}
         </span>
         <svg
@@ -349,7 +357,12 @@ export function UserMenu() {
           <ul className="flex flex-col">
             {items.map((item, idx) => (
               <li key={`${item.href}-${idx}`} role="none">
-                <MenuLink href={item.href} onActivate={closeNow}>
+                <MenuLink
+                  href={item.href}
+                  onActivate={closeNow}
+                  router={router}
+                  pathname={pathname}
+                >
                   {item.label}
                 </MenuLink>
               </li>
@@ -374,22 +387,51 @@ export function UserMenu() {
 
 // ---------------------------------------------------------------------------
 // Internal link primitive — closes the menu on click.
+//
+// NAV-INTENT-DEEPLINK-FIX-1: a shortcut whose href carries an intent
+// (`?modal=` / `?tab=`) must work even when the user is ALREADY on the
+// target route. A plain `<Link>` to the same path updates the URL but
+// the page's mount-only intent readers never re-fire, so the
+// tab/modal would not open. We route the click through
+// `navigateWithIntent`: for a SAME-route intent it dispatches the
+// dashboard event (and we `preventDefault` so the `<Link>` no-op
+// navigation doesn't also run); for a cross-route link we let the
+// normal `<Link>` navigation proceed (preserving prefetch).
 // ---------------------------------------------------------------------------
 
 function MenuLink({
   href,
   onActivate,
+  router,
+  pathname,
   children,
 }: {
   href: string;
   onActivate: () => void;
+  router: Pick<AppRouterInstance, 'push'>;
+  pathname: string;
   children: ReactNode;
 }) {
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    const url = new URL(href, 'http://placeholder.local');
+    const hasIntent =
+      url.searchParams.has('modal') ||
+      url.searchParams.has('tab') ||
+      url.searchParams.has('filter') ||
+      url.searchParams.has('section');
+    // Only intercept same-route intent clicks; everything else uses the
+    // native <Link> navigation untouched.
+    if (hasIntent && url.pathname === pathname) {
+      e.preventDefault();
+      navigateWithIntent(href, { router, pathname });
+    }
+    onActivate();
+  }
   return (
     <Link
       href={href}
       role="menuitem"
-      onClick={() => onActivate()}
+      onClick={handleClick}
       className="flex min-h-[40px] items-center rounded-lg px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-orange-50 hover:text-orange-700 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-400"
     >
       {children}

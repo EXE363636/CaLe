@@ -42,6 +42,7 @@ import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { appendShiftTimelineEntry } from '@/domain/shiftTimeline';
 import { newPrefixedId } from '@/lib/ids';
 import { notifyAdmins } from '@/lib/adminNotifications';
+import { t } from '@/i18n/vi';
 import {
   EMPLOYER_DISPUTE_CATEGORIES,
   WORKER_DISPUTE_CATEGORIES,
@@ -88,7 +89,20 @@ export type ApplicationActionError =
    * shift has started. The employer dashboard / shift detail surfaces
    * the corresponding "Đơn đã hết hạn xử lý" badge instead.
    */
-  | 'SHIFT_ALREADY_STARTED';
+  | 'SHIFT_ALREADY_STARTED'
+  /**
+   * CORE-STABILITY-7 Part 5 — an absent→present reversal is blocked
+   * because an open dispute exists on the application. Reversal must
+   * go through admin resolution in that case (safe behavior: never
+   * silently mutate escrow while a dispute is open).
+   */
+  | 'DISPUTE_OPEN'
+  /**
+   * CORE-STABILITY-7 Part 5 — the absent→present reversal requires a
+   * non-empty reason note (audit trail for the late-arrival
+   * correction).
+   */
+  | 'REASON_REQUIRED';
 
 /**
  * Phase 10C — `checkOut` payload. The application id discriminates
@@ -380,6 +394,25 @@ interface ApplicationStore {
     'NOT_FOUND' | 'WRONG_STATUS' | 'REASON_REQUIRED' | 'FIELD_TOO_LONG'
   >;
   markNoShow(applicationId: string): Result<Application, ApplicationActionError>;
+
+  /**
+   * CORE-STABILITY-7 Part 5.4 — reverse a `NoShow` back to present
+   * ("CheckedIn") when the worker actually arrived late. Requires a
+   * non-empty `reason` (audit). Safe-by-default: blocked with
+   * `DISPUTE_OPEN` when the application has a non-terminal dispute —
+   * that path must go through admin resolution. On success it:
+   *   - restores the worker's reputation (+20, re-applied & clamped),
+   *     decrements `noShowCount`,
+   *   - reclaims the boost credit granted to the employer at no-show,
+   *   - re-fills the freed position,
+   *   - restores escrow to `InProgress` and the shift to `InProgress`,
+   *   - flips the application to `CheckedIn` + stamps `markedPresentAt`,
+   *   - appends a timeline entry and notifies the worker.
+   */
+  revertNoShowToPresent(
+    applicationId: string,
+    reason: string,
+  ): Result<Application, ApplicationActionError>;
 
   /**
    * Phase 10A-Fix-10 — find every `Pending` application whose shift
@@ -1172,7 +1205,10 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       body: shift
         ? `Đơn ứng tuyển ca "${shift.title}" của bạn đã bị từ chối. Lý do: ${trimmedReason}`
         : `Đơn ứng tuyển của bạn đã bị từ chối. Lý do: ${trimmedReason}`,
-      link: '/worker/dashboard',
+      // CORE-STABILITY-7 Part 1.7 — link to the shift detail so the
+      // worker lands on the current (rejected) state, not just the
+      // dashboard.
+      link: shift ? `/shifts/${shift.id}` : '/worker/dashboard',
     });
 
     return { ok: true, value: updated };
@@ -1358,10 +1394,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       userId: app.workerId,
       kind: 'ShiftCompletedConfirmed',
       title: 'Ca làm đã được xác nhận',
-      body: `Ca "${shift.title}" đã được xác nhận hoàn thành. Tiền công đã chuyển.`,
-      // Phase 9L — open the income detail modal so the worker sees the
-      // payout reflected on their dashboard right away.
-      link: '/worker/dashboard?modal=income',
+      body: `Ca "${shift.title}" đã được xác nhận hoàn thành. Tiền công đã chuyển vào ví.`,
+      // CORE-STABILITY-7 Part 1.7 — wage released → open the worker's
+      // wallet transaction history so the payout line is visible.
+      link: '/worker/dashboard?modal=wallet',
+      dedupeKey: `ShiftCompletedConfirmed:${app.id}`,
     });
 
     // Phase 10C-Stab-1 Batch 4 E — stamp paidAwaitingRatingAt and
@@ -1518,7 +1555,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     write(STORAGE_KEYS.shifts, shifts);
 
     // Notify the worker.
-    const categoryLabel = `dispute.category.${payload.category}`;
+    const categoryLabel = t(`dispute.category.${payload.category}`);
     useNotificationStore.getState().push({
       userId: app.workerId,
       kind: 'DisputeFiled',
@@ -1651,7 +1688,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     write(STORAGE_KEYS.shifts, shifts);
 
     // Notify the employer.
-    const categoryLabel = `dispute.category.${payload.category}`;
+    const categoryLabel = t(`dispute.category.${payload.category}`);
     useNotificationStore.getState().push({
       userId: shift.employerId,
       kind: 'DisputeFiled',
@@ -1856,9 +1893,102 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     return { ok: true, value: updated };
   },
 
-  // -------------------------------------------------------------------------
-  // Phase 10A-Fix-10 — expire stale Pending applications
-  // -------------------------------------------------------------------------
+  revertNoShowToPresent(applicationId, reason) {
+    const app = get().getById(applicationId);
+    if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+    if (app.status !== 'NoShow') return { ok: false, error: 'WRONG_STATUS' };
+
+    const trimmedReason = (reason ?? '').trim();
+    if (trimmedReason === '') return { ok: false, error: 'REASON_REQUIRED' };
+
+    // Safe-by-default (Part 5.5): never silently mutate escrow / payment
+    // while a dispute is open. If the worker filed an absent dispute,
+    // the correction must go through admin resolution.
+    const NON_TERMINAL_DISPUTE = new Set(['Open', 'RequestedMoreEvidence']);
+    const hasOpenDispute = get().disputes.some(
+      (d) =>
+        d.applicationId === applicationId &&
+        NON_TERMINAL_DISPUTE.has(d.status),
+    );
+    if (hasOpenDispute) return { ok: false, error: 'DISPUTE_OPEN' };
+
+    const shift = useShiftStore.getState().getById(app.shiftId);
+    if (!shift) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
+
+    const ts = nowIso();
+    const updated: Application = {
+      ...app,
+      status: 'CheckedIn',
+      checkInAt: app.checkInAt ?? ts,
+      markedPresentAt: ts,
+      markedPresentByEmployerId: shift.employerId,
+      // Clear the no-show stamp so the record reads as a clean
+      // late-arrival correction.
+      noShowAt: undefined,
+    };
+    const apps = get().applications.map((a) =>
+      a.id === applicationId ? updated : a,
+    );
+    set({ applications: apps });
+    persistApplications(apps);
+
+    // Restore reputation (+20 mirrors the −20 NoShow delta, clamped)
+    // and decrement the no-show counter (never below 0).
+    patchWorkerScore(app.workerId, (worker) => ({
+      reputationScore: applyReputationEvent(worker.reputationScore, {
+        kind: 'AdminAdjust',
+        delta: 20,
+      }),
+      noShowCount: Math.max(0, worker.noShowCount - 1),
+    }));
+
+    // Re-fill the position the no-show freed.
+    useShiftStore.getState().incrementFilled(shift.id, 1);
+
+    // Reclaim the boost credit granted at no-show (never below 0) and
+    // restore escrow to InProgress (the post-check-in state). The
+    // NoShow path set escrow to the terminal `Refunded`; this is a
+    // deliberate corrective reversal, so we set it directly rather
+    // than via `transitionEscrow` (which treats Refunded as terminal).
+    const userStore = useUserStore.getState();
+    const employer = userStore.findById(shift.employerId);
+    if (employer && employer.role === 'employer') {
+      userStore.updateUser(employer.id, {
+        boostCredits: Math.max(0, employer.boostCredits - 1),
+      });
+    }
+    {
+      const shifts = useShiftStore.getState().shifts.map((s) =>
+        s.id === shift.id
+          ? { ...s, status: 'InProgress' as const, escrowStatus: 'InProgress' as const }
+          : s,
+      );
+      useShiftStore.getState().hydrate(shifts);
+      write(STORAGE_KEYS.shifts, shifts);
+    }
+
+    // Notify the worker that the absence was corrected to present.
+    useNotificationStore.getState().push({
+      userId: app.workerId,
+      kind: 'EmployerMarkedPresent',
+      title: 'Đã chuyển sang có mặt',
+      body: `Nhà tuyển dụng đã cập nhật bạn có mặt cho ca "${shift.title}" (đến muộn). Lý do: ${trimmedReason}`,
+      link: `/shifts/${shift.id}`,
+    });
+
+    // Timeline entry with the reason.
+    {
+      const worker = asWorker(useUserStore.getState().findById(app.workerId));
+      const workerName = worker?.fullName ?? 'Người làm';
+      appendTimelineToShift(
+        shift.id,
+        'EmployerMarkedPresent',
+        `Nhà tuyển dụng chuyển ${workerName} từ vắng mặt sang có mặt (đến muộn). Lý do: ${trimmedReason}`,
+      );
+    }
+
+    return { ok: true, value: updated };
+  },
 
   expirePendingApplicationsForStartedShifts(when) {
     const at = when ?? nowIso();
@@ -1893,6 +2023,9 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
         title: 'Đơn ứng tuyển đã hết hạn',
         body: `Ca ${shiftTitle} đã bắt đầu trước khi đơn của bạn được duyệt. Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.`,
         link: shift ? `/shifts/${shift.id}` : '/worker/dashboard',
+        // CORE-STABILITY-7 Part 1.2 — dedup per application so a racing
+        // sync can't emit a second copy before the status flip persists.
+        dedupeKey: `ApplicationExpired:pending:${app.id}`,
       });
     }
 
@@ -1907,6 +2040,58 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     const at = when ?? nowIso();
     const nowMs = Date.parse(at);
 
+    // Step 0 (Phase QA-Fix-1 B): dispute invariant. Any application
+    // with a non-terminal dispute (`Open` / `RequestedMoreEvidence`)
+    // MUST be in `Disputed`, and its shift escrow held as `Disputed`.
+    // This reconciles seed / legacy data and guarantees the confirm-
+    // and-pay path is hidden while a dispute is open. Idempotent.
+    {
+      const NON_TERMINAL_DISPUTE = new Set([
+        'Open',
+        'RequestedMoreEvidence',
+      ]);
+      const disputedAppIds = new Set<string>();
+      const disputedShiftIds = new Set<string>();
+      for (const d of get().disputes) {
+        if (NON_TERMINAL_DISPUTE.has(d.status)) {
+          disputedAppIds.add(d.applicationId);
+          disputedShiftIds.add(d.shiftId);
+        }
+      }
+      if (disputedAppIds.size > 0) {
+        let appsChanged = false;
+        const reconciledApps = get().applications.map((a) => {
+          if (disputedAppIds.has(a.id) && a.status !== 'Disputed') {
+            appsChanged = true;
+            return { ...a, status: 'Disputed' as const };
+          }
+          return a;
+        });
+        if (appsChanged) {
+          set({ applications: reconciledApps });
+          persistApplications(reconciledApps);
+        }
+        let shiftsChanged = false;
+        const reconciledShifts = useShiftStore.getState().shifts.map((s) => {
+          if (
+            disputedShiftIds.has(s.id) &&
+            s.escrowStatus !== 'Disputed' &&
+            // Don't override an already-resolved escrow.
+            s.escrowStatus !== 'Released' &&
+            s.escrowStatus !== 'Refunded'
+          ) {
+            shiftsChanged = true;
+            return { ...s, escrowStatus: 'Disputed' as const };
+          }
+          return s;
+        });
+        if (shiftsChanged) {
+          useShiftStore.getState().hydrate(reconciledShifts);
+          write(STORAGE_KEYS.shifts, reconciledShifts);
+        }
+      }
+    }
+
     // Step 1: roll shift statuses forward.
     const { changedIds: changedShiftIds } = useShiftStore
       .getState()
@@ -1915,6 +2100,65 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Step 2: expire stale Pending applications.
     const { expiredIds: expiredApplicationIds } = get()
       .expirePendingApplicationsForStartedShifts(at);
+
+    // Step 2b (QA-Fix-2 Phase 2c): reconcile Approved-but-never-
+    // checked-in applications on shifts that have ended. Leaving them
+    // as live "Approved" makes the employer detail keep offering
+    // attendance actions days later and makes the worker think they
+    // still have an active job. We move them to the non-penalizing
+    // `Expired` terminal with a neutral reason ("Hết hạn — chưa ghi
+    // nhận có mặt"). No reputation / quota change. Idempotent: only
+    // `Approved` apps with no check-in on an ended shift are touched.
+    {
+      const liveShiftsForRecon = useShiftStore.getState().shifts;
+      const shiftByIdRecon = new Map<string, (typeof liveShiftsForRecon)[number]>();
+      for (const s of liveShiftsForRecon) shiftByIdRecon.set(s.id, s);
+      const reconciledIds: string[] = [];
+      const nextApps = get().applications.map((a) => {
+        if (a.status !== 'Approved') return a;
+        if (a.checkInAt) return a; // checked in → different flow
+        const shift = shiftByIdRecon.get(a.shiftId);
+        if (!shift) return a;
+        const endMs = new Date(`${shift.date}T${shift.endTime}:00`).getTime();
+        const ended =
+          shift.status === 'Expired' ||
+          shift.status === 'Completed' ||
+          (Number.isFinite(endMs) && nowMs >= endMs);
+        // Do NOT touch cancelled shifts here — the employer-cancel
+        // flow owns those applications (CancelledByEmployer).
+        if (shift.status === 'Cancelled') return a;
+        if (!ended) return a;
+        reconciledIds.push(a.id);
+        return {
+          ...a,
+          status: 'Expired' as const,
+          expiredAt: a.expiredAt ?? at,
+          expiredReason:
+            a.expiredReason ?? 'Hết hạn — chưa ghi nhận có mặt.',
+        };
+      });
+      if (reconciledIds.length > 0) {
+        set({ applications: nextApps });
+        persistApplications(nextApps);
+        // Notify each affected worker once (idempotent: the app is now
+        // Expired so a repeat sync won't re-enter this branch).
+        for (const id of reconciledIds) {
+          const a = nextApps.find((x) => x.id === id);
+          if (!a) continue;
+          const shift = shiftByIdRecon.get(a.shiftId);
+          useNotificationStore.getState().push({
+            userId: a.workerId,
+            kind: 'ApplicationExpired',
+            title: 'Ca làm đã kết thúc',
+            body: `Ca "${shift?.title ?? 'ca làm'}" đã kết thúc và hệ thống không ghi nhận bạn check-in. Bạn không bị trừ điểm uy tín.`,
+            link: `/shifts/${a.shiftId}`,
+            // CORE-STABILITY-6 Part 2 — dedup so a racing sync can't
+            // emit a second copy before the status flip persists.
+            dedupeKey: `ApplicationExpired:noCheckIn:${a.id}`,
+          });
+        }
+      }
+    }
 
     // Step 3: idempotent ShiftStarted / ShiftEnded notifications.
     // Read the live application + shift snapshot AFTER steps 1+2 so we
@@ -1963,6 +2207,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           title: 'Ca làm đã bắt đầu',
           body: `Ca làm "${shift.title}" đã bắt đầu. Vui lòng check-in nếu bạn đã có mặt.`,
           link: `/shifts/${shift.id}`,
+          dedupeKey: `ShiftStarted:${a.id}`,
         });
         useNotificationStore.getState().push({
           userId: shift.employerId,
@@ -1970,6 +2215,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           title: 'Ca làm đã bắt đầu',
           body: `Ca làm "${shift.title}" đã bắt đầu. Hãy kiểm tra người làm đã có mặt.`,
           link: `/employer/shifts/${shift.id}`,
+          dedupeKey: `ShiftStarted:emp:${a.id}`,
         });
         notifiedStartIds.push(a.id);
       }
@@ -1990,6 +2236,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           title: 'Ca làm đã kết thúc',
           body: `Ca "${shift.title}" đã kết thúc. Vui lòng check-out và hoàn tất checklist.`,
           link: `/shifts/${shift.id}`,
+          dedupeKey: `ShiftEnded:${a.id}`,
         });
         useNotificationStore.getState().push({
           userId: shift.employerId,
@@ -1997,6 +2244,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           title: 'Ca làm đã kết thúc',
           body: `Ca "${shift.title}" đã kết thúc. Hãy xác nhận sau khi người làm check-out.`,
           link: `/employer/shifts/${shift.id}`,
+          dedupeKey: `ShiftEnded:emp:${a.id}`,
         });
         notifiedEndIds.push(a.id);
       }
@@ -2209,8 +2457,10 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
             body:
               `Hệ thống tự động xác nhận ca "${shift.title}" sau 12 giờ ` +
               `nhà tuyển dụng không thao tác. Tiền công ${payout.toLocaleString('vi-VN')}đ ` +
-              `đã được chuyển cho bạn (mô phỏng).`,
-            link: '/worker/dashboard?modal=income',
+              `đã được chuyển vào ví của bạn (mô phỏng).`,
+            // CORE-STABILITY-7 Part 1.7 — wage released → wallet history.
+            link: '/worker/dashboard?modal=wallet',
+            dedupeKey: `AutoReleaseSettled:worker:${a.id}`,
           });
           // Employer deposit-released notification.
           useNotificationStore.getState().push({
@@ -2222,6 +2472,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
               `(không có khiếu nại). Tiền cọc ${payout.toLocaleString('vi-VN')}đ ` +
               `đã được giải ngân cho người làm.`,
             link: `/employer/shifts/${shift.id}`,
+            dedupeKey: `AutoReleaseSettled:employer:${a.id}`,
           });
         }
 

@@ -1,0 +1,24 @@
+{
+  "data": {
+    "workerId": "worker-001",
+    "myApplicationCount": 8,
+    "myAppStatuses": [
+      "shift-001:Expired",
+      "shift-003:Expired",
+      "shift-004:Approved",
+      "shift-010:Confirmed",
+      "shift-011:Confirmed",
+      "shift-012:Confirmed",
+      "shift-013:Confirmed",
+      "shift-014:Confirmed"
+    ],
+    "listableShiftCount": 2,
+    "listableAppliedShiftCount": 1,
+    "listableAppliedTitles": [
+      "Phục vụ cafe cuối tuần"
+    ]
+  },
+  "chipPresent": false,
+  "expectChip": true,
+  "verdict": "BUG-chip-missing"
+}

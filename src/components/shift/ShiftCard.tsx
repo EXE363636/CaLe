@@ -1,9 +1,32 @@
-import { Card } from '@/components/ui';
+import { Card, Badge, type BadgeTone } from '@/components/ui';
 import { ShiftStatusBadge } from './ShiftStatusBadge';
 import { EscrowStatusBadge } from './EscrowStatusBadge';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { ApplicationStatus, Shift } from '@/types';
+
+/**
+ * QA-Stabilization-Automation — tone for the worker's PERSONAL
+ * application-status badge. When the current worker has an active
+ * application on a listed shift, this badge replaces the public
+ * "Đang tuyển" recruiting status as the card's single primary label
+ * so the worker is never shown a misleading recruiting status for a
+ * shift they already engaged with (Checklist K / old bug class 4).
+ */
+const applicationToneMap: Record<ApplicationStatus, BadgeTone> = {
+  Pending: 'info',
+  Approved: 'success',
+  CheckedIn: 'purple',
+  CheckedOut: 'warning',
+  Confirmed: 'success',
+  Disputed: 'danger',
+  Rejected: 'danger',
+  Expired: 'neutral',
+  CancelledByWorker: 'neutral',
+  CancelledByEmployer: 'neutral',
+  NoShow: 'danger',
+  CancellationRequested: 'warning',
+};
 
 interface ShiftCardProps {
   shift: Shift;
@@ -94,10 +117,20 @@ export function ShiftCard({
       onClick={onClick}
       className={className}
     >
-      {/* Row 1: title + status */}
+      {/* Row 1: title + status.
+          When the current worker has an active application on this
+          shift, show their PERSONAL application status as the single
+          primary badge (not the public "Đang tuyển" recruiting
+          status) — Checklist K / old bug class 4. */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-gray-900 leading-snug">{shift.title}</h3>
-        <ShiftStatusBadge status={shift.status} />
+        {workerApplicationStatus ? (
+          <Badge tone={applicationToneMap[workerApplicationStatus]}>
+            {t(`apply.applied.${workerApplicationStatus}`)}
+          </Badge>
+        ) : (
+          <ShiftStatusBadge status={shift.status} />
+        )}
       </div>
 
       {/* Row 2: location, date, time */}

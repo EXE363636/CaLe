@@ -1,0 +1,52 @@
+{
+  "phase": "exploratory QA + targeted layout fixes",
+  "runDate": "2026-05-30",
+  "method": "read-only Playwright probes + bounding-box measurement against running dev app",
+  "rolesWalked": ["worker", "employer", "admin"],
+  "summary": { "critical": 0, "high": 0, "medium": 2, "low": 0, "fixed": 2, "deferred": 0 },
+  "bugs": [
+    {
+      "id": "BUG-1",
+      "role": "worker",
+      "page": "/shifts",
+      "account": "an.nguyen@gmail.com",
+      "shift": "Phục vụ cafe cuối tuần (shift-004), Approved application",
+      "expected": "Primary status badge reflects the worker's own application status; public 'Đang tuyển' must not be the main label",
+      "actual": "Card primary badge showed 'Đang tuyển' while personal 'Đã được duyệt' was only a secondary pin",
+      "severity": "Medium",
+      "status": "fixed",
+      "fix": { "file": "src/components/shift/ShiftCard.tsx", "regressionTest": "src/components/shift/ShiftCard.test.tsx" }
+    },
+    {
+      "id": "BUG-2-HEADER-NAV-LAYOUT-2",
+      "role": "employer",
+      "page": "/employer/* (any authenticated page)",
+      "account": "lien@quanphoha.vn (long company name)",
+      "shift": "-",
+      "currentTime": "n/a (layout)",
+      "steps": [
+        "Log in as employer with a long company name",
+        "View any employer page on desktop (1280-1920px)",
+        "Observe the header nav vs the profile zone"
+      ],
+      "expected": "Desktop nav never overlaps the logo or the notification/profile zone; long name truncates",
+      "actual": "The 7-item employer nav (~870px) spilled ~164px into the profile zone — 'Hồ sơ doanh nghiệp' collided with 'Quán Phở Hà'. Prior LAYOUT-1 centering passed no-overflow tests but still overlapped.",
+      "screenshot": "qa-exploration/shots/header-layout-employer-1440.png",
+      "severity": "Medium",
+      "suggestedFix": "Adaptive header: measure whether the nav fits beside logo+profile; collapse to hamburger when it does not (employer); keep centered inline nav when it fits (worker/admin).",
+      "status": "fixed",
+      "fix": {
+        "files": ["src/components/layout/NavBar.tsx", "src/components/layout/MobileNav.tsx", "src/components/layout/UserMenu.tsx"],
+        "regressionTest": "e2e/18-header-nav-centering.spec.ts (bounding-box: no overlap, no overflow, height, reachability — 19 tests)",
+        "reverify": "qa-exploration/overlap-clean5.log (worker navRightGap +89, admin +147, employer collapsed)"
+      }
+    }
+  ],
+  "postFixValidation": {
+    "unit": "408 passed / 408",
+    "build": "28 routes, exit 0",
+    "e2e": "67 passed / 67",
+    "time": "19 passed / 19",
+    "npmAudit": "2 moderate (deferred), 0 critical/high"
+  }
+}

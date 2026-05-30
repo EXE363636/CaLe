@@ -10,7 +10,9 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useAdminStore } from '@/stores/adminStore';
 import { useVerificationStore } from '@/stores';
-import { adminVerificationTaskCount } from '@/domain/taskBadges';
+import { useReviewReportStore } from '@/stores/reviewReportStore';
+import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
+import { adminVerificationTaskCount, adminDisputeTaskCount } from '@/domain/taskBadges';
 import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge } from '@/components/ui';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
@@ -21,10 +23,10 @@ import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
-import { formatVND, formatDateVN } from '@/lib/format';
+import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { exportSnapshot, importSnapshot } from '@/data/persistence';
 import { t } from '@/i18n/vi';
-import type { Dispute, EscrowStatus, Shift, User } from '@/types';
+import type { Application, Dispute, EscrowStatus, Shift, User } from '@/types';
 
 type Tab = 'analytics' | 'users' | 'shifts' | 'disputes' | 'verifications';
 
@@ -54,6 +56,12 @@ function AdminDashboardContent() {
         adminTypeChangeRequests,
       ),
     [adminWorkerDocs, adminEmployerDocs, adminTypeChangeRequests],
+  );
+  // QA-Fix-1 F1 — open-dispute task count for the disputes tab badge.
+  const adminDisputes = useApplicationStore((s) => s.disputes);
+  const disputeTaskCount = useMemo(
+    () => adminDisputeTaskCount(adminDisputes),
+    [adminDisputes],
   );
   // Phase 9F — when the analytics StatTiles fire, they switch to a tab
   // and seed an initial filter so the panel renders the right slice.
@@ -213,7 +221,16 @@ function AdminDashboardContent() {
         <TabButton active={tab === 'shifts'} onClick={() => setTab('shifts')}>
           {t('admin.dashboard.tabs.shifts')}
         </TabButton>
-        <TabButton active={tab === 'disputes'} onClick={() => setTab('disputes')}>
+        <TabButton
+          active={tab === 'disputes'}
+          onClick={() => setTab('disputes')}
+          badgeCount={disputeTaskCount}
+          badgeAriaLabel={
+            disputeTaskCount > 0
+              ? `${disputeTaskCount} tranh chấp cần xử lý`
+              : undefined
+          }
+        >
           {t('admin.dashboard.tabs.disputes')}
         </TabButton>
         <TabButton
@@ -1080,56 +1097,161 @@ function DisputesPanel() {
     });
   }, [disputes]);
 
-  if (sorted.length === 0) {
-    return (
-      <Card>
-        <p className="py-6 text-center text-sm text-gray-400">
-          Chưa có tranh chấp nào.
-        </p>
-      </Card>
-    );
-  }
+  return (
+    <div className="flex flex-col gap-4">
+      {/* CORE-STABILITY-7 Part 6 — reported-reviews admin visibility. */}
+      <ReportedReviewsCard />
+
+      {sorted.length === 0 ? (
+        <Card>
+          <p className="py-6 text-center text-sm text-gray-400">
+            Chưa có tranh chấp nào.
+          </p>
+        </Card>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {sorted.map((d) => {
+            const shift = shifts.find((s) => s.id === d.shiftId);
+            const app = applications.find((a) => a.id === d.applicationId);
+            const worker = app ? users.find((u) => u.id === app.workerId) : null;
+            const employer = shift ? users.find((u) => u.id === shift.employerId) : null;
+            const workerName = worker?.role === 'worker' ? worker.fullName : '—';
+            const employerName =
+              employer?.role === 'employer' ? employer.companyName : '—';
+            return (
+              <DisputeRow
+                key={d.id}
+                dispute={d}
+                shift={shift ?? null}
+                application={app ?? null}
+                workerName={workerName}
+                employerName={employerName}
+              />
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * CORE-STABILITY-7 Part 6.7 — minimal admin visibility for reported
+ * reviews. Shows reporter, reason, the reported review's content, and
+ * lets the admin mark each report Reviewed / Dismissed. Does NOT delete
+ * the underlying review.
+ */
+function ReportedReviewsCard() {
+  const reports = useReviewReportStore((s) => s.reports);
+  const resolve = useReviewReportStore((s) => s.resolve);
+  const feedback = useEmployerFeedbackStore((s) => s.feedback);
+  const users = useUserStore((s) => s.users);
+
+  const openReports = useMemo(
+    () =>
+      [...reports]
+        .filter((r) => r.status === 'Open')
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [reports],
+  );
+
+  if (openReports.length === 0) return null;
 
   return (
-    <ul className="flex flex-col gap-2">
-      {sorted.map((d) => {
-        const shift = shifts.find((s) => s.id === d.shiftId);
-        const app = applications.find((a) => a.id === d.applicationId);
-        const worker = app ? users.find((u) => u.id === app.workerId) : null;
-        const employer = shift ? users.find((u) => u.id === shift.employerId) : null;
-        const workerName = worker?.role === 'worker' ? worker.fullName : '—';
-        const employerName = employer?.role === 'employer' ? employer.companyName : '—';
-        return (
-          <DisputeRow
-            key={d.id}
-            dispute={d}
-            shiftTitle={shift?.title ?? '—'}
-            workerName={workerName}
-            employerName={employerName}
-          />
-        );
-      })}
-    </ul>
+    <Card>
+      <p className="mb-2 text-sm font-semibold text-gray-900">
+        {t('admin.reportedReviews.title')} ({openReports.length})
+      </p>
+      <ul className="flex flex-col gap-2">
+        {openReports.map((r) => {
+          const review =
+            r.targetKind === 'employerFeedback'
+              ? feedback.find((f) => f.id === r.targetReviewId)
+              : undefined;
+          const reporter = users.find((u) => u.id === r.reportedByUserId);
+          const reporterName =
+            reporter && 'fullName' in reporter
+              ? (reporter as { fullName: string }).fullName
+              : reporter && 'companyName' in reporter
+                ? (reporter as { companyName: string }).companyName
+                : '—';
+          return (
+            <li
+              key={r.id}
+              className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs"
+            >
+              <p className="font-medium text-amber-900">
+                {t('admin.reportedReviews.reason')}: {r.reason}
+              </p>
+              {r.note && (
+                <p className="mt-0.5 text-amber-800/80">
+                  {t('admin.reportedReviews.note')}: {r.note}
+                </p>
+              )}
+              <p className="mt-0.5 text-gray-600">
+                {t('admin.reportedReviews.reporter')}: {reporterName}
+              </p>
+              {review && (
+                <p className="mt-1 rounded bg-white/70 px-2 py-1 text-gray-700 ring-1 ring-amber-100">
+                  {review.stars}★ — &ldquo;{review.comment ?? '—'}&rdquo;
+                </p>
+              )}
+              <p className="mt-1 font-mono text-[10px] text-gray-400">
+                {formatLogDateTime(r.createdAt)}
+              </p>
+              <div className="mt-1.5 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => resolve(r.id, 'Reviewed')}
+                >
+                  {t('admin.reportedReviews.markReviewed')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => resolve(r.id, 'Dismissed')}
+                >
+                  {t('admin.reportedReviews.dismiss')}
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
   );
 }
 
 function DisputeRow({
   dispute,
-  shiftTitle,
+  shift,
+  application,
   workerName,
   employerName,
 }: {
   dispute: Dispute;
-  shiftTitle: string;
+  shift: Shift | null;
+  application: Application | null;
   workerName: string;
   employerName: string;
 }) {
   const resolveDispute = useAdminStore((s) => s.resolveDispute);
+  const requestMoreEvidence = useAdminStore((s) => s.requestMoreEvidence);
+  const [expanded, setExpanded] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [note, setNote] = useState('');
   const [outcome, setOutcome] = useState<'ResolvedReleased' | 'ResolvedRefunded'>(
     'ResolvedReleased',
   );
+  // QA-Fix-1 F4 — request-more-evidence sub-form state.
+  const [requesting, setRequesting] = useState(false);
+  const [reqTarget, setReqTarget] = useState<'worker' | 'employer' | 'both'>('both');
+  const [reqNote, setReqNote] = useState('');
+
+  const shiftTitle = shift?.title ?? '—';
+  const isOpen =
+    dispute.status === 'Open' || dispute.status === 'RequestedMoreEvidence';
 
   function handleResolve() {
     if (note.trim() === '') return;
@@ -1143,26 +1265,74 @@ function DisputeRow({
     }
   }
 
+  function handleRequestEvidence() {
+    if (reqNote.trim() === '') return;
+    const result = requestMoreEvidence(dispute.id, reqTarget, reqNote.trim());
+    if (result.ok) {
+      setRequesting(false);
+      setReqNote('');
+      showSuccess(t('admin.dispute.requestEvidence.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
+  }
+
+  const initiatorLabel =
+    dispute.raisedBy === 'worker'
+      ? t('admin.dispute.initiator.worker')
+      : t('admin.dispute.initiator.employer');
+
+  // Gather every back-and-forth response, oldest first.
+  const responses = [...(dispute.responses ?? [])].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
+
+  const VN_DT = (iso?: string) =>
+    iso ? formatLogDateTime(iso) : '—';
+
   return (
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-gray-900">{shiftTitle}</p>
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          <p className="text-sm font-semibold text-gray-900">
+            {shiftTitle}
+            <span className="ml-2 text-xs font-normal text-orange-600">
+              {expanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
+            </span>
+          </p>
           <p className="mt-0.5 text-xs text-gray-500">
-            {employerName} ↔ {workerName} • {formatLogDateTime(dispute.createdAt)}
+            {employerName} ↔ {workerName} • {VN_DT(dispute.createdAt)}
+          </p>
+          <p className="mt-1 text-xs text-gray-600">
+            {t('admin.dispute.initiatedBy')}: {initiatorLabel}
+            {dispute.category && (
+              <>
+                {' • '}
+                {t('admin.dispute.category')}: {t(`dispute.category.${dispute.category}`)}
+              </>
+            )}
           </p>
           <p className="mt-2 text-sm text-gray-700">
             <span className="font-medium">Lý do:</span> {dispute.reason}
           </p>
           {dispute.resolutionNote && (
             <p className="mt-1 text-sm text-gray-600">
-              <span className="font-medium">Giải quyết:</span> {dispute.resolutionNote}
+              <span className="font-medium">Ghi chú:</span> {dispute.resolutionNote}
             </p>
           )}
-        </div>
+        </button>
 
-        {dispute.status === 'Open' ? (
-          <Badge tone="warning">{t('dispute.status.Open')}</Badge>
+        {isOpen ? (
+          <Badge tone="warning">
+            {dispute.status === 'RequestedMoreEvidence'
+              ? t('dispute.status.RequestedMoreEvidence')
+              : t('dispute.status.Open')}
+          </Badge>
         ) : (
           <Badge tone={dispute.status === 'ResolvedReleased' ? 'success' : 'neutral'}>
             {t(`dispute.status.${dispute.status}`)}
@@ -1170,14 +1340,89 @@ function DisputeRow({
         )}
       </div>
 
-      {/* Resolve action — only for Open disputes */}
-      {dispute.status === 'Open' && (
-        <div className="mt-3">
-          {!resolving ? (
-            <Button size="sm" variant="primary" onClick={() => setResolving(true)}>
-              {t('btn.resolveDispute')}
-            </Button>
-          ) : (
+      {/* QA-Fix-1 F2/F3 — expandable full detail. */}
+      {expanded && (
+        <div className="mt-3 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
+          <dl className="grid grid-cols-1 gap-1 sm:grid-cols-[max-content_1fr] sm:gap-x-3">
+            <dt className="font-medium">Ngày / giờ ca:</dt>
+            <dd>
+              {shift
+                ? `${formatDateVN(shift.date)} • ${formatTimeVN(shift.startTime)}–${formatTimeVN(shift.endTime)}`
+                : '—'}
+            </dd>
+            <dt className="font-medium">Địa điểm:</dt>
+            <dd>{shift?.location ?? '—'}</dd>
+            <dt className="font-medium">Người làm:</dt>
+            <dd>{workerName}</dd>
+            <dt className="font-medium">Nhà tuyển dụng:</dt>
+            <dd>{employerName}</dd>
+            <dt className="font-medium">Mô tả bằng chứng:</dt>
+            <dd className="whitespace-pre-line">{dispute.evidenceDescription || '—'}</dd>
+            <dt className="font-medium">Tệp bằng chứng:</dt>
+            <dd className="break-all font-mono">{dispute.evidenceFileName || '—'}</dd>
+            <dt className="font-medium">Check-in:</dt>
+            <dd>{VN_DT(application?.checkInAt)}</dd>
+            <dt className="font-medium">Xác nhận có mặt:</dt>
+            <dd>{VN_DT(application?.markedPresentAt)}</dd>
+            <dt className="font-medium">Check-out:</dt>
+            <dd>{VN_DT(application?.checkOutAt)}</dd>
+            <dt className="font-medium">Ghi chú bàn giao:</dt>
+            <dd className="whitespace-pre-line">{application?.workerCheckoutNote || '—'}</dd>
+          </dl>
+
+          {/* Responses thread. */}
+          <div className="border-t border-gray-200 pt-2">
+            <p className="font-semibold text-gray-900">
+              {t('admin.dispute.responses')} ({responses.length})
+            </p>
+            {responses.length === 0 ? (
+              <p className="mt-1 italic text-gray-500">{t('admin.dispute.responses.empty')}</p>
+            ) : (
+              <ul className="mt-1 flex flex-col gap-2">
+                {responses.map((r) => (
+                  <li
+                    key={r.id}
+                    className="rounded-md border border-gray-200 bg-white px-2 py-1.5"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                      {r.side === 'worker'
+                        ? t('admin.dispute.initiator.worker')
+                        : t('admin.dispute.initiator.employer')}
+                      {' · '}
+                      {VN_DT(r.createdAt)}
+                    </p>
+                    <p className="mt-1 whitespace-pre-line">{r.reason}</p>
+                    {r.evidenceDescription && (
+                      <p className="mt-1 italic">{r.evidenceDescription}</p>
+                    )}
+                    {r.evidenceFileName && (
+                      <p className="mt-1 break-all font-mono text-[11px]">
+                        {r.evidenceFileName}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Resolve + request-more-evidence actions — only while open. */}
+      {isOpen && (
+        <div className="mt-3 flex flex-col gap-2">
+          {!resolving && !requesting && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="primary" onClick={() => setResolving(true)}>
+                {t('btn.resolveDispute')}
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setRequesting(true)}>
+                {t('admin.dispute.requestEvidence.button')}
+              </Button>
+            </div>
+          )}
+
+          {resolving && (
             <div className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -1212,6 +1457,58 @@ function DisputeRow({
                   variant="primary"
                   onClick={handleResolve}
                   disabled={note.trim() === ''}
+                >
+                  {t('btn.confirm')}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {requesting && (
+            <div className="flex flex-col gap-2 rounded-lg border border-gray-100 p-3">
+              <p className="text-xs font-medium text-gray-700">
+                {t('admin.dispute.requestEvidence.target')}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={reqTarget === 'worker' ? 'primary' : 'secondary'}
+                  onClick={() => setReqTarget('worker')}
+                >
+                  {t('admin.dispute.initiator.worker')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={reqTarget === 'employer' ? 'primary' : 'secondary'}
+                  onClick={() => setReqTarget('employer')}
+                >
+                  {t('admin.dispute.initiator.employer')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={reqTarget === 'both' ? 'primary' : 'secondary'}
+                  onClick={() => setReqTarget('both')}
+                >
+                  {t('admin.dispute.target.both')}
+                </Button>
+              </div>
+              <Textarea
+                label={t('admin.dispute.requestEvidence.note')}
+                value={reqNote}
+                onChange={(e) => setReqNote(e.target.value)}
+                rows={2}
+                maxLength={500}
+                required
+              />
+              <div className="flex justify-end gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setRequesting(false)}>
+                  {t('btn.cancel')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleRequestEvidence}
+                  disabled={reqNote.trim() === ''}
                 >
                   {t('btn.confirm')}
                 </Button>

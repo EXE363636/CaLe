@@ -344,9 +344,13 @@ describe('Batch 4B: wallet ledger', () => {
       ],
       employerTypeChangeRequests: [],
     });
+    // CORE-STABILITY-6 Part 4 — fund the employer so the new
+    // insufficient-balance deposit guard is satisfied.
+    useWalletStore.getState().topUp('e1', 200_000);
     const r = useShiftStore.getState().simulateDeposit(shift.id);
     expect(r.ok).toBe(true);
-    expect(useWalletStore.getState().getBalance('e1')).toBe(-200_000);
+    // Topped up 200_000, deposit debits 200_000 → net 0.
+    expect(useWalletStore.getState().getBalance('e1')).toBe(0);
     const ledger = useWalletStore.getState().forUser('e1');
     expect(ledger.some((l) => l.kind === 'EmployerDepositHeld')).toBe(true);
     // Timeline entries should also include both ShiftPublished and DepositHeld.

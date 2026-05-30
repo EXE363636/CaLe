@@ -1,0 +1,659 @@
+{
+  "worker": {
+    "1024": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 32,
+        "right": 132,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "right": null,
+      "userMenu": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "bell": {
+        "left": 900,
+        "right": 944,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "navVisible": false
+    },
+    "1280": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 32,
+        "right": 132,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 271,
+        "right": 812,
+        "width": 541,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 999,
+        "right": 1248,
+        "width": 249,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 951,
+        "right": 995,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 139,
+      "navRightGap": 187,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1366": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 75,
+        "right": 175,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 314,
+        "right": 855,
+        "width": 541,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1042,
+        "right": 1291,
+        "width": 249,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 994,
+        "right": 1038,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 139,
+      "navRightGap": 187,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1440": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 112,
+        "right": 212,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 351,
+        "right": 892,
+        "width": 541,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1079,
+        "right": 1328,
+        "width": 249,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 1031,
+        "right": 1075,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 139,
+      "navRightGap": 187,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1536": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 160,
+        "right": 260,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 399,
+        "right": 940,
+        "width": 541,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1127,
+        "right": 1376,
+        "width": 249,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 1079,
+        "right": 1123,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 139,
+      "navRightGap": 187,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1920": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 352,
+        "right": 452,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 591,
+        "right": 1132,
+        "width": 541,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1319,
+        "right": 1568,
+        "width": 249,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 1271,
+        "right": 1315,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 139,
+      "navRightGap": 187,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    }
+  },
+  "employer": {
+    "1024": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 32,
+        "right": 132,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "right": null,
+      "userMenu": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "bell": {
+        "left": 900,
+        "right": 944,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "navVisible": false
+    },
+    "1280": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 32,
+        "right": 132,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 62,
+        "right": 933,
+        "width": 870,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 911,
+        "right": 1248,
+        "width": 337,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 863,
+        "right": 907,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": -70,
+      "navRightGap": -22,
+      "logoNavOverlap": true,
+      "navRightOverlap": true
+    },
+    "1366": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 75,
+        "right": 175,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 105,
+        "right": 976,
+        "width": 870,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 954,
+        "right": 1291,
+        "width": 337,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 906,
+        "right": 950,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": -70,
+      "navRightGap": -22,
+      "logoNavOverlap": true,
+      "navRightOverlap": true
+    },
+    "1440": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 112,
+        "right": 212,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "right": null,
+      "userMenu": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "bell": {
+        "left": 1220,
+        "right": 1264,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "navVisible": false
+    },
+    "1536": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 160,
+        "right": 260,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "right": null,
+      "userMenu": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "bell": {
+        "left": 1268,
+        "right": 1312,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "navVisible": false
+    },
+    "1920": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 352,
+        "right": 452,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 382,
+        "right": 1253,
+        "width": 870,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1231,
+        "right": 1568,
+        "width": 337,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 1183,
+        "right": 1227,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": -70,
+      "navRightGap": -22,
+      "logoNavOverlap": true,
+      "navRightOverlap": true
+    }
+  },
+  "admin": {
+    "1024": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 32,
+        "right": 132,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "right": null,
+      "userMenu": {
+        "left": 0,
+        "right": 0,
+        "width": 0,
+        "height": 0,
+        "visible": false
+      },
+      "bell": {
+        "left": 900,
+        "right": 944,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "navVisible": false
+    },
+    "1280": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 32,
+        "right": 132,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 359,
+        "right": 664,
+        "width": 305,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 940,
+        "right": 1248,
+        "width": 309,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 892,
+        "right": 936,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 227,
+      "navRightGap": 276,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1366": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 75,
+        "right": 175,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 402,
+        "right": 707,
+        "width": 305,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 983,
+        "right": 1291,
+        "width": 309,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 935,
+        "right": 979,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 227,
+      "navRightGap": 276,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1440": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 112,
+        "right": 212,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 439,
+        "right": 744,
+        "width": 305,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1020,
+        "right": 1328,
+        "width": 309,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 972,
+        "right": 1016,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 227,
+      "navRightGap": 276,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1536": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 160,
+        "right": 260,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 487,
+        "right": 792,
+        "width": 305,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1068,
+        "right": 1376,
+        "width": 309,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 1020,
+        "right": 1064,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 227,
+      "navRightGap": 276,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    },
+    "1920": {
+      "headerHeight": 69,
+      "logo": {
+        "left": 352,
+        "right": 452,
+        "width": 100,
+        "height": 41,
+        "visible": true
+      },
+      "nav": {
+        "left": 679,
+        "right": 984,
+        "width": 305,
+        "height": 40,
+        "visible": true
+      },
+      "right": null,
+      "userMenu": {
+        "left": 1260,
+        "right": 1568,
+        "width": 309,
+        "height": 40,
+        "visible": true
+      },
+      "bell": {
+        "left": 1212,
+        "right": 1256,
+        "width": 44,
+        "height": 44,
+        "visible": true
+      },
+      "overflow": 0,
+      "logoNavGap": 227,
+      "navRightGap": 276,
+      "logoNavOverlap": false,
+      "navRightOverlap": false
+    }
+  }
+}

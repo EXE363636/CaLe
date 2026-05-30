@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { handleNotificationClick } from '@/lib/notificationAction';
+import { formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Notification } from '@/types';
 
@@ -81,9 +82,16 @@ export function NotificationBell() {
     return () => document.removeEventListener('keydown', handler);
   }, [open]);
 
-  if (!currentUserId) return null;
+  const recent = useMemo(
+    () =>
+      notifications
+        .slice()
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 10),
+    [notifications],
+  );
 
-  const recent = notifications.slice(0, 10);
+  if (!currentUserId) return null;
 
   return (
     <div className="relative">
@@ -176,6 +184,10 @@ function NotificationItem({
       <div className={['flex-1', notification.read ? 'pl-5' : ''].join(' ')}>
         <p className="font-medium text-gray-900">{notification.title}</p>
         <p className="mt-0.5 text-gray-600">{notification.body}</p>
+        {/* CORE-STABILITY-6 Part 2 — show when the notification fired. */}
+        <p className="mt-1 font-mono text-[11px] text-gray-400">
+          {formatLogDateTime(notification.createdAt)}
+        </p>
       </div>
     </div>
   );

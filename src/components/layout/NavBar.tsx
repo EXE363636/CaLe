@@ -291,6 +291,30 @@ export function NavBar() {
   const [activeDropdown, setActiveDropdown] = useState<DropdownId | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // -------------------------------------------------------------------------
+  // HEADER-NAV-LAYOUT-3 — pure-CSS adaptive header (no JS collapse).
+  //
+  // Product decision: the hamburger is for tablet/mobile ONLY. On every
+  // desktop/laptop width (>= 1280px / Tailwind `xl`) the horizontal nav
+  // MUST be visible — never collapsed to a hamburger just because labels
+  // are long. The earlier LAYOUT-2 measured-fit approach violated this
+  // (it collapsed the employer nav at 1366/1440/1920), so it is removed.
+  //
+  // How the nav now fits one row at 1280px without overlap:
+  //   1. Shortened employer desktop labels (Đăng ca / Lịch tuyển /
+  //      Ca công khai / Hồ sơ) — full labels live in `title` tooltips,
+  //      the mobile drawer, and the UserMenu (routes unchanged).
+  //   2. Wider header container (`max-w-[1600px]`) so the desktop nav
+  //      has more horizontal room than the page's `max-w-7xl` content.
+  //   3. Compact nav gap/padding at <= 1536 (`xl:`), normal at `2xl`.
+  //   4. A bounded, truncating profile zone (`min-w-0`, name capped).
+  //   5. 3-zone grid `[auto_minmax(0,1fr)_auto]` so the center nav track
+  //      can shrink (min-w-0) and the side zones never overlap it.
+  // Visibility is now driven purely by CSS breakpoints: `hidden xl:flex`
+  // for the desktop nav, `xl:hidden` for the hamburger. No measurement,
+  // no ResizeObserver, no feedback loops.
+  // -------------------------------------------------------------------------
+
   // Refs to each dropdown container, used by the parent-level
   // outside-click listener. We register/unregister via the
   // `registerContainer` callback passed to each `<Dropdown>` so the
@@ -420,11 +444,22 @@ export function NavBar() {
   // the bottom edge.
   return (
     <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        {/* Brand block */}
+      {/* HEADER-NAV-LAYOUT-3 — pure-CSS 3-zone adaptive header.
+          Below `xl` (< 1280px): a simple flex row (brand left, right
+          cluster pushed right via `ml-auto`); the hamburger is the
+          nav. At `xl+` (>= 1280px, desktop/laptop): a CSS grid with
+          `[auto_minmax(0,1fr)_auto]` — logo (auto) | nav (centered,
+          shrinkable min-w-0) | right cluster (auto) — so the nav can
+          never overlap the side zones and there is no hamburger.
+          The container is widened to `max-w-[1600px]` (page content
+          stays `max-w-7xl` elsewhere) and the nav uses a compact gap
+          at `xl`, upsizing at `2xl`, so the shortened 7-item employer
+          nav fits one row from 1280px upward without collapsing. */}
+      <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-4">
+        {/* Brand block — LEFT zone */}
         <Link
           href="/"
-          className="flex shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded"
+          className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded xl:justify-self-start"
         >
           <span className="text-lg font-bold text-orange-600 hover:text-orange-700">
             {t('site.name')}
@@ -434,12 +469,14 @@ export function NavBar() {
           </span>
         </Link>
 
-        {/* Desktop nav — gated by role. Hidden below `xl` (Phase 9T:
-            bumped from `lg`) so the long Vietnamese labels stay on
-            one line at common laptop widths and the hamburger drawer
-            covers everything narrower. */}
+        {/* Desktop nav — CENTER zone. Pure CSS: hidden below `xl`
+            (hamburger takes over), inline flex at `xl+`. `min-w-0`
+            lets the center track shrink so it never forces the side
+            zones to overlap; `justify-self-center` keeps it centered
+            within the track. Compact link gap at `xl`, roomier at
+            `2xl`. */}
         <nav
-          className="ml-2 hidden flex-1 items-center justify-center gap-1 xl:flex"
+          className="hidden min-w-0 items-center justify-center gap-0.5 xl:flex xl:justify-self-center 2xl:gap-1"
           aria-label="Main navigation"
         >
           {role === null && (
@@ -462,8 +499,11 @@ export function NavBar() {
           {role === 'admin' && <AdminNav pathname={pathname} />}
         </nav>
 
-        {/* Right cluster */}
-        <div className="ml-auto flex items-center gap-1">
+        {/* Right cluster — RIGHT zone. `min-w-0` lets the profile name
+            truncate instead of pushing the nav; at `xl+` it sits at the
+            end of its grid track (`xl:justify-self-end`), cancelling
+            the `< xl` flex `ml-auto`. */}
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 xl:ml-0 xl:justify-self-end">
           {isLoggedIn && <NotificationBell />}
 
           {role === null && (
@@ -493,6 +533,9 @@ export function NavBar() {
             </div>
           )}
 
+          {/* Hamburger — `xl:hidden`: visible ONLY below 1280px
+              (tablet/mobile). On desktop/laptop the horizontal nav
+              above is the canonical navigation. */}
           <MobileNav />
         </div>
       </div>
@@ -640,8 +683,12 @@ function EmployerNav({
       <NavLink href="/" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
-      <NavLink href="/employer/shifts/new" pathname={pathname}>
-        {t('nav.postShift')}
+      <NavLink
+        href="/employer/shifts/new"
+        pathname={pathname}
+        title={t('nav.postShift')}
+      >
+        {t('nav.short.postShift')}
       </NavLink>
       <NavLink
         href="/employer/dashboard"
@@ -653,22 +700,35 @@ function EmployerNav({
       >
         {t('nav.dashboard')}
       </NavLink>
-      <NavLink href="/employer/schedule" pathname={pathname}>
-        {t('nav.employerSchedule')}
+      <NavLink
+        href="/employer/schedule"
+        pathname={pathname}
+        title={t('nav.employerSchedule')}
+      >
+        {t('nav.short.employerSchedule')}
       </NavLink>
       {/* Phase 10C-Stab-1 Batch 2 P — direct link to the public
           listing so employers can preview how their shifts appear
-          to workers. Distinct label ("Danh sách ca công khai") to
-          avoid being confused with the worker-only "Tìm ca làm"
-          entry. */}
-      <NavLink href="/shifts" pathname={pathname}>
-        Danh sách ca công khai
+          to workers. HEADER-NAV-LAYOUT-3 — shortened to "Ca công khai"
+          on the desktop nav (full label in the `title` tooltip + the
+          mobile drawer) so the 7-item employer nav fits one row at
+          >= 1280px without a hamburger. */}
+      <NavLink
+        href="/shifts"
+        pathname={pathname}
+        title={t('nav.full.publicShifts')}
+      >
+        {t('nav.short.publicShifts')}
       </NavLink>
-      <NavLink href="/employer/profile" pathname={pathname}>
-        Hồ sơ doanh nghiệp
+      <NavLink
+        href="/employer/profile"
+        pathname={pathname}
+        title={t('nav.full.employerProfile')}
+      >
+        {t('nav.short.employerProfile')}
       </NavLink>
       <NavLink href="/support" pathname={pathname}>
-        Hỗ trợ
+        {t('nav.support')}
       </NavLink>
     </>
   );
@@ -735,7 +795,10 @@ function navLinkClasses(active: boolean): string {
     // Phase 9T — `whitespace-nowrap` prevents long Vietnamese labels
     // (Hỗ trợ, Tổng quan admin, Lịch tuyển dụng…) from wrapping onto
     // two lines at narrow desktop widths.
-    'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors min-h-[40px] flex items-center',
+    // HEADER-NAV-LAYOUT-3 — compact horizontal padding at `xl`
+    // (`px-2`) so the full employer nav fits one row at 1280px, with
+    // roomier `px-3` from `2xl` (>= 1536px) upward.
+    'whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-h-[40px] flex items-center 2xl:px-3',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
     active
       ? 'bg-orange-50 text-orange-700'
@@ -749,6 +812,7 @@ function NavLink({
   exact = false,
   badgeCount = 0,
   badgeAriaLabel,
+  title,
   children,
 }: {
   href: string;
@@ -760,6 +824,12 @@ function NavLink({
    */
   badgeCount?: number;
   badgeAriaLabel?: string;
+  /**
+   * HEADER-NAV-LAYOUT-3 — optional native tooltip. Set to the FULL
+   * label when `children` renders a shortened desktop label so hover
+   * still reveals the complete name (e.g. "Danh sách ca công khai").
+   */
+  title?: string;
   children: ReactNode;
 }) {
   // Strip query string from the link's href before computing the active
@@ -775,7 +845,7 @@ function NavLink({
     // of role-specific nav rows.
     return (
       <span className="relative inline-flex">
-        <Link href={href} className={navLinkClasses(active)}>
+        <Link href={href} title={title} className={navLinkClasses(active)}>
           {children}
         </Link>
         <TaskBadge count={badgeCount} ariaLabel={badgeAriaLabel} />
@@ -783,7 +853,7 @@ function NavLink({
     );
   }
   return (
-    <Link href={href} className={navLinkClasses(active)}>
+    <Link href={href} title={title} className={navLinkClasses(active)}>
       {children}
     </Link>
   );

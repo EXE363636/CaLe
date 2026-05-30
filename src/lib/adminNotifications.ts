@@ -24,12 +24,20 @@ interface AdminNotifyInput {
     title: string;
     body: string;
     link?: string;
+    dedupeKey?: string;
   }) => unknown;
   kind: NotificationKind;
   title: string;
   body: string;
   /** Deep link target — defaults to the admin verification queue. */
   link?: string;
+  /**
+   * CORE-STABILITY-7 — optional per-admin idempotency key prefix. When
+   * provided, each admin notification is deduped on
+   * `(adminId, "<dedupeKey>:<adminId>")` so a repeated push (re-render,
+   * double submit) never creates duplicate admin alerts.
+   */
+  dedupeKey?: string;
 }
 
 /**
@@ -43,12 +51,20 @@ export function notifyAdmins({
   title,
   body,
   link = '/admin/dashboard?tab=verifications',
+  dedupeKey,
 }: AdminNotifyInput): number {
   let count = 0;
   for (const u of users) {
     if (u.role !== 'admin') continue;
     if (u.suspended) continue;
-    push({ userId: u.id, kind, title, body, link });
+    push({
+      userId: u.id,
+      kind,
+      title,
+      body,
+      link,
+      dedupeKey: dedupeKey ? `${dedupeKey}:${u.id}` : undefined,
+    });
     count++;
   }
   return count;

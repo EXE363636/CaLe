@@ -24,7 +24,7 @@ import {
   useVerificationStore,
 } from '@/stores';
 import { averageRating } from '@/domain/rating';
-import { formatDateVN } from '@/lib/format';
+import { formatDateVN, formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Worker } from '@/types';
 
@@ -166,8 +166,8 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
                 >
                   <div className="flex items-center justify-between">
                     <StarRating value={r.stars} readOnly size="sm" />
-                    <span className="text-xs text-gray-400">
-                      {formatDateVN(r.createdAt)}
+                    <span className="font-mono text-[11px] text-gray-400">
+                      {formatLogDateTime(r.createdAt)}
                     </span>
                   </div>
                   {r.feedback && (

@@ -33,12 +33,14 @@ import {
   exportSnapshot,
   importSnapshot,
   STORAGE_KEYS,
+  SCHEMA_VERSION,
 } from '@/data/persistence';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore } from '@/stores/userStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useVerificationStore } from '@/stores/verificationStore';
+import { useWalletStore } from '@/stores/walletStore';
 import type {
   Application,
   Employer,
@@ -370,6 +372,9 @@ describe('Batch 2 H: simulateDeposit employer verification gate', () => {
       positionsTotal: 1,
       workplaceImageLabel: 'storefront.jpg',
     });
+    // CORE-STABILITY-6 Part 4 — fund the employer so the deposit
+    // insufficient-balance guard passes (deposit = 50_000 × 4h × 1).
+    useWalletStore.getState().topUp(employer.id, shift.depositAmount);
     const result = useShiftStore.getState().simulateDeposit(shift.id);
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -762,7 +767,7 @@ describe('Batch 2 16: exportSnapshot / importSnapshot round-trip', () => {
       version: number;
       payload: Record<string, unknown>;
     };
-    expect(parsed.version).toBe(9);
+    expect(parsed.version).toBe(SCHEMA_VERSION);
     expect(parsed.payload[STORAGE_KEYS.users]).toEqual([employer, worker]);
     expect(parsed.payload[STORAGE_KEYS.shifts]).toEqual([shift]);
 
@@ -800,7 +805,7 @@ describe('Batch 2 16: exportSnapshot / importSnapshot round-trip', () => {
 
   it('rejects a JSON document missing the expected payload keys', () => {
     const bad = JSON.stringify({
-      version: 9,
+      version: SCHEMA_VERSION,
       exportedAt: '2030-01-01T00:00:00.000Z',
       payload: {},
     });

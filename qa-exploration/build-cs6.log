@@ -1,0 +1,29 @@
+﻿
+> cale-shiftnow@0.1.0 build
+> next build
+
+Γû▓ Next.js 16.2.6 (Turbopack)
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 2.6s
+  Running TypeScript ...
+node.exe : Failed to type check.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to type check.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/components/wallet/WalletPanel.tsx:186:7
+Type error: Type '"UserTopUp"' is not assignable to type 'NotificationKind'.
+
+  [90m184 |[0m     pushNotification({
+  [90m185 |[0m       userId,
+[31m[1m>[0m [90m186 |[0m       kind: [32m'UserTopUp'[0m,
+  [90m    |[0m       [31m[1m^[0m
+  [90m187 |[0m       title: t([32m'wallet.withdraw.success'[0m),
+  [90m188 |[0m       body: [32m`[0m${t([32m'wallet.kind.UserWithdrawal'[0m)[32m}: 
+-[0m${formatVND(amount)[32m}`[0m,
+  [90m189 |[0m     });
+Next.js build worker exited with code: 1 and signal: null

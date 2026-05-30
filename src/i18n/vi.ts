@@ -47,6 +47,21 @@ export const vi: Record<string, string> = {
   'nav.schedule': 'Lịch cá nhân',
   'nav.employerSchedule': 'Lịch tuyển dụng',
 
+  // HEADER-NAV-LAYOUT-3 — short desktop top-nav labels (employer
+  // priority). These shorten ONLY the visible horizontal desktop nav
+  // text so the full employer nav fits a single row at >= 1280px
+  // without a hamburger. Routes are unchanged; the mobile drawer and
+  // UserMenu keep the full labels, and each shortened link carries a
+  // `title` tooltip with the full label (see the `*.full` keys).
+  'nav.short.postShift': 'Đăng ca',
+  'nav.short.employerSchedule': 'Lịch tuyển',
+  'nav.short.publicShifts': 'Ca công khai',
+  'nav.short.employerProfile': 'Hồ sơ',
+  'nav.full.publicShifts': 'Danh sách ca công khai',
+  'nav.full.employerProfile': 'Hồ sơ doanh nghiệp',
+  'nav.support': 'Hỗ trợ',
+
+
   // Phase 9X — user menu (authenticated avatar dropdown).
   'nav.userMenu.openLabel': 'Mở menu tài khoản',
   'nav.userMenu.closeLabel': 'Đóng menu tài khoản',
@@ -141,6 +156,7 @@ export const vi: Record<string, string> = {
   'shift.status.Expired': 'Đã hết hạn',
 
   // Phase 10C-Stab-1 Batch 4 C — employer applicant bucket headings + hints.
+  'employer.applicants.parentHeading': 'Tình trạng đơn',
   'applicantBucket.Pending': 'Đơn chờ duyệt',
   'applicantBucket.Pending.hint':
     'Quyết định nhận hoặc từ chối từng người ứng tuyển.',
@@ -268,6 +284,14 @@ export const vi: Record<string, string> = {
   'notification.kind.WorkerPostPaymentRatingRequired': 'Hãy đánh giá nhà tuyển dụng',
   'notification.kind.WorkerRatedEmployer': 'Người làm đã đánh giá bạn',
   'notification.kind.AdminRequestedEvidence': 'Quản trị viên yêu cầu bổ sung bằng chứng',
+  // CORE-STABILITY-6 Part 3 — wallet withdrawal notification.
+  'notification.kind.UserWithdrawal': 'Rút tiền khỏi ví',
+  // CORE-STABILITY-7 Part 1 — wallet top-up notification.
+  'notification.kind.UserTopUp': 'Nạp tiền vào ví',
+  // CORE-STABILITY-7 Part 1 — employer deposit-paid notification.
+  'notification.kind.EmployerDepositPaid': 'Đã đặt cọc cho ca làm',
+  // CORE-STABILITY-7 Part 6 — review reported (admin alert).
+  'notification.kind.ReviewReported': 'Có báo cáo đánh giá mới',
   // Phase 9M — affordance label on dashboard notification cards.
   'notification.viewDetail': 'Xem chi tiết',
 
@@ -336,6 +360,9 @@ export const vi: Record<string, string> = {
   'error.date.past': 'Ngày làm phải là ngày trong tương lai.',
   'error.time.invalid': 'Giờ không hợp lệ (định dạng HH:mm).',
   'error.time.endBeforeStart': 'Giờ kết thúc phải sau giờ bắt đầu.',
+  // QA-Fix-2 Phase 1 — past-shift posting block.
+  'error.shift.pastDateTime':
+    'Không thể đăng ca trong quá khứ. Vui lòng chọn ngày/giờ trong tương lai.',
   'error.wage.invalid': 'Lương phải là số dương.',
   'error.positions.invalid': 'Số lượng người cần phải ít nhất là 1.',
   'error.positions.required': 'Vui lòng nhập số lượng người cần.',
@@ -971,6 +998,8 @@ export const vi: Record<string, string> = {
   'shifts.detail.positionsLeft': 'Còn trống',
   'shifts.detail.wage': 'Lương theo giờ',
   'shifts.detail.depositStatus': 'Trạng thái đặt cọc',
+  'shifts.detail.oldNotificationNote':
+    'Thông báo này liên quan đến một ca đã kết thúc/hết hạn. Trạng thái hiển thị là trạng thái hiện tại của ca.',
   'shifts.detail.requirements': 'Yêu cầu',
   'shifts.detail.fullyBooked': 'Ca này đã đủ người.',
   'shifts.detail.notPublished': 'Ca làm này chưa được đăng công khai.',
@@ -1400,6 +1429,35 @@ export const vi: Record<string, string> = {
   'employerFeedback.tag.ClearCommunication': 'Giao tiếp rõ ràng',
   'employerFeedback.tag.AccurateDescription': 'Công việc đúng mô tả',
 
+  // CORE-STABILITY-7 Part 6 — review sorting + report flow.
+  'review.sort.newest': 'Mới nhất',
+  'review.sort.oldest': 'Cũ nhất',
+  'review.sort.highest': 'Điểm cao nhất',
+  'review.sort.lowest': 'Điểm thấp nhất',
+  'review.sort.withComment': 'Có nhận xét',
+  'review.summary.count': 'đánh giá',
+  'review.report.button': 'Báo cáo đánh giá',
+  'review.report.underReview': 'Đang được xem xét',
+  'review.report.success': 'Đã gửi báo cáo. Quản trị viên sẽ xem xét.',
+  'review.report.error.reasonRequired': 'Vui lòng nhập lý do báo cáo.',
+  'review.report.error.already': 'Bạn đã báo cáo đánh giá này rồi.',
+  'review.report.modal.title': 'Báo cáo đánh giá',
+  'review.report.modal.body':
+    'Báo cáo một đánh giá không xoá đánh giá đó. Quản trị viên sẽ xem xét nội dung bạn báo cáo.',
+  'review.report.modal.reasonLabel': 'Lý do báo cáo',
+  'review.report.modal.reasonPlaceholder':
+    'Ví dụ: Nội dung sai sự thật, xúc phạm, spam...',
+  'review.report.modal.noteLabel': 'Ghi chú thêm (tuỳ chọn)',
+  'review.report.modal.notePlaceholder': 'Bằng chứng hoặc giải thích thêm...',
+  'review.report.modal.submit': 'Gửi báo cáo',
+  // CORE-STABILITY-7 Part 6 — admin reported-reviews visibility.
+  'admin.reportedReviews.title': 'Đánh giá bị báo cáo',
+  'admin.reportedReviews.reason': 'Lý do',
+  'admin.reportedReviews.note': 'Ghi chú',
+  'admin.reportedReviews.reporter': 'Người báo cáo',
+  'admin.reportedReviews.markReviewed': 'Đã xem xét',
+  'admin.reportedReviews.dismiss': 'Bỏ qua',
+
   // -------------------------------------------------------------------------
   // Phase 7 — admin shifts panel polish
   // -------------------------------------------------------------------------
@@ -1589,6 +1647,26 @@ export const vi: Record<string, string> = {
     'Bạn cần hoàn tất xác minh tài khoản trước khi đăng ca công khai.',
   'shift.create.error.EMPLOYER_TYPE_REQUIRED':
     'Bạn cần chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.',
+  'shift.create.error.PAST_SHIFT':
+    'Không thể đăng ca trong quá khứ. Vui lòng chọn ngày/giờ trong tương lai.',
+  'shift.create.error.INSUFFICIENT_BALANCE':
+    'Số dư ví không đủ để đặt cọc. Vui lòng nạp thêm tiền.',
+  // CORE-STABILITY-7 Part 2 — insufficient-balance draft modal.
+  'deposit.insufficient.title': 'Số dư ví không đủ để đặt cọc',
+  'deposit.insufficient.body':
+    'Số dư ví của bạn không đủ để đặt cọc cho ca này. Bạn có muốn nạp tiền vào ví không? Bản nháp ca làm vẫn được giữ nguyên.',
+  'deposit.insufficient.required': 'Cần đặt cọc',
+  'deposit.insufficient.balance': 'Số dư hiện tại',
+  'deposit.insufficient.shortfall': 'Còn thiếu',
+  'deposit.insufficient.draftNote':
+    'Ca làm đang ở dạng nháp, chưa được công bố và người làm chưa thấy. Bạn có thể nạp tiền rồi xác nhận lại mà không cần nhập lại.',
+  'deposit.insufficient.topUpNow': 'Nạp tiền ngay',
+  'deposit.insufficient.saveDraft': 'Lưu nháp',
+  'deposit.insufficient.backToEdit': 'Quay lại chỉnh sửa',
+  'deposit.insufficient.savedDraft':
+    'Đã lưu bản nháp ca làm. Bạn có thể nạp tiền và đặt cọc sau.',
+  'shift.create.error.NOT_FOUND':
+    'Không tìm thấy ca làm hoặc ca không ở trạng thái chờ đặt cọc.',
   'shift.requiresEmployerVerification.banner':
     'Ca này cần xác minh nhà tuyển dụng. Bạn có thể vẫn xem thông tin, nhưng nên kiểm tra kỹ trước khi ứng tuyển.',
 
@@ -1609,6 +1687,22 @@ export const vi: Record<string, string> = {
   'lifecycle.checkOut.outsideWindow':
     'Bạn chỉ có thể check-out từ giờ bắt đầu đến 60 phút sau giờ kết thúc.',
   'lifecycle.toast.markPresent.success': 'Đã xác nhận người làm có mặt',
+
+  // CORE-STABILITY-7 Part 5 — attendance flexibility (absent dimming +
+  // late-arrival correction).
+  'attendance.absentDisabled.checkedIn':
+    'Người làm đã check-in. Chỉ đánh dấu vắng mặt nếu có tranh chấp.',
+  'attendance.revert.button': 'Đến muộn — chuyển sang có mặt',
+  'attendance.revert.title': 'Chuyển sang có mặt (đến muộn)',
+  'attendance.revert.body':
+    'Người làm đã đến muộn? Bạn có thể chuyển trạng thái từ vắng mặt sang có mặt. Điểm uy tín của người làm sẽ được hoàn lại và ca tiếp tục bình thường.',
+  'attendance.revert.reasonLabel': 'Lý do chuyển trạng thái',
+  'attendance.revert.reasonPlaceholder': 'Ví dụ: Người làm đến muộn 20 phút do kẹt xe.',
+  'attendance.revert.confirm': 'Xác nhận có mặt',
+  'attendance.revert.success': 'Đã chuyển người làm sang có mặt.',
+  'attendance.revert.error.reasonRequired': 'Vui lòng nhập lý do.',
+  'attendance.revert.error.disputeOpen':
+    'Ca này đang có khiếu nại. Vui lòng để quản trị viên xử lý trước khi thay đổi trạng thái.',
 
   // Phase 10C-Stab-1 Batch 2 — schedule overlap deep-link copy.
   'apply.error.CONFLICT.detailed':
@@ -1868,6 +1962,19 @@ export const vi: Record<string, string> = {
   'dispute.status.RequestedMoreEvidence': 'Yêu cầu thêm bằng chứng',
   'dispute.status.ClosedInvalid': 'Đóng vì không hợp lệ',
 
+  // QA-Fix-1 F — admin dispute detail + request-more-evidence.
+  'admin.dispute.initiatedBy': 'Người mở khiếu nại',
+  'admin.dispute.initiator.worker': 'Người làm',
+  'admin.dispute.initiator.employer': 'Nhà tuyển dụng',
+  'admin.dispute.category': 'Loại',
+  'admin.dispute.responses': 'Phản hồi & bằng chứng',
+  'admin.dispute.responses.empty': 'Chưa có phản hồi nào.',
+  'admin.dispute.requestEvidence.button': 'Yêu cầu bổ sung thông tin',
+  'admin.dispute.requestEvidence.target': 'Yêu cầu gửi tới',
+  'admin.dispute.requestEvidence.note': 'Nội dung yêu cầu',
+  'admin.dispute.requestEvidence.success': 'Đã gửi yêu cầu bổ sung thông tin',
+  'admin.dispute.target.both': 'Cả hai bên',
+
   // -----------------------------------------------------------------
   // Phase 10C-Stab-1 Batch 4B — wallet, post-payment rating, absent
   // dispute banners.
@@ -1886,6 +1993,37 @@ export const vi: Record<string, string> = {
   'wallet.kind.EmployerPartialRefund': 'Hoàn cọc một phần',
   'wallet.kind.WorkerPartialRelease': 'Nhận thanh toán một phần',
   'wallet.kind.EmployerCancellationPenalty': 'Phí huỷ ca',
+  'wallet.kind.UserTopUp': 'Nạp tiền vào ví',
+  'wallet.topUp.button': 'Nạp tiền vào ví',
+  'wallet.topUp.modal.title': 'Nạp tiền vào ví (demo)',
+  'wallet.topUp.modal.label': 'Số tiền muốn nạp (đồng)',
+  'wallet.topUp.modal.placeholder': 'Ví dụ: 200.000',
+  'wallet.topUp.modal.submit': 'Xác nhận nạp',
+  'wallet.topUp.modal.cancel': 'Đóng',
+  'wallet.topUp.error.required': 'Vui lòng nhập số tiền.',
+  'wallet.topUp.error.invalid': 'Số tiền không hợp lệ. Chỉ nhập số dương.',
+  'wallet.topUp.error.tooLarge': 'Số tiền vượt quá giới hạn nạp demo (tối đa 50.000.000đ).',
+  'wallet.topUp.success': 'Đã nạp tiền vào ví (demo)',
+  'wallet.topUp.success.desc': 'Số dư ví của bạn đã được cập nhật.',
+
+  // CORE-STABILITY-6 Part 3 — wallet withdrawal (demo).
+  'wallet.kind.UserWithdrawal': 'Rút tiền khỏi ví',
+  'wallet.withdraw.button': 'Rút tiền',
+  'wallet.withdraw.modal.title': 'Rút tiền khỏi ví (demo)',
+  'wallet.withdraw.modal.label': 'Số tiền muốn rút (đồng)',
+  'wallet.withdraw.modal.placeholder': 'Ví dụ: 100.000',
+  'wallet.withdraw.modal.noteLabel': 'Ghi chú / số tài khoản (tuỳ chọn)',
+  'wallet.withdraw.modal.notePlaceholder': 'Ví dụ: Vietcombank • 0123456789',
+  'wallet.withdraw.modal.available': 'Số dư khả dụng',
+  'wallet.withdraw.modal.submit': 'Xác nhận rút',
+  'wallet.withdraw.modal.cancel': 'Đóng',
+  'wallet.withdraw.error.required': 'Vui lòng nhập số tiền.',
+  'wallet.withdraw.error.invalid': 'Số tiền không hợp lệ. Chỉ nhập số dương.',
+  'wallet.withdraw.error.insufficient': 'Số dư không đủ để rút tiền.',
+  'wallet.withdraw.success': 'Đã rút tiền khỏi ví (demo)',
+
+  'wallet.income.note':
+    'Số dư ví là nguồn chính. "Tổng thu nhập" là tổng tiền công đã nhận tích luỹ.',
 
   'worker.absentDispute.banner.title':
     'Bạn đã bị đánh dấu vắng mặt cho ca này.',

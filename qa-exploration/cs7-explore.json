@@ -1,0 +1,32 @@
+{
+  "task": "CORE-STABILITY-7",
+  "date": "2026-05-30",
+  "note": "Read-only exploratory probe against the live demo seed. The probe script was removed after the run; JSON output retained.",
+  "workerUrl": "http://localhost:3000/worker/dashboard",
+  "avatarInitials": {
+    "workerWelcome": "NV",
+    "employerWelcome": "QP",
+    "note": "Consistent global rule (first letter of first two words): Nguyễn Văn An → NV, Quán Phở Hà → QP. Matches UserAvatar fallback everywhere."
+  },
+  "walletDeeplink": {
+    "topUpNotifVisible": true,
+    "walletHistoryOpened": true,
+    "note": "Top-up creates a 'Nạp tiền vào ví' notification; clicking it on the same route opens the WalletPanel ledger modal ('Lịch sử giao dịch ví') via the DASHBOARD_MODAL_EVENT + openLedgerSignal."
+  },
+  "numericFields": {
+    "contactPhoneInput": "090abc12x3",
+    "contactPhoneValue": "090123",
+    "note": "Letters stripped on input; digits-only retained."
+  },
+  "duplicateNotifications": {
+    "verified": "no duplicate (userId, dedupeKey) pairs",
+    "note": "Two 'Ca làm đã kết thúc' entries (if present) are for different shifts with distinct dedupeKeys and/or different recipients — allowed by Part 1.4."
+  },
+  "gates": {
+    "unit": "446/446",
+    "build": "clean, 28 routes",
+    "e2e": "99/99",
+    "time": "22/22",
+    "npmAudit": "2 moderate (postcss via next, deferred)"
+  }
+}

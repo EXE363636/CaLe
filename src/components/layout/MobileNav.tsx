@@ -309,7 +309,7 @@ function chipClasses(tone: 'good' | 'warn' | 'neutral'): string {
 // MobileNav
 // ---------------------------------------------------------------------------
 
-export function MobileNav() {
+export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } = {}) {
   const [open, setOpen] = useState(false);
 
   // Phase 9X — portal mount guard. `createPortal` needs a real DOM
@@ -519,9 +519,12 @@ export function MobileNav() {
   );
 
   return (
-    <div className="xl:hidden">
+    <div className={forceVisible ? 'block' : 'xl:hidden'}>
       {/* Hamburger trigger — stays inline inside <header> so it sits in
-          the navbar's flex layout. Only the drawer + backdrop portal. */}
+          the navbar's flex layout. Only the drawer + backdrop portal.
+          HEADER-NAV-LAYOUT-2: `forceVisible` keeps the hamburger shown
+          at `xl+` when the desktop nav doesn't fit, so all nav links
+          stay reachable without overlapping the profile zone. */}
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? t('btn.close') : 'Menu'}

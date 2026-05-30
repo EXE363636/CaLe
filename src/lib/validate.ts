@@ -124,3 +124,43 @@ export function isValidVNPhone(s: string): Result<true, PhoneError> {
     return fail('error.phone.invalid');
   }
 }
+
+// ---------------------------------------------------------------------------
+// CORE-STABILITY-7 Part 4 — numeric-field input sanitizers
+// ---------------------------------------------------------------------------
+
+/**
+ * Strip everything except digits and the optional formatting characters a
+ * Vietnamese phone number may legitimately contain (`+`, space, `-`).
+ * Used by phone inputs so a paste of `"(090) 123-4567"` keeps its shape
+ * while a stray letter is dropped on keystroke. The `+` is only kept when
+ * it leads the string (international `+84` prefix).
+ *
+ * `"abc0901"` → `"0901"`, `"+84 90"` → `"+84 90"`, `"09a0"` → `"090"`.
+ */
+export function sanitizePhoneInput(raw: string): string {
+  if (typeof raw !== 'string') return '';
+  // Keep a single leading '+', then digits/spaces/dashes only.
+  const hasLeadingPlus = raw.trimStart().startsWith('+');
+  const digitsAndSep = raw.replace(/[^\d\s-]/g, '');
+  return (hasLeadingPlus ? '+' : '') + digitsAndSep;
+}
+
+/**
+ * Predicate: does `s` contain a letter (Latin or any Unicode letter)?
+ * A numeric-only field uses this to reject obviously-textual input even
+ * before the stricter format validators run.
+ */
+export function containsLetters(s: string): boolean {
+  if (typeof s !== 'string') return false;
+  return /\p{L}/u.test(s);
+}
+
+/**
+ * Strip everything except digits. Used by amount / headcount inputs so the
+ * field can never hold a letter. `"12a3"` → `"123"`, `"abc"` → `""`.
+ */
+export function digitsOnly(raw: string): string {
+  if (typeof raw !== 'string') return '';
+  return raw.replace(/\D/g, '');
+}

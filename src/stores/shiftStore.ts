@@ -30,6 +30,7 @@ import { suggestedEvidenceForJobType } from '@/domain/evidence';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
 import { computePostingReadiness } from '@/domain/postingReadiness';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
+import { validateShiftFutureTiming } from '@/domain/shiftScheduling';
 import { canEditShift } from '@/domain/timeGates';
 import { newPrefixedId } from '@/lib/ids';
 import { useVerificationStore } from './verificationStore';
@@ -124,7 +125,20 @@ export type EditError = 'NOT_FOUND' | 'TOO_LATE' | 'POSITIONS_BELOW_FILLED';
 export type SimulateDepositError =
   | 'NOT_FOUND'
   | 'EMPLOYER_TYPE_REQUIRED'
-  | 'EMPLOYER_NOT_VERIFIED';
+  | 'EMPLOYER_NOT_VERIFIED'
+  /**
+   * QA-Fix-2 Phase 1 — the shift's date/time is in the past (or
+   * missing / inconsistent). A past shift can never be published or
+   * deposited; the deposit action is blocked and no wallet/timeline
+   * side effects fire.
+   */
+  | 'PAST_SHIFT'
+  /**
+   * CORE-STABILITY-6 Part 4 — employer wallet balance is less than the
+   * required 100% deposit. Posting/deposit is blocked: the shift is
+   * NOT published and no deposit ledger / timeline entry is created.
+   */
+  | 'INSUFFICIENT_BALANCE';
 
 interface ShiftStore {
   shifts: Shift[];
@@ -304,6 +318,24 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       return { ok: false, error: 'NOT_FOUND' };
     }
 
+    // QA-Fix-2 Phase 1 — hard block: a past / inconsistent shift can
+    // never be deposited or published. No wallet debit, no timeline,
+    // no Published status. The create form already validates, but a
+    // stale Draft (e.g. user filled a future date, idled past it,
+    // then clicked deposit) or a programmatic call must also be
+    // blocked here.
+    {
+      const timing = validateShiftFutureTiming(
+        shift.date,
+        shift.startTime,
+        shift.endTime,
+        nowIso(),
+      );
+      if (!timing.ok) {
+        return { ok: false, error: 'PAST_SHIFT' };
+      }
+    }
+
     // Phase 10C-Stab-1 Batch 2 H — store-side employer verification
     // gate. The UI's `<ReadinessChecklist/>` already prevents
     // unverified employers from clicking "Mô phỏng đặt cọc", but
@@ -326,6 +358,20 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       }
       if (!readiness.ready) {
         return { ok: false, error: 'EMPLOYER_NOT_VERIFIED' };
+      }
+    }
+
+    // CORE-STABILITY-6 Part 4 — insufficient-balance hard block. The
+    // employer must hold at least the required 100% deposit
+    // (`depositAmount`) in their wallet. This guard lives in the store
+    // (not just the UI) so a direct/programmatic call cannot publish a
+    // shift without funds. Runs BEFORE any state mutation: when it
+    // fails, no shift is published and no deposit ledger / timeline
+    // entry is created.
+    {
+      const balance = useWalletStore.getState().getBalance(shift.employerId);
+      if (balance < shift.depositAmount) {
+        return { ok: false, error: 'INSUFFICIENT_BALANCE' };
       }
     }
 
@@ -375,6 +421,18 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       set({ shifts: stamped });
       persist(stamped);
     }
+    // CORE-STABILITY-7 Part 1.7 — deposit-paid notification to the
+    // employer that deeplinks to their wallet/deposit history.
+    // Deduped per shift so re-deposit attempts (which can't happen
+    // once Published, but defensively) never double-notify.
+    useNotificationStore.getState().push({
+      userId: updated.employerId,
+      kind: 'EmployerDepositPaid',
+      title: 'Đã đặt cọc cho ca làm',
+      body: `Đã giữ cọc ${updated.depositAmount.toLocaleString('vi-VN')} đồng cho ca "${updated.title}". Ca đã được công bố.`,
+      link: '/employer/dashboard?modal=wallet',
+      dedupeKey: `EmployerDepositPaid:${updated.id}`,
+    });
     return { ok: true, value: updated };
   },
 

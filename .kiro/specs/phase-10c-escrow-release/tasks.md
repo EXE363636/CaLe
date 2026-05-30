@@ -15,8 +15,8 @@ Stack invariants preserved on every task:
 
 ## Tasks
 
-- [ ] 1. Types and constants
-  - [ ] 1.1 Add `EvidenceRequirement`, dispute category enums, and extended `DisputeStatus` in `src/types/index.ts`
+- [x] 1. Types and constants
+  - [x] 1.1 Add `EvidenceRequirement`, dispute category enums, and extended `DisputeStatus` in `src/types/index.ts`
     - Add `EvidenceRequirement` literal union (`'None' | 'ChecklistOnly' | 'OptionalPhoto' | 'RequiredPhoto' | 'RequiredHandoverChecklist'`).
     - Extend `Shift` with optional `evidenceRequirement?: EvidenceRequirement` (optional so legacy snapshots round-trip).
     - Extend `Application` with optional `checkoutChecklist?: boolean[]`, `workerCheckoutNote?: string`, `workerEvidenceFileName?: string`, `autoReleaseAt?: string`, `autoReleased?: boolean`.
@@ -27,7 +27,7 @@ Stack invariants preserved on every task:
     - Acceptance: `tsc` compiles; existing tests still type-check; no field is made required on legacy records.
     - _Requirements: 1.1, 4.11, 6.1, 7.1, 7.2, 7.3, 8.12_
 
-  - [ ] 1.2 Add `EVIDENCE_REQUIREMENT_VALUES`, label/helper dictionaries, and `CHECKOUT_CHECKLIST_ITEMS_VI`
+  - [x] 1.2 Add `EVIDENCE_REQUIREMENT_VALUES`, label/helper dictionaries, and `CHECKOUT_CHECKLIST_ITEMS_VI`
     - Export `EVIDENCE_REQUIREMENT_VALUES: readonly EvidenceRequirement[]` in stable picker order in `src/domain/evidence.ts`.
     - In `src/i18n/vi.ts`, add the structured key namespaces from the design's Vietnamese label dictionary: `evidence.requirement.*`, `evidence.helper.*`, `evidence.privacy.warning`, `evidence.suggestedChip`, `error.evidence.*`, `dispute.status.PartialRelease`, `dispute.status.RequestedMoreEvidence`, `dispute.status.ClosedInvalid`.
     - In `src/i18n/vi.ts`, export `CHECKOUT_CHECKLIST_ITEMS_VI: Record<EvidenceRequirement, string[]>` exactly as listed in the design's "Static checkout-checklist template" table.
@@ -36,8 +36,8 @@ Stack invariants preserved on every task:
     - Acceptance: every Vietnamese label is 1–80 chars, contains at least one diacritic, is not the literal English name; `t('evidence.requirement.None')` etc. round-trips; no `VNĐ` / `₫` introduced.
     - _Requirements: 1.7, 12.6_
 
-- [ ] 2. Evidence requirement helper
-  - [ ] 2.1 Implement `getSuggestedEvidenceLevel`, `suggestedEvidenceForJobType`, and `validateCheckoutPayload` in `src/domain/evidence.ts`
+- [x] 2. Evidence requirement helper
+  - [x] 2.1 Implement `getSuggestedEvidenceLevel`, `suggestedEvidenceForJobType`, and `validateCheckoutPayload` in `src/domain/evidence.ts`
     - Implement `getSuggestedEvidenceLevel(jobType, riskLevel)` per the design's mapping table: `Low → 'ChecklistOnly'`, `Medium → 'OptionalPhoto'`, `High → 'RequiredHandoverChecklist'`. Out-of-enum or empty `jobType` returns the safe default `'RequiredHandoverChecklist'`.
     - Implement `suggestedEvidenceForJobType(jobType)` as `getSuggestedEvidenceLevel(jobType, jobCategoryRiskLevel(jobType))` (composition equation, Property 2).
     - Implement `validateCheckoutPayload(requirement, payload)` returning `{ ok: true } | { ok: false; reason: 'CHECKLIST_INCOMPLETE' | 'PHOTO_REQUIRED' | 'NOTE_REQUIRED' | 'FIELD_TOO_LONG' }` exactly per the design's per-level rules table. Pure: never throws, no clock reads, no globals, no module-level mutation.
@@ -46,8 +46,8 @@ Stack invariants preserved on every task:
     - Acceptance: two successive calls with identical args return strictly equal results; reachable module-level state snapshot is deep-equal before/after; no `Date.now()`, `Math.random()`, or I/O inside the module.
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 1.9, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-- [ ] 3. Shift posting UI for evidence requirement
-  - [ ] 3.1 Add the "Bằng chứng sau ca" fieldset to `ShiftForm` with picker, suggested chip, and high-risk gating
+- [x] 3. Shift posting UI for evidence requirement
+  - [x] 3.1 Add the "Bằng chứng sau ca" fieldset to `ShiftForm` with picker, suggested chip, and high-risk gating
     - Render a `<fieldset>` "Bằng chứng sau ca" with a 5-radio picker over `EVIDENCE_REQUIREMENT_VALUES`, each option labelled by `evidence.requirement.*` with a one-line `evidence.helper.*` underneath.
     - Pre-select `suggestedEvidenceForJobType(values.jobType)` when the form first mounts for a new shift; show a "Hệ thống đề xuất" chip next to the suggested option whenever `jobType` is non-empty.
     - Render the privacy warning beginning with `Không yêu cầu chụp khách hàng, giấy tờ cá nhân` (key `evidence.privacy.warning`).
@@ -57,15 +57,15 @@ Stack invariants preserved on every task:
     - Acceptance: shifts created via `ShiftForm` always carry an explicit `evidenceRequirement`; high-risk gating blocks submission with an inline Vietnamese message; existing edit flow round-trips the field.
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
 
-  - [ ] 3.2 Mount `<HelpPopover>` inside the `ShiftForm` evidence fieldset
+  - [x] 3.2 Mount `<HelpPopover>` inside the `ShiftForm` evidence fieldset
     - Place a `<HelpPopover title="Cách chọn mức bằng chứng" description={…40–800 chars…}/>` inside the same `<fieldset>` as the picker.
     - Description is Vietnamese prose, 40–800 chars, no `Raw_Route_Path` token, currency uses `đ` / `đồng` only if money is mentioned.
     - Affected files: `src/components/forms/ShiftForm.tsx`, `src/i18n/vi.ts` (help body key).
     - Acceptance: popover dismisses on Escape, outside click, or close button and restores keyboard focus to the trigger.
     - _Requirements: 9.1, 9.5, 9.6, 9.7_
 
-- [ ] 4. Worker-facing evidence/payment education
-  - [ ] 4.1 Add the "Quy trình thanh toán & bằng chứng" card to the worker shift detail page
+- [x] 4. Worker-facing evidence/payment education
+  - [x] 4.1 Add the "Quy trình thanh toán & bằng chứng" card to the worker shift detail page
     - Mount the card on `src/app/shifts/[id]/page.tsx` (Next.js 16 App Router page — implementer reads `node_modules/next/dist/docs/` first), positioned ABOVE the apply section in the page's vertical flow.
     - Body is Vietnamese prose explaining (a) payment is released on employer confirmation after the shift, and (b) the 12 h Auto_Release rule when no dispute is open. No `Raw_Route_Path` tokens; currency in `đ` / `đồng` only.
     - Display the Vietnamese label for the shift's current `evidenceRequirement` via `t('evidence.requirement.<value>')`.
@@ -75,15 +75,15 @@ Stack invariants preserved on every task:
     - Acceptance: card renders above the apply section; banner appears for high-evidence shifts; non-owner viewers see no `evidenceFileName` text; never a blank space when the shift is missing.
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-  - [ ] 4.2 Mount the worker-side `<HelpPopover>` on the payment & evidence card
+  - [x] 4.2 Mount the worker-side `<HelpPopover>` on the payment & evidence card
     - Place a `<HelpPopover title="Cách bạn được thanh toán" description={…40–800 chars…}/>` adjacent to the card's `<h2>` (same flex/grid container).
     - Body explains payment release and the 12 h Auto_Release rule; Vietnamese prose, 40–800 chars, no `Raw_Route_Path` tokens, `đ` / `đồng` only.
     - Affected files: `src/app/shifts/[id]/page.tsx` (or `src/components/shift/PaymentEvidenceCard.tsx`), `src/i18n/vi.ts`.
     - Acceptance: popover dismisses on Escape / outside click / close button and restores focus to its trigger.
     - _Requirements: 9.2, 9.5, 9.6, 9.7_
 
-- [ ] 5. Worker check-out dialog and validation
-  - [ ] 5.1 Refactor `useApplicationStore.checkOut` to accept the structured payload and enforce evidence
+- [x] 5. Worker check-out dialog and validation
+  - [x] 5.1 Refactor `useApplicationStore.checkOut` to accept the structured payload and enforce evidence
     - Change the signature to `checkOut(input: { applicationId: string; checklist?: boolean[]; note?: string; evidenceFileName?: string }): Result<Application, CheckoutError>` where `CheckoutError = 'APPLICATION_NOT_FOUND' | 'WRONG_STATUS' | { code: 'EVIDENCE_REQUIRED'; reason: EvidenceValidationFailure }`.
     - Order of operations exactly as specified in the design: resolve application → reject `APPLICATION_NOT_FOUND` → reject `WRONG_STATUS` unless `status === 'CheckedIn'` → resolve linked Shift and read `shift.evidenceRequirement` (default `'None'` only for legacy seed shifts) → call `validateCheckoutPayload(requirement, payload)`.
     - On validation failure, leave the application untouched (no field writes, `autoReleaseAt` stays absent) and return `{ ok: false, error: { code: 'EVIDENCE_REQUIRED', reason } }`.
@@ -94,7 +94,7 @@ Stack invariants preserved on every task:
     - Acceptance: existing 165 tests still pass; rejected `EVIDENCE_REQUIRED` leaves application deep-equal to its pre-call snapshot; success path sets `autoReleaseAt = checkOutAt + 12 h` exactly.
     - _Requirements: 4.9, 4.10, 4.11, 4.12, 6.2_
 
-  - [ ] 5.2 Implement `CheckoutDialog`
+  - [x] 5.2 Implement `CheckoutDialog`
     - Create `src/components/forms/CheckoutDialog.tsx` exposing `{ open, onClose, application, shift, onSubmit, loading?, errorMessage? }`.
     - Layout per the design: dialog title `t('checkout.dialog.title')`, intro paragraph, conditional checklist (driven by `CHECKOUT_CHECKLIST_ITEMS_VI[shift.evidenceRequirement]`), photo filename input (mock; helper text `Tên tệp ảnh` / `Bản MVP không tải tệp thật`), handover note `<Textarea maxLength={1000}/>`.
     - Submit button enabled iff `validateCheckoutPayload(shift.evidenceRequirement, currentPayload).ok === true`. On submit, call `props.onSubmit(payload)`. On `EVIDENCE_REQUIRED`, dialog stays open and `errorMessage` resolves to the localized `t('error.evidence.<reason>')`.
@@ -105,8 +105,8 @@ Stack invariants preserved on every task:
     - Acceptance: rendered checklist length matches `CHECKOUT_CHECKLIST_ITEMS_VI[level]`; submit disabled mirrors the validator; on rejection, no application fields are written.
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 9.3, 9.5, 9.6, 9.7_
 
-- [ ] 6. Employer confirmation/dispute panel
-  - [ ] 6.1 Implement `<AutoReleaseCountdown/>` presentational component
+- [x] 6. Employer confirmation/dispute panel
+  - [x] 6.1 Implement `<AutoReleaseCountdown/>` presentational component
     - Create `src/components/shift/AutoReleaseCountdown.tsx` exposing `{ autoReleaseAt: string; nowSource?: () => number }`.
     - Render `hh:mm:ss` from `Math.max(0, Date.parse(autoReleaseAt) - now)`. When `remainingMs === 0`, render exactly `'00:00:00'` and stop re-scheduling.
     - Single UI-local `setInterval(..., 1000)` for the lifetime of the mounted component (presentational only — never mutates store state). The interval is cleared on unmount and when the countdown reaches zero.
@@ -115,7 +115,7 @@ Stack invariants preserved on every task:
     - Acceptance: rendered text matches `/^\d{2}:\d{2}:\d{2}$/`; clamps at `00:00:00` for past timestamps; no store mutation; the only timer in the file is the `setInterval` documented in the design.
     - _Requirements: 5.7, 5.8_
 
-  - [ ] 6.2 Render the employer confirmation panel block per `CheckedOut` application
+  - [x] 6.2 Render the employer confirmation panel block per `CheckedOut` application
     - In `src/app/employer/shifts/[id]/page.tsx` (App Router page — read Next.js 16 docs first), extend each per-application block when `application.status === 'CheckedOut'` with:
       - Worker check-out time formatted via `Intl.DateTimeFormat('vi-VN', { day, month, year, hour, minute })`.
       - Binary checklist indicator: `Đã tích đầy đủ` success badge or `Còn N mục chưa tích` based on `checkoutChecklist`.
@@ -128,7 +128,7 @@ Stack invariants preserved on every task:
     - Acceptance: when `autoReleaseAt` is in the future the countdown refreshes ≥1× per second; in the past it shows `00:00:00`; the panel never exposes file bytes or PII.
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 9.4, 9.5, 9.6, 9.7_
 
-  - [ ] 6.3 Implement `DisputeDialog` and the `reportIssue`/`workerOpenDispute` store actions
+  - [x] 6.3 Implement `DisputeDialog` and the `reportIssue`/`workerOpenDispute` store actions
     - Create `src/components/forms/DisputeDialog.tsx` exposing `{ open, onClose, side: 'employer' | 'worker', application, shift, onSubmit, loading?, errorMessage? }`. Renders a category `<select>` driven by `EMPLOYER_DISPUTE_CATEGORIES` or `WORKER_DISPUTE_CATEGORIES`, a required `reason` `<Textarea>` (1–1000 chars), an optional `evidenceDescription` `<Textarea>` (≤2000 chars), and an optional `evidenceFileName` text input (≤255 chars).
     - In `src/stores/applicationStore.ts`, refactor `reportIssue` to accept `{ applicationId, category, reason, evidenceDescription?, evidenceFileName? }` and add a sibling `workerOpenDispute(applicationId, payload)`. Both validate per the design's order: trim `reason` → reject `REASON_REQUIRED` when empty → reject `FIELD_TOO_LONG` for any over-length field → reject `CATEGORY_REQUIRED` / `CATEGORY_INVALID` (including wrong-role mismatches) → reject `APPLICATION_NOT_FOUND` → reject `WRONG_STATUS` when application is already `'Disputed'` or in any non-disputable status. Filename hygiene: strip whitespace; reject values containing `'/'` or `'\\'` with `FIELD_TOO_LONG`.
     - On success, build a `Dispute` (`id = newPrefixedId('dispute')`, `category`, trimmed `reason`, optional fields, `raisedBy = 'employer' | 'worker'`, `status: 'Open'`, `createdAt: nowIso()`), push onto `applicationStore.disputes` via the existing persistence helper, and flip the application's status to `'Disputed'`.
@@ -137,8 +137,8 @@ Stack invariants preserved on every task:
     - Acceptance: round-trip persistence preserves `category`, `reason`, `evidenceDescription`, `evidenceFileName` exactly; second dispute on an already-`'Disputed'` application is rejected; non-admin viewers never see `evidenceFileName`.
     - _Requirements: 5.10, 5.11, 7.1, 7.2, 7.3, 7.4, 7.5, 7.7, 7.8, 7.9_
 
-- [ ] 7. Auto-release lifecycle
-  - [ ] 7.1 Implement `useApplicationStore.autoReleaseEligibleApplications(nowIso?)`
+- [x] 7. Auto-release lifecycle
+  - [x] 7.1 Implement `useApplicationStore.autoReleaseEligibleApplications(nowIso?)`
     - Add the action to `src/stores/applicationStore.ts` returning `{ releasedIds: string[] }`.
     - Eligibility predicate exactly as designed: `status === 'CheckedOut' && autoReleased !== true && typeof autoReleaseAt === 'string' && autoReleaseAt.length > 0 && Date.parse(autoReleaseAt) <= Date.parse(nowIso ?? new Date().toISOString()) && !openDisputeAppIds.has(a.id)`. The `Open_Dispute` set is derived from the live `disputes` array as `d.status ∉ {'ResolvedReleased', 'ResolvedRefunded', 'PartialRelease', 'ClosedInvalid'}`.
     - Per-eligible application: atomic update to `status: 'Confirmed'`, `confirmedAt: nowIso`, `autoReleased: true`, plus a default 5-star Rating built via the existing `confirmCompletion` flow (no rating prompt). Wrap each per-record block in `try { … } catch (err) { logDevWarning(a.id, err) }` so per-record error isolation holds (Requirement 6.10).
@@ -149,7 +149,8 @@ Stack invariants preserved on every task:
     - Acceptance: idempotent on second invocation; one fault-injected eligible record does not abort the loop; applications with an Open_Dispute remain unchanged.
     - _Requirements: 6.3, 6.4, 6.5, 6.6, 6.8, 6.10_
 
-  - [ ] 7.2 Wire `autoReleaseEligibleApplications` ONLY into `useLifecycleSync` and `AppHydrator`
+  - [x] 7.2 Wire `autoReleaseEligibleApplications` ONLY into `useLifecycleSync` and `AppHydrator`
+    - **Reconciliation note (tracker sync):** Implemented via the canonical `applicationStore.runLifecycleSync()` orchestrator instead of a direct call. Both wired mount points (`src/lib/useLifecycleSync.ts` and `src/components/layout/AppHydrator.tsx`) call `runLifecycleSync()`, whose Step 4 invokes `autoReleaseEligibleApplications(at)`. Net effect matches the design: auto-release runs only on those two page-mount surfaces, with no `setTimeout`/`setInterval`/polling on the path. The literal "exactly two direct call sites" wording is satisfied functionally through the orchestrator.
     - In `src/lib/useLifecycleSync.ts`, append `useApplicationStore.getState().autoReleaseEligibleApplications();` AFTER the existing `expirePendingApplicationsForStartedShifts()` call inside the existing `useEffect`.
     - In `src/components/layout/AppHydrator.tsx`, append the same call after `expirePendingApplicationsForStartedShifts()` in the post-hydration boot block.
     - VERIFY no other module in `src/` invokes `autoReleaseEligibleApplications`. Add no `setTimeout`, `setInterval`, or polling to either site.
@@ -158,7 +159,7 @@ Stack invariants preserved on every task:
     - _Requirements: 6.7, 6.9, 12.9_
 
 - [ ] 8. Ledger/history updates
-  - [ ] 8.1 Route auto-release through existing notification/ledger helpers (Section 11 invariant)
+  - [x] 8.1 Route auto-release through existing notification/ledger helpers (Section 11 invariant)
     - Ensure the per-record auto-release block in `autoReleaseEligibleApplications` reuses the existing `confirmCompletion` flow and existing `notificationStore.push(...)` helpers so each numeric change emits one `ShiftCompletedConfirmed` notification (or equivalent existing kind) and creates exactly one `Rating` record. The `autoReleased: true` flag is the audit marker for "auto vs manual" — DO NOT add a new `localStorage` key.
     - Verify with a code search that the action does not bypass `useShiftStore.transitionEscrow` or `notificationStore.push`.
     - Affected files: `src/stores/applicationStore.ts`, `src/stores/notificationStore.ts` (no behavior change, just confirmation that auto-release reuses it).
@@ -166,6 +167,7 @@ Stack invariants preserved on every task:
     - _Requirements: 6.4, 12.10, 12.11_
 
   - [ ] 8.2 Implement `useAdminStore.resolveDisputeExtended` for the five outcomes (numeric paths only)
+    - **Reconciliation note (PENDING — implementation diverged):** The shipped admin store does NOT expose `resolveDisputeExtended`. Instead it ships two simpler actions that cover the demo's needs: `resolveDispute(disputeId, 'ResolvedReleased' | 'ResolvedRefunded', note)` (the two full-release/full-refund outcomes, with escrow flip + ledger notification) and `requestMoreEvidence(disputeId, target, note)` (sets `status = 'RequestedMoreEvidence'`, no escrow change). The `'PartialRelease'` (with `releaseAmount` validation + `INVALID_AMOUNT`) and `'ClosedInvalid'` outcomes are NOT wired in the store. The extended `DisputeStatus` literals and the `WorkerPartialRelease`/`EmployerPartialRefund` ledger-kind labels exist in `src/types/index.ts` + `src/i18n/vi.ts` (reserved for a future wave) but no action sets them. This was a deliberate scope decision noted in QA-Fix-2's deferred list ("Admin `PartialRelease`/`ClosedInvalid` resolution outcomes (out of scope)"). Marked pending rather than complete because the five-outcome API contract is not met.
     - Add `resolveDisputeExtended(disputeId, outcome, note): Result<Dispute, AdminError | 'INVALID_AMOUNT'>` to `src/stores/adminStore.ts`. Keep the existing `resolveDispute` for backward compatibility with Phase 10A tests.
     - Outcome semantics exactly per the design table:
       - `'ResolvedReleased'` → `Dispute.status = 'ResolvedReleased'`, escrow flips to `Released` via `transitionEscrow('AdminRelease')`, one ledger notification.
@@ -179,7 +181,7 @@ Stack invariants preserved on every task:
     - _Requirements: 8.5, 8.6, 8.7, 8.8, 8.9, 8.10, 8.11, 12.10, 12.11_
 
 - [ ] 9. Admin dispute queue and resolution
-  - [ ] 9.1 Extend the admin `DisputesPanel` row with full lifecycle context
+  - [x] 9.1 Extend the admin `DisputesPanel` row with full lifecycle context
     - In the existing admin disputes panel (referenced from `src/app/admin/dashboard/page.tsx` — read Next.js 16 docs first), expand each dispute row with:
       - Header line: dispute id, category badge, `raisedBy` chip, status badge with the three new colours (`PartialRelease`, `RequestedMoreEvidence`, `ClosedInvalid`).
       - Lifecycle context block: `Application.checkInAt`, `Application.checkOutAt`, `Shift.startTime`, `Shift.endTime` with placeholder `Chưa ghi nhận` for missing timestamps.
@@ -190,6 +192,7 @@ Stack invariants preserved on every task:
     - _Requirements: 8.1, 8.2, 8.3_
 
   - [ ] 9.2 Add the five-outcome action row to the admin `DisputesPanel`
+    - **Reconciliation note (PENDING — implementation diverged):** The admin `DisputeRow` (in `src/app/admin/dashboard/page.tsx`) renders an action row gated on `dispute.status ∈ {'Open', 'RequestedMoreEvidence'}`, but with TWO resolution outcomes plus a request-evidence sub-form, not five: "Thanh toán cho người làm" (`ResolvedReleased`) / "Hoàn tiền" (`ResolvedRefunded`) via `resolveDispute`, and "Yêu cầu bổ sung thông tin" via `requestMoreEvidence` (targets worker/employer/both). The `Thanh toán một phần` (PartialRelease + amount modal + inline validation) and `Đóng vì không hợp lệ` (ClosedInvalid) actions are NOT present, consistent with task 8.2 above. Marked pending because the five-outcome row contract is not met.
     - Render an action row visible only while `dispute.status ∈ {'Open', 'RequestedMoreEvidence'}`:
       - `Thanh toán toàn bộ` → `resolveDisputeExtended(id, 'ResolvedReleased', note)`.
       - `Hoàn tiền toàn bộ` → `resolveDisputeExtended(id, 'ResolvedRefunded', note)`.
@@ -203,6 +206,7 @@ Stack invariants preserved on every task:
 
 - [ ] 10. Notifications/toasts
   - [ ] 10.1 Wire Vietnamese success/error toasts for every Phase 10C action surface
+    - **Reconciliation note (PARTIAL — kept pending):** The worker/dialog side is fully shipped in `src/i18n/vi.ts`: `feedback.checkOut.success`, all `error.evidence.*` keys (`tooLowForHighRisk`, `checklistIncomplete`, `photoRequired`, `noteRequired`, `tooLong`), and the dispute dialog error keys (`dispute.dialog.error.categoryRequired`/`reasonRequired`/`fieldTooLong`), all routed through the existing `Toast` host via `toastFromStoreError`. What is NOT shipped: the admin five-outcome toasts that depend on the unwired `resolveDisputeExtended` — specifically `Đã thanh toán một phần`, `Phần còn lại đã được hoàn`, `Đã đóng tranh chấp vì không hợp lệ`, and the `INVALID_AMOUNT` → "Số tiền thanh toán phải lớn hơn 0…" mapping. (`requestMoreEvidence` success toast `admin.dispute.requestEvidence.success` and the two existing resolve toasts ARE shipped.) Kept pending because it is blocked by tasks 8.2 / 9.2.
     - Confirm/extend localized toasts in `src/i18n/vi.ts` and `src/lib/toast.ts` (or `src/lib/errorMap.ts` if mapping is centralized there) for:
       - `feedback.checkOut.success` ("Đã check-out") on successful `checkOut`.
       - `error.evidence.checklistIncomplete`, `error.evidence.photoRequired`, `error.evidence.noteRequired`, `error.evidence.tooLong`, `error.evidence.tooLowForHighRisk` for the dialog and `ShiftForm` rejection paths.
@@ -215,6 +219,7 @@ Stack invariants preserved on every task:
 
 - [ ] 11. User guide / HANDOFF / VISUAL_QA updates
   - [ ] 11.1 Add `#payment-release`, `#evidence-by-risk`, `#dispute-outcomes` sections to the user guide
+    - **Reconciliation note (PENDING — not implemented):** `src/app/user-guide/page.tsx` has the Phase 9Z feature-anchor sections (`#employer-payments`, `#worker-total-income`, etc.) but none of the three Phase 10C anchors (`#payment-release`, `#evidence-by-risk`, `#dispute-outcomes`). The 12 h Auto_Release rule, the evidence-by-risk mapping, and the extended dispute-outcome glossary are not yet surfaced in the user guide. Genuinely pending.
     - In `src/app/user-guide/page.tsx` (App Router page — read Next.js 16 docs first), mount three new `<FeatureGuide>` cards each with `id="<anchor>"` and `scroll-mt-24`:
       - `#payment-release` — Vietnamese heading "Khi nào nhà tuyển dụng thanh toán?"; describes standard release on confirmation and the 12 h Auto_Release rule.
       - `#evidence-by-risk` — Vietnamese heading "Mức bằng chứng theo độ rủi ro công việc"; lists each of the three Risk_Level values and the `EvidenceRequirement` values mapped to that risk level (per Requirement 1).
@@ -226,6 +231,7 @@ Stack invariants preserved on every task:
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
   - [ ] 11.2 Append a Phase 10C entry to `HANDOFF.md`
+    - **Reconciliation note (PENDING — partial):** `HANDOFF.md` documents the Phase 10C-Stab-1 batches (Batch 3 contracts, Batch 4 H request-more-evidence, etc.) but has NO foundational "Phase 10C — Escrow Release Lifecycle" feature entry describing the evidence-requirement model, the 12 h auto-release contract, and the auto-release wiring contract (only `useLifecycleSync` + `AppHydrator` via `runLifecycleSync`). A consolidated date-stamped Phase 10C section per this task is not present. Genuinely pending.
     - Append a date-stamped Phase 10C section to `HANDOFF.md` listing: feature summary, files changed (types, evidence helper, ShiftForm, CheckoutDialog, DisputeDialog, AutoReleaseCountdown, applicationStore actions, adminStore extension, useLifecycleSync, AppHydrator, user-guide additions, `phase10c.test.ts`), explicit limitations (no real backend, no real payment gateway, no OTP, no external API, no new routes — still 28), and the auto-release wiring contract (only `useLifecycleSync` and `AppHydrator`).
     - DO NOT modify `requirements.md` or `design.md`.
     - Affected files: `HANDOFF.md`.
@@ -233,6 +239,7 @@ Stack invariants preserved on every task:
     - _Requirements: 12.1, 12.2, 12.4, 12.5_
 
   - [ ] 11.3 Append a Phase 10C entry to `VISUAL_QA.md`
+    - **Reconciliation note (PENDING — not implemented):** `VISUAL_QA.md` covers prior phases (through Phase 10A-Fix-4) but has no Phase 10C section walking the evidence picker / payment-evidence card / `CheckoutDialog` / employer countdown + dispute dialog / admin resolution row at 1280 px with the dark-mode and currency checks recorded. Genuinely pending.
     - Append a Phase 10C row/section to `VISUAL_QA.md` listing the surfaces walked through after a fresh page load: `ShiftForm` evidence picker (with high-risk gating), worker shift detail "Quy trình thanh toán & bằng chứng" card, worker `CheckoutDialog`, employer confirmation panel countdown + dispute dialog, admin five-outcome action row.
     - Verify each surface against the `dark:` / `prefers-color-scheme: dark` ban and the currency rules; record the result in the table.
     - Affected files: `VISUAL_QA.md`.
@@ -240,7 +247,8 @@ Stack invariants preserved on every task:
     - _Requirements: 12.3, 12.6, 12.7_
 
 - [ ] 12. Tests and final validation
-  - [ ] 12.1 Create `src/__tests__/phase10c.test.ts` with the deterministic time setup harness
+  - **Reconciliation note (tracker sync) — test-file location divergence:** The spec mandated all property tests live in a single `src/__tests__/phase10c.test.ts`. In practice `phase10c.test.ts` holds Properties 1, 2, 3, 6 (evidence-helper purity/mapping/label-totality + checkout-payload predicate), and the remaining contracts were locked down in dedicated sibling files: `phase10cCheckout.test.ts` (EVIDENCE_REQUIRED + 12 h `autoReleaseAt`), `phase10cAutoRelease.test.ts` (auto-release effect, idempotency, open-dispute lockout, per-record error isolation, no-timers), `phase10cDispute.test.ts` / `phase10cWorkerDispute.test.ts` (employer/worker dispute round-trip + rejection totality), plus component tests `AutoReleaseCountdown.test.tsx` and `ShiftForm.test.tsx` (countdown formatting, high-risk gating, pre-selection). Coverage exists; the file layout differs. Sub-tasks below are marked complete when an equivalent regression test exists somewhere in the suite, and pending when no test covers the contract.
+  - [x] 12.1 Create `src/__tests__/phase10c.test.ts` with the deterministic time setup harness
     - Set up `NOW_MS = Date.now()`, `TWELVE_HOURS_MS = 12 * 60 * 60 * 1000`, `localDateTimeFromOffset(offsetMs)` helper, and the `beforeEach`/`afterEach` `vi.useFakeTimers({ now: NOW_MS })` / `vi.useRealTimers()` blocks exactly as designed.
     - Import `fast-check`; configure all property tests with `numRuns: 100` minimum.
     - Tag every property test with a comment of the form `// Feature: phase-10c-escrow-release, Property N: <property text>`.
@@ -248,7 +256,7 @@ Stack invariants preserved on every task:
     - Acceptance: harness compiles; subsequent sub-tasks can drop `fc.assert(...)` blocks into the file without re-doing setup; no fixture depends on host timezone.
     - _Requirements: 11.1, 11.13_
 
-  - [ ]* 12.2 Property test for `getSuggestedEvidenceLevel — Risk_Level mapping is exact`
+  - [x]* 12.2 Property test for `getSuggestedEvidenceLevel — Risk_Level mapping is exact`
     - **Property 1: Risk-level evidence mapping**
     - **Validates: Requirements 1.3, 1.4, 1.5, 1.9 (test mandated by Requirement 11.2)**
     - Generate any `jobType` string and any `riskLevel` from the three-element enum; assert the returned value lies in the design's allowed subset for each risk level. Generate `riskLevel` outside the enum or a falsy `jobType`; assert the helper returns `'RequiredHandoverChecklist'`.
@@ -256,7 +264,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 1.3, 1.4, 1.5, 1.9, 11.2_
 
-  - [ ]* 12.3 Property test for `ShiftForm — High-risk job rejects sub-RequiredHandoverChecklist evidence`
+  - [x]* 12.3 Property test for `ShiftForm — High-risk job rejects sub-RequiredHandoverChecklist evidence`
+    - **Reconciliation note:** Equivalent regression coverage exists in `src/components/forms/ShiftForm.test.tsx` (`disables sub-min options for high-risk job categories`, `lifts the selection when switching from low-risk to high-risk`) — example-based rather than fast-check, but the high-risk gating contract is locked.
     - **Property 5: ShiftForm high-risk gating**
     - **Validates: Requirements 2.6, 2.7 (test mandated by Requirement 11.3)**
     - Generate any `jobType` for which `jobCategoryRiskLevel(jobType) === 'High'` and any `EvidenceRequirement` strictly below `'RequiredHandoverChecklist'`. Render `ShiftForm` with that pair, click submit, and assert: parent `onSubmit` callback NOT invoked; previously entered field values preserved; an inline Vietnamese validation message identifies the evidence field as the cause.
@@ -264,7 +273,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 2.6, 2.7, 11.3_
 
-  - [ ]* 12.4 Property test for `applicationStore.checkOut — EVIDENCE_REQUIRED leaves application unchanged`
+  - [x]* 12.4 Property test for `applicationStore.checkOut — EVIDENCE_REQUIRED leaves application unchanged`
+    - **Reconciliation note:** Covered by `phase10cCheckout.test.ts` (`rejects EVIDENCE_REQUIRED …` cases assert deep-equal pre/post snapshots) — example-based rather than fast-check, but the contract is regression-locked.
     - **Property 8: EVIDENCE_REQUIRED rejection leaves application strictly unchanged**
     - **Validates: Requirements 4.9, 11.4 (test mandated by Requirement 11.4)**
     - Generate any `Application` in `'CheckedIn'` status, any linked `Shift` whose `evidenceRequirement` is one of `ChecklistOnly | RequiredPhoto | RequiredHandoverChecklist`, and any `CheckoutPayload` for which `validateCheckoutPayload(...).ok === false`. Assert the `Result` returned from `applicationStore.checkOut({applicationId, ...payload})` equals `{ ok: false, error: { code: 'EVIDENCE_REQUIRED', reason } }` and the targeted Application record (including `status`, `checkOutAt`, `checkoutChecklist`, `workerCheckoutNote`, `workerEvidenceFileName`, `autoReleaseAt`) is deep-equal to its pre-call snapshot.
@@ -272,7 +282,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 4.9, 11.4_
 
-  - [ ]* 12.5 Property test for `autoReleaseEligibleApplications — eligible application becomes Confirmed + 5★`
+  - [x]* 12.5 Property test for `autoReleaseEligibleApplications — eligible application becomes Confirmed + 5★`
+    - **Reconciliation note:** Covered by `phase10cAutoRelease.test.ts` (`flips an eligible CheckedOut application to Confirmed + autoReleased + 5★`).
     - **Property 9: Auto-release predicate exactness and effect**
     - **Validates: Requirements 6.3, 6.4 (test mandated by Requirement 11.5)**
     - Generate any combination of `applications`, `disputes`, and `nowIso` such that at least one application satisfies the eligibility predicate. Advance the deterministic time source by at least `TWELVE_HOURS_MS` past the application's `autoReleaseAt`. Invoke `autoReleaseEligibleApplications(nowIso)` and assert: every flipped record ends with `status === 'Confirmed'`, `autoReleased === true`, a corresponding `Rating` with `stars === 5`, and `confirmedAt` populated. Applications outside the eligible set end the call with `status`, `autoReleased`, `autoReleaseAt` unchanged.
@@ -280,7 +291,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 6.3, 6.4, 11.5_
 
-  - [ ]* 12.6 Property test for `autoReleaseEligibleApplications — second invocation is a state-identity no-op`
+  - [x]* 12.6 Property test for `autoReleaseEligibleApplications — second invocation is a state-identity no-op`
+    - **Reconciliation note:** Covered by `phase10cAutoRelease.test.ts` (`is idempotent — second invocation produces no further state change`).
     - **Property 10: Idempotency of wired lifecycle actions**
     - **Validates: Requirements 6.5, 12.9 (test mandated by Requirement 11.6)**
     - After a first invocation has settled, deep-snapshot every Application and Rating, then invoke a second time without external state changes. Assert no Application's status, rating, `autoReleaseAt`, or `autoReleased` fields differ from the snapshot. Assert `releasedIds` returned by the second invocation is empty.
@@ -288,7 +300,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 6.5, 11.6, 12.9_
 
-  - [ ]* 12.7 Property test for `autoReleaseEligibleApplications — Open_Dispute blocks release`
+  - [x]* 12.7 Property test for `autoReleaseEligibleApplications — Open_Dispute blocks release`
+    - **Reconciliation note:** Covered by `phase10cAutoRelease.test.ts` (`skips an application that has an open dispute` + terminal-dispute sanity case).
     - **Property 9 + Property 13 (consolidated): Open_Dispute lock-out**
     - **Validates: Requirements 6.6, 7.6 (test mandated by Requirement 11.7)**
     - Generate any application with `status === 'CheckedOut'`, any `autoReleaseAt` already in the past relative to the deterministic clock, and any associated dispute whose status is in the non-terminal set `{'Open', 'RequestedMoreEvidence'}`. Invoke `autoReleaseEligibleApplications(nowIso)` and assert the application's `status`, `autoReleased`, and `autoReleaseAt` are unchanged. Repeat for any dispute in a terminal status outside `{'ResolvedReleased', 'ResolvedRefunded', 'PartialRelease', 'ClosedInvalid'}` and assert auto-release proceeds.
@@ -296,7 +309,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 6.6, 7.6, 11.7_
 
-  - [ ]* 12.8 Property test for `applicationStore.reportIssue — persists exact category/reason/desc/filename`
+  - [x]* 12.8 Property test for `applicationStore.reportIssue — persists exact category/reason/desc/filename`
+    - **Reconciliation note:** Covered by `phase10cDispute.test.ts` (`persists category, reason, evidenceDescription, and evidenceFileName exactly` + status flip to `'Disputed'`).
     - **Property 13: Dispute creation round-trip and lock-out (employer side)**
     - **Validates: Requirements 7.4 (test mandated by Requirement 11.8)**
     - Generate any `category` from `EMPLOYER_DISPUTE_CATEGORIES`, any `reason` of length 1..1000, any `evidenceDescription` of length 0..2000, any `evidenceFileName` of length 0..255 with no path separators, and any `Application` in a disputable status. Invoke `reportIssue(...)` and assert the resulting Dispute's `category`, `reason`, `evidenceDescription`, `evidenceFileName`, and `raisedBy === 'employer'` exactly equal the supplied values; the linked application's status becomes `'Disputed'`; subsequent auto-release with the clock advanced past `autoReleaseAt` leaves the application unchanged for as long as the dispute is non-terminal.
@@ -305,6 +319,7 @@ Stack invariants preserved on every task:
     - _Requirements: 7.4, 7.5, 7.6, 11.8_
 
   - [ ]* 12.9 Property test for `adminStore.resolveDisputeExtended — partial-release sets PartialRelease and close-as-invalid sets ClosedInvalid`
+    - **Reconciliation note (PENDING):** Blocked by task 8.2 — `resolveDisputeExtended` and the `PartialRelease`/`ClosedInvalid`/`INVALID_AMOUNT` paths are not implemented, so this property has nothing to assert against. The shipped two-outcome `resolveDispute` is covered by `phase10cStab1Batch3/4/4B.test.ts` (`ResolvedReleased`/`ResolvedRefunded` wallet credit + idempotency), but the five-outcome table is not.
     - **Property 16: Five-outcome admin resolution table** (also covers Property 17 partial-amount validation when generators include `INVALID_AMOUNT` cases)
     - **Validates: Requirements 8.8, 8.9, 8.11 (tests mandated by Requirement 11.9)**
     - Sub-assertion 1: generate any starting `Dispute.status ∈ {'Open', 'RequestedMoreEvidence'}` and any valid `releaseAmount` strictly in `(0, shift.depositAmount]`. Invoke `resolveDisputeExtended(id, { kind: 'PartialRelease', releaseAmount }, note)` and assert `Dispute.status === 'PartialRelease'`, `releaseAmount` is released, and the remainder is refunded.
@@ -314,7 +329,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 8.8, 8.9, 8.11, 11.9_
 
-  - [ ]* 12.10 Property test for `applicationStore.workerOpenDispute — creates worker-side dispute`
+  - [x]* 12.10 Property test for `applicationStore.workerOpenDispute — creates worker-side dispute`
+    - **Reconciliation note:** Covered by `phase10cWorkerDispute.test.ts` (round-trip persistence + `raisedBy === 'worker'` + status flip).
     - **Property 13: Dispute creation round-trip and lock-out (worker side)**
     - **Validates: Requirements 7.5 (test mandated by Requirement 11.10)**
     - Generate any `category` from `WORKER_DISPUTE_CATEGORIES`, any `reason` of length 1..1000, any `evidenceDescription` of length 0..2000, any `evidenceFileName` of length 0..255 with no path separators, and any `Application` in a disputable status. Invoke `workerOpenDispute(applicationId, payload)` and assert the resulting Dispute's `category` is in the worker-side enum, `raisedBy === 'worker'`, all four payload fields round-trip exactly, application status becomes `'Disputed'`.
@@ -322,7 +338,7 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 7.5, 11.10_
 
-  - [ ]* 12.11 Property test for `getSuggestedEvidenceLevel — pure (state snapshots match)`
+  - [x]* 12.11 Property test for `getSuggestedEvidenceLevel — pure (state snapshots match)`
     - **Property 2: Helper purity and composition equation**
     - **Validates: Requirements 1.6, 1.8 (test mandated by Requirement 11.11)**
     - Generate any `jobType` and any `riskLevel`. Snapshot reachable module-level + global state, invoke `getSuggestedEvidenceLevel(jobType, riskLevel)` twice, snapshot again. Assert the two return values are strictly equal AND the before/after snapshots are deep-equal. Assert `suggestedEvidenceForJobType(jobType) === getSuggestedEvidenceLevel(jobType, jobCategoryRiskLevel(jobType))` for all generated `jobType`.
@@ -330,7 +346,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 1.6, 1.8, 11.11_
 
-  - [ ]* 12.12 Property test for `<AutoReleaseCountdown/> — decreases after deterministic clock advance`
+  - [x]* 12.12 Property test for `<AutoReleaseCountdown/> — decreases after deterministic clock advance`
+    - **Reconciliation note:** Equivalent regression coverage exists in `src/components/shift/AutoReleaseCountdown.test.tsx` (`renders hh:mm:ss for a future deadline`, clamps at `00:00:00` for past deadlines, decreases across a clock advance) — example-based rather than fast-check, but the formatting/decrement contract is locked.
     - **Property 18: Countdown formatting and decrement**
     - **Validates: Requirements 5.7, 5.8 (test mandated by Requirement 11.12)**
     - Generate any `autoReleaseAt` ISO timestamp at least 1 minute in the future relative to the deterministic clock, and any clock advance `Δt ≥ 1` second that does not move the clock past `autoReleaseAt`. Mount `<AutoReleaseCountdown autoReleaseAt={...} />` (locate via `data-testid="auto-release-countdown"` or `aria-label="Đếm ngược tự động thanh toán"`); assert text matches `/^\d{2}:\d{2}:\d{2}$/`. Advance the fake timer by `Δt`; assert the rendered value is strictly less than the previous reading. For any `autoReleaseAt` at or before the current clock, assert the component renders exactly `'00:00:00'`.
@@ -338,7 +355,7 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 5.7, 5.8, 11.12_
 
-  - [ ]* 12.13 Property test for `Vietnamese label totality across the EvidenceRequirement enum`
+  - [x]* 12.13 Property test for `Vietnamese label totality across the EvidenceRequirement enum`
     - **Property 3: Vietnamese label totality**
     - **Validates: Requirements 1.7**
     - Generate any `EvidenceRequirement` literal in the five-element enum; assert `EVIDENCE_REQUIREMENT_LABELS[lit]` (or `t('evidence.requirement.<lit>')`) has length in `[1, 80]`, contains at least one diacritic matching `/[à-ỹ]/i`, and is not equal to the literal's English name.
@@ -347,6 +364,7 @@ Stack invariants preserved on every task:
     - _Requirements: 1.7_
 
   - [ ]* 12.14 Property test for `ShiftForm evidence pre-selection`
+    - **Reconciliation note (PENDING):** `ShiftForm.test.tsx` covers the high-risk gating and the suggested-chip, but no test asserts the first-paint checked radio equals `suggestedEvidenceForJobType(jobType)` for arbitrary job types. Genuinely pending.
     - **Property 4: ShiftForm evidence pre-selection**
     - **Validates: Requirements 2.2**
     - Generate any `jobType` value. Render `ShiftForm` for a new shift with that initial state; assert the rendered "Bằng chứng sau ca" picker has the radio corresponding to `suggestedEvidenceForJobType(jobType)` checked at first paint.
@@ -354,7 +372,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 2.2_
 
-  - [ ]* 12.15 Property test for `validateCheckoutPayload predicate (success path)`
+  - [x]* 12.15 Property test for `validateCheckoutPayload predicate (success path)`
+    - **Reconciliation note:** Property 6 (predicate) covered in `phase10c.test.ts`; Property 7 (success persistence + exact 43_200_000 ms `autoReleaseAt`) covered in `phase10cCheckout.test.ts` / `phase10cDispute.test.ts` (`sets autoReleaseAt = checkOutAt + 12h on success`).
     - **Property 6: Checkout payload validation predicate** + **Property 7: Checkout success persistence + 12 h auto-release timestamp** (consolidated)
     - **Validates: Requirements 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.12, 6.2**
     - Sub-assertion 1 (Property 6): generate any `EvidenceRequirement` level and any `CheckoutPayload`; assert `validateCheckoutPayload(level, payload).ok` equals the per-level predicate from the design.
@@ -363,7 +382,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.12, 6.2_
 
-  - [ ]* 12.16 Property test for `Per-record error isolation in auto-release`
+  - [x]* 12.16 Property test for `Per-record error isolation in auto-release`
+    - **Reconciliation note:** Covered by `phase10cAutoRelease.test.ts` (`One faulty application doesn't block the rest of the pass`).
     - **Property 11: Per-record error isolation in auto-release**
     - **Validates: Requirements 6.10**
     - Fault-inject a single eligible application so the per-record `confirmCompletion` throws; coexist with N non-faulty eligible applications. Invoke `autoReleaseEligibleApplications(nowIso)` once. Assert the faulty application's `status`, `autoReleased`, `autoReleaseAt` are strictly unchanged AND every non-faulty eligible application transitions to `'Confirmed' + autoReleased=true + 5★`.
@@ -371,7 +391,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 6.10_
 
-  - [ ]* 12.17 Property test for `Auto-release path uses no timers, polling, or external APIs`
+  - [x]* 12.17 Property test for `Auto-release path uses no timers, polling, or external APIs`
+    - **Reconciliation note:** Covered by `phase10cAutoRelease.test.ts` (`uses no polling primitives` — spies on `setInterval`/`requestAnimationFrame`/`fetch`).
     - **Property 12: Auto-release path uses no timers, polling, or external APIs**
     - **Validates: Requirements 6.8, 6.9**
     - Under a `vi.useFakeTimers()` harness, capture `vi.getTimerCount()` and any pending microtask queue depth before invoking `autoReleaseEligibleApplications(...)`. Assert the count is unchanged after the call returns. Repeat for both wired call sites (`useLifecycleSync.ts` and `AppHydrator.tsx`) using a spy stub for `setTimeout`, `setInterval`, `requestAnimationFrame`, `fetch`, and `WebSocket`; assert no calls.
@@ -380,6 +401,7 @@ Stack invariants preserved on every task:
     - _Requirements: 6.8, 6.9_
 
   - [ ]* 12.18 Property test for `Dispute filename hygiene and viewer scoping (privacy)`
+    - **Reconciliation note (PENDING):** Filename hygiene (no path separators, ≤255) is covered indirectly by the dispute round-trip/rejection tests, but the viewer-scoping leakage assertion (non-owner/non-admin mounts show no `evidenceFileName`/`evidenceDescription`; admin mount does) has no dedicated test. Genuinely pending.
     - **Property 14: Dispute filename hygiene and viewer scoping**
     - **Validates: Requirements 7.7, 12.8**
     - Sub-assertion 1: generate any persisted `Dispute`; assert `evidenceFileName` is either `undefined` or has length ≤ 255 and contains no `/` or `\\`.
@@ -388,7 +410,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 7.7, 12.8_
 
-  - [ ]* 12.19 Property test for `Dispute creation rejection totality`
+  - [x]* 12.19 Property test for `Dispute creation rejection totality`
+    - **Reconciliation note:** Covered across `phase10cDispute.test.ts` + `phase10cWorkerDispute.test.ts` (CATEGORY_REQUIRED, CATEGORY_INVALID role-mismatch, REASON_REQUIRED, FIELD_TOO_LONG path-separator, WRONG_STATUS already-Disputed/not-CheckedOut, APPLICATION_NOT_FOUND — each asserting no dispute appended + status unchanged).
     - **Property 15: Dispute creation rejection totality**
     - **Validates: Requirements 7.8, 7.9**
     - Generate any payload that fails along at least one validity axis: missing `category`, out-of-enum `category`, side-mismatch (employer category to `workerOpenDispute` or vice versa), `reason.trim() === ''`, `reason.length > 1000`, `evidenceDescription.length > 2000`, `evidenceFileName.length > 255`, `evidenceFileName` containing a path separator, unknown `applicationId`, or application already in `'Disputed'`. Assert the call returns `{ ok: false, error }` with no `Dispute` row appended to `applicationStore.disputes` and no change to the targeted application's `status`.
@@ -397,6 +420,7 @@ Stack invariants preserved on every task:
     - _Requirements: 7.8, 7.9_
 
   - [ ]* 12.20 Property test for `HelpPopover placement, content, and dismissal contract`
+    - **Reconciliation note (PENDING):** `<HelpPopover>` is mounted at all four Phase 10C placements, but no test asserts the placement/content-length/diacritic/no-route-token + Escape/outside-click/close-button focus-restore contract for the Phase 10C instances. Genuinely pending.
     - **Property 19: HelpPopover placement, content, and dismissal contract**
     - **Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7**
     - For each Phase 10C `<HelpPopover>` placement (the four locations: `ShiftForm` evidence fieldset, worker shift detail card, `CheckoutDialog`, employer countdown panel): assert the trigger renders inside the documented DOM container; assert the popover description has length in `[40, 800]`, contains at least one Vietnamese diacritic, and matches no `Raw_Route_Path` token (regex `/(worker|employer|admin|shifts|disputes|user-guide|register|login|safety|support|terms|privacy|faq|how-it-works|about|home)\b/`); assert that for each of Escape key, outside click, and explicit close button, dismissing returns keyboard focus to the trigger.
@@ -405,6 +429,7 @@ Stack invariants preserved on every task:
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
 
   - [ ]* 12.21 Property test for `User-guide section completeness`
+    - **Reconciliation note (PENDING):** Blocked by task 11.1 — the `#evidence-by-risk` and `#dispute-outcomes` user-guide sections do not exist, so there is nothing to assert section completeness against. Genuinely pending.
     - **Property 20: User-guide section completeness**
     - **Validates: Requirements 10.2, 10.3**
     - For any `riskLevel` in the three-element risk enum, render the `#evidence-by-risk` section and assert it contains the Vietnamese label of every `EvidenceRequirement` value mapped to that risk level. For any `DisputeStatus` literal in the six-element extended union, render the `#dispute-outcomes` section and assert it contains that literal's localized Vietnamese label.
@@ -413,6 +438,7 @@ Stack invariants preserved on every task:
     - _Requirements: 10.2, 10.3_
 
   - [ ]* 12.22 Property test for `Currency and raw-route hygiene + dark-mode token absence` (copy-hygiene scan)
+    - **Reconciliation note (PENDING):** No dedicated `fs.readFileSync`-based scan test over a Phase 10C allow-list exists. (Project-wide currency/dark-mode discipline is enforced by convention + manual VISUAL_QA, but the automated scan this task mandates is not present.) Genuinely pending.
     - **Property 21: Currency and raw-route hygiene across Phase 10C copy** + **Property 22: Dark-mode token absence** (consolidated)
     - **Validates: Requirements 3.2, 10.5, 10.6, 12.3, 12.6, 12.7**
     - Sub-assertion 1 (Property 21): for any string introduced or modified by Phase 10C in `src/i18n/vi.ts` and any string literal embedded in a Phase 10C component's user-facing JSX, assert the string contains neither `'VNĐ'` nor `'₫'`. For any such string that mentions money, assert it contains either lowercase `'đ'` or the standalone token `'đồng'`. For any such string, assert it matches no `Raw_Route_Path` token.
@@ -422,7 +448,8 @@ Stack invariants preserved on every task:
     - File: `src/__tests__/phase10c.test.ts`.
     - _Requirements: 3.2, 10.5, 10.6, 12.3, 12.6, 12.7_
 
-  - [ ] 12.23 Run `npm run test:run`, `npm run build`, and verify the 28-route count
+  - [x] 12.23 Run `npm run test:run`, `npm run build`, and verify the 28-route count
+    - **Reconciliation note:** Verified during tracker reconciliation (2026): `npm run test:run` → 395/395 tests pass across 29 files (exit 0); `npm run build` → exit 0 with exactly 28 routes emitted. The original spec target of "165 pre-existing tests" has since grown to 395 as later waves added coverage; the invariant (all pass + 28 routes) holds.
     - Run `npm run test:run` and confirm exit code 0; confirm the 165 pre-existing tests still pass and the new `phase10c.test.ts` tests pass alongside.
     - Run `npm run build` and confirm exit code 0.
     - Parse the build's route table and assert exactly 28 routes are emitted (zero new routes added). If the count is not 28, FAIL the validation and do not ship the change.
@@ -431,6 +458,7 @@ Stack invariants preserved on every task:
     - _Requirements: 12.4, 12.5_
 
   - [ ] 12.24 Run a copy-hygiene scan over every Phase 10C-touched file
+    - **Reconciliation note (PENDING):** No automated copy-hygiene scan over the Phase 10C file list has been run/recorded as part of this spec. Spot-checks during reconciliation found no `VNĐ`/`₫`/`dark:` in the shipped Phase 10C strings, but the formal scan deliverable is not present.
     - Search every Phase 10C-touched source file (the explicit list compiled from groups 1–11's `Affected files` entries) for the strings `VNĐ`, `₫`, `dark:`, and `prefers-color-scheme: dark`. Any hit FAILS the scan.
     - Search the same file list for `Raw_Route_Path` tokens in user-facing prose using the design's regex `/(worker|employer|admin|shifts|disputes|user-guide|register|login|safety|support|terms|privacy|faq|how-it-works|about|home)\b/` against text-only nodes (skip `href`, `Link`, route definitions, route segment names, and similar machinery).
     - Affected files: validation only — emit a fail report listing offending file + line + token.
@@ -438,6 +466,7 @@ Stack invariants preserved on every task:
     - _Requirements: 10.5, 10.6, 12.3, 12.6, 12.7_
 
   - [ ] 12.25 Privacy/leakage check: mount every new Phase 10C surface as a non-owner/non-admin viewer
+    - **Reconciliation note (PENDING):** Same gap as 12.18 — no automated multi-viewer privacy/leakage suite over the Phase 10C surfaces exists. Genuinely pending.
     - Render every Phase 10C-introduced surface (`PaymentEvidenceCard`, `CheckoutDialog`, employer confirmation panel block, admin `DisputesPanel` row, user-guide additions) under three viewer identities: a non-owner worker, a non-owner employer, and a guest/unauthenticated viewer. Assert the rendered DOM contains no `evidenceFileName` substring (from any application or dispute fixture), no `workerEvidenceFileName` substring, and no `evidenceDescription` substring.
     - Repeat under the admin viewer identity and assert those fields ARE present.
     - Affected files: extend `src/__tests__/phase10c.test.ts` with the privacy/leakage suite OR co-locate in a privacy describe-block already started by sub-task 12.18 — pick one and do not duplicate.
@@ -445,6 +474,7 @@ Stack invariants preserved on every task:
     - _Requirements: 7.7, 12.8_
 
 - [ ] 13. Final checkpoint - Phase 10C ready
+  - **Reconciliation note (PENDING):** Core lifecycle, evidence, checkout, dispute, and auto-release functionality is shipped and validated (395/395 tests, build clean, 28 routes, auto-release wired through `runLifecycleSync` on exactly the two intended mount surfaces). Remaining before this checkpoint can close: the five-outcome admin resolution (8.2/9.2/10.1), the user-guide + HANDOFF + VISUAL_QA documentation (11.1/11.2/11.3), and the copy-hygiene/privacy scan deliverables (12.24/12.25 and optional 12.9/12.14/12.18/12.20/12.21/12.22).
   - Ensure all tests pass (existing 165 + new `phase10c.test.ts`), `npm run build` exits 0 with exactly 28 routes, copy-hygiene and privacy scans report zero hits, HANDOFF.md and VISUAL_QA.md are updated, and the auto-release call graph contains exactly two entries (`useLifecycleSync.ts` and `AppHydrator.tsx`). Ask the user if questions arise.
 
 ## Notes

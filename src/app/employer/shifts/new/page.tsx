@@ -9,7 +9,7 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
-import { Badge, Button, Card, PageHelpButton } from '@/components/ui';
+import { Badge, Button, Card, Modal, PageHelpButton } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
   trustForEmployer,
@@ -19,6 +19,10 @@ import {
   sanitizeRepostDescription,
   sanitizeRepostTitle,
 } from '@/domain/repostSanitize';
+import { useWalletStore } from '@/stores/walletStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { walletHistoryLink } from '@/lib/notificationTarget';
+import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { formatVND } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
@@ -41,6 +45,11 @@ function NewShiftContent() {
   const shifts = useShiftStore((s) => s.shifts);
   const createShift = useShiftStore((s) => s.create);
   const simulateDeposit = useShiftStore((s) => s.simulateDeposit);
+  const topUp = useWalletStore((s) => s.topUp);
+  const walletBalance = useWalletStore((s) =>
+    currentUserId ? s.getBalance(currentUserId) : 0,
+  );
+  const pushNotification = useNotificationStore((s) => s.push);
   // Phase 10A-Fix-3 — read employer verification documents so we can
   // compute posting readiness against the same data the admin queue
   // sees.
@@ -49,6 +58,14 @@ function NewShiftContent() {
   const [createdShiftId, setCreatedShiftId] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState(0);
   const [deposited, setDeposited] = useState(false);
+  // CORE-STABILITY-7 Part 2 — insufficient-balance flow. When the
+  // deposit is blocked for lack of funds, we keep the Draft intact and
+  // open a modal offering "Nạp tiền ngay / Lưu nháp / Quay lại chỉnh
+  // sửa" instead of just a toast.
+  const [insufficientOpen, setInsufficientOpen] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpText, setTopUpText] = useState('');
+  const [topUpError, setTopUpError] = useState<string | null>(null);
   // Phase 10A-Fix-3 — live snapshot of the workplace-image filename so
   // the readiness checklist updates as the employer types. Mirrored
   // out of `<ShiftForm>` via the `onValuesChange` callback.
@@ -177,9 +194,16 @@ function NewShiftContent() {
     if (!createdShiftId) return;
     const result = simulateDeposit(createdShiftId);
     if (!result.ok) {
-      // Phase 10C-Stab-1 Batch 2 H — store-side verification gate
-      // rejects the publish. Surface the localized message; do not
-      // flip the deposited UI.
+      // CORE-STABILITY-7 Part 2 — insufficient balance keeps the Draft
+      // intact and opens a modal with a top-up path instead of just a
+      // toast. The shift was created as a Draft on form submit and is
+      // NOT published, so the draft context is fully preserved.
+      if (result.error === 'INSUFFICIENT_BALANCE') {
+        setInsufficientOpen(true);
+        return;
+      }
+      // Other store-side gate rejections — surface the localized
+      // message; do not flip the deposited UI.
       const messageKey = `shift.create.error.${result.error}` as const;
       showError(t(messageKey));
       return;
@@ -187,6 +211,48 @@ function NewShiftContent() {
     setDeposited(true);
     showSuccess(t('feedback.shift.deposit.success'));
     setTimeout(() => router.push(`/employer/shifts/${createdShiftId}`), 1200);
+  }
+
+  // CORE-STABILITY-7 Part 2 — "Nạp tiền ngay" from the insufficient-
+  // balance modal. Opens the top-up modal while preserving the pending
+  // deposit draft (createdShiftId / depositAmount stay set).
+  function openTopUpFromInsufficient() {
+    setInsufficientOpen(false);
+    // Suggest the exact shortfall, rounded up to a tidy amount.
+    const shortfall = Math.max(0, depositAmount - walletBalance);
+    setTopUpText(shortfall > 0 ? formatNumberVNInput(shortfall) : '');
+    setTopUpError(null);
+    setTopUpOpen(true);
+  }
+
+  function submitTopUp() {
+    if (!currentUserId) return;
+    const trimmed = topUpText.trim();
+    if (trimmed === '') {
+      setTopUpError(t('wallet.topUp.error.required'));
+      return;
+    }
+    const amount = parseVNNumberInput(trimmed);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTopUpError(t('wallet.topUp.error.invalid'));
+      return;
+    }
+    const entry = topUp(currentUserId, amount);
+    showSuccess(t('wallet.topUp.success'), `+${formatVND(amount)}`);
+    pushNotification({
+      userId: currentUserId,
+      kind: 'UserTopUp',
+      title: t('wallet.topUp.success'),
+      body: `${t('wallet.kind.UserTopUp')}: +${formatVND(amount)}`,
+      link: walletHistoryLink('employer'),
+      dedupeKey: `UserTopUp:${entry.id}`,
+    });
+    setTopUpOpen(false);
+    setTopUpText('');
+    setTopUpError(null);
+    // The deposit-confirm card stays mounted (createdShiftId unchanged)
+    // so the employer can click "Xác nhận đã thanh toán" again without
+    // re-entering the form.
   }
 
   // Phase 10A-Fix-3: posting guard now uses the full readiness rule
@@ -317,6 +383,116 @@ function NewShiftContent() {
           onValuesChange={(v) => setWorkplaceImageDraft(v.workplaceImageLabel)}
         />
       )}
+
+      {/* CORE-STABILITY-7 Part 2 — insufficient-balance modal. The
+          Draft shift is already persisted (created on submit) and NOT
+          published, so we offer a top-up path that preserves it. */}
+      <Modal
+        open={insufficientOpen}
+        onClose={() => setInsufficientOpen(false)}
+        title={t('deposit.insufficient.title')}
+      >
+        <div className="flex flex-col gap-3 text-sm">
+          <p className="text-gray-700">{t('deposit.insufficient.body')}</p>
+          <dl className="flex flex-col gap-1 rounded-lg bg-gray-50 px-3 py-2 text-xs ring-1 ring-gray-100">
+            <div className="flex items-center justify-between">
+              <dt className="text-gray-600">{t('deposit.insufficient.required')}</dt>
+              <dd className="font-semibold text-gray-900">{formatVND(depositAmount)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-gray-600">{t('deposit.insufficient.balance')}</dt>
+              <dd className="font-semibold text-gray-900">{formatVND(walletBalance)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-gray-600">{t('deposit.insufficient.shortfall')}</dt>
+              <dd className="font-bold text-rose-700">
+                {formatVND(Math.max(0, depositAmount - walletBalance))}
+              </dd>
+            </div>
+          </dl>
+          <p className="text-xs italic text-gray-500">
+            {t('deposit.insufficient.draftNote')}
+          </p>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button variant="primary" size="md" onClick={openTopUpFromInsufficient}>
+              {t('deposit.insufficient.topUpNow')}
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="md"
+                className="flex-1"
+                onClick={() => {
+                  setInsufficientOpen(false);
+                  showSuccess(t('deposit.insufficient.savedDraft'));
+                  router.push('/employer/dashboard');
+                }}
+              >
+                {t('deposit.insufficient.saveDraft')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="md"
+                className="flex-1"
+                onClick={() => setInsufficientOpen(false)}
+              >
+                {t('deposit.insufficient.backToEdit')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* CORE-STABILITY-7 Part 2 — inline top-up modal. After a
+          successful top-up the deposit-confirm card stays mounted so
+          the employer can confirm payment without retyping the form. */}
+      <Modal
+        open={topUpOpen}
+        onClose={() => setTopUpOpen(false)}
+        title={t('wallet.topUp.modal.title')}
+      >
+        <div className="flex flex-col gap-3 text-sm">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-gray-700">
+              {t('wallet.topUp.modal.label')}
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={topUpText}
+              placeholder={t('wallet.topUp.modal.placeholder')}
+              onChange={(e) => {
+                const numericOnly = e.target.value.replace(/[^\d]/g, '');
+                setTopUpText(formatNumberVNInput(numericOnly));
+                if (topUpError) setTopUpError(null);
+              }}
+              aria-invalid={!!topUpError}
+              className={[
+                'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
+                'min-h-[44px] transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
+                topUpError
+                  ? 'border-red-400 bg-red-50'
+                  : 'border-gray-300 bg-white hover:border-gray-400',
+              ].join(' ')}
+            />
+          </label>
+          {topUpError && (
+            <p role="alert" className="text-xs text-red-600">
+              {topUpError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button size="sm" variant="ghost" onClick={() => setTopUpOpen(false)}>
+              {t('wallet.topUp.modal.cancel')}
+            </Button>
+            <Button size="sm" variant="primary" onClick={submitTopUp}>
+              {t('wallet.topUp.modal.submit')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

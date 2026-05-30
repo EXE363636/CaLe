@@ -198,7 +198,28 @@ export type NotificationKind =
    * Phase 10C-Stab-1 Batch 4 H — admin asked one or both sides for
    * additional evidence on a dispute.
    */
-  | 'AdminRequestedEvidence';
+  | 'AdminRequestedEvidence'
+  /**
+   * CORE-STABILITY-6 Part 3 — fired to the user after a successful
+   * wallet withdrawal so the cash-out has a notification-grade record.
+   */
+  | 'UserWithdrawal'
+  /**
+   * CORE-STABILITY-7 Part 1 — fired to the user after a successful
+   * wallet top-up. Deeplinks to the wallet transaction history.
+   */
+  | 'UserTopUp'
+  /**
+   * CORE-STABILITY-7 Part 1 — fired to the employer when a shift
+   * deposit is held (shift published). Deeplinks to the employer
+   * wallet / deposit history.
+   */
+  | 'EmployerDepositPaid'
+  /**
+   * CORE-STABILITY-7 Part 6 — fired to admins when a user reports a
+   * review ("Báo cáo đánh giá"). Deeplinks to the admin dashboard.
+   */
+  | 'ReviewReported';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -956,6 +977,17 @@ export interface Notification {
   link?: string;
   read: boolean;
   createdAt: string;
+  /**
+   * CORE-STABILITY-6 Part 2 — optional idempotency key. When set,
+   * `notificationStore.push` is a no-op if a notification with the
+   * same `(userId, dedupeKey)` already exists, so repeated lifecycle
+   * syncs / page reloads never create duplicate notifications (e.g.
+   * the "Ca làm đã kết thúc / chưa check-in" end-of-shift notice). The
+   * key should encode event-type + recipient + shift/application/
+   * dispute id + lifecycle transition. Optional so legacy records and
+   * intentionally-repeatable notifications are unaffected.
+   */
+  dedupeKey?: string;
 }
 
 export interface Dispute {
@@ -1117,7 +1149,19 @@ export type WalletLedgerEntryKind =
   | 'EmployerDisputeRefund'
   | 'EmployerPartialRefund'
   | 'WorkerPartialRelease'
-  | 'EmployerCancellationPenalty';
+  | 'EmployerCancellationPenalty'
+  /**
+   * QA-Fix-1 E — demo-only "add funds" top-up. Credits the user's
+   * wallet so the demo can exercise deposit / payout flows without a
+   * real payment gateway.
+   */
+  | 'UserTopUp'
+  /**
+   * CORE-STABILITY-6 Part 3 — demo-only "withdraw funds". Debits the
+   * user's wallet (amount stored negative). No real banking
+   * integration; bounded by available balance.
+   */
+  | 'UserWithdrawal';
 
 /**
  * Single wallet ledger entry. Append-only; never mutated.
@@ -1169,6 +1213,29 @@ export interface EmployerFeedback {
   stars: 1 | 2 | 3 | 4 | 5;
   comment?: string;
   tags: EmployerFeedbackTag[];
+  createdAt: string;
+}
+
+/**
+ * CORE-STABILITY-7 Part 6 — a report ("Báo cáo đánh giá") filed against
+ * a review. Reporting does NOT delete the review; it marks it as "Đang
+ * được xem xét" and creates an admin-visible record. The `targetKind`
+ * discriminates which review collection the `targetReviewId` points to:
+ *   - `'employerFeedback'` → a worker → employer review
+ *     (`EmployerFeedback`)
+ *   - `'rating'`           → an employer → worker rating (`Rating`)
+ */
+export interface ReviewReport {
+  id: string;
+  targetKind: 'employerFeedback' | 'rating';
+  targetReviewId: string;
+  /** User who filed the report. */
+  reportedByUserId: string;
+  /** Required free-text reason. */
+  reason: string;
+  /** Optional supporting note / evidence description. */
+  note?: string;
+  status: 'Open' | 'Reviewed' | 'Dismissed';
   createdAt: string;
 }
 

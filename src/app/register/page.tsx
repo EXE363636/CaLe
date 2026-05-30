@@ -9,7 +9,7 @@ import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
-import { isValidEmail, isRequired, isValidPassword, isValidVNPhone } from '@/lib/validate';
+import { isValidEmail, isRequired, isValidPassword, isValidVNPhone, sanitizePhoneInput } from '@/lib/validate';
 
 type Role = 'worker' | 'employer';
 type EmployerType = 'individual' | 'business';
@@ -295,8 +295,9 @@ function RegisterForm() {
             <Input
               label={t('form.phone')}
               type="tel"
+              inputMode="numeric"
               value={values.phone}
-              onChange={(e) => set('phone', e.target.value)}
+              onChange={(e) => set('phone', sanitizePhoneInput(e.target.value))}
               error={errors.phone}
               placeholder="0901234567"
               autoComplete="tel"

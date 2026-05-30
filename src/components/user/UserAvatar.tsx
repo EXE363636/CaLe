@@ -11,6 +11,8 @@
  * No hooks → no 'use client' needed.
  */
 
+import { getUserInitials } from '@/lib/initials';
+
 export interface UserAvatarProps {
   name: string;
   avatarUrl?: string;
@@ -34,13 +36,7 @@ const bgColors = [
 ];
 
 function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((word) => word[0]?.toUpperCase() ?? '')
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('');
+  return getUserInitials(name);
 }
 
 function getBgColor(name: string): string {

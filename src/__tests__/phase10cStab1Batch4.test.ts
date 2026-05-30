@@ -928,6 +928,10 @@ describe('Batch 4 J: wallet ledger', () => {
       typeChangeRequests: [],
     });
 
+    // CORE-STABILITY-6 Part 4 — fund the employer wallet to satisfy
+    // the insufficient-balance deposit guard.
+    useWalletStore.getState().topUp(employer.id, shift.depositAmount);
+
     const r = useShiftStore.getState().simulateDeposit(shift.id);
     expect(r.ok).toBe(true);
     const ledger = useWalletStore.getState().ledger;
@@ -937,9 +941,8 @@ describe('Batch 4 J: wallet ledger', () => {
           l.userId === employer.id && l.kind === 'EmployerDepositHeld',
       ),
     ).toBeDefined();
-    expect(useWalletStore.getState().getBalance(employer.id)).toBe(
-      -shift.depositAmount,
-    );
+    // Topped up the deposit amount, debit nets back to 0.
+    expect(useWalletStore.getState().getBalance(employer.id)).toBe(0);
   });
 
   it('confirmCompletion credits worker wallet with payoutAmount', () => {

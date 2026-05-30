@@ -8,8 +8,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useHydrationStore } from '@/stores/hydrationStore';
 import { Badge, Button, EmptyState, Modal, Textarea } from '@/components/ui';
-import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { EmployerConfirmationPanel } from '@/components/shift/EmployerConfirmationPanel';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
@@ -57,8 +57,25 @@ function EmployerShiftDetailInner({ params }: Props) {
   const { id } = use(params);
   const shift = useShiftStore((s) => s.shifts.find((sh) => sh.id === id));
   const currentUserId = useAuthStore((s) => s.currentUserId);
+  const hydrated = useHydrationStore((s) => s.hydrated);
 
-  if (!shift) return notFound();
+  // Wait for hydration before deciding the shift is missing — a cold
+  // load / refresh / deep-link renders against the still-empty store
+  // otherwise, producing a permanent 404.
+  if (!shift) {
+    if (!hydrated) {
+      return (
+        <div
+          className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-gray-500"
+          role="status"
+          aria-live="polite"
+        >
+          {t('common.loading')}
+        </div>
+      );
+    }
+    return notFound();
+  }
   if (shift.employerId !== currentUserId) return notFound();
 
   return <ManageShiftContent shift={shift} />;
@@ -74,6 +91,9 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const markNoShow = useApplicationStore((s) => s.markNoShow);
   const markPresentByEmployer = useApplicationStore(
     (s) => s.markPresentByEmployer,
+  );
+  const revertNoShowToPresent = useApplicationStore(
+    (s) => s.revertNoShowToPresent,
   );
   const reportIssue = useApplicationStore((s) => s.reportIssue);
   const appendDisputeResponse = useApplicationStore(
@@ -116,6 +136,12 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   >(null);
   const [responseDialogOpen, setResponseDialogOpen] = useState(false);
   const [responseError, setResponseError] = useState<string | null>(null);
+
+  // CORE-STABILITY-7 Part 5 — "đổi vắng mặt → có mặt" (late arrival)
+  // dialog state. Holds the target application id + a required reason.
+  const [revertAppId, setRevertAppId] = useState<string | null>(null);
+  const [revertReason, setRevertReason] = useState('');
+  const [revertError, setRevertError] = useState<string | null>(null);
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
@@ -202,6 +228,41 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     } else {
       showError(toastFromStoreError(result.error));
     }
+  }
+
+  // CORE-STABILITY-7 Part 5.4 — open the late-arrival correction
+  // dialog for a NoShow application.
+  function handleOpenRevert(appId: string) {
+    setRevertReason('');
+    setRevertError(null);
+    setRevertAppId(appId);
+  }
+
+  function handleConfirmRevert() {
+    if (!revertAppId) return;
+    const trimmed = revertReason.trim();
+    if (trimmed === '') {
+      setRevertError(t('attendance.revert.error.reasonRequired'));
+      return;
+    }
+    setActionLoading(revertAppId);
+    const result = revertNoShowToPresent(revertAppId, trimmed);
+    setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('attendance.revert.success'));
+      setRevertAppId(null);
+      setRevertReason('');
+      setRevertError(null);
+      return;
+    }
+    const message =
+      result.error === 'DISPUTE_OPEN'
+        ? t('attendance.revert.error.disputeOpen')
+        : result.error === 'REASON_REQUIRED'
+          ? t('attendance.revert.error.reasonRequired')
+          : toastFromStoreError(result.error);
+    setRevertError(message);
+    showError(message);
   }
 
   function handleReportIssue(appId: string) {
@@ -385,10 +446,15 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ShiftStatusBadge status={shift.status} />
-          <EscrowStatusBadge status={shift.escrowStatus} />
-          {/* Phase 10C-Stab-1 Batch 3 C — display phase chip. */}
+          {/* QA-Fix-1 A1/A2 — the display-phase chip is the single
+              primary lifecycle label. The raw `ShiftStatusBadge` was
+              removed from the header because for terminal states
+              (Expired / Cancelled / Completed) it duplicated the
+              phase chip ("Đã hết hạn" / "Đã hủy" / "Đã hoàn thành"
+              shown twice). Escrow is a distinct money concept and
+              stays. */}
           <ShiftPhaseChip shift={shift} applications={applications} />
+          <EscrowStatusBadge status={shift.escrowStatus} />
         </div>
       </div>
 
@@ -595,36 +661,50 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         </div>
       </Modal>
 
-      {/* Applications */}
+      {/* Applications — QA-Fix-1 D: parent "Tình trạng đơn" heading
+          with lifecycle sub-sections. The count reflects the number
+          of applications actually shown in the buckets (active
+          lifecycle states), so the header never disagrees with the
+          visible cards. Terminal-but-hidden states (Rejected /
+          CancelledBy* / Expired) are intentionally excluded. */}
       <section className="mt-8">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          {t('employer.dashboard.applicants')} ({shiftApps.length})
-        </h2>
+        {(() => {
+          const buckets = bucketApplicants(
+            shift,
+            shiftApps,
+            new Date().toISOString(),
+          );
+          const visibleCount = buckets.reduce(
+            (sum, b) => sum + b.applications.length,
+            0,
+          );
+          return (
+            <>
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                {t('employer.applicants.parentHeading')} ({visibleCount})
+              </h2>
 
-        {/* Phase 10A-Fix-9: high-risk-job soft warning. Renders above
-            the applicant list so the employer is reminded to favour
-            verified / high-reputation workers. Soft warning only —
-            applicants are not hard-blocked. */}
-        {riskLevel === 'High' && (
-          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <p className="font-medium">⚠ Công việc rủi ro cao</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
-              Công việc này có rủi ro cao. Nên chọn người đã xác minh
-              danh tính, có uy tín cao và có lịch sử làm việc phù hợp.
-            </p>
-          </div>
-        )}
+              {/* Phase 10A-Fix-9: high-risk-job soft warning. */}
+              {riskLevel === 'High' && (
+                <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <p className="font-medium">⚠ Công việc rủi ro cao</p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
+                    Công việc này có rủi ro cao. Nên chọn người đã xác minh
+                    danh tính, có uy tín cao và có lịch sử làm việc phù hợp.
+                  </p>
+                </div>
+              )}
 
-        {shiftApps.length === 0 ? (
-          <EmptyState
-            tone="warm"
-            title={t('employer.manageShift.empty.applicants.title')}
-            description={t('employer.manageShift.empty.applicants.description')}
-          />
-        ) : (
-          <div className="flex flex-col gap-6">
-            {bucketApplicants(shift, shiftApps, new Date().toISOString()).map(
-              (bucket) => (
+              {visibleCount === 0 ? (
+                <EmptyState
+                  tone="warm"
+                  title={t('employer.manageShift.empty.applicants.title')}
+                  description={t('employer.manageShift.empty.applicants.description')}
+                />
+              ) : (
+                <div className="flex flex-col gap-6">
+                  {buckets.map(
+                    (bucket) => (
                 <section
                   key={bucket.bucket}
                   className="flex flex-col gap-3"
@@ -650,16 +730,45 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               if (!worker) return null;
 
               const nowIso = new Date().toISOString();
+              // QA-Fix-1 C1 — attendance controls must NOT appear on
+              // terminal shift states (Expired / Cancelled /
+              // Completed). The time-gate predicates below would
+              // otherwise keep "Đánh dấu vắng mặt" live for days
+              // after an Expired shift. The employer can still mark
+              // absence while the shift is in an actionable state.
+              const shiftTerminal =
+                shift.status === 'Expired' ||
+                shift.status === 'Cancelled' ||
+                shift.status === 'Completed';
               // Phase 10C-Stab-1 Batch 2 D — canonical lifecycle
               // gates. The Mark Absent button uses the new
               // `canEmployerMarkAbsent` predicate (independent of
               // `evidenceRequirement`); the legacy `shouldMarkNoShow`
               // call is preserved as the fallback inside the helper.
               const canMarkAbsent =
+                !shiftTerminal &&
                 app.status === 'Approved' &&
                 (canEmployerMarkAbsent(nowIso, app, shift) ||
                   shouldMarkNoShow(nowIso, app, shift));
-              const canMarkPresent = canEmployerMarkPresent(nowIso, app, shift);
+              const canMarkPresent =
+                !shiftTerminal && canEmployerMarkPresent(nowIso, app, shift);
+              // CORE-STABILITY-7 Part 5.2 — when the worker has already
+              // checked in, the "Đánh dấu vắng mặt" action is shown but
+              // disabled/dimmed with an explanatory reason (an absence
+              // on a checked-in worker should go through a dispute).
+              const absentDisabledReason =
+                !shiftTerminal &&
+                app.status === 'CheckedIn' &&
+                Boolean(app.checkInAt)
+                  ? t('attendance.absentDisabled.checkedIn')
+                  : null;
+              // CORE-STABILITY-7 Part 5.4 — a NoShow can be corrected to
+              // present (late arrival) while the shift hasn't fully
+              // closed out (escrow not yet Released).
+              const canRevertToPresent =
+                app.status === 'NoShow' &&
+                shift.status !== 'Completed' &&
+                shift.escrowStatus !== 'Released';
               // Mismatch states for the per-row warning slot.
               const mismatchWorkerOnly =
                 app.status === 'CheckedIn' &&
@@ -688,12 +797,15 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         loading={actionLoading === app.id}
                         canMarkAbsent={canMarkAbsent}
                         canMarkPresent={canMarkPresent}
+                        absentDisabledReason={absentDisabledReason}
+                        canRevertToPresent={canRevertToPresent}
                         showRating={showRating}
                         shiftStarted={shiftStarted}
                         onApprove={() => handleApprove(app.id)}
                         onReject={() => handleReject(app.id)}
                         onMarkAbsent={() => handleMarkNoShow(app.id)}
                         onMarkPresent={() => handleMarkPresent(app.id)}
+                        onRevertToPresent={() => handleOpenRevert(app.id)}
                         onConfirm={() => setRatingForAppId(app.id)}
                         onReport={() => handleReportIssue(app.id)}
                         onApproveCancellation={() => handleApproveCancellation(app.id)}
@@ -893,8 +1005,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 </section>
               ),
             )}
-          </div>
-        )}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </section>
 
       {/* Shared profile modal */}
@@ -993,6 +1108,61 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           errorMessage={responseError}
         />
       )}
+
+      {/* CORE-STABILITY-7 Part 5.4 — late-arrival correction dialog.
+          Captures a required reason before reverting NoShow → present. */}
+      {revertAppId && (
+        <Modal
+          open={true}
+          onClose={() => {
+            setRevertAppId(null);
+            setRevertReason('');
+            setRevertError(null);
+          }}
+          title={t('attendance.revert.title')}
+        >
+          <div className="flex flex-col gap-3 text-sm">
+            <p className="text-gray-700">{t('attendance.revert.body')}</p>
+            <Textarea
+              label={t('attendance.revert.reasonLabel')}
+              value={revertReason}
+              onChange={(e) => {
+                setRevertReason(e.target.value);
+                if (revertError) setRevertError(null);
+              }}
+              rows={3}
+              maxLength={500}
+              placeholder={t('attendance.revert.reasonPlaceholder')}
+            />
+            {revertError && (
+              <p role="alert" className="text-xs text-red-600">
+                {revertError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setRevertAppId(null);
+                  setRevertReason('');
+                  setRevertError(null);
+                }}
+              >
+                {t('btn.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={handleConfirmRevert}
+                loading={actionLoading === revertAppId}
+              >
+                {t('attendance.revert.confirm')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -1004,12 +1174,15 @@ function ApplicationActionButtons({
   loading,
   canMarkAbsent,
   canMarkPresent,
+  absentDisabledReason,
+  canRevertToPresent,
   showRating,
   shiftStarted,
   onApprove,
   onReject,
   onMarkAbsent,
   onMarkPresent,
+  onRevertToPresent,
   onConfirm,
   onReport,
   onApproveCancellation,
@@ -1019,6 +1192,13 @@ function ApplicationActionButtons({
   loading: boolean;
   canMarkAbsent: boolean;
   canMarkPresent: boolean;
+  /** CORE-STABILITY-7 Part 5.2 — when set, the "Đánh dấu vắng mặt"
+   *  button is rendered disabled/dimmed with this reason (the worker
+   *  already checked in). */
+  absentDisabledReason: string | null;
+  /** CORE-STABILITY-7 Part 5.4 — show the "đổi sang có mặt" late-
+   *  arrival correction action on a NoShow row. */
+  canRevertToPresent: boolean;
   showRating: boolean;
   /** Phase 10A-Fix-9 — true when the shift has started or is in a
    *  terminal state. Pending applicants in this case can no longer be
@@ -1029,6 +1209,7 @@ function ApplicationActionButtons({
   onReject: () => void;
   onMarkAbsent: () => void;
   onMarkPresent: () => void;
+  onRevertToPresent: () => void;
   onConfirm: () => void;
   onReport: () => void;
   onApproveCancellation: () => void;
@@ -1086,7 +1267,7 @@ function ApplicationActionButtons({
     );
   }
 
-  if (canMarkPresent || canMarkAbsent) {
+  if (canMarkPresent || canMarkAbsent || absentDisabledReason) {
     // Phase 10C-Stab-1 Batch 2 D — pair the canonical
     // "Xác nhận có mặt" / "Đánh dấu vắng mặt" buttons.
     // Both are gated by their own predicate so the row only
@@ -1112,6 +1293,24 @@ function ApplicationActionButtons({
           >
             {t('lifecycle.btn.employerMarkAbsent')}
           </Button>
+        )}
+        {/* CORE-STABILITY-7 Part 5.2 — checked-in worker: the absent
+            action is shown disabled/dimmed with an explanatory title. */}
+        {!canMarkAbsent && absentDisabledReason && (
+          <span className="inline-flex flex-col">
+            <Button
+              size="sm"
+              variant="danger"
+              disabled
+              title={absentDisabledReason}
+              aria-label={absentDisabledReason}
+            >
+              {t('lifecycle.btn.employerMarkAbsent')}
+            </Button>
+            <span className="mt-0.5 max-w-[14rem] text-[10px] leading-tight text-gray-500">
+              {absentDisabledReason}
+            </span>
+          </span>
         )}
       </>
     );
@@ -1140,7 +1339,20 @@ function ApplicationActionButtons({
 
   if (application.status === 'NoShow') {
     return (
-      <span className="text-sm text-red-600">Vắng mặt — đã hoàn tiền & tặng boost</span>
+      <div className="flex flex-col items-end gap-1">
+        <span className="text-sm text-red-600">Vắng mặt — đã hoàn tiền & tặng boost</span>
+        {/* CORE-STABILITY-7 Part 5.4 — late-arrival correction. */}
+        {canRevertToPresent && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onRevertToPresent}
+            loading={loading}
+          >
+            {t('attendance.revert.button')}
+          </Button>
+        )}
+      </div>
     );
   }
 

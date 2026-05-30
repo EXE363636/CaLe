@@ -39,6 +39,18 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   notifications: [],
 
   push(input) {
+    // CORE-STABILITY-6 Part 2 — idempotent push. When the caller
+    // supplies a `dedupeKey`, skip creating a new notification if one
+    // with the same `(userId, dedupeKey)` already exists. This makes
+    // repeated `runLifecycleSync` / AppHydrator boots safe: the
+    // end-of-shift / no-check-in notice (and any keyed event) is
+    // emitted at most once per recipient + transition.
+    if (input.dedupeKey) {
+      const existing = get().notifications.find(
+        (n) => n.userId === input.userId && n.dedupeKey === input.dedupeKey,
+      );
+      if (existing) return existing;
+    }
     const created: Notification = {
       ...input,
       id: newPrefixedId('notif'),

@@ -59,3 +59,33 @@ export function useModalFromQuery(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }
+
+/**
+ * CORE-STABILITY-6 — sibling of {@link useModalFromQuery} for a
+ * `?section=` intent. Reads the `section` search param exactly once on
+ * mount, passes a matched value to `onMatch` (so the page can scroll /
+ * focus / highlight the section), then strips the param so a refresh
+ * doesn't re-fire. Used for shortcuts that focus a dashboard SECTION
+ * rather than open a modal (e.g. worker "Việc đã ứng tuyển").
+ */
+export function useSectionFromQuery(
+  allowed: readonly string[],
+  onMatch: (section: string) => void,
+): void {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const handled = useRef(false);
+
+  useEffect(() => {
+    if (handled.current) return;
+    const section = searchParams.get('section');
+    if (!section) return;
+    handled.current = true;
+    if (allowed.includes(section)) {
+      onMatch(section);
+    }
+    router.replace(pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}

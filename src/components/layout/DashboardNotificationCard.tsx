@@ -16,6 +16,7 @@
 
 import { usePathname, useRouter } from 'next/navigation';
 import { handleNotificationClick } from '@/lib/notificationAction';
+import { formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Notification } from '@/types';
 
@@ -58,6 +59,10 @@ export function DashboardNotificationCard({
     >
       <p className="font-medium text-gray-900">{notification.title}</p>
       <p className="mt-0.5 text-xs text-gray-600">{notification.body}</p>
+      {/* CORE-STABILITY-6 Part 2 — timestamp so the user knows when it fired. */}
+      <p className="mt-1 font-mono text-[11px] text-gray-400">
+        {formatLogDateTime(notification.createdAt)}
+      </p>
       {isActionable && (
         <span
           aria-hidden="true"

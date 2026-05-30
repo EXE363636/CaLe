@@ -1,0 +1,39 @@
+﻿
+Running 35 tests using 8 workers
+
+[1A[2K[1/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @3840x2160
+[1A[2K[2/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @2560x1440
+[1A[2K[3/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @3840x2160
+[1A[2K[4/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1920x1080
+[1A[2K[5/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @3840x2160
+[1A[2K[6/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @2560x1440
+[1A[2K[7/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @2560x1440
+[1A[2K[8/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1920x1080
+[1A[2K[9/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1920x1080
+[1A[2K[10/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1680x1050
+[1A[2K[11/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1680x1050
+[1A[2K[12/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1680x1050
+[1A[2K[13/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1600x900
+[1A[2K[14/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1600x900
+[1A[2K[15/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1600x900
+[1A[2K[16/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1536x864
+[1A[2K[17/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1536x864
+[1A[2K[18/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1440x900
+[1A[2K[19/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1536x864
+[1A[2K[20/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1440x900
+[1A[2K[21/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1366x768
+[1A[2K[22/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1440x900
+[1A[2K[23/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1366x768
+[1A[2K[24/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1366x768
+[1A[2K[25/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1280x800
+[1A[2K[26/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1280x800
+[1A[2K[27/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:113:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ worker desktop nav @1280x720
+[1A[2K[28/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1280x800
+[1A[2K[29/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:135:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ employer (long name) desktop nav @1280x720
+[1A[2K[30/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:210:9 ΓÇ║ HEADER-NAV-LAYOUT-3: tablet shows hamburger, no overflow ΓÇ║ employer tablet header @1024x768
+[1A[2K[31/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:183:9 ΓÇ║ HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap ΓÇ║ admin desktop nav @1280x720
+[1A[2K[32/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:210:9 ΓÇ║ HEADER-NAV-LAYOUT-3: tablet shows hamburger, no overflow ΓÇ║ employer tablet header @768x1024
+[1A[2K[33/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:210:9 ΓÇ║ HEADER-NAV-LAYOUT-3: tablet shows hamburger, no overflow ΓÇ║ employer tablet header @820x1180
+[1A[2K[34/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:210:9 ΓÇ║ HEADER-NAV-LAYOUT-3: tablet shows hamburger, no overflow ΓÇ║ employer tablet header @1024x1366
+[1A[2K[35/35] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:210:9 ΓÇ║ HEADER-NAV-LAYOUT-3: tablet shows hamburger, no overflow ΓÇ║ employer tablet header @800x1280
+[1A[2K  35 passed (14.6s)

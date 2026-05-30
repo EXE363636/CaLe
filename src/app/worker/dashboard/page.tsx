@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,7 +10,6 @@ import { useApplicationStore } from '@/stores/applicationStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
-import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
@@ -19,11 +18,12 @@ import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { getShiftDisplayPhase } from '@/domain/shiftLifecycle';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
-import { useModalFromQuery } from '@/lib/useModalFromQuery';
+import { useModalFromQuery, useSectionFromQuery } from '@/lib/useModalFromQuery';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
+import { getUserInitials } from '@/lib/initials';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { t } from '@/i18n/vi';
 import type { Application, Shift } from '@/types';
@@ -74,13 +74,50 @@ function WorkerDashboardContent() {
     'reputation' | 'quota' | 'income' | 'completed' | null
   >(null);
 
+  // CORE-STABILITY-6 Part 1 — "Việc đã ứng tuyển" section intent. When
+  // fired (cold-load `?section=applications` OR same-route event) we
+  // scroll the applied-jobs section into view and flash a ring so the
+  // result is VISIBLE, not just a URL change. Works on repeat clicks.
+  const [applicationsHighlight, setApplicationsHighlight] = useState(false);
+  const focusApplications = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById('worker-applications-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Re-trigger the highlight even if it's already on (repeat click):
+    // turn it off synchronously, then on, then auto-clear.
+    setApplicationsHighlight(false);
+    requestAnimationFrame(() => setApplicationsHighlight(true));
+    window.setTimeout(() => setApplicationsHighlight(false), 1600);
+  }, []);
+
+  // CORE-STABILITY-7 Part 1 — wallet-history deeplink. Incrementing
+  // this signal opens the WalletPanel's ledger modal. Driven by the
+  // `?modal=wallet` query (cold load) and the same-route notification
+  // event (top-up / withdraw / wage-release notifications).
+  const [walletLedgerSignal, setWalletLedgerSignal] = useState(0);
+  const openWalletHistory = useCallback(() => {
+    setWalletLedgerSignal((n) => n + 1);
+  }, []);
+
+  // Cold-load `?section=...` (e.g. navigating from another page). Reads
+  // once on mount via the same hook family as `?modal=`.
+  useSectionFromQuery(['applications'] as const, (s) => {
+    if (s === 'applications') focusApplications();
+  });
+
   // Phase 9L — open a stat-detail modal when the page is loaded with a
   // `?modal=...` query param (used by notification deep links). The hook
   // reads the param exactly once on mount, opens the matching modal, and
   // strips the query so refreshing or closing the modal doesn't re-open it.
   useModalFromQuery(
-    ['reputation', 'quota', 'income', 'completed'] as const,
-    (m) => setStatDetail(m as 'reputation' | 'quota' | 'income' | 'completed'),
+    ['reputation', 'quota', 'income', 'completed', 'wallet'] as const,
+    (m) => {
+      if (m === 'wallet') {
+        openWalletHistory();
+        return;
+      }
+      setStatDetail(m as 'reputation' | 'quota' | 'income' | 'completed');
+    },
   );
 
   // Phase 9N — also listen for in-page modal events. NotificationBell
@@ -94,6 +131,14 @@ function WorkerDashboardContent() {
       (allowed as readonly string[]).includes(detail.modal)
     ) {
       setStatDetail(detail.modal as (typeof allowed)[number]);
+    }
+    // CORE-STABILITY-7 Part 1 — same-route wallet-history intent.
+    if (detail.modal === 'wallet') {
+      openWalletHistory();
+    }
+    // CORE-STABILITY-6 Part 1 — same-route "Việc đã ứng tuyển" intent.
+    if (detail.section === 'applications') {
+      focusApplications();
     }
   });
 
@@ -440,7 +485,7 @@ function WorkerDashboardContent() {
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
-            {worker.fullName.charAt(0).toUpperCase()}
+            {getUserInitials(worker.fullName)}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
@@ -573,7 +618,11 @@ function WorkerDashboardContent() {
 
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. */}
       <section className="mb-8">
-        <WalletPanel userId={worker.id} />
+        <WalletPanel
+          userId={worker.id}
+          role="worker"
+          openLedgerSignal={walletLedgerSignal}
+        />
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -618,7 +667,15 @@ function WorkerDashboardContent() {
           </section>
 
           {/* Pending applications */}
-          <section>
+          <section
+            id="worker-applications-section"
+            className={[
+              'scroll-mt-24 rounded-2xl transition-shadow',
+              applicationsHighlight
+                ? 'ring-2 ring-orange-400 ring-offset-2'
+                : '',
+            ].join(' ')}
+          >
             <h2 className="mb-3 text-lg font-semibold text-gray-900">
               {t('worker.dashboard.appliedShifts')}
             </h2>
@@ -1713,8 +1770,12 @@ function UpcomingShiftCard({
           <p className="mt-0.5 text-sm text-gray-500">{shift.location}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <ShiftStatusBadge status={shift.status} />
-          {/* Phase 10C-Stab-1 Batch 3 C — display phase chip. */}
+          {/* QA-Fix-1 A6 — on the worker's own upcoming card we do
+              NOT show the public recruiting status (Published =
+              "Đang tuyển"); that's a discovery/employer concern and
+              conflicts with the worker's own application state. The
+              single primary label here is the display-phase chip,
+              plus the application status badge below. */}
           <Badge tone={phaseTone}>{t(`shift.phase.${phase}`)}</Badge>
         </div>
       </div>

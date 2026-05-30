@@ -1,0 +1,23 @@
+﻿
+Running 19 tests using 8 workers
+
+[1A[2K[1/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:168:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ employer (long name) header is overlap-free @1536px
+[1A[2K[2/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:154:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ worker header is overlap-free @1536px
+[1A[2K[3/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:201:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ admin header is overlap-free @1920px
+[1A[2K[4/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:154:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ worker header is overlap-free @1920px
+[1A[2K[5/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:168:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ employer (long name) header is overlap-free @1920px
+[1A[2K[6/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:201:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ admin header is overlap-free @1536px
+[1A[2K[7/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:154:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ worker header is overlap-free @1440px
+[1A[2K[8/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:168:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ employer (long name) header is overlap-free @1440px
+[1A[2K[9/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:201:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ admin header is overlap-free @1440px
+[1A[2K[10/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:154:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ worker header is overlap-free @1366px
+[1A[2K[11/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:168:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ employer (long name) header is overlap-free @1366px
+[1A[2K[12/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:201:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ admin header is overlap-free @1366px
+[1A[2K[13/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:154:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ worker header is overlap-free @1280px
+[1A[2K[14/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:168:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ employer (long name) header is overlap-free @1280px
+[1A[2K[15/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:201:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ admin header is overlap-free @1280px
+[1A[2K[16/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:154:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ worker header is overlap-free @1024px
+[1A[2K[17/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:168:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ employer (long name) header is overlap-free @1024px
+[1A[2K[18/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:201:9 ΓÇ║ HEADER-NAV-LAYOUT-2: no overlap, adaptive nav ΓÇ║ admin header is overlap-free @1024px
+[1A[2K[19/19] [chromium] ΓÇ║ e2e\18-header-nav-centering.spec.ts:218:7 ΓÇ║ HEADER-NAV-LAYOUT-2: all nav links reachable when collapsed ΓÇ║ employer nav links are reachable via the hamburger drawer @1440px
+[1A[2K  19 passed (9.2s)

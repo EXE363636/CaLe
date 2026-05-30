@@ -68,6 +68,8 @@ export function toastFromStoreError(
     SHIFT_ALREADY_STARTED: t('feedback.error.shiftAlreadyStarted'),
     REASON_REQUIRED: t('feedback.error.reasonRequired'),
     QUOTA_EXCEEDED: t('cancel.confirm.quotaBlocked'),
+    // CORE-STABILITY-7 Part 5 — absent→present reversal blocked by open dispute.
+    DISPUTE_OPEN: t('attendance.revert.error.disputeOpen'),
 
     // applicationStore — reportIssue() / dispute action
     CATEGORY_REQUIRED: t('dispute.dialog.error.categoryRequired'),

@@ -1,0 +1,693 @@
+{
+  "worker": {
+    "3840x2160": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 299,
+      "navRightGap": 299,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "2560x1440": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 299,
+      "navRightGap": 299,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1920x1080": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 299,
+      "navRightGap": 299,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1680x1050": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 299,
+      "navRightGap": 299,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1600x900": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 299,
+      "navRightGap": 299,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1536x864": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 267,
+      "navRightGap": 267,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1440x900": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 248,
+      "navRightGap": 248,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1366x768": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 211,
+      "navRightGap": 211,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1280x800": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 168,
+      "navRightGap": 168,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1280x720": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 168,
+      "navRightGap": 168,
+      "navLinkCount": 6,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tìm ca làm",
+        "Tổng quan",
+        "Lịch cá nhân",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1024x768": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "768x1024": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "820x1180": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "1024x1366": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "800x1280": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    }
+  },
+  "employer": {
+    "3840x2160": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 214,
+      "navRightGap": 214,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "2560x1440": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 214,
+      "navRightGap": 214,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1920x1080": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 214,
+      "navRightGap": 214,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1680x1050": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 214,
+      "navRightGap": 214,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1600x900": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 214,
+      "navRightGap": 214,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1536x864": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 182,
+      "navRightGap": 182,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1440x900": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 168,
+      "navRightGap": 168,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1366x768": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 131,
+      "navRightGap": 131,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1280x800": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 88,
+      "navRightGap": 88,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1280x720": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 88,
+      "navRightGap": 88,
+      "navLinkCount": 7,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Đăng ca",
+        "Tổng quan",
+        "Lịch tuyển",
+        "Ca công khai",
+        "Hồ sơ",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1024x768": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "768x1024": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "820x1180": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "1024x1366": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "800x1280": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    }
+  },
+  "admin": {
+    "3840x2160": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 387,
+      "navRightGap": 387,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "2560x1440": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 387,
+      "navRightGap": 387,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1920x1080": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 387,
+      "navRightGap": 387,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1680x1050": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 387,
+      "navRightGap": 387,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1600x900": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 387,
+      "navRightGap": 387,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1536x864": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 355,
+      "navRightGap": 355,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1440x900": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 321,
+      "navRightGap": 321,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1366x768": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 284,
+      "navRightGap": 284,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1280x800": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 241,
+      "navRightGap": 241,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1280x720": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": true,
+      "hamburgerVisible": false,
+      "logoNavGap": 241,
+      "navRightGap": 241,
+      "navLinkCount": 3,
+      "navLinkTexts": [
+        "Trang chủ",
+        "Tổng quan admin",
+        "Hỗ trợ"
+      ],
+      "anyZeroBox": false
+    },
+    "1024x768": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "768x1024": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "820x1180": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "1024x1366": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    },
+    "800x1280": {
+      "overflow": 0,
+      "headerHeight": 69,
+      "navVisible": false,
+      "hamburgerVisible": true,
+      "logoNavGap": null,
+      "navRightGap": null,
+      "navLinkCount": 0,
+      "navLinkTexts": [],
+      "anyZeroBox": false
+    }
+  }
+}

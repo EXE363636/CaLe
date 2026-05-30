@@ -20,7 +20,9 @@ import {
   useApplicationStore,
   useAuthStore,
   useEmployerFeedbackStore,
+  useHydrationStore,
   useNotificationStore,
+  useReviewReportStore,
   useScheduleStore,
   useShiftStore,
   useUserStore,
@@ -49,6 +51,7 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useAuthStore.getState().hydrate(snapshot.auth);
     useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
     useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
+    useReviewReportStore.getState().hydrate(snapshot.reviewReports);
     useVerificationStore
       .getState()
       .hydrate(
@@ -59,6 +62,15 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useWalletStore
       .getState()
       .hydrate(snapshot.wallets, snapshot.walletLedger);
+
+    // QA-Fix-1 E — reconcile the wallet ledger with historical
+    // confirmed applications so "Số dư ví" and "Tổng thu nhập" don't
+    // contradict on a fresh seed. Idempotent: no-op once any ledger
+    // entry exists (runtime transactions or a prior backfill).
+    useWalletStore.getState().backfillFromHistory({
+      applications: snapshot.applications,
+      shifts: snapshot.shifts,
+    });
 
     // Phase 10C-Stab-1 B — single canonical orchestrator after
     // hydration so the very first render reflects time-driven
@@ -79,6 +91,11 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
         auth.logout();
       }
     }
+
+    // Signal hydration complete so detail pages can safely make their
+    // `notFound()` decision (otherwise a cold load / refresh /
+    // deep-link renders a permanent 404 against the still-empty store).
+    useHydrationStore.getState().setHydrated(true);
   }, []);
 
   return children;

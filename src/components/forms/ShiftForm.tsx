@@ -20,6 +20,8 @@ import {
   recommendedHourlyMinimum,
 } from '@/domain/wage';
 import { isRequired } from '@/lib/validate';
+import { sanitizePhoneInput, isValidVNPhone } from '@/lib/validate';
+import { validateShiftFutureTiming } from '@/domain/shiftScheduling';
 import type { EvidenceRequirement } from '@/types';
 
 export interface ShiftFormValues {
@@ -257,6 +259,26 @@ export function ShiftForm({
     if (!isRequired(values.endTime).ok) errs.endTime = t('error.required');
     if (!values.hourlyWage || values.hourlyWage <= 0) errs.hourlyWage = t('error.wage.invalid');
 
+    // QA-Fix-2 Phase 1 — block past / inconsistent shift timing in
+    // the UI (the store re-validates as defence in depth). Only run
+    // when the three date/time fields are present so we don't stack a
+    // confusing "past" error on top of the "required" errors above.
+    if (values.date && values.startTime && values.endTime) {
+      const timing = validateShiftFutureTiming(
+        values.date,
+        values.startTime,
+        values.endTime,
+        new Date().toISOString(),
+      );
+      if (!timing.ok) {
+        if (timing.error === 'START_NOT_BEFORE_END') {
+          errs.endTime = t('error.time.endBeforeStart');
+        } else {
+          errs.date = t('error.shift.pastDateTime');
+        }
+      }
+    }
+
     // Phase 10C-Stab-1 Batch 2 — wage warning + acknowledgement
     // gate. If the wage is below the recommended minimum for the
     // job type, require the employer to tick the "I understand"
@@ -300,6 +322,16 @@ export function ShiftForm({
     // Company without an approved profile workplace photo.
     if (workplaceImageRequired && !isRequired(values.workplaceImageLabel).ok) {
       errs.workplaceImageLabel = t('error.workplaceImage.required');
+    }
+
+    // CORE-STABILITY-7 Part 4 — on-site contact phone is optional, but
+    // when supplied it must be a valid VN phone (digits only; letters
+    // are already stripped on input). Empty stays valid.
+    if (
+      values.onSiteContactPhone.trim() !== '' &&
+      !isValidVNPhone(values.onSiteContactPhone).ok
+    ) {
+      errs.onSiteContactPhone = t('error.phone.invalid');
     }
 
     // Phase 10C — high-risk gating. When the chosen job category
@@ -507,15 +539,16 @@ export function ShiftForm({
             the field can be temporarily empty while editing. */}
         <Input
           label={t('form.positionsTotal')}
-          type="number"
-          min={minPositions}
-          step={1}
+          type="text"
+          inputMode="numeric"
           value={positionsText}
           onChange={(e) => {
-            const raw = e.target.value;
+            // CORE-STABILITY-7 Part 4 — headcount is digits-only; strip
+            // any letter/symbol on keystroke so the field can never hold
+            // text. Empty input commits NaN so the submit-time validator
+            // catches it; otherwise parse normally.
+            const raw = e.target.value.replace(/\D/g, '');
             setPositionsText(raw);
-            // Mirror to numeric state. Empty input commits NaN so the
-            // submit-time validator catches it; otherwise parse normally.
             const parsed = raw === '' ? Number.NaN : Number(raw);
             set('positionsTotal', parsed);
           }}
@@ -584,8 +617,12 @@ export function ShiftForm({
             <Input
               label={t('form.onSiteContactPhone')}
               type="tel"
+              inputMode="numeric"
               value={values.onSiteContactPhone}
-              onChange={(e) => set('onSiteContactPhone', e.target.value)}
+              onChange={(e) =>
+                set('onSiteContactPhone', sanitizePhoneInput(e.target.value))
+              }
+              error={errors.onSiteContactPhone}
               placeholder="0901234567"
             />
           </div>

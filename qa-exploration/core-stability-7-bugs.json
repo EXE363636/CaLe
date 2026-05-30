@@ -1,0 +1,152 @@
+{
+  "task": "CORE-STABILITY-7",
+  "date": "2026-05-30",
+  "summary": { "fixed": 9, "deferred": 0, "notABug": 1 },
+  "bugs": [
+    {
+      "id": "CS7-1",
+      "part": 1,
+      "title": "Wallet notifications did not deeplink to wallet history; top-up created no notification",
+      "role": "worker, employer",
+      "page": "/worker/dashboard, /employer/dashboard",
+      "account": "an.nguyen@gmail.com / lien@quanphoha.vn",
+      "steps": "Top up or withdraw from the wallet panel; click the resulting notification.",
+      "expected": "Top-up and withdrawal create a notification that opens the wallet transaction history.",
+      "actual": "Top-up created no notification; withdraw notification did not deeplink to wallet history.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "Added a central resolver (lib/notificationTarget.ts: resolveNotificationTarget / walletHistoryLink / shiftLink). WalletPanel now pushes a UserTopUp notification and a wallet-history link on both top-up and withdraw, deduped per ledger entry id. Dashboards handle ?modal=wallet (cold load + same-route event) and open the WalletPanel ledger modal via an openLedgerSignal prop.",
+      "tests": [
+        "e2e/21-core-stability-7.spec.ts Part 1",
+        "src/__tests__/coreStability7.test.ts (resolveNotificationTarget, dedup)"
+      ]
+    },
+    {
+      "id": "CS7-2",
+      "part": 1,
+      "title": "Deposit-paid / wage-release notifications lacked wallet-history deeplinks and dedup keys",
+      "role": "worker, employer",
+      "page": "store-driven",
+      "account": "n/a",
+      "steps": "Confirm a shift / auto-release / deposit; observe the notification target.",
+      "expected": "Wage release → worker wallet history; deposit paid → employer wallet history; no duplicates on repeat sync.",
+      "actual": "Wage release opened the income modal; deposit produced no notification; auto-release lacked dedup keys.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "confirmCompletion + auto-release wage notifications now link to ?modal=wallet with dedupeKeys; simulateDeposit emits a new EmployerDepositPaid notification (dedupe per shift) linking to employer wallet history; ApplicationExpired/Rejected links improved.",
+      "tests": ["build (type-check)", "src/__tests__/coreStability7.test.ts"]
+    },
+    {
+      "id": "CS7-3",
+      "part": 2,
+      "title": "Insufficient deposit only showed a toast and lost flow context",
+      "role": "employer",
+      "page": "/employer/shifts/new",
+      "account": "lien@quanphoha.vn",
+      "steps": "Create a shift with an empty wallet; click 'Xác nhận đã thanh toán'.",
+      "expected": "A modal offering 'Nạp tiền ngay / Lưu nháp / Quay lại chỉnh sửa'; the draft is preserved; after top-up the employer can confirm without retyping.",
+      "actual": "Only a toast appeared; no top-up path; user lost context.",
+      "severity": "high",
+      "status": "fixed",
+      "fix": "On INSUFFICIENT_BALANCE the new-shift page opens a modal with the three actions. 'Nạp tiền ngay' opens an inline top-up modal that preserves the pending deposit draft (createdShiftId/depositAmount stay set); after top-up the deposit-confirm card is still mounted so the employer confirms without re-entering the form. The Draft was already persisted on submit and is excluded from the public listing.",
+      "tests": ["e2e/21-core-stability-7.spec.ts Part 2", "e2e/20-core-stability-6.spec.ts Part 4 (updated)"]
+    },
+    {
+      "id": "CS7-4",
+      "part": 3,
+      "title": "Avatar/logo initials inconsistent (QP vs single Q/P)",
+      "role": "all",
+      "page": "header, UserMenu, dashboards, profile modals",
+      "account": "all",
+      "steps": "Compare the top-right avatar with the dashboard welcome card.",
+      "expected": "Consistent initials everywhere (e.g. 'QP' for Quán Phở Hà, 'NV' for Nguyễn Văn An).",
+      "actual": "Dashboards used name.charAt(0) (single letter) while UserAvatar used a 2-letter rule.",
+      "severity": "low",
+      "status": "fixed",
+      "fix": "Added lib/initials.ts (getUserInitials) as the single global rule: first letter of the first two words, uppercased, diacritics preserved. UserAvatar and both dashboard welcome cards now use it.",
+      "tests": ["src/__tests__/coreStability7.test.ts (getUserInitials)", "probe: NV / QP confirmed live"]
+    },
+    {
+      "id": "CS7-5",
+      "part": 4,
+      "title": "Numeric-only fields accepted letters (SĐT người phụ trách tại chỗ)",
+      "role": "employer, all",
+      "page": "/employer/shifts/new, /register",
+      "account": "all",
+      "steps": "Type letters into the on-site contact phone / register phone / headcount.",
+      "expected": "Letters rejected; digits only; clear error on invalid phone.",
+      "actual": "The contact phone accepted letters.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "Added sanitizePhoneInput / digitsOnly / containsLetters to lib/validate.ts. ShiftForm contact phone + register phone strip on input (inputMode=numeric) and validate via isValidVNPhone; headcount is digits-only. Wage / top-up / withdraw already strip non-digits.",
+      "tests": ["e2e/21-core-stability-7.spec.ts Part 4", "src/__tests__/coreStability7.test.ts (sanitizers)"]
+    },
+    {
+      "id": "CS7-6",
+      "part": 5,
+      "title": "Absent action not dimmed for checked-in workers; no late-arrival correction",
+      "role": "employer",
+      "page": "/employer/shifts/[id]",
+      "account": "lien@quanphoha.vn",
+      "steps": "Worker checks in; employer views attendance. Mark a worker absent, then they arrive late.",
+      "expected": "'Đánh dấu vắng mặt' dimmed with reason for checked-in workers; employer can change absent→present with a reason (timeline + notify + safe wallet/rep restore).",
+      "actual": "Absent button simply hidden for checked-in; no way to correct a wrongful absent.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "Added a disabled 'Đánh dấu vắng mặt' with reason for checked-in workers. Added applicationStore.revertNoShowToPresent(reason): restores +20 reputation (clamped), decrements noShowCount, reclaims the boost credit, re-fills the position, restores escrow/shift to InProgress, flips to CheckedIn, logs timeline, notifies the worker. Blocked with DISPUTE_OPEN when an open dispute exists (admin must resolve) — documented safe behavior.",
+      "tests": ["src/__tests__/coreStability7.test.ts (revertNoShowToPresent)"]
+    },
+    {
+      "id": "CS7-7",
+      "part": 6,
+      "title": "Feedback list too basic: no sort, date-only timestamp, no report flow",
+      "role": "worker, employer, admin",
+      "page": "EmployerProfileModal / AdminUserProfileModal / WorkerProfileModal",
+      "account": "all",
+      "steps": "Open employer reviews; try to sort / report a review.",
+      "expected": "Sort (newest/oldest/highest/lowest/with-comment), full timestamp (date+time+seconds), rating summary + star distribution, 'Báo cáo đánh giá' that notifies admin and flags 'Đang được xem xét' without deleting the review.",
+      "actual": "Date-only timestamp, fixed newest sort, no report flow.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "Rebuilt EmployerFeedbackList with sort chips, formatLogDateTime, average+count+star distribution, and a report modal wired to a new reviewReportStore (notifies admins, flags review, never deletes, dedupes per reporter). Admin disputes tab shows a ReportedReviewsCard with reporter/reason/content + Reviewed/Dismissed. Worker rating history timestamp upgraded to date+time+seconds.",
+      "tests": ["src/__tests__/coreStability7.test.ts (reviewReportStore)"]
+    },
+    {
+      "id": "CS7-8",
+      "part": 8,
+      "title": "Build type error surfaced during validation: NotificationKind needed UserTopUp / EmployerDepositPaid / ReviewReported",
+      "role": "n/a",
+      "page": "build",
+      "account": "n/a",
+      "steps": "npm run build.",
+      "expected": "Clean type-check.",
+      "actual": "New notification kinds were pushed before being added to the NotificationKind union.",
+      "severity": "high",
+      "status": "fixed",
+      "fix": "Added UserTopUp, EmployerDepositPaid, ReviewReported to NotificationKind + their i18n labels. Build is clean, 28 routes.",
+      "tests": ["npm run build"]
+    },
+    {
+      "id": "CS7-9",
+      "part": 7,
+      "title": "Schema bump (9→10) broke two export/import version assertions",
+      "role": "n/a",
+      "page": "tests",
+      "account": "n/a",
+      "steps": "npm run test:run.",
+      "expected": "Tests track SCHEMA_VERSION dynamically.",
+      "actual": "phase10cStab1Batch2 hardcoded version 9 in two assertions.",
+      "severity": "low",
+      "status": "fixed",
+      "fix": "Imported SCHEMA_VERSION and used it in both the export-version assertion and the missing-payload-keys test. e2e/fixtures/constants.ts SCHEMA_VERSION bumped to 10 + reviewReports key added; seed.ts carries the new slice.",
+      "tests": ["npm run test:run (446 passing)"]
+    }
+  ],
+  "notABug": [
+    {
+      "id": "CS7-NB-1",
+      "title": "Worker shows two 'Ca làm đã kết thúc' notifications",
+      "finding": "Carried over from CS6 — the two are for DIFFERENT shifts with distinct dedupeKeys (ShiftEnded:appA vs ShiftEnded:appB), and worker+employer copies go to different userIds. Re-verified: dedup is keyed per (userId, dedupeKey); two distinct shifts legitimately produce two notifications (allowed by Part 1.4)."
+    }
+  ]
+}

@@ -43,6 +43,12 @@ export type {
   NewEmployerFeedbackInput,
 } from './employerFeedbackStore';
 
+export { useReviewReportStore } from './reviewReportStore';
+export type {
+  ReviewReportError,
+  NewReviewReportInput,
+} from './reviewReportStore';
+
 export {
   useVerificationStore,
   workerDocLabel,
@@ -67,3 +73,5 @@ export type {
 
 export { useWalletStore } from './walletStore';
 export type { WalletStore } from './walletStore';
+
+export { useHydrationStore } from './hydrationStore';

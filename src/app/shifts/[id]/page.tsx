@@ -7,6 +7,7 @@ import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore, asEmployer, asWorker } from '@/stores/userStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useHydrationStore } from '@/stores/hydrationStore';
 import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
@@ -39,8 +40,27 @@ interface Props {
 export default function ShiftDetailPage({ params }: Props) {
   const { id } = use(params);
   const shift = useShiftStore((s) => s.shifts.find((sh) => sh.id === id));
-  if (!shift) return notFound();
+  const hydrated = useHydrationStore((s) => s.hydrated);
+  // Wait for hydration before deciding the shift is missing. On a cold
+  // load / refresh / deep-link the store is empty during the first
+  // render; calling `notFound()` then would render a permanent 404.
+  if (!shift) {
+    if (!hydrated) return <ShiftDetailLoading />;
+    return notFound();
+  }
   return <ShiftDetailContent shift={shift} />;
+}
+
+function ShiftDetailLoading() {
+  return (
+    <div
+      className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-gray-500"
+      role="status"
+      aria-live="polite"
+    >
+      {t('common.loading')}
+    </div>
+  );
 }
 
 // Inner component: receives a guaranteed non-null Shift
@@ -221,6 +241,24 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         <h1 className="text-2xl font-bold text-gray-900">{shift.title}</h1>
         <ShiftStatusBadge status={shift.status} />
       </div>
+
+      {/* QA-Fix-2 Phase 3 — old-notification reconciliation note. When
+          the shift is in a terminal state (ended / cancelled /
+          expired / completed) we tell the worker the linked
+          notification refers to a finished shift, so an old approval
+          deep-link doesn't read as an active job. Lifecycle sync has
+          already run on mount, so the badge above reflects current
+          state. */}
+      {(shift.status === 'Expired' ||
+        shift.status === 'Cancelled' ||
+        shift.status === 'Completed') && (
+        <p
+          role="status"
+          className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+        >
+          {t('shifts.detail.oldNotificationNote')}
+        </p>
+      )}
 
       {/* Employer — clickable when we can resolve to an Employer record */}
       <p className="mt-1 text-sm text-gray-500">

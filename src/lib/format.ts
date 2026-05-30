@@ -30,7 +30,33 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
   year: 'numeric',
 });
 
+/**
+ * CORE-STABILITY-6 Part 2 — shared date+time+seconds formatter for
+ * logs / notifications (e.g. "30/05/2026 09:15:32"). Mirrors the
+ * `Intl.DateTimeFormat('vi-VN', { ... second: '2-digit' })` convention
+ * used across history surfaces so every timestamp reads consistently.
+ */
+const LOG_DATETIME_FORMATTER = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
 const SESSION_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Format an ISO timestamp as `DD/MM/YYYY HH:mm:ss` in `vi-VN`. Used for
+ * notification timestamps and history logs. Invalid input is returned
+ * unchanged so the UI never renders `Invalid Date`.
+ */
+export function formatLogDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return LOG_DATETIME_FORMATTER.format(d);
+}
 
 /**
  * Format a number as Vietnamese Dong (e.g. `50.000 đ`). Phase 9Z-Fix-2
