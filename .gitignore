@@ -44,6 +44,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# UI reference repo (Bolt) — inspection only, never part of the app build
+/design-reference/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

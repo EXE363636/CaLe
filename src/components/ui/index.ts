@@ -26,6 +26,11 @@ export type { ToastTone, ToastItem } from '@/stores/toastStore';
 
 export { EmptyState } from './EmptyState';
 
+export { PageShell } from './PageShell';
+export { SectionHeader } from './SectionHeader';
+export { StatCard, MetricGrid } from './StatCard';
+export type { StatCardTone } from './StatCard';
+
 export { StarRating } from './StarRating';
 
 export { Reveal } from './Reveal';

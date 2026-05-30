@@ -704,17 +704,17 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     (bucket) => (
                 <section
                   key={bucket.bucket}
-                  className="flex flex-col gap-3"
+                  className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 shadow-card"
                   aria-labelledby={`applicant-bucket-${bucket.bucket}`}
                 >
-                  <header className="flex flex-col gap-0.5">
+                  <header className="flex flex-col gap-0.5 border-b border-gray-200 pb-2">
                     <h3
                       id={`applicant-bucket-${bucket.bucket}`}
                       className="text-sm font-semibold text-gray-900"
                     >
                       {t(`applicantBucket.${bucket.bucket}`)}
-                      <span className="ml-2 text-xs font-normal text-gray-500">
-                        ({bucket.applications.length})
+                      <span className="ml-2 inline-flex items-center rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200">
+                        {bucket.applications.length}
                       </span>
                     </h3>
                     <p className="text-xs leading-relaxed text-gray-500">

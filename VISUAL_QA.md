@@ -3458,3 +3458,33 @@ Re-run this audit after any change to:
 - `src/app/worker/dashboard/page.tsx` — `recentlyExpired` section.
 - `src/app/shifts/[id]/page.tsx` — `useLifecycleSync` usage.
 - HANDOFF Section 11 pending-expiry rule.
+
+
+## UI-REFRESH-FROM-BOLT-REFERENCE-1 — Batch 5 final sweep
+
+Last reviewed: **2026-06-01, post Batches 1–4 (Bolt-inspired refresh).**
+
+- **Automated horizontal-overflow sweep.** A temporary Playwright spec
+  measured `documentElement.scrollWidth` vs `clientWidth` across 12 major
+  routes × 6 viewports (1920/1536/1440/1366/1280/1024 = 72 checks).
+  Result: **0 offenders.** No page-level horizontal overflow anywhere.
+- **Design-system elevation standardized.** `Card` and `Modal` use the
+  Bolt-inspired `shadow-card` / `shadow-card-hover` / `shadow-modal`
+  tokens; page heroes, stat tiles, calendar panels, snapshot utility, and
+  the notification dropdown all use the layered shadows for a cohesive
+  warm surface.
+- **Width discipline.** Worker profile (`PageShell width="6xl"`),
+  employer profile (`PageShell width="4xl"`), reputation modal
+  (`max-w-4xl`, 2-column), wallet history modal (`max-w-xl`), and the
+  multi-section create-shift form all use the desktop width band instead
+  of narrow centered columns.
+- **Regression-clean.** 544 unit + 112 E2E + 22 time-travel all pass;
+  build clean at 28 routes. Lifecycle / attendance / checkout / draft /
+  wallet / dispute / notification logic untouched across all four batches.
+- **Full report:** `qa-exploration/ui-refresh-final-report.md` +
+  `qa-exploration/ui-refresh-final-bugs.json`. Per-page screenshots under
+  `qa-exploration/shots/ui-refresh-final-*.png`.
+
+Verdict: **UI refresh ready to commit.** No visual or functional
+regressions found; no code changes were required in Batch 5 (the sweep
+confirmed Batches 1–4 were already clean).

@@ -1541,6 +1541,11 @@ export const vi: Record<string, string> = {
   'employerType10A.AgencyEvent.hint':
     'Agency / Sự kiện: nộp giấy phép kinh doanh + hợp đồng / xác nhận sự kiện + ảnh địa điểm.',
 
+  // UI-REFRESH Batch 3 — multi-section create-shift form headings.
+  'shiftForm.section.basics': 'Thông tin ca làm',
+  'shiftForm.section.details': 'Mô tả và yêu cầu',
+  'shiftForm.section.deposit': 'Đặt cọc',
+
   'form.workplaceSection.title': 'Ảnh địa điểm và liên hệ tại nơi làm việc',
   'form.workplaceSection.intro':
     'Ảnh giúp người lao động nhận biết nơi làm việc thật trước khi nhận ca. Trong bản MVP, bạn chỉ cần điền tên file mô phỏng (ví dụ: "mat-tien-quan-pho-ha.jpg").',
@@ -2089,6 +2094,8 @@ export const vi: Record<string, string> = {
   'dispute.status.ClosedInvalid': 'Đóng vì không hợp lệ',
 
   // QA-Fix-1 F — admin dispute detail + request-more-evidence.
+  // UI-REFRESH Batch 4 — amount-held label on the admin dispute card.
+  'admin.dispute.amountHeld': 'Tiền cọc đang giữ',
   'admin.dispute.initiatedBy': 'Người mở khiếu nại',
   'admin.dispute.initiator.worker': 'Người làm',
   'admin.dispute.initiator.employer': 'Nhà tuyển dụng',

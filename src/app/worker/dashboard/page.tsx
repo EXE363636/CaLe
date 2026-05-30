@@ -523,8 +523,10 @@ function WorkerDashboardContent() {
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
       />
-      {/* Welcome card — soft gradient strip with avatar fallback + quick stats peek */}
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+      {/* Welcome card — soft gradient strip with avatar fallback + quick stats peek.
+          UI-REFRESH Batch 2 — layered `shadow-card` to match the design
+          system header treatment used on the profile page. */}
+      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
             {getUserInitials(worker.fullName)}
@@ -1125,6 +1127,7 @@ function WorkerDashboardContent() {
         open={statDetail === 'reputation'}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.reputationScore')}
+        className="max-w-4xl"
         titleAccessory={
           <HelpPopover
             title={t('worker.dashboard.stats.reputationScore')}
@@ -1133,55 +1136,62 @@ function WorkerDashboardContent() {
           />
         }
       >
-        <div className="flex flex-col gap-3 text-sm text-gray-700">
-          <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-3 ring-1 ring-orange-100">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-orange-600">
-              {t('worker.dashboard.reputationModal.currentLabel')}
-            </p>
-            <p className="mt-1 text-2xl font-extrabold text-orange-700">
-              {worker.reputationScore}
-              <span className="ml-1 text-sm font-medium text-orange-700/80">/ 100</span>
-            </p>
-            <p className="mt-1 text-xs text-orange-700/80">
-              {worker.reputationScore >= 80
-                ? t('worker.dashboard.reputationModal.bandGood')
-                : worker.reputationScore >= 50
-                  ? t('worker.dashboard.reputationModal.bandWarn')
-                  : t('worker.dashboard.reputationModal.bandBad')}
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-orange-100 bg-orange-50/40 px-3 py-2">
-            <p className="text-xs font-semibold text-orange-800">
-              {t('worker.dashboard.reputationHint.title')}
-            </p>
-            <p className="mt-1 text-xs text-orange-700">
-              {t('worker.dashboard.reputationHint.gain')}
-            </p>
-            <p className="mt-1 text-xs text-orange-700">
-              {t('worker.dashboard.reputationHint.lose')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                {t('worker.dashboard.reputationModal.completedLabel')}
+        {/* UI-REFRESH Batch 2 — wider desktop layout: left column holds
+            the summary + rules + stat grid, right column holds the
+            scrollable history. Collapses to one column on mobile/tablet. */}
+        <div className="grid gap-4 text-sm text-gray-700 lg:grid-cols-2">
+          {/* Left column — summary + rules + stats */}
+          <div className="flex flex-col gap-3">
+            <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-3 ring-1 ring-orange-100">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-orange-600">
+                {t('worker.dashboard.reputationModal.currentLabel')}
               </p>
-              <p className="mt-0.5 text-base font-bold text-emerald-600">
-                {worker.completedShiftCount}
+              <p className="mt-1 text-3xl font-extrabold text-orange-700">
+                {worker.reputationScore}
+                <span className="ml-1 text-sm font-medium text-orange-700/80">/ 100</span>
+              </p>
+              <p className="mt-1 text-xs text-orange-700/80">
+                {worker.reputationScore >= 80
+                  ? t('worker.dashboard.reputationModal.bandGood')
+                  : worker.reputationScore >= 50
+                    ? t('worker.dashboard.reputationModal.bandWarn')
+                    : t('worker.dashboard.reputationModal.bandBad')}
               </p>
             </div>
-            <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                {t('worker.dashboard.reputationModal.ratingsLabel')}
+
+            <div className="rounded-lg border border-orange-100 bg-orange-50/40 px-3 py-2">
+              <p className="text-xs font-semibold text-orange-800">
+                {t('worker.dashboard.reputationHint.title')}
               </p>
-              <p className="mt-0.5 text-base font-bold text-orange-600">
-                {worker.ratingsReceived.length}
+              <p className="mt-1 text-xs text-orange-700">
+                {t('worker.dashboard.reputationHint.gain')}
               </p>
+              <p className="mt-1 text-xs text-orange-700">
+                {t('worker.dashboard.reputationHint.lose')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                  {t('worker.dashboard.reputationModal.completedLabel')}
+                </p>
+                <p className="mt-0.5 text-base font-bold text-emerald-600">
+                  {worker.completedShiftCount}
+                </p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                  {t('worker.dashboard.reputationModal.ratingsLabel')}
+                </p>
+                <p className="mt-0.5 text-base font-bold text-orange-600">
+                  {worker.ratingsReceived.length}
+                </p>
+              </div>
             </div>
           </div>
 
+          {/* Right column — history (scrolls if long) */}
           <div className="flex flex-col gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               {t('worker.dashboard.reputationModal.recentTitle')}
@@ -1194,7 +1204,7 @@ function WorkerDashboardContent() {
                 {t('worker.dashboard.reputationModal.noHistory')}
               </div>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="flex max-h-[22rem] flex-col gap-2 overflow-y-auto pr-1">
                 {repTimeline.slice(0, 8).map((ev) => (
                   <li
                     key={ev.id}
@@ -1262,16 +1272,16 @@ function WorkerDashboardContent() {
               </ul>
             )}
           </div>
+        </div>
 
-          <div className="mt-1 flex justify-end">
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => setStatDetail(null)}
-            >
-              {t('help.btn.close')}
-            </Button>
-          </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => setStatDetail(null)}
+          >
+            {t('help.btn.close')}
+          </Button>
         </div>
       </Modal>
 
@@ -1735,13 +1745,13 @@ function StatTile({
   // the Phase 9Y QA fix-up — still useful in case any descendants ever
   // overflow the rounded corner.)
   const baseClasses = [
-    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
+    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-card text-left w-full',
     'before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:rounded-t-2xl',
     toneRing[tone],
   ].join(' ');
 
   const interactiveClasses = onClick
-    ? 'motion-lift cursor-pointer hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
+    ? 'motion-lift cursor-pointer hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
     : '';
 
   const body = (

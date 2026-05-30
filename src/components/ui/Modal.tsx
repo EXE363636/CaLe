@@ -126,7 +126,11 @@ export function Modal({
           ref={panelRef}
           tabIndex={-1}
           className={[
-            'modal-panel-anim relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl',
+            // UI-REFRESH-FROM-BOLT-REFERENCE-1 — softer layered modal
+            // elevation (`shadow-modal`) adopted from the Bolt reference,
+            // replacing the harsher `shadow-2xl`. Entrance animation
+            // (`modal-panel-anim`) and portal behaviour are unchanged.
+            'modal-panel-anim relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-modal',
             'ring-1 ring-black/5 focus:outline-none',
             className,
           ].join(' ')}

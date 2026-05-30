@@ -30,14 +30,17 @@ export function Card({
   return (
     <Tag
       className={[
-        'rounded-2xl p-5 shadow-sm',
+        // UI-REFRESH-FROM-BOLT-REFERENCE-1 — softer, layered card
+        // elevation adopted from the Bolt reference (`shadow-card`)
+        // instead of the flat `shadow-sm`. Hover lift unchanged.
+        'rounded-2xl p-5 shadow-card',
         flush ? 'border-0' : `border ${toneClasses[tone]}`,
         flush ? toneClasses[tone].split(' ')[0] : '',
         // `motion-lift` adds a subtle translateY + shadow on hover when
         // the card is clickable. Defined in globals.css and reduced-motion
         // safe.
         clickable
-          ? 'motion-lift cursor-pointer hover:shadow-md focus-within:shadow-md'
+          ? 'motion-lift cursor-pointer hover:shadow-card-hover focus-within:shadow-card-hover'
           : '',
         className,
       ]

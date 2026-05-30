@@ -403,7 +403,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       <PaymentEvidenceCard shift={shift} />
 
       {/* Apply section */}
-      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-card">
         {!currentUserId && (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-gray-600">Đăng nhập để ứng tuyển ca làm này.</p>

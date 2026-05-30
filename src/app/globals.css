@@ -311,6 +311,67 @@ summary::-webkit-details-marker {
 }
 
 /* ----------------------------------------------------------------------------
+ * UI-REFRESH-FROM-BOLT-REFERENCE-1 — refined shadow + motion tokens.
+ *
+ * Adopted from the Bolt UI reference (`tailwind.config.js` boxShadow +
+ * keyframes). These are ADDITIVE Tailwind v4 utilities — they introduce
+ * new class names (`shadow-card`, `shadow-card-hover`, `shadow-modal`,
+ * `animate-scale-in`, `animate-slide-up`) without changing any existing
+ * class. Cards/modals opt in for a softer, more layered elevation than
+ * the default flat `shadow-sm`, matching the reference's cleaner depth.
+ * ------------------------------------------------------------------------- */
+@utility shadow-card {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.04);
+}
+@utility shadow-card-hover {
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+}
+@utility shadow-modal {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 16px 48px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes ui-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-scale-in {
+  animation: ui-scale-in 200ms ease-out;
+}
+
+@keyframes ui-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-up {
+  animation: ui-slide-up 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-scale-in,
+  .animate-slide-up {
+    animation: none;
+  }
+}
+
+/* ----------------------------------------------------------------------------
  * Phase 9D — entrance animations + scroll-reveal + decorative float
  *
  * Three new keyframe families:

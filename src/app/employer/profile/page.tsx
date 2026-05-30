@@ -15,7 +15,7 @@ import {
   getPendingTypeChangeRequest,
 } from '@/stores';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { Card, Button, Input, Textarea, Modal } from '@/components/ui';
+import { Card, Button, Input, Textarea, Modal, PageShell } from '@/components/ui';
 import { Badge } from '@/components/ui';
 import { EmployerFeedbackList } from '@/components/user/EmployerFeedbackList';
 import { formatDateVN } from '@/lib/format';
@@ -54,7 +54,7 @@ function EmployerProfileContent() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+    <PageShell width="4xl">
       <h1 className="mb-6 text-2xl font-bold text-gray-900">{t('nav.profile')}</h1>
 
       {savedFlash && (
@@ -115,7 +115,7 @@ function EmployerProfileContent() {
         </p>
         <EmployerFeedbackList employerId={employer.id} limit={5} />
       </Card>
-    </div>
+    </PageShell>
   );
 }
 

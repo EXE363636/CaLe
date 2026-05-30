@@ -158,6 +158,35 @@ const EVIDENCE_RANK: Record<EvidenceRequirement, number> = {
 
 type FormErrors = Partial<Record<keyof ShiftFormValues, string>>;
 
+/**
+ * UI-REFRESH Batch 3 — multi-section card wrapper for the create-shift
+ * form. Pure presentational: groups related fields under a heading on a
+ * `shadow-card` surface so the long form reads as distinct steps
+ * (Thông tin ca làm / Mô tả và yêu cầu / …) instead of one flat list.
+ * No field, label, id, or validation behaviour changes.
+ */
+function FormSection({
+  title,
+  children,
+  className = '',
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={[
+        'rounded-2xl border border-gray-200 bg-white p-4 shadow-card sm:p-5',
+        className,
+      ].join(' ')}
+    >
+      <h3 className="mb-4 text-sm font-semibold text-gray-900">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export function ShiftForm({
   initialValues,
   onSubmit,
@@ -373,7 +402,8 @@ export function ShiftForm({
   const submitLabel = mode === 'edit' ? t('btn.save') : t('btn.postShift');
 
   return (
-    <form onSubmit={handleSubmit} className={['flex flex-col gap-4', className].join(' ')}>
+    <form onSubmit={handleSubmit} className={['flex flex-col gap-5', className].join(' ')}>
+      <FormSection title={t('shiftForm.section.basics')}>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Title */}
         <Input
@@ -565,7 +595,11 @@ export function ShiftForm({
           error={errors.positionsTotal}
           required
         />
+      </div>
+      </FormSection>
 
+      <FormSection title={t('shiftForm.section.details')}>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Description — full width */}
         <div className="md:col-span-2">
           <Textarea
@@ -668,6 +702,7 @@ export function ShiftForm({
           onChange={(next) => set('evidenceRequirement', next)}
         />
       </div>
+      </FormSection>
 
       {/* Live deposit total */}
       {liveDeposit > 0 && (

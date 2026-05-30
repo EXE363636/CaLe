@@ -456,7 +456,7 @@ function SchedulePageContent() {
 
       {/* Calendar body — wrapped in a soft white panel so the whole grid
           reads as a real product surface, not a bare table. */}
-      <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-sm backdrop-blur-sm">
+      <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-card backdrop-blur-sm">
         {view === 'week' && (
           slotsValid ? (
             <WeekView
@@ -538,7 +538,7 @@ function SchedulePageContent() {
           warm-cream chrome already provides surface treatment for the
           calendar grid; the extra blobs added clutter without value. */}
 
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-orange-600">

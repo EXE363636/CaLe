@@ -12,7 +12,16 @@ import {
 } from '@/stores';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { notifyAdmins } from '@/lib/adminNotifications';
-import { Badge, Card, Button, Input, Textarea, StarRating } from '@/components/ui';
+import {
+  Badge,
+  Card,
+  Button,
+  Input,
+  Textarea,
+  StarRating,
+  PageShell,
+  SectionHeader,
+} from '@/components/ui';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { averageRating } from '@/domain/rating';
@@ -48,14 +57,18 @@ function WorkerProfileContent() {
   if (!worker) return null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="mb-6 flex items-center gap-4">
-        <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-2xl font-bold text-gray-900">{worker.fullName}</h1>
-          <p className="text-sm text-gray-500">{worker.email}</p>
+    <PageShell width="6xl">
+      {/* Header card — Bolt-inspired: avatar + identity on a soft warm
+          gradient strip so the profile opens on a designed surface. */}
+      <header className="mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
+        <div className="flex flex-wrap items-center gap-4">
+          <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-2xl font-bold text-gray-900">{worker.fullName}</h1>
+            <p className="truncate text-sm text-gray-500">{worker.email}</p>
+          </div>
+          <ReputationBadge score={worker.reputationScore} />
         </div>
-        <ReputationBadge score={worker.reputationScore} />
       </header>
 
       {savedFlash && (
@@ -128,31 +141,36 @@ function WorkerProfileContent() {
               <StatRow label="Tham gia" value={formatDateVN(worker.createdAt)} />
             </dl>
           </Card>
-
-          {/* Phase 10A-Fix-9 / CORE-STABILITY-9 Part 4 /
-              PRODUCT-UX-FIX-BACKEND-PREP-1 Part 2 — per-job-type skill
-              progression with level + XP progress bars. ALWAYS shown:
-              a worker with no completed shifts still sees the default
-              casual-job skill cards at Cấp 1 / 0 XP (never a blank UI). */}
-          <Card>
-            <h2 className="mb-1 font-semibold text-gray-900">
-              {t('skill.section.title')}
-            </h2>
-            <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
-              {t('skill.section.intro')}
-            </p>
-            <ul className="flex flex-col gap-2">
-              {buildSkillDisplayList(worker.skillScores).map((entry) => (
-                <SkillProgressBar key={entry.category} entry={entry} />
-              ))}
-            </ul>
-            <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
-              {t('skill.section.footnote')}
-            </p>
-          </Card>
         </aside>
       </div>
-    </div>
+
+      {/* Phase 10A-Fix-9 / CORE-STABILITY-9 Part 4 /
+          PRODUCT-UX-FIX-BACKEND-PREP-1 Part 2 — per-job-type skill
+          progression with level + XP progress bars. ALWAYS shown:
+          a worker with no completed shifts still sees the default
+          casual-job skill cards at Cấp 1 / 0 XP (never a blank UI).
+
+          UI-REFRESH Batch 2 — moved out of the narrow sidebar into a
+          full-width responsive GRID below the two columns so the bars
+          breathe on desktop instead of stacking in a tall single column. */}
+      <section className="mt-6">
+        <Card>
+          <SectionHeader
+            as="h2"
+            title={t('skill.section.title')}
+            subtitle={t('skill.section.intro')}
+          />
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {buildSkillDisplayList(worker.skillScores).map((entry) => (
+              <SkillProgressBar key={entry.category} entry={entry} />
+            ))}
+          </ul>
+          <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
+            {t('skill.section.footnote')}
+          </p>
+        </Card>
+      </section>
+    </PageShell>
   );
 }
 

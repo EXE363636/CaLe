@@ -152,8 +152,10 @@ function EmployerDashboardContent() {
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
       />
-      {/* Welcome strip — Phase 9D entrance-up on first paint. */}
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+      {/* Welcome strip — Phase 9D entrance-up on first paint.
+          UI-REFRESH Batch 3 — layered `shadow-card` for design-system
+          consistency with the worker dashboard header. */}
+      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
             {getUserInitials(employer.companyName)}
@@ -846,13 +848,13 @@ function StatTile({
   };
 
   const baseClasses = [
-    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-sm text-left w-full',
+    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-card text-left w-full',
     'before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:rounded-t-2xl',
     toneRing[tone],
   ].join(' ');
 
   const interactiveClasses = onClick
-    ? 'motion-lift cursor-pointer hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
+    ? 'motion-lift cursor-pointer hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
     : '';
 
   const body = (

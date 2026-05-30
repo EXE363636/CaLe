@@ -519,7 +519,7 @@ function NewShiftContent() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Hero header — Phase 9 polish */}
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -847,7 +847,7 @@ function ReadinessChecklist({
   return (
     <div
       className={[
-        'mb-5 rounded-2xl border p-4 shadow-sm',
+        'mb-5 rounded-2xl border p-4 shadow-card',
         ready
           ? 'border-emerald-200 bg-emerald-50/60'
           : 'border-amber-300 bg-amber-50',
@@ -920,7 +920,7 @@ function TrustExplainerCard({
   return (
     <div
       className={[
-        'relative mb-5 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-5 shadow-sm',
+        'relative mb-5 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-5 shadow-card',
         'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
         toneRing[trust],
       ].join(' ')}
@@ -972,7 +972,7 @@ function DepositConfirmCard({
   const fullWage = ratio > 0 ? Math.round(depositAmount / ratio) : depositAmount;
 
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-sm">
+    <div className="mb-6 overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">

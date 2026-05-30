@@ -92,20 +92,26 @@ function entryToneClass(amount: number): string {
 function LedgerRow({ entry }: { entry: WalletLedgerEntry }) {
   const sign = entry.amount > 0 ? '+' : '';
   return (
-    <li className="flex flex-col gap-0.5 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs">
-      <span className="font-medium text-gray-900">
-        {t(`wallet.kind.${entry.kind}`)}
-      </span>
-      <span className="font-mono text-[11px] text-gray-500">
-        {formatOccurredAt(entry.occurredAt)}
-      </span>
-      <span className={`font-semibold ${entryToneClass(entry.amount)}`}>
+    <li className="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs">
+      <div className="min-w-0 flex-1">
+        <span className="block font-medium text-gray-900">
+          {t(`wallet.kind.${entry.kind}`)}
+        </span>
+        <span className="mt-0.5 block font-mono text-[11px] text-gray-500">
+          {formatOccurredAt(entry.occurredAt)}
+        </span>
+        {entry.note && (
+          <span className="mt-0.5 block leading-relaxed text-gray-600">
+            {entry.note}
+          </span>
+        )}
+      </div>
+      <span
+        className={`shrink-0 text-sm font-semibold tabular-nums ${entryToneClass(entry.amount)}`}
+      >
         {sign}
         {formatVND(Math.abs(entry.amount))}
       </span>
-      {entry.note && (
-        <span className="leading-relaxed text-gray-600">{entry.note}</span>
-      )}
     </li>
   );
 }
@@ -311,6 +317,7 @@ export function WalletPanel({
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={t('wallet.ledger.modal.title')}
+        className="max-w-xl"
       >
         <div className="flex flex-col gap-3 text-sm">
           {userLedger.length === 0 ? (
