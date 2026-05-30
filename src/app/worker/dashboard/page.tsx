@@ -15,7 +15,13 @@ import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
-import { getShiftDisplayPhase } from '@/domain/shiftLifecycle';
+import { deriveAttendanceState, attendanceCopyKey } from '@/domain/attendanceState';
+import { suggestShiftsForWorker } from '@/domain/availabilityMatch';
+import { buildSkillDisplayList } from '@/domain/skillProgression';
+import { SkillProgressBar } from '@/components/user/SkillProgressBar';
+import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
+import { getShiftLifecycleState } from '@/domain/shiftLifecycleState';
+import { useScheduleStore } from '@/stores/scheduleStore';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery, useSectionFromQuery } from '@/lib/useModalFromQuery';
@@ -48,6 +54,7 @@ function WorkerDashboardContent() {
   const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
   const submitFeedback = useEmployerFeedbackStore((s) => s.submit);
   const allNotifications = useNotificationStore((s) => s.notifications);
+  const scheduleBlocks = useScheduleStore((s) => s.blocks);
   const notifications = useMemo(
     () =>
       currentUserId
@@ -268,6 +275,41 @@ function WorkerDashboardContent() {
       .filter((a) => a.status === 'Confirmed' && !submittedIds.has(a.id))
       .sort((a, b) => (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''));
   }, [myApps, allFeedback, worker]);
+
+  // CORE-STABILITY-9 Part 5 — recommended shifts ranked by the worker's
+  // declared free time + skills. Pure scorer (`suggestShiftsForWorker`);
+  // surfaces only the top few that fit an availability block so the
+  // dashboard stays focused. Excludes shifts the worker already applied to.
+  const recommendedShifts = useMemo(() => {
+    if (!worker) return [];
+    const myBlocks = scheduleBlocks.filter((b) => b.userId === worker.id);
+    if (myBlocks.every((b) => b.kind !== 'available')) return [];
+    const appliedShiftIds = new Set(myApps.map((a) => a.shiftId));
+    const nowMs = Date.now();
+    const candidates = shifts.filter((s) => {
+      if (appliedShiftIds.has(s.id)) return false;
+      if (s.status !== 'Published' && s.status !== 'FullyBooked') return false;
+      // Future shifts only.
+      const startMs = new Date(`${s.date}T${s.startTime}:00`).getTime();
+      return Number.isNaN(startMs) || startMs >= nowMs;
+    });
+    const approvedApps = myApps.filter(
+      (a) =>
+        a.status === 'Approved' ||
+        a.status === 'CheckedIn' ||
+        a.status === 'CheckedOut',
+    );
+    const shiftIndex = new Map<string, Shift>(shifts.map((s) => [s.id, s]));
+    return suggestShiftsForWorker(
+      candidates,
+      worker,
+      myBlocks,
+      approvedApps,
+      shiftIndex,
+    )
+      .filter((m) => m.fitsAvailability)
+      .slice(0, 4);
+  }, [worker, scheduleBlocks, myApps, shifts]);
   // Phase 9I — derive a reputation score timeline from observable
   // events so the modal can explain *why* the score is what it is.
   // Source: confirmed applications (+5 each), late cancellations (−10
@@ -877,6 +919,107 @@ function WorkerDashboardContent() {
               </div>
             </section>
           )}
+
+          {/* CORE-STABILITY-9 Part 5 — availability-based job suggestions.
+              Only shown when the worker has declared free time and there
+              are matching shifts. */}
+          {recommendedShifts.length > 0 && (
+            <section>
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {t('availability.suggest.title')}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    {t('availability.suggest.subtitle')}
+                  </p>
+                </div>
+                <Link href="/shifts">
+                  <Button size="sm" variant="ghost">
+                    {t('availability.suggest.viewAll')}
+                  </Button>
+                </Link>
+              </div>
+              <div className="flex flex-col gap-3">
+                {recommendedShifts.map((m) => (
+                  <Link key={m.shift.id} href={`/shifts/${m.shift.id}`}>
+                    <Card className="transition-colors hover:border-emerald-300 hover:shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-gray-900">
+                            {m.shift.title}
+                          </p>
+                          <p className="mt-0.5 text-sm text-gray-500">
+                            {formatDateVN(m.shift.date)} •{' '}
+                            {formatTimeVN(m.shift.startTime)}–
+                            {formatTimeVN(m.shift.endTime)}
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {m.shift.location} ·{' '}
+                            {formatVND(m.shift.hourlyWage)}
+                            {t('common.perHour')}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <Badge
+                            tone={
+                              m.label === t('availability.match.veryGood')
+                                ? 'success'
+                                : m.label === t('availability.match.good')
+                                  ? 'info'
+                                  : 'warning'
+                            }
+                          >
+                            {m.label}
+                          </Badge>
+                          {m.fitsAvailability && (
+                            <span className="text-[11px] font-medium text-emerald-700">
+                              {t('availability.fitsAvailability')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* PRODUCT-UX-FIX-BACKEND-PREP-1 Part 2 — compact skill
+              summary. Shows the worker's top 4 skill cards (real
+              scores first, then default casual-job placeholders) so the
+              progression is visible on the dashboard, not only the
+              profile. Links to the full list on the profile. */}
+          <section>
+            <Card>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {t('skill.dashboard.title')}
+                </h2>
+                <Link
+                  href="/worker/profile"
+                  className="text-xs font-medium text-orange-600 hover:underline"
+                >
+                  {t('btn.viewDetail')}
+                </Link>
+              </div>
+              <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
+                {t('skill.section.intro')}
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {buildSkillDisplayList(worker.skillScores)
+                  .slice(0, 4)
+                  .map((entry) => (
+                    <SkillProgressBar
+                      key={entry.category}
+                      entry={entry}
+                      compact
+                    />
+                  ))}
+              </div>
+            </Card>
+          </section>
 
           {/* Phase 6: reputation rules note — surfaced on the dashboard
               so workers see how to recover. */}
@@ -1720,42 +1863,20 @@ function UpcomingShiftCard({
   const nowIso = new Date().toISOString();
   const showCheckIn = canCheckIn(nowIso, application, shift);
   const showCheckOut = canCheckOut(nowIso, application, shift);
-  // Phase 10C-Stab-1 Batch 2 D — mismatch state warnings. The
-  // worker's calendar shows whether their self-check-in / employer
-  // mark-present pair matches; misaligned states surface a banner so
-  // the worker knows whether to wait or to self-check-in.
-  //
-  // Phase 10C-Stab-1 Batch 3 D — when the application status is
-  // Approved (worker has not yet self-checked in) AND the employer
-  // has stamped `markedPresentAt`, surface the dedicated worker-side
-  // mismatch warning so the worker knows to self-check-in.
-  const mismatchWorkerOnly =
-    application.status === 'CheckedIn' &&
-    Boolean(application.checkInAt) &&
-    !application.markedPresentAt;
-  const mismatchEmployerOnly =
-    application.status === 'CheckedIn' &&
-    !application.checkInAt &&
-    Boolean(application.markedPresentAt);
-  const mismatchWorkerNotCheckedIn =
-    Boolean(application.markedPresentAt) && !application.checkInAt;
-  const phase = getShiftDisplayPhase(
-    shift,
-    [application],
-    nowIso,
-  );
-  const phaseTone =
-    phase === 'InProgress'
-      ? 'success'
-      : phase === 'CheckInOpen'
-        ? 'info'
-        : phase === 'Cancelled' ||
-            phase === 'Completed' ||
-            phase === 'Expired'
-          ? 'neutral'
-          : phase === 'Disputed'
-            ? 'danger'
-            : 'warning';
+  // CORE-STABILITY-9 Parts 1 & 3 — derive the canonical attendance
+  // state and render WORKER-perspective copy (never employer text).
+  const attendanceState = deriveAttendanceState(application, shift, nowIso);
+  const attendanceCopy = attendanceCopyKey(attendanceState, 'worker');
+  // CORE-STABILITY-10 — the unified lifecycle state. We render the
+  // shared badge once the shift is time-relevant to the worker
+  // (StartingSoon onwards). While it is still plain `Published`
+  // (recruiting, far from start) the worker's own application-status
+  // badge ("Đã duyệt") is the correct primary label — the public
+  // recruiting status "Đang tuyển" is a discovery concern, not the
+  // approved worker's. The state itself is computed by the single
+  // source-of-truth helper, so it never disagrees with other surfaces.
+  const lifecycleState = getShiftLifecycleState(shift, [application], nowIso);
+  const showLifecycleBadge = lifecycleState !== 'Published';
 
   return (
     <Card>
@@ -1770,13 +1891,16 @@ function UpcomingShiftCard({
           <p className="mt-0.5 text-sm text-gray-500">{shift.location}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          {/* QA-Fix-1 A6 — on the worker's own upcoming card we do
-              NOT show the public recruiting status (Published =
-              "Đang tuyển"); that's a discovery/employer concern and
-              conflicts with the worker's own application state. The
-              single primary label here is the display-phase chip,
-              plus the application status badge below. */}
-          <Badge tone={phaseTone}>{t(`shift.phase.${phase}`)}</Badge>
+          {/* CORE-STABILITY-10 — single unified lifecycle badge, the
+              same label + colour as every other surface (the worker's
+              own application status badge appears below). */}
+          {showLifecycleBadge && (
+            <ShiftLifecycleBadge
+              shift={shift}
+              applications={[application]}
+              nowIso={nowIso}
+            />
+          )}
         </div>
       </div>
 
@@ -1788,26 +1912,12 @@ function UpcomingShiftCard({
         <span className="font-medium text-orange-600">{formatVND(shift.hourlyWage)}/giờ</span>
       </div>
 
-      {(mismatchWorkerOnly || mismatchEmployerOnly) && (
+      {attendanceCopy && (
         <p
           role="status"
           className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
         >
-          {mismatchWorkerOnly
-            ? t('lifecycle.mismatch.workerOnly')
-            : t('lifecycle.mismatch.employerOnly')}
-        </p>
-      )}
-
-      {/* Phase 10C-Stab-1 Batch 3 D — worker-side mismatch warning
-          when employer has marked the worker present but the worker
-          has not self-checked in. Visible above the check-in button. */}
-      {mismatchWorkerNotCheckedIn && !mismatchEmployerOnly && (
-        <p
-          role="status"
-          className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
-        >
-          {t('lifecycle.mismatch.workerNotCheckedIn')}
+          {t(attendanceCopy)}
         </p>
       )}
 

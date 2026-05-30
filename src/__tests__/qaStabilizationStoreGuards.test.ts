@@ -123,6 +123,8 @@ function makeShift(over: Partial<Shift> = {}): Shift {
     evidenceRequirement: 'OptionalPhoto',
     timeline: [],
     workplaceImageLabel: 'Ảnh mặt bằng',
+    onSiteContactName: 'Anh Liêm',
+    onSiteContactPhone: '0901234567',
     ...over,
   };
 }

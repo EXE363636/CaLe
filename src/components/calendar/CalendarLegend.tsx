@@ -22,6 +22,10 @@ const workerEntries: LegendEntry[] = [
     labelKey: 'calendar.legend.worker.personalBusy',
   },
   {
+    swatchClass: 'bg-emerald-300',
+    labelKey: 'calendar.legend.worker.availableSlot',
+  },
+  {
     swatchClass: 'bg-orange-300',
     labelKey: 'calendar.legend.worker.approvedShift',
   },

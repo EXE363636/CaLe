@@ -32,6 +32,7 @@ import { computePostingReadiness } from '@/domain/postingReadiness';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
 import { validateShiftFutureTiming } from '@/domain/shiftScheduling';
 import { canEditShift } from '@/domain/timeGates';
+import { isValidVNPhone } from '@/lib/validate';
 import { newPrefixedId } from '@/lib/ids';
 import { useVerificationStore } from './verificationStore';
 import type {
@@ -138,7 +139,18 @@ export type SimulateDepositError =
    * required 100% deposit. Posting/deposit is blocked: the shift is
    * NOT published and no deposit ledger / timeline entry is created.
    */
-  | 'INSUFFICIENT_BALANCE';
+  | 'INSUFFICIENT_BALANCE'
+  /**
+   * CORE-STABILITY-8 Part 2 — the on-site contact person name is
+   * required to publish/deposit. Draft can be saved without it, but
+   * publish is blocked.
+   */
+  | 'CONTACT_PERSON_REQUIRED'
+  /**
+   * CORE-STABILITY-8 Part 2 — the on-site contact phone is required
+   * (and must be a valid VN phone) to publish/deposit.
+   */
+  | 'CONTACT_PHONE_REQUIRED';
 
 interface ShiftStore {
   shifts: Shift[];
@@ -159,6 +171,15 @@ interface ShiftStore {
    * structured `Result` instead of `void`.
    */
   simulateDeposit(shiftId: string): Result<Shift, SimulateDepositError>;
+  /**
+   * CORE-STABILITY-8 Part 1 — remove a lingering `Draft` shift from the
+   * main shift list (a shift created for a deposit attempt that was
+   * never completed). Drafts must not pollute the shift list /
+   * lifecycle / detail; the saved form lives in `shiftDraftStore`
+   * instead. No-op (returns false) if the shift is not a Draft — a
+   * Published shift must go through `cancel`, never a silent discard.
+   */
+  discardDraftShift(shiftId: string): boolean;
   setStatus(shiftId: string, status: ShiftStatus): void;
   incrementFilled(shiftId: string, delta: number): void;
   edit(shiftId: string, patch: ShiftEditablePatch, nowIso?: string): Result<Shift, EditError>;
@@ -240,7 +261,14 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
   },
 
   byEmployer(employerId) {
-    return get().shifts.filter((s) => s.employerId === employerId);
+    // CORE-STABILITY-8 Part 1 — Draft shifts are NOT real shifts. They
+    // are excluded from every employer-facing list / stat / calendar /
+    // lifecycle surface that calls `byEmployer`. A draft's saved form
+    // lives in `shiftDraftStore`; a lingering Draft in the shift list
+    // (a never-completed deposit attempt) must never render as a job.
+    return get().shifts.filter(
+      (s) => s.employerId === employerId && s.status !== 'Draft',
+    );
   },
 
   create(input) {
@@ -361,6 +389,22 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       }
     }
 
+    // CORE-STABILITY-8 Part 2 — required on-site contact person +
+    // phone for publish/deposit. A Draft may be saved without these,
+    // but a real (Published) shift must carry a reachable on-site
+    // contact. Runs BEFORE any mutation so a block leaves the shift
+    // untouched. The phone must also be digits-only / valid VN.
+    {
+      const name = (shift.onSiteContactName ?? '').trim();
+      const phone = (shift.onSiteContactPhone ?? '').trim();
+      if (name === '') {
+        return { ok: false, error: 'CONTACT_PERSON_REQUIRED' };
+      }
+      if (phone === '' || !isValidVNPhone(phone).ok) {
+        return { ok: false, error: 'CONTACT_PHONE_REQUIRED' };
+      }
+    }
+
     // CORE-STABILITY-6 Part 4 — insufficient-balance hard block. The
     // employer must hold at least the required 100% deposit
     // (`depositAmount`) in their wallet. This guard lives in the store
@@ -434,6 +478,16 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       dedupeKey: `EmployerDepositPaid:${updated.id}`,
     });
     return { ok: true, value: updated };
+  },
+
+  discardDraftShift(shiftId) {
+    const shift = get().getById(shiftId);
+    // Only Draft / never-deposited shifts can be silently discarded.
+    if (!shift || shift.status !== 'Draft') return false;
+    const next = get().shifts.filter((s) => s.id !== shiftId);
+    set({ shifts: next });
+    persist(next);
+    return true;
   },
 
   setStatus(shiftId, status) {

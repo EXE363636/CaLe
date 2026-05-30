@@ -529,6 +529,12 @@ export interface Employer extends BaseUser {
    * to 0 in the wallet store hydrate.
    */
   walletBalance?: number;
+  /**
+   * CORE-STABILITY-8 Part 5 — policy when a shift does not reach its
+   * full approved headcount by the start cutoff. Optional for
+   * back-compat; absent reads as the default `'RunWithApproved'`.
+   */
+  understaffedPolicy?: NoShowPolicy;
 }
 
 export interface Admin extends BaseUser {
@@ -727,6 +733,55 @@ export interface ShiftTimelineEntry {
    */
   note: string;
 }
+
+/**
+ * CORE-STABILITY-8 Part 1 — a saved create-shift form snapshot
+ * (autosave / "Lưu nháp"). A draft is **NOT** a real shift: it never
+ * appears on the public listing, never enters lifecycle sync, never
+ * touches the wallet/ledger, and never requires cancellation. It is a
+ * convenience so an employer can resume an unfinished posting (e.g.
+ * after an insufficient-balance deposit attempt). Drafts are converted
+ * into a real `Shift` only when the employer publishes + deposits.
+ *
+ * All fields mirror `ShiftFormValues` so "Tiếp tục chỉnh sửa" can
+ * repopulate the form exactly. Fields may be incomplete — a draft can
+ * be saved before the form is valid; publish/deposit re-validates.
+ */
+export interface ShiftDraft {
+  id: string;
+  employerId: string;
+  title: string;
+  description: string;
+  requirements: string;
+  jobType: string;
+  customJobTypeName: string;
+  location: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  hourlyWage: number;
+  positionsTotal: number;
+  workplaceImageLabel: string;
+  workplaceNotes: string;
+  onSiteContactName: string;
+  onSiteContactPhone: string;
+  requiresVerifiedDocumentOnArrival: boolean;
+  evidenceRequirement: EvidenceRequirement;
+  /** ISO 8601 (seconds) when the draft was first saved. */
+  savedAt: string;
+  /** ISO 8601 (seconds) of the most recent edit. */
+  updatedAt: string;
+}
+
+/**
+ * CORE-STABILITY-8 Part 5 — employer policy when a shift does not have
+ * enough approved workers by the start cutoff:
+ *   - `'RunWithApproved'` (default): the shift runs with whoever was
+ *     approved; unused slots are refunded at close.
+ *   - `'RequireFull'`: if not enough workers are approved by start, the
+ *     shift auto-cancels and the full deposit is refunded.
+ */
+export type NoShowPolicy = 'RunWithApproved' | 'RequireFull';
 
 export interface Application {
   id: string;
@@ -960,6 +1015,14 @@ export interface WorkerSkillScore {
   lastRating?: number;
   /** ISO timestamp of the most recent score update. */
   lastUpdatedAt: string;
+  /**
+   * CORE-STABILITY-9 Part 4 — accumulated experience points for the
+   * skill-progression (levelling / "cày cấp") MVP. Optional for
+   * back-compat; absent reads as `0` → Level 1. XP grows on completed
+   * shifts + positive ratings + no-dispute (see
+   * `src/domain/skillProgression.ts`).
+   */
+  xp?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -1259,6 +1322,14 @@ export interface ScheduleBlock {
   endTime: string;
   /** Optional free-text note. */
   note?: string;
+  /**
+   * CORE-STABILITY-9 Part 5 — discriminator: `'busy'` (default,
+   * back-compat — blocks conflicting applications) or `'available'`
+   * (free time used for job suggestions). Absent reads as `'busy'`.
+   * Availability blocks are NEVER fed into the application-conflict
+   * gate.
+   */
+  kind?: 'busy' | 'available';
   createdAt: string;
   updatedAt: string;
 }

@@ -8,7 +8,7 @@
  */
 
 /** Must match `SCHEMA_VERSION` in src/data/persistence.ts. */
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 /** Must match `STORAGE_KEYS` in src/data/persistence.ts. */
 export const STORAGE_KEYS = {
@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
   wallets: 'cale.wallets',
   walletLedger: 'cale.walletLedger',
   reviewReports: 'cale.reviewReports',
+  shiftDrafts: 'cale.shiftDrafts',
 } as const;
 
 /**

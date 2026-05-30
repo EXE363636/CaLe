@@ -114,7 +114,18 @@ export function suggestShiftStatus(
   // worker who is mid-shift but hasn't checked out yet.
   // ---------------------------------------------------------------------
   if (shift.status === 'InProgress') {
-    if (endedPast && allDoneOrAbsent) return 'AwaitingConfirmation';
+    if (endedPast) {
+      // CORE-STABILITY-8 Part 3 — once the end has passed:
+      //  - if someone checked in (or beyond) and everyone is done /
+      //    absent, hand off to the employer (AwaitingConfirmation);
+      //  - if nobody ever checked in, the shift expired without
+      //    execution (an Approved-only roster that never showed up);
+      //  - otherwise stay InProgress until the active workers check
+      //    out (don't yank the page out from under a mid-shift worker).
+      if (hasCheckedIn && allDoneOrAbsent) return 'AwaitingConfirmation';
+      if (!hasCheckedIn) return 'Expired';
+      return 'InProgress';
+    }
     return 'InProgress';
   }
 
@@ -131,14 +142,15 @@ export function suggestShiftStatus(
 
     // Start passed but end hasn't yet.
     if (startedPast) {
-      // Phase 10C-Stab-1 Batch 3 C — only flip to InProgress when at
-      // least one worker has actually checked in (or beyond). An
-      // Approved-only roster does NOT promote the shift to
-      // InProgress because we have no proof of presence yet.
-      if (hasCheckedIn) return 'InProgress';
-      if (hasActiveWorker) return shift.status;
-      // Start passed without anyone approved → still expired (no one
-      // showed up). Falls through to the normal time-only branch.
+      // CORE-STABILITY-8 Part 3 — the recruiting window closes at the
+      // start time. A Published/FullyBooked shift with at least one
+      // active (Approved+) worker rolls to InProgress at start so it
+      // never keeps showing "Đang tuyển" after it has begun, whether
+      // or not a check-in has been recorded yet. (Presence is tracked
+      // separately on the application; lifecycle status reflects the
+      // wall clock.)
+      if (hasCheckedIn || hasActiveWorker) return 'InProgress';
+      // Start passed without anyone approved → expired (no one showed).
       return 'Expired';
     }
 
@@ -316,10 +328,12 @@ export function getShiftDisplayPhase(
   const hasMidShift = myApps.some((a) => a.status === 'CheckedIn');
   if (now >= end && hasMidShift) return 'AwaitingWorkerCheckout';
 
-  // InProgress: now in [start, end) AND at least one app is checked in.
+  // InProgress: now in [start, end). CORE-STABILITY-8 Part 3 — once
+  // the start time is reached the recruiting window is closed, so the
+  // shift reads as "Đang diễn ra" regardless of whether a check-in has
+  // been recorded yet (presence is a separate, application-level fact).
   if (now >= start && now < end) {
-    if (hasMidShift) return 'InProgress';
-    return 'Upcoming';
+    return 'InProgress';
   }
 
   // CheckInOpen: within the 15-minute pre-start window.

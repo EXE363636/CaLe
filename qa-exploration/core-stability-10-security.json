@@ -1,0 +1,76 @@
+{
+  "task": "CORE-STABILITY-10",
+  "date": "2026-05-31",
+  "scope": "Unified shift lifecycle, role-aware attendance, checkout lock, badge consistency. Mock-only localStorage Next.js 16 MVP, no backend.",
+  "npmAudit": {
+    "total": 2,
+    "critical": 0,
+    "high": 0,
+    "moderate": 2,
+    "low": 0,
+    "details": [
+      {
+        "package": "postcss",
+        "severity": "moderate",
+        "advisory": "GHSA-qx2v-qp2m-jg93",
+        "via": "transitive dependency of next",
+        "status": "deferred",
+        "reason": "Fix requires a Next.js major downgrade. Build-time CSS tooling, not an app runtime input path. Carried over from CS6/7/8/9; no deps added by CS10."
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "CS10-SEC-1",
+      "area": "Worker cannot trigger employer mark-present/absent",
+      "severity": "info",
+      "status": "pass",
+      "observation": "Mark-present/absent/revert are only on the employer RoleGuard'd shift detail (404 unless shift.employerId === currentUserId). The worker dashboard has no such action.",
+      "test": "code review; employer detail ownership guard"
+    },
+    {
+      "id": "CS10-SEC-2",
+      "area": "Employer cannot trigger worker check-in",
+      "severity": "info",
+      "status": "pass",
+      "observation": "Worker self check-in stamps the worker's own checkInAt. Employer markPresentByEmployer sets markedPresentAt only, never checkInAt, so it cannot impersonate the worker nor unlock checkout.",
+      "test": "src/__tests__/coreStability10.test.ts (employer-marked-present never unlocks checkout); coreStability8.test.ts (mark-present != checkInAt)"
+    },
+    {
+      "id": "CS10-SEC-3",
+      "area": "Employer cannot mark attendance for another employer's shift",
+      "severity": "info",
+      "status": "pass",
+      "observation": "Employer shift detail returns notFound() when shift.employerId !== currentUserId, so attendance actions are unreachable for a non-owned shift.",
+      "test": "code review; RoleGuard + ownership 404"
+    },
+    {
+      "id": "CS10-SEC-4",
+      "area": "Direct action cannot bypass the checkout time gate",
+      "severity": "info",
+      "status": "pass",
+      "observation": "canCheckOut enforces now>=end + CheckedIn + own checkInAt in the domain layer; the lifecycle badge is display-only and opens no action path.",
+      "test": "src/__tests__/coreStability10.test.ts (checkout never before end)"
+    },
+    {
+      "id": "CS10-SEC-5",
+      "area": "Notification deeplink cannot bypass the checkout time gate",
+      "severity": "info",
+      "status": "pass",
+      "observation": "A deeplink only navigates; checkout availability is recomputed from the wall clock on render. A pre-end deeplink cannot surface a checkout button.",
+      "test": "e2e/25-core-stability-10.spec.ts (no checkout pre-end across navigations)"
+    },
+    {
+      "id": "CS10-SEC-6",
+      "area": "Lifecycle state cannot be spoofed via the client",
+      "severity": "info",
+      "status": "pass",
+      "observation": "The lifecycle badge is a pure projection of (shift, applications, now); there is no stored grant to forge. localStorage editing only affects the user's own demo data (universal mock limitation).",
+      "test": "src/__tests__/coreStability10.test.ts (pure helper); code review"
+    }
+  ],
+  "knownLimitations": [
+    "Mock-only: all authorization is client-side; a user can edit localStorage via devtools. Real server-side authz is the Phase 1 backend deliverable (backend-migration-plan.md).",
+    "Clearing browser storage loses all runtime data (disclosed site-wide in the footer)."
+  ]
+}

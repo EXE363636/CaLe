@@ -37,6 +37,7 @@ import {
 } from '@/domain/reputation';
 import { hasScheduleConflict } from '@/domain/scheduleConflict';
 import { applyRatingToSkillScores } from '@/domain/skillScore';
+import { awardSkillXp } from '@/domain/skillProgression';
 import { planExpirePendingApplications } from '@/domain/applicationExpiry';
 import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { appendShiftTimelineEntry } from '@/domain/shiftTimeline';
@@ -873,7 +874,17 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   checkIn(applicationId) {
     const app = get().getById(applicationId);
     if (!app) return { ok: false, error: 'APPLICATION_NOT_FOUND' };
-    if (app.status !== 'Approved') return { ok: false, error: 'WRONG_STATUS' };
+    // CORE-STABILITY-8 Part 4 — accept either an Approved worker
+    // self-checking-in, OR a worker whom the employer marked present
+    // (status already CheckedIn) but who has not yet self-confirmed
+    // (`checkInAt` unset). Both paths stamp the worker's own
+    // `checkInAt` so check-out can unlock.
+    const isApproved = app.status === 'Approved';
+    const isEmployerMarkedAwaitingSelf =
+      app.status === 'CheckedIn' && !app.checkInAt;
+    if (!isApproved && !isEmployerMarkedAwaitingSelf) {
+      return { ok: false, error: 'WRONG_STATUS' };
+    }
 
     const updated: Application = { ...app, status: 'CheckedIn', checkInAt: nowIso() };
     const next = get().applications.map((a) => (a.id === applicationId ? updated : a));
@@ -962,7 +973,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     const updated: Application = {
       ...app,
       status: 'CheckedIn',
-      checkInAt: app.checkInAt ?? ts,
+      // CORE-STABILITY-8 Part 4 — employer mark-present establishes
+      // presence (escrow → InProgress) but does NOT set the worker's
+      // own `checkInAt`. Check-out is gated on the worker's self-
+      // confirmation, so a one-sided employer mark cannot prematurely
+      // unlock check-out. The worker still presses "Tôi đã có mặt".
       markedPresentAt: ts,
       markedPresentByEmployerId: shift.employerId,
     };
@@ -1363,17 +1378,29 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Reputation: +5 for completion (Req 8.2)
     // Phase 10A-Fix-9: also update the per-job-type skill score so the
     // employer applicant view can render "Phù hợp công việc: N điểm".
-    patchWorkerScore(app.workerId, (worker) => ({
-      reputationScore: applyReputationEvent(worker.reputationScore, { kind: 'Completed' }),
-      completedShiftCount: worker.completedShiftCount + 1,
-      ratingsReceived: [...worker.ratingsReceived, newRating],
-      skillScores: applyRatingToSkillScores(
+    // CORE-STABILITY-9 Part 4: also award skill XP (levelling MVP) for
+    // the completed, non-disputed shift in the same category.
+    patchWorkerScore(app.workerId, (worker) => {
+      const ratedScores = applyRatingToSkillScores(
         worker.skillScores,
         shift.jobType,
         rating.stars,
         ts,
-      ),
-    }));
+      );
+      const withXp = awardSkillXp(
+        ratedScores,
+        shift.jobType,
+        rating.stars,
+        false, // confirmCompletion is the non-disputed happy path
+        ts,
+      );
+      return {
+        reputationScore: applyReputationEvent(worker.reputationScore, { kind: 'Completed' }),
+        completedShiftCount: worker.completedShiftCount + 1,
+        ratingsReceived: [...worker.ratingsReceived, newRating],
+        skillScores: withXp,
+      };
+    });
 
     // Escrow: Completed -> Released (Req 10.5)
     const shifts = useShiftStore.getState().shifts.map((s) =>
@@ -2160,6 +2187,116 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       }
     }
 
+    // Step 2c (CORE-STABILITY-8 Part 5.3): "Chỉ chạy khi đủ số người"
+    // (RequireFull) auto-cancel. For an employer whose
+    // `understaffedPolicy === 'RequireFull'`, a Published/FullyBooked
+    // shift that has REACHED its start time without its full approved
+    // headcount (positionsFilled < positionsTotal) is auto-cancelled
+    // by the system: escrow → Refunded (full deposit back), shift →
+    // Cancelled, approved workers notified WITHOUT penalty, employer
+    // notified. This is a SYSTEM cancel (not a human one) so it
+    // bypasses the human 6h cancel gate. Idempotent: a Cancelled shift
+    // is terminal so a repeat sync skips it.
+    {
+      const liveShifts = useShiftStore.getState().shifts;
+      const nowMsLocal = Date.parse(at);
+      const cancelledShiftIds: string[] = [];
+      for (const s of liveShifts) {
+        // The status may have just rolled to InProgress / Expired in
+        // Step 1; RequireFull auto-cancel still applies as long as the
+        // shift isn't already Cancelled / Completed and is understaffed.
+        if (
+          s.status === 'Cancelled' ||
+          s.status === 'Completed' ||
+          s.status === 'AwaitingConfirmation'
+        ) {
+          continue;
+        }
+        if (s.positionsFilled >= s.positionsTotal) continue;
+        // Only auto-cancel when there is NObody who actually checked in
+        // (a checked-in worker means the shift is genuinely running).
+        const startedApps = get().applications.filter(
+          (a) => a.shiftId === s.id && a.status === 'CheckedIn',
+        );
+        if (startedApps.length > 0) continue;
+        const startMs = new Date(`${s.date}T${s.startTime}:00`).getTime();
+        if (!Number.isFinite(startMs) || nowMsLocal < startMs) continue;
+        const employer = useUserStore.getState().findById(s.employerId);
+        if (!employer || employer.role !== 'employer') continue;
+        if ((employer.understaffedPolicy ?? 'RunWithApproved') !== 'RequireFull') {
+          continue;
+        }
+        cancelledShiftIds.push(s.id);
+
+        // Refund the full deposit (if still held) and flip escrow +
+        // status terminally.
+        if (s.escrowStatus === 'Deposited' && s.depositAmount > 0) {
+          useWalletStore
+            .getState()
+            .credit(s.employerId, s.depositAmount, 'EmployerUnusedRefund', {
+              shiftId: s.id,
+              note: `Hoàn cọc ca tự hủy (không đủ người) "${s.title}"`,
+            });
+        }
+        const flipped = useShiftStore.getState().shifts.map((x) =>
+          x.id === s.id
+            ? {
+                ...x,
+                status: 'Cancelled' as const,
+                escrowStatus: 'Refunded' as const,
+                cancelledAt: at,
+                cancelledBy: 'admin' as const,
+                employerCancellationReason:
+                  'Tự động hủy: không đủ số người được duyệt trước giờ bắt đầu.',
+              }
+            : x,
+        );
+        useShiftStore.getState().hydrate(flipped);
+        write(STORAGE_KEYS.shifts, flipped);
+
+        // Notify the employer (deeplink to wallet history for refund).
+        useNotificationStore.getState().push({
+          userId: s.employerId,
+          kind: 'ShiftCancelled',
+          title: 'Ca đã tự hủy (không đủ người)',
+          body: `Ca "${s.title}" đã tự hủy vì chưa đủ số người được duyệt trước giờ bắt đầu. Tiền đặt cọc đã được hoàn về ví.`,
+          link: '/employer/dashboard?modal=wallet',
+          dedupeKey: `AutoCancelUnderstaffed:emp:${s.id}`,
+        });
+
+        // Flip approved workers to CancelledByEmployer (no penalty) and
+        // notify them.
+        const affectedApps = get().applications.filter(
+          (a) =>
+            a.shiftId === s.id &&
+            (a.status === 'Approved' ||
+              a.status === 'CheckedIn' ||
+              a.status === 'CancellationRequested'),
+        );
+        if (affectedApps.length > 0) {
+          const affectedIds = new Set(affectedApps.map((a) => a.id));
+          const nextApps2 = get().applications.map((a) =>
+            affectedIds.has(a.id)
+              ? { ...a, status: 'CancelledByEmployer' as const, cancelledAt: at }
+              : a,
+          );
+          set({ applications: nextApps2 });
+          persistApplications(nextApps2);
+          for (const a of affectedApps) {
+            useNotificationStore.getState().push({
+              userId: a.workerId,
+              kind: 'EmployerCancelledShift',
+              title: 'Ca làm đã bị hủy',
+              body: `Ca "${s.title}" đã bị hủy vì nhà tuyển dụng không tuyển đủ người. Bạn không bị trừ điểm uy tín.`,
+              link: `/shifts/${s.id}`,
+              dedupeKey: `AutoCancelUnderstaffed:worker:${a.id}`,
+            });
+          }
+        }
+      }
+      void cancelledShiftIds;
+    }
+
     // Step 3: idempotent ShiftStarted / ShiftEnded notifications.
     // Read the live application + shift snapshot AFTER steps 1+2 so we
     // see the freshly-rolled statuses.
@@ -2325,12 +2462,40 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
         shift.status === 'Expired' &&
         shift.positionsFilled === 0
       ) {
+        // CORE-STABILITY-8 Part 5.5 — a deposited shift that expires
+        // with no approved workers refunds the FULL deposit to the
+        // employer wallet (one ledger entry) and the escrow flips to
+        // Refunded. Idempotent: gated on `expiredEmptyNotifiedAt` +
+        // escrow not already Refunded/Released.
+        const refundable =
+          shift.escrowStatus === 'Deposited' && shift.depositAmount > 0;
+        if (refundable) {
+          useWalletStore
+            .getState()
+            .credit(shift.employerId, shift.depositAmount, 'EmployerUnusedRefund', {
+              shiftId: shift.id,
+              note: `Hoàn cọc ca hết hạn "${shift.title}"`,
+            });
+          // Flip escrow to Refunded so a repeat sync can't double-refund.
+          const refundedShifts = useShiftStore.getState().shifts.map((s) =>
+            s.id === shift.id ? { ...s, escrowStatus: 'Refunded' as const } : s,
+          );
+          useShiftStore.getState().hydrate(refundedShifts);
+          write(STORAGE_KEYS.shifts, refundedShifts);
+        }
         useNotificationStore.getState().push({
           userId: shift.employerId,
           kind: 'ShiftExpiredEmpty',
           title: 'Ca đã hết hạn',
-          body: `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ.`,
-          link: `/employer/shifts/${shift.id}`,
+          body: refundable
+            ? `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ. Tiền đặt cọc đã được hoàn về ví.`
+            : `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ.`,
+          // CORE-STABILITY-8 Part 5.5 — deeplink to wallet history so
+          // the employer sees the refund line.
+          link: refundable
+            ? '/employer/dashboard?modal=wallet'
+            : `/employer/shifts/${shift.id}`,
+          dedupeKey: `ShiftExpiredEmpty:${shift.id}`,
         });
         expiredEmptyStamps.set(shift.id, at);
       }

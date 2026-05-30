@@ -251,9 +251,13 @@ describe('Batch 3 C: shift display phase', () => {
     expect(getShiftDisplayPhase(shift, [], now)).toBe('CheckInOpen');
   });
 
-  it('returns Upcoming at 12:02 with no check-in', () => {
+  it('returns InProgress at 12:02 with no check-in (recruiting window closed)', () => {
+    // CORE-STABILITY-8 Part 3 — once the start time is reached the
+    // shift reads as "Đang diễn ra" regardless of check-in (presence
+    // is a separate, application-level fact). It must NEVER keep
+    // showing "Sắp tới / Đang tuyển" after it has begun.
     const now = baseStart.toISOString();
-    expect(getShiftDisplayPhase(shift, [], now)).toBe('Upcoming');
+    expect(getShiftDisplayPhase(shift, [], now)).toBe('InProgress');
   });
 
   it('returns InProgress at 12:02 with one CheckedIn application', () => {
@@ -280,7 +284,7 @@ describe('Batch 3 C: shift display phase', () => {
   });
 });
 
-describe('Batch 3 C: suggestShiftStatus does not promote to InProgress without a check-in', () => {
+describe('Batch 3 C: suggestShiftStatus promotes to InProgress at start (recruiting closed)', () => {
   // Use positionsTotal: 2, positionsFilled: 0 so the lifecycle's
   // FullyBooked auto-promotion (when filled === total) doesn't fire
   // before we even reach the "before/after start" branch we're testing.
@@ -299,10 +303,13 @@ describe('Batch 3 C: suggestShiftStatus does not promote to InProgress without a
     expect(suggestShiftStatus(shift, [app], now)).toBe('Published');
   });
 
-  it('Approved-only roster at 12:02 (after start) stays Published, NOT InProgress', () => {
+  it('Approved-only roster at 12:02 (after start) rolls to InProgress (CORE-STABILITY-8 Part 3)', () => {
+    // The recruiting window closes at start; an active (Approved+)
+    // roster rolls the shift to InProgress so it never keeps showing
+    // "Đang tuyển" after start. Presence is tracked separately.
     const app = buildApp(shift.id, 'w1', { status: 'Approved' });
     const now = baseStart.toISOString();
-    expect(suggestShiftStatus(shift, [app], now)).toBe('Published');
+    expect(suggestShiftStatus(shift, [app], now)).toBe('InProgress');
   });
 
   it('CheckedIn roster at 12:02:00 advances to InProgress', () => {

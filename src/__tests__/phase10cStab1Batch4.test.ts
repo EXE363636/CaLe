@@ -136,6 +136,8 @@ function buildShift(override: Partial<Shift> = {}): Shift {
     createdAt: ANCHOR_ISO,
     updatedAt: ANCHOR_ISO,
     evidenceRequirement: 'OptionalPhoto',
+    onSiteContactName: 'Anh Liêm',
+    onSiteContactPhone: '0901234567',
     ...override,
   };
 }
@@ -459,11 +461,13 @@ describe('Batch 4 B: getShiftDisplayPhase boundaries', () => {
     const now = new Date(baseStart.getTime() - 60_000).toISOString();
     expect(getShiftDisplayPhase(shift, [app], now)).toBe('CheckInOpen');
   });
-  it('12:02 (exact start) Approved-only → Upcoming', () => {
+  it('12:02 (exact start) Approved-only → InProgress (CORE-STABILITY-8 Part 3)', () => {
+    // The recruiting window closes at start; the shift reads
+    // "Đang diễn ra" even before a check-in is recorded.
     const app = buildApp(shift.id, 'w1', { status: 'Approved' });
     expect(
       getShiftDisplayPhase(shift, [app], baseStart.toISOString()),
-    ).toBe('Upcoming');
+    ).toBe('InProgress');
   });
   it('12:02 with one CheckedIn → InProgress', () => {
     const app = buildApp(shift.id, 'w1', { status: 'CheckedIn' });

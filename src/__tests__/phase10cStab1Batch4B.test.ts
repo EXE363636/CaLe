@@ -57,6 +57,8 @@ function buildShift(override: Partial<Shift> = {}): Shift {
     createdAt: ANCHOR_ISO,
     updatedAt: ANCHOR_ISO,
     evidenceRequirement: 'OptionalPhoto',
+    onSiteContactName: 'Anh Liêm',
+    onSiteContactPhone: '0901234567',
     timeline: [],
     ...override,
   };

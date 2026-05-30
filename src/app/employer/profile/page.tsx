@@ -100,6 +100,9 @@ function EmployerProfileContent() {
           mock documents matching their account shape. */}
       <EmployerVerificationCard employer={employer} />
 
+      {/* CORE-STABILITY-8 Part 5 — understaffed policy setting. */}
+      <UnderstaffedPolicyCard employer={employer} onSave={handleSave} />
+
       {/* Phase 9I — worker feedback panel: show what people who've worked
           for this business have said. Same component used inside the
           public `EmployerProfileModal` so trust signals stay consistent. */}
@@ -178,6 +181,86 @@ function Field({ label, value }: { label: string; value: string }) {
       <dt className="text-gray-500">{label}</dt>
       <dd className="font-medium text-gray-900">{value}</dd>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CORE-STABILITY-8 Part 5 — understaffed policy setting
+// ---------------------------------------------------------------------------
+
+function UnderstaffedPolicyCard({
+  employer,
+  onSave,
+}: {
+  employer: NonNullable<ReturnType<typeof asEmployer>>;
+  onSave: (patch: Record<string, unknown>) => void;
+}) {
+  const current = employer.understaffedPolicy ?? 'RunWithApproved';
+  const [choice, setChoice] = useState(current);
+
+  const options: Array<{
+    value: NonNullable<typeof current>;
+    label: string;
+    hint: string;
+  }> = [
+    {
+      value: 'RunWithApproved',
+      label: t('employer.understaffed.runWithApproved'),
+      hint: t('employer.understaffed.runWithApproved.hint'),
+    },
+    {
+      value: 'RequireFull',
+      label: t('employer.understaffed.requireFull'),
+      hint: t('employer.understaffed.requireFull.hint'),
+    },
+  ];
+
+  return (
+    <Card className="mt-6">
+      <h2 className="mb-1 font-semibold text-gray-900">
+        {t('employer.understaffed.title')}
+      </h2>
+      <p className="mb-3 text-xs leading-relaxed text-gray-500">
+        {t('employer.understaffed.intro')}
+      </p>
+      <div className="flex flex-col gap-2">
+        {options.map((opt) => (
+          <label
+            key={opt.value}
+            className={[
+              'flex items-start gap-3 rounded-lg border px-3 py-2 text-sm transition-colors cursor-pointer',
+              choice === opt.value
+                ? 'border-orange-400 bg-orange-50'
+                : 'border-gray-200 bg-white hover:border-orange-300',
+            ].join(' ')}
+          >
+            <input
+              type="radio"
+              name="understaffedPolicy"
+              className="mt-1 h-4 w-4 accent-orange-500"
+              checked={choice === opt.value}
+              onChange={() => setChoice(opt.value)}
+            />
+            <span>
+              <span className="font-medium text-gray-900">{opt.label}</span>
+              <span className="mt-0.5 block text-xs text-gray-600">
+                {opt.hint}
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {choice !== current && (
+        <Button
+          size="sm"
+          variant="primary"
+          className="mt-3"
+          onClick={() => onSave({ understaffedPolicy: choice })}
+        >
+          {t('btn.save')}
+        </Button>
+      )}
+    </Card>
   );
 }
 

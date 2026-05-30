@@ -8,7 +8,7 @@ import { useUserStore, asEmployer, asWorker } from '@/stores/userStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
-import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
+import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
@@ -239,7 +239,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       {/* Header */}
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-bold text-gray-900">{shift.title}</h1>
-        <ShiftStatusBadge status={shift.status} />
+        <ShiftLifecycleBadge shift={shift} applications={applications} />
       </div>
 
       {/* QA-Fix-2 Phase 3 — old-notification reconciliation note. When

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 export type CalendarEventVariant =
   | 'personalBusy'
+  | 'availableSlot'
   | 'approvedShift'
   | 'pendingShift'
   | 'publishedShift'
@@ -29,6 +30,7 @@ export interface CalendarEventCardProps {
 
 const variantClasses: Record<CalendarEventVariant, string> = {
   personalBusy: 'bg-slate-100 border-slate-300 text-slate-800',
+  availableSlot: 'bg-emerald-50 border-emerald-300 text-emerald-800 border-dashed',
   approvedShift: 'bg-orange-100 border-orange-300 text-orange-900',
   pendingShift: 'bg-amber-100 border-amber-300 text-amber-900',
   publishedShift: 'bg-blue-100 border-blue-300 text-blue-900',

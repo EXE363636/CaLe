@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
+import { useApplicationStore } from '@/stores/applicationStore';
 
 import { Button, Input, PageHelpButton, TimeFieldVN } from '@/components/ui';
 import { CalendarShell } from '@/components/calendar/CalendarShell';
@@ -37,7 +38,7 @@ import { AgendaView } from '@/components/calendar/AgendaView';
 import {
   type CalendarEventVariant,
 } from '@/components/calendar/CalendarEventCard';
-import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
+import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 
 import {
@@ -50,7 +51,11 @@ import {
 import { formatDateVN } from '@/lib/format';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { t } from '@/i18n/vi';
-import type { Shift, ShiftStatus } from '@/types';
+import {
+  getShiftLifecycleState,
+  type ShiftLifecycleState,
+} from '@/domain/shiftLifecycleState';
+import type { Shift } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -62,15 +67,21 @@ const DEFAULT_SLOT_CONFIG: SlotConfig = {
   slotMinutes: 120,
 };
 
-const STATUS_VARIANT: Record<ShiftStatus, CalendarEventVariant> = {
+// CORE-STABILITY-10 — calendar event colour keyed by the canonical
+// lifecycle STATE (not the stored status) so the calendar tile colour
+// agrees with the unified lifecycle badge.
+const LIFECYCLE_VARIANT: Record<ShiftLifecycleState, CalendarEventVariant> = {
   Draft: 'publishedShift',
+  PendingDeposit: 'publishedShift',
   Published: 'publishedShift',
-  FullyBooked: 'fullyBookedShift',
+  StartingSoon: 'fullyBookedShift',
   InProgress: 'publishedShift',
-  AwaitingConfirmation: 'awaitingShift',
+  AwaitingCheckout: 'awaitingShift',
+  AwaitingEmployerConfirmation: 'awaitingShift',
   Completed: 'completedShift',
-  Cancelled: 'cancelledShift',
   Expired: 'cancelledShift',
+  Cancelled: 'cancelledShift',
+  Disputed: 'cancelledShift',
 };
 
 // ---------------------------------------------------------------------------
@@ -122,6 +133,7 @@ function SchedulePageContent() {
 
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const shifts = useShiftStore((s) => s.shifts);
+  const applications = useApplicationStore((s) => s.applications);
 
   const [view, setView] = useState<CalendarView>('week');
   const [selectedDateIso, setSelectedDateIso] = useState<string>(() =>
@@ -132,26 +144,38 @@ function SchedulePageContent() {
 
   const myShifts = useMemo<Shift[]>(() => {
     if (!currentUserId) return [];
-    return shifts.filter((s) => s.employerId === currentUserId);
+    // CORE-STABILITY-8 Part 1 — Draft shifts never appear on the
+    // employer calendar as real shifts.
+    return shifts.filter(
+      (s) => s.employerId === currentUserId && s.status !== 'Draft',
+    );
   }, [shifts, currentUserId]);
 
   const events = useMemo<CalendarEvent[]>(() => {
-    return myShifts.map((shift) => ({
-      id: shift.id,
-      title: shift.title,
-      date: shift.date,
-      startTime: shift.startTime,
-      endTime: shift.endTime,
-      subtitle: `${shift.positionsFilled}/${shift.positionsTotal} ${t('common.positions')}`,
-      statusChip: (
-        <span className="flex flex-wrap items-center gap-1">
-          <ShiftStatusBadge status={shift.status} />
-          <EscrowStatusBadge status={shift.escrowStatus} />
-        </span>
-      ),
-      variant: STATUS_VARIANT[shift.status],
-    }));
-  }, [myShifts]);
+    const nowIso = new Date().toISOString();
+    return myShifts.map((shift) => {
+      const state = getShiftLifecycleState(shift, applications, nowIso);
+      return {
+        id: shift.id,
+        title: shift.title,
+        date: shift.date,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        subtitle: `${shift.positionsFilled}/${shift.positionsTotal} ${t('common.positions')}`,
+        statusChip: (
+          <span className="flex flex-wrap items-center gap-1">
+            <ShiftLifecycleBadge
+              shift={shift}
+              applications={applications}
+              nowIso={nowIso}
+            />
+            <EscrowStatusBadge status={shift.escrowStatus} />
+          </span>
+        ),
+        variant: LIFECYCLE_VARIANT[state],
+      };
+    });
+  }, [myShifts, applications]);
 
   if (!currentUserId) return null;
 

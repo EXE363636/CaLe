@@ -35,6 +35,7 @@ export interface SeedSnapshot {
   wallets: Json[];
   walletLedger: Json[];
   reviewReports: Json[];
+  shiftDrafts: Json[];
 }
 
 // ---------------------------------------------------------------------------
@@ -205,6 +206,7 @@ export function buildSnapshot(over: Partial<SeedSnapshot> = {}): SeedSnapshot {
     wallets: [],
     walletLedger: [],
     reviewReports: [],
+    shiftDrafts: [],
     ...over,
   };
 }
@@ -244,6 +246,7 @@ export function toLocalStoragePayload(
     [STORAGE_KEYS.wallets, JSON.stringify(snapshot.wallets)],
     [STORAGE_KEYS.walletLedger, JSON.stringify(snapshot.walletLedger)],
     [STORAGE_KEYS.reviewReports, JSON.stringify(snapshot.reviewReports)],
+    [STORAGE_KEYS.shiftDrafts, JSON.stringify(snapshot.shiftDrafts)],
   ];
   return { schemaVersion: SCHEMA_VERSION, entries };
 }

@@ -21,12 +21,14 @@ import {
 } from '@/domain/repostSanitize';
 import { useWalletStore } from '@/stores/walletStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useShiftDraftStore } from '@/stores/shiftDraftStore';
 import { walletHistoryLink } from '@/lib/notificationTarget';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
-import { formatVND } from '@/lib/format';
+import { isValidVNPhone } from '@/lib/validate';
+import { formatVND, formatLogDateTime } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
-import type { EmployerType10A } from '@/types';
+import type { EmployerType10A, ShiftDraft } from '@/types';
 
 export default function NewShiftPage() {
   return (
@@ -40,16 +42,68 @@ function NewShiftContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromParam = searchParams?.get('from') ?? null;
+  const draftParam = searchParams?.get('draft') ?? null;
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
   const createShift = useShiftStore((s) => s.create);
   const simulateDeposit = useShiftStore((s) => s.simulateDeposit);
+  const discardDraftShift = useShiftStore((s) => s.discardDraftShift);
   const topUp = useWalletStore((s) => s.topUp);
   const walletBalance = useWalletStore((s) =>
     currentUserId ? s.getBalance(currentUserId) : 0,
   );
   const pushNotification = useNotificationStore((s) => s.push);
+  // CORE-STABILITY-8 Part 1 — draft store (saved form snapshots).
+  const saveDraft = useShiftDraftStore((s) => s.save);
+  const updateDraft = useShiftDraftStore((s) => s.update);
+  const getDraftById = useShiftDraftStore((s) => s.getById);
+  const removeDraft = useShiftDraftStore((s) => s.remove);
+  const allDrafts = useShiftDraftStore((s) => s.drafts);
+  const myDrafts = useMemo(
+    () =>
+      currentUserId
+        ? allDrafts
+            .filter((d) => d.employerId === currentUserId)
+            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+        : [],
+    [allDrafts, currentUserId],
+  );
+
+  function handleContinueDraft(draft: ShiftDraft) {
+    setActiveDraftId(draft.id);
+    setRestoredValues({
+      title: draft.title,
+      description: draft.description,
+      requirements: draft.requirements,
+      jobType: draft.jobType,
+      customJobTypeName: draft.customJobTypeName,
+      location: draft.location,
+      date: draft.date,
+      startTime: draft.startTime,
+      endTime: draft.endTime,
+      hourlyWage: draft.hourlyWage,
+      positionsTotal: draft.positionsTotal,
+      evidenceRequirement: draft.evidenceRequirement,
+      workplaceImageLabel: draft.workplaceImageLabel,
+      workplaceNotes: draft.workplaceNotes,
+      onSiteContactName: draft.onSiteContactName,
+      onSiteContactPhone: draft.onSiteContactPhone,
+      requiresVerifiedDocumentOnArrival: draft.requiresVerifiedDocumentOnArrival,
+    });
+    setFormKey((k) => k + 1);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleDeleteDraft(id: string) {
+    removeDraft(id);
+    if (activeDraftId === id) {
+      setActiveDraftId(null);
+      setRestoredValues(undefined);
+      setFormKey((k) => k + 1);
+    }
+    showSuccess(t('shiftForm.draft.deleted'));
+  }
   // Phase 10A-Fix-3 — read employer verification documents so we can
   // compute posting readiness against the same data the admin queue
   // sees.
@@ -58,6 +112,17 @@ function NewShiftContent() {
   const [createdShiftId, setCreatedShiftId] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState(0);
   const [deposited, setDeposited] = useState(false);
+  // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
+  // employer arrived via ?draft= or saved one this session). When set,
+  // "Lưu nháp" updates it instead of creating a new draft.
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(draftParam);
+  // CORE-STABILITY-8 Part 1 — values to seed the form with when
+  // restoring a draft or returning from the insufficient-balance modal.
+  // A bump to `formKey` remounts the form so the new seed takes effect.
+  const [restoredValues, setRestoredValues] = useState<
+    Partial<ShiftFormValues> | undefined
+  >(undefined);
+  const [formKey, setFormKey] = useState(0);
   // CORE-STABILITY-7 Part 2 — insufficient-balance flow. When the
   // deposit is blocked for lack of funds, we keep the Draft intact and
   // open a modal offering "Nạp tiền ngay / Lưu nháp / Quay lại chỉnh
@@ -80,7 +145,39 @@ function NewShiftContent() {
     return shifts.find((s) => s.id === fromParam) ?? null;
   }, [shifts, fromParam]);
 
+  // CORE-STABILITY-8 Part 1 — resolve a saved draft when arriving via
+  // ?draft={id}. Restores ALL saved fields into the create form.
+  const draftRecord = useMemo<ShiftDraft | undefined>(() => {
+    if (!draftParam) return undefined;
+    return getDraftById(draftParam);
+  }, [draftParam, getDraftById]);
+
   const initialValues = useMemo<Partial<ShiftFormValues> | undefined>(() => {
+    // Returning from the insufficient-balance modal / a session restore
+    // takes precedence so the employer keeps exactly what they typed.
+    if (restoredValues) return restoredValues;
+    if (draftRecord) {
+      return {
+        title: draftRecord.title,
+        description: draftRecord.description,
+        requirements: draftRecord.requirements,
+        jobType: draftRecord.jobType,
+        customJobTypeName: draftRecord.customJobTypeName,
+        location: draftRecord.location,
+        date: draftRecord.date,
+        startTime: draftRecord.startTime,
+        endTime: draftRecord.endTime,
+        hourlyWage: draftRecord.hourlyWage,
+        positionsTotal: draftRecord.positionsTotal,
+        evidenceRequirement: draftRecord.evidenceRequirement,
+        workplaceImageLabel: draftRecord.workplaceImageLabel,
+        workplaceNotes: draftRecord.workplaceNotes,
+        onSiteContactName: draftRecord.onSiteContactName,
+        onSiteContactPhone: draftRecord.onSiteContactPhone,
+        requiresVerifiedDocumentOnArrival:
+          draftRecord.requiresVerifiedDocumentOnArrival,
+      };
+    }
     if (!sourceShift) return undefined;
     return {
       title: sanitizeRepostTitle(sourceShift.title),
@@ -101,7 +198,7 @@ function NewShiftContent() {
       // Date / startTime / endTime intentionally omitted — employer
       // must pick a fresh future date.
     };
-  }, [sourceShift]);
+  }, [restoredValues, draftRecord, sourceShift]);
 
   // Mirror the source shift's workplace image label into the live
   // draft so the readiness checklist reflects the prefilled value
@@ -181,6 +278,19 @@ function NewShiftContent() {
       );
       return;
     }
+    // CORE-STABILITY-8 Part 2 — required on-site contact for publish.
+    // (The store re-validates; this gives an inline message first.)
+    if (values.onSiteContactName.trim() === '') {
+      showError(t('shift.create.error.CONTACT_PERSON_REQUIRED'));
+      return;
+    }
+    if (
+      values.onSiteContactPhone.trim() === '' ||
+      !isValidVNPhone(values.onSiteContactPhone).ok
+    ) {
+      showError(t('shift.create.error.CONTACT_PHONE_REQUIRED'));
+      return;
+    }
     const shift = createShift({ ...values, employerId: currentUserId });
     setCreatedShiftId(shift.id);
     setDepositAmount(shift.depositAmount);
@@ -188,6 +298,51 @@ function NewShiftContent() {
       t('feedback.shift.create.success'),
       t('feedback.shift.create.success.desc'),
     );
+  }
+
+  // CORE-STABILITY-8 Part 1 — map form values to a draft snapshot.
+  function valuesToDraftInput(values: ShiftFormValues) {
+    return {
+      employerId: currentUserId as string,
+      title: values.title,
+      description: values.description,
+      requirements: values.requirements,
+      jobType: values.jobType,
+      customJobTypeName: values.customJobTypeName,
+      location: values.location,
+      date: values.date,
+      startTime: values.startTime,
+      endTime: values.endTime,
+      hourlyWage: values.hourlyWage,
+      positionsTotal: values.positionsTotal,
+      workplaceImageLabel: values.workplaceImageLabel,
+      workplaceNotes: values.workplaceNotes,
+      onSiteContactName: values.onSiteContactName,
+      onSiteContactPhone: values.onSiteContactPhone,
+      requiresVerifiedDocumentOnArrival:
+        values.requiresVerifiedDocumentOnArrival,
+      evidenceRequirement: values.evidenceRequirement,
+    };
+  }
+
+  // CORE-STABILITY-8 Part 1 — "Lưu nháp" from the form. Saves the
+  // current values as a draft (incomplete allowed), shows a toast, and
+  // navigates to the posting page where the draft is listed.
+  function handleSaveDraftFromForm(values: ShiftFormValues) {
+    if (!currentUserId) return;
+    const input = valuesToDraftInput(values);
+    if (activeDraftId && getDraftById(activeDraftId)) {
+      updateDraft(activeDraftId, input);
+    } else {
+      const rec = saveDraft(input);
+      setActiveDraftId(rec.id);
+    }
+    showSuccess(t('shiftForm.saveDraft.success'));
+    // Reset the form to blank and reveal the saved-drafts section.
+    setRestoredValues(undefined);
+    setActiveDraftId(null);
+    setFormKey((k) => k + 1);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleDeposit() {
@@ -223,6 +378,76 @@ function NewShiftContent() {
     setTopUpText(shortfall > 0 ? formatNumberVNInput(shortfall) : '');
     setTopUpError(null);
     setTopUpOpen(true);
+  }
+
+  // CORE-STABILITY-8 Part 1 — map the transient created Draft shift
+  // back to form values (used by "Quay lại chỉnh sửa" and "Lưu nháp"
+  // from the insufficient-balance modal).
+  function createdShiftToValues(): Partial<ShiftFormValues> | undefined {
+    if (!createdShiftId) return undefined;
+    const s = shifts.find((x) => x.id === createdShiftId);
+    if (!s) return undefined;
+    return {
+      title: s.title,
+      description: s.description,
+      requirements: s.requirements,
+      jobType: s.jobType,
+      customJobTypeName: s.customJobTypeName ?? '',
+      location: s.location,
+      date: s.date,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      hourlyWage: s.hourlyWage,
+      positionsTotal: s.positionsTotal,
+      evidenceRequirement: s.evidenceRequirement,
+      workplaceImageLabel: s.workplaceImageLabel ?? '',
+      workplaceNotes: s.workplaceNotes ?? '',
+      onSiteContactName: s.onSiteContactName ?? '',
+      onSiteContactPhone: s.onSiteContactPhone ?? '',
+      requiresVerifiedDocumentOnArrival:
+        s.requiresVerifiedDocumentOnArrival ?? false,
+    };
+  }
+
+  // CORE-STABILITY-8 Part 1 — "Quay lại chỉnh sửa" must return to the
+  // FILLED form, not a blank page. Restore the created shift's values,
+  // discard the transient Draft shift (so no orphan Draft lingers in
+  // the shift list), and re-show the form.
+  function backToEditFromModal() {
+    const values = createdShiftToValues();
+    setInsufficientOpen(false);
+    if (createdShiftId) discardDraftShift(createdShiftId);
+    setCreatedShiftId(null);
+    setDeposited(false);
+    if (values) {
+      setRestoredValues(values);
+      setFormKey((k) => k + 1);
+    }
+  }
+
+  // CORE-STABILITY-8 Part 1 — "Lưu nháp" from the modal: persist the
+  // created shift's data as a ShiftDraft, discard the transient Draft
+  // shift, and navigate to the posting page where the draft is listed.
+  function saveDraftFromModal() {
+    const values = createdShiftToValues();
+    setInsufficientOpen(false);
+    if (values && currentUserId) {
+      const input = valuesToDraftInput(values as ShiftFormValues);
+      if (activeDraftId && getDraftById(activeDraftId)) {
+        updateDraft(activeDraftId, input);
+      } else {
+        saveDraft(input);
+      }
+    }
+    if (createdShiftId) discardDraftShift(createdShiftId);
+    setCreatedShiftId(null);
+    showSuccess(t('deposit.insufficient.savedDraft'));
+    // Stay on the posting page; reset to a blank form and reveal the
+    // saved-drafts section so the employer sees their draft listed.
+    setRestoredValues(undefined);
+    setActiveDraftId(null);
+    setFormKey((k) => k + 1);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function submitTopUp() {
@@ -371,13 +596,65 @@ function NewShiftContent() {
         />
       )}
 
+      {/* CORE-STABILITY-8 Part 1 — "Bản nháp đã lưu" section. Drafts
+          are saved form snapshots (NOT real shifts): no lifecycle, no
+          public visibility, no cancel/refund. */}
+      {!createdShiftId && myDrafts.length > 0 && (
+        <Card className="mb-5">
+          <p className="mb-1 text-sm font-semibold text-gray-900">
+            {t('shiftForm.draft.section.title')} ({myDrafts.length})
+          </p>
+          <p className="mb-3 text-xs text-gray-500">
+            {t('shiftForm.draft.section.intro')}
+          </p>
+          <ul className="flex flex-col gap-2">
+            {myDrafts.map((d) => (
+              <li
+                key={d.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-gray-900">
+                    {d.title.trim() || t('shiftForm.draft.untitled')}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {d.date ? `${d.date}${d.startTime ? ` ${d.startTime}` : ''}` : t('shiftForm.draft.noDate')}
+                  </p>
+                  <p className="font-mono text-[11px] text-gray-400">
+                    {t('shiftForm.draft.savedAt')}: {formatLogDateTime(d.updatedAt)}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleContinueDraft(d)}
+                  >
+                    {t('shiftForm.draft.continue')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteDraft(d.id)}
+                  >
+                    {t('shiftForm.draft.delete')}
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* Form (hidden after creation). Phase 10A-Fix-3 — workplace
           image required by employer-type readiness rules; the live
           draft drives the readiness recompute via `onValuesChange`. */}
       {!createdShiftId && (
         <ShiftForm
+          key={formKey}
           mode="create"
           onSubmit={handleSubmit}
+          onSaveDraft={handleSaveDraftFromForm}
           workplaceImageRequired={workplaceImageRequired}
           initialValues={initialValues}
           onValuesChange={(v) => setWorkplaceImageDraft(v.workplaceImageLabel)}
@@ -422,11 +699,7 @@ function NewShiftContent() {
                 variant="secondary"
                 size="md"
                 className="flex-1"
-                onClick={() => {
-                  setInsufficientOpen(false);
-                  showSuccess(t('deposit.insufficient.savedDraft'));
-                  router.push('/employer/dashboard');
-                }}
+                onClick={saveDraftFromModal}
               >
                 {t('deposit.insufficient.saveDraft')}
               </Button>
@@ -434,7 +707,7 @@ function NewShiftContent() {
                 variant="ghost"
                 size="md"
                 className="flex-1"
-                onClick={() => setInsufficientOpen(false)}
+                onClick={backToEditFromModal}
               >
                 {t('deposit.insufficient.backToEdit')}
               </Button>

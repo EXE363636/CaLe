@@ -137,6 +137,14 @@ export function Footer() {
             Made with care in Hà Nội · Phiên bản dùng thử
           </p>
         </div>
+
+        {/* CORE-STABILITY-9 Part 6 — honest backend-status note. This
+            MVP has NO backend: all data lives in the browser's
+            localStorage. Surfaced site-wide so users understand the
+            demo's persistence model and don't expect server sync. */}
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">
+          Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu.
+        </p>
       </div>
     </footer>
   );

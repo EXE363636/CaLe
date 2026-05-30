@@ -24,6 +24,7 @@ import {
   useNotificationStore,
   useReviewReportStore,
   useScheduleStore,
+  useShiftDraftStore,
   useShiftStore,
   useUserStore,
   useVerificationStore,
@@ -52,6 +53,7 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
     useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
     useReviewReportStore.getState().hydrate(snapshot.reviewReports);
+    useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
     useVerificationStore
       .getState()
       .hydrate(

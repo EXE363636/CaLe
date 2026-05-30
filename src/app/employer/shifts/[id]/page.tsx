@@ -32,7 +32,8 @@ import {
   canEmployerMarkPresent,
   shouldMarkNoShow,
 } from '@/domain/timeGates';
-import { getShiftDisplayPhase } from '@/domain/shiftLifecycle';
+import { deriveAttendanceState, attendanceCopyKey } from '@/domain/attendanceState';
+import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { bucketApplicants } from '@/domain/applicantBuckets';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError } from '@/lib/toast';
@@ -446,14 +447,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* QA-Fix-1 A1/A2 — the display-phase chip is the single
-              primary lifecycle label. The raw `ShiftStatusBadge` was
-              removed from the header because for terminal states
-              (Expired / Cancelled / Completed) it duplicated the
-              phase chip ("Đã hết hạn" / "Đã hủy" / "Đã hoàn thành"
-              shown twice). Escrow is a distinct money concept and
-              stays. */}
-          <ShiftPhaseChip shift={shift} applications={applications} />
+          {/* CORE-STABILITY-10 — single unified lifecycle badge,
+              identical label + colour to every other surface. Escrow
+              is a distinct money concept and stays separate. */}
+          <ShiftLifecycleBadge shift={shift} applications={applications} />
           <EscrowStatusBadge status={shift.escrowStatus} />
         </div>
       </div>
@@ -769,15 +766,13 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 app.status === 'NoShow' &&
                 shift.status !== 'Completed' &&
                 shift.escrowStatus !== 'Released';
-              // Mismatch states for the per-row warning slot.
-              const mismatchWorkerOnly =
-                app.status === 'CheckedIn' &&
-                Boolean(app.checkInAt) &&
-                !app.markedPresentAt;
-              const mismatchEmployerOnly =
-                app.status === 'CheckedIn' &&
-                !app.checkInAt &&
-                Boolean(app.markedPresentAt);
+              // CORE-STABILITY-9 Parts 1 & 3 — role-aware attendance
+              // copy for the EMPLOYER viewer (never worker-perspective
+              // text). One banner derived from the canonical state.
+              const employerAttendanceCopy = attendanceCopyKey(
+                deriveAttendanceState(app, shift, nowIso),
+                'employer',
+              );
               const showRating = ratingForAppId === app.id;
 
               return (
@@ -831,26 +826,17 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     </div>
                   )}
 
-                  {/* Phase 10C-Stab-1 Batch 2 D — mismatch state
-                      warnings. Surfaces a banner under the row when
-                      the worker has self-checked-in but the employer
-                      hasn't confirmed (or vice versa), so the
-                      employer can resolve the discrepancy without
-                      reading store state. */}
-                  {mismatchWorkerOnly && (
+                  {/* CORE-STABILITY-9 Parts 1 & 3 — role-aware
+                      attendance banner. Surfaces EMPLOYER-perspective
+                      copy under the row (never "Nhà tuyển dụng đã xác
+                      nhận BẠN..."). Derived from the canonical
+                      attendance state. */}
+                  {employerAttendanceCopy && (
                     <p
                       role="status"
                       className="ml-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
                     >
-                      {t('lifecycle.mismatch.workerOnly')}
-                    </p>
-                  )}
-                  {mismatchEmployerOnly && (
-                    <p
-                      role="status"
-                      className="ml-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
-                    >
-                      {t('lifecycle.mismatch.employerOnly')}
+                      {t(employerAttendanceCopy)}
                     </p>
                   )}
 
@@ -1455,29 +1441,3 @@ function ShiftTimelineSection({
 // Phase 10C-Stab-1 Batch 3 C — display phase chip.
 // ---------------------------------------------------------------------------
 
-function ShiftPhaseChip({
-  shift,
-  applications,
-}: {
-  shift: Shift;
-  applications: Application[];
-}) {
-  const phase = getShiftDisplayPhase(
-    shift,
-    applications,
-    new Date().toISOString(),
-  );
-  const tone =
-    phase === 'InProgress'
-      ? 'success'
-      : phase === 'CheckInOpen'
-        ? 'info'
-        : phase === 'Cancelled' ||
-            phase === 'Completed' ||
-            phase === 'Expired'
-          ? 'neutral'
-          : phase === 'Disputed'
-            ? 'danger'
-            : 'warning';
-  return <Badge tone={tone}>{t(`shift.phase.${phase}`)}</Badge>;
-}

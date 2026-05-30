@@ -25,6 +25,7 @@ import type {
   ReviewReport,
   ScheduleBlock,
   Shift,
+  ShiftDraft,
   User,
   UserWallet,
   WalletLedgerEntry,
@@ -46,7 +47,7 @@ import verificationsSeed from './seed/verifications.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -69,6 +70,8 @@ export const STORAGE_KEYS = {
   walletLedger: 'cale.walletLedger',
   /** CORE-STABILITY-7 Part 6 — review reports ("Báo cáo đánh giá"). */
   reviewReports: 'cale.reviewReports',
+  /** CORE-STABILITY-8 Part 1 — saved create-shift form drafts. */
+  shiftDrafts: 'cale.shiftDrafts',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -109,6 +112,8 @@ export interface Snapshot {
   walletLedger: WalletLedgerEntry[];
   /** CORE-STABILITY-7 Part 6: review reports. */
   reviewReports: ReviewReport[];
+  /** CORE-STABILITY-8 Part 1: saved create-shift form drafts. */
+  shiftDrafts: ShiftDraft[];
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +161,8 @@ export function seedSnapshot(): Snapshot {
     walletLedger: [],
     // CORE-STABILITY-7 Part 6: review reports start empty.
     reviewReports: [],
+    // CORE-STABILITY-8 Part 1: shift drafts start empty.
+    shiftDrafts: [],
   };
 }
 
@@ -264,6 +271,10 @@ export function loadAll(): Snapshot {
       STORAGE_KEYS.reviewReports,
       seed.reviewReports,
     ),
+    shiftDrafts: read<ShiftDraft[]>(
+      STORAGE_KEYS.shiftDrafts,
+      seed.shiftDrafts,
+    ),
   };
 }
 
@@ -296,6 +307,7 @@ export function persistAll(snapshot: Snapshot): void {
   write(STORAGE_KEYS.wallets, snapshot.wallets);
   write(STORAGE_KEYS.walletLedger, snapshot.walletLedger);
   write(STORAGE_KEYS.reviewReports, snapshot.reviewReports);
+  write(STORAGE_KEYS.shiftDrafts, snapshot.shiftDrafts);
 }
 
 // ---------------------------------------------------------------------------
@@ -365,6 +377,7 @@ export function exportSnapshot(): string {
     [STORAGE_KEYS.wallets]: seed.wallets,
     [STORAGE_KEYS.walletLedger]: seed.walletLedger,
     [STORAGE_KEYS.reviewReports]: seed.reviewReports,
+    [STORAGE_KEYS.shiftDrafts]: seed.shiftDrafts,
   };
 
   const payload: Record<string, unknown> = {};

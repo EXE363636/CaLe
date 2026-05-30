@@ -39,6 +39,8 @@ export interface NewScheduleBlockInput {
   startTime: string;
   endTime: string;
   note?: string;
+  /** CORE-STABILITY-9 Part 5 — 'busy' (default) or 'available'. */
+  kind?: 'busy' | 'available';
 }
 
 /** Editable subset of a block — owning user is fixed. */
@@ -48,6 +50,7 @@ export interface ScheduleBlockEditablePatch {
   startTime?: string;
   endTime?: string;
   note?: string;
+  kind?: 'busy' | 'available';
 }
 
 interface ScheduleStore {
@@ -147,6 +150,7 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
       startTime: input.startTime,
       endTime: input.endTime,
       note: input.note?.trim() || undefined,
+      kind: input.kind ?? 'busy',
       createdAt: ts,
       updatedAt: ts,
     };

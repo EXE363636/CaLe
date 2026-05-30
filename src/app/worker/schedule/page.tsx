@@ -184,14 +184,19 @@ function SchedulePageContent() {
     const out: CalendarEvent[] = [];
 
     for (const block of myBlocks) {
+      const isAvailable = block.kind === 'available';
       out.push({
         id: `block-${block.id}`,
         title: block.title,
         date: block.date,
         startTime: block.startTime,
         endTime: block.endTime,
-        variant: 'personalBusy',
-        subtitle: block.note ? block.note : t('schedule.event.personalLabel'),
+        variant: isAvailable ? 'availableSlot' : 'personalBusy',
+        subtitle: block.note
+          ? block.note
+          : isAvailable
+            ? t('schedule.event.availableLabel')
+            : t('schedule.event.personalLabel'),
       });
     }
 
@@ -644,9 +649,23 @@ function BlockRow({
           <p className="truncate text-sm font-semibold text-gray-900">
             {block.title}
           </p>
-          <p className="mt-0.5 text-xs text-gray-500">
-            {formatDateVN(block.date)} • {formatTimeVN(block.startTime)}–
-            {formatTimeVN(block.endTime)}
+          <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+            <span>
+              {formatDateVN(block.date)} • {formatTimeVN(block.startTime)}–
+              {formatTimeVN(block.endTime)}
+            </span>
+            <span
+              className={[
+                'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                block.kind === 'available'
+                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                  : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+              ].join(' ')}
+            >
+              {block.kind === 'available'
+                ? t('schedule.kind.available')
+                : t('schedule.kind.busy')}
+            </span>
           </p>
           {block.note && (
             <p className="mt-1.5 whitespace-pre-line text-sm text-gray-700">
@@ -722,6 +741,7 @@ function ScheduleBlockDialog({
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [note, setNote] = useState('');
+  const [kind, setKind] = useState<'busy' | 'available'>('busy');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -732,12 +752,14 @@ function ScheduleBlockDialog({
       setStartTime(seed.block.startTime);
       setEndTime(seed.block.endTime);
       setNote(seed.block.note ?? '');
+      setKind(seed.block.kind === 'available' ? 'available' : 'busy');
     } else {
       setTitle('');
       setDate(seed.prefill?.date ?? '');
       setStartTime(seed.prefill?.startTime ?? '');
       setEndTime(seed.prefill?.endTime ?? '');
       setNote('');
+      setKind('busy');
     }
     setError(null);
   }, [open, seed]);
@@ -768,22 +790,27 @@ function ScheduleBlockDialog({
 
     // Phase 9B — block-vs-shift overlap. Worker can't create or edit a
     // personal busy block over an approved/checked-in/checked-out
-    // /cancellation-requested work shift.
-    const overlap = findShiftOverlap(
-      { date, startTime, endTime },
-      myApplications,
-      shiftIndex,
-    );
-    if (overlap) {
-      setError(t('error.shiftOverlap'));
-      return;
+    // /cancellation-requested work shift. CORE-STABILITY-9 Part 5 —
+    // availability blocks are exempt: marking yourself "rảnh" over a
+    // window that already holds an approved shift is harmless (the
+    // shift simply takes precedence), so only BUSY blocks are gated.
+    if (kind === 'busy') {
+      const overlap = findShiftOverlap(
+        { date, startTime, endTime },
+        myApplications,
+        shiftIndex,
+      );
+      if (overlap) {
+        setError(t('error.shiftOverlap'));
+        return;
+      }
     }
 
     void myBlocks; // intentionally unused — store handles block↔block uniqueness
 
     const result = seed.block
-      ? update(seed.block.id, userId, { title, date, startTime, endTime, note })
-      : add({ userId, title, date, startTime, endTime, note });
+      ? update(seed.block.id, userId, { title, date, startTime, endTime, note, kind })
+      : add({ userId, title, date, startTime, endTime, note, kind });
     if (!result.ok) {
       const message = toastFromStoreError(result.error);
       setError(message);
@@ -815,6 +842,45 @@ function ScheduleBlockDialog({
           onChange={(e) => setTitle(e.target.value)}
           required
         />
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="text-sm font-medium text-gray-700">
+            {t('schedule.kind.label')}
+          </legend>
+          <p className="text-xs text-gray-500">{t('schedule.kind.helper')}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setKind('available')}
+              aria-pressed={kind === 'available'}
+              className={[
+                'rounded-xl border px-3 py-2 text-left text-sm transition',
+                kind === 'available'
+                  ? 'border-emerald-400 bg-emerald-50 font-semibold text-emerald-900'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+              ].join(' ')}
+            >
+              {t('schedule.kind.available')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setKind('busy')}
+              aria-pressed={kind === 'busy'}
+              className={[
+                'rounded-xl border px-3 py-2 text-left text-sm transition',
+                kind === 'busy'
+                  ? 'border-slate-400 bg-slate-100 font-semibold text-slate-900'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+              ].join(' ')}
+            >
+              {t('schedule.kind.busy')}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            {kind === 'available'
+              ? t('schedule.kind.availableHint')
+              : t('schedule.kind.busyHint')}
+          </p>
+        </fieldset>
         <DateFieldVN
           label={t('schedule.form.date')}
           value={date}

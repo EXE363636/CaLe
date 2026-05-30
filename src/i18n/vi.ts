@@ -199,6 +199,21 @@ export const vi: Record<string, string> = {
   // migrated to the new phase keys above.
   'shift.phase.Ended': 'Đã kết thúc',
 
+  // CORE-STABILITY-10 — canonical lifecycle-state labels. ONE label per
+  // state, used by the single `ShiftLifecycleBadge` everywhere so the
+  // same shift never shows different text on different pages.
+  'shift.lifecycle.Draft': 'Bản nháp',
+  'shift.lifecycle.PendingDeposit': 'Chờ đặt cọc',
+  'shift.lifecycle.Published': 'Đang tuyển',
+  'shift.lifecycle.StartingSoon': 'Sắp bắt đầu',
+  'shift.lifecycle.InProgress': 'Đang diễn ra',
+  'shift.lifecycle.AwaitingCheckout': 'Chờ check-out',
+  'shift.lifecycle.AwaitingEmployerConfirmation': 'Chờ xác nhận',
+  'shift.lifecycle.Completed': 'Đã hoàn thành',
+  'shift.lifecycle.Expired': 'Đã hết hạn',
+  'shift.lifecycle.Cancelled': 'Đã hủy',
+  'shift.lifecycle.Disputed': 'Đang khiếu nại',
+
   // -------------------------------------------------------------------------
   // Escrow / payment statuses
   // -------------------------------------------------------------------------
@@ -356,6 +371,9 @@ export const vi: Record<string, string> = {
     'Khung giờ này trùng với ca làm đã được duyệt của bạn.',
   'error.password.tooShort': 'Mật khẩu phải có ít nhất 8 ký tự.',
   'error.phone.invalid': 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam.',
+  // CORE-STABILITY-8 Part 2 — required on-site contact.
+  'error.contactPerson.required': 'Vui lòng nhập người phụ trách tại chỗ.',
+  'error.contactPhone.required': 'Vui lòng nhập số điện thoại người phụ trách.',
   'error.date.invalid': 'Ngày không hợp lệ.',
   'error.date.past': 'Ngày làm phải là ngày trong tương lai.',
   'error.time.invalid': 'Giờ không hợp lệ (định dạng HH:mm).',
@@ -438,9 +456,9 @@ export const vi: Record<string, string> = {
     'Nhà tuyển dụng sẽ duyệt hoặc từ chối yêu cầu của bạn.',
   'feedback.checkIn.success': 'Đã check-in',
   'feedback.checkOut.success': 'Đã check-out, chờ nhà tuyển dụng xác nhận',
-  'feedback.schedule.add.success': 'Đã thêm lịch bận',
-  'feedback.schedule.update.success': 'Đã cập nhật lịch bận',
-  'feedback.schedule.delete.success': 'Đã xoá lịch bận',
+  'feedback.schedule.add.success': 'Đã thêm lịch trình',
+  'feedback.schedule.update.success': 'Đã cập nhật lịch trình',
+  'feedback.schedule.delete.success': 'Đã xoá lịch trình',
 
   // Employer action feedback
   'feedback.shift.create.success': 'Đã tạo ca tuyển dụng',
@@ -581,16 +599,16 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'schedule.page.title': 'Lịch cá nhân',
   'schedule.page.subtitle':
-    'Đánh dấu thời gian bận như giờ học, ca làm khác, việc cá nhân để tránh ứng tuyển trùng giờ.',
+    'Thêm lịch rảnh để nhận gợi ý ca phù hợp, hoặc lịch bận (giờ học, ca làm khác, việc cá nhân) để tránh ứng tuyển trùng giờ.',
   'schedule.page.approvedShiftsNote':
     'Ca làm đã được duyệt cũng được tính là thời gian bận khi ứng tuyển.',
-  'schedule.empty.title': 'Bạn chưa có lịch cá nhân.',
+  'schedule.empty.title': 'Bạn chưa có lịch trình nào.',
   'schedule.empty.description':
-    'Thêm các khung giờ bạn không thể nhận ca để hệ thống chặn ứng tuyển trùng giờ.',
-  'schedule.btn.add': 'Thêm lịch bận',
+    'Thêm khung giờ rảnh để nhận gợi ý ca phù hợp, hoặc thêm lịch bận để hệ thống chặn ứng tuyển trùng giờ.',
+  'schedule.btn.add': 'Thêm lịch trình',
   'schedule.btn.confirmDelete': 'Xác nhận xoá',
-  'schedule.dialog.addTitle': 'Thêm khung giờ bận',
-  'schedule.dialog.editTitle': 'Cập nhật khung giờ bận',
+  'schedule.dialog.addTitle': 'Thêm lịch trình của bạn',
+  'schedule.dialog.editTitle': 'Cập nhật lịch trình',
   'schedule.form.title': 'Tên',
   'schedule.form.date': 'Ngày',
   'schedule.form.startTime': 'Giờ bắt đầu',
@@ -621,11 +639,11 @@ export const vi: Record<string, string> = {
     'Số slot quá nhiều. Hãy tăng độ dài mỗi slot hoặc thu hẹp khung giờ trong ngày.',
   'schedule.timetable.timeColumn': 'Giờ',
   'schedule.timetable.addInSlot': 'Thêm lịch vào khung giờ này',
-  'schedule.list.title': 'Tất cả lịch bận',
+  'schedule.list.title': 'Tất cả lịch trình',
   'schedule.event.lockedLabel': 'Ca đã duyệt',
   'schedule.event.personalLabel': 'Lịch cá nhân',
   'schedule.empty.weekHint':
-    'Không có lịch bận trong tuần này. Bấm vào ô trống để thêm.',
+    'Không có lịch trình trong tuần này. Bấm vào ô trống để thêm.',
 
   // -------------------------------------------------------------------------
   // Employer profile (worker view)
@@ -1488,8 +1506,9 @@ export const vi: Record<string, string> = {
   'calendar.miniMonth.aria.prev': 'Tháng trước',
   'calendar.miniMonth.aria.next': 'Tháng sau',
   'calendar.legend.title': 'Chú giải',
-  'calendar.legend.worker.personalBusy': 'Lịch bận cá nhân',
-  'calendar.legend.worker.approvedShift': 'Ca đã duyệt',
+  'calendar.legend.worker.personalBusy': 'Lịch bận',
+  'calendar.legend.worker.availableSlot': 'Lịch rảnh',
+  'calendar.legend.worker.approvedShift': 'Ca đã duyệt / đang làm',
   'calendar.legend.worker.pendingShift': 'Ca đang chờ duyệt',
   'calendar.legend.employer.published': 'Đã đăng',
   'calendar.legend.employer.fullyBooked': 'Đã đủ vị trí',
@@ -1651,6 +1670,34 @@ export const vi: Record<string, string> = {
     'Không thể đăng ca trong quá khứ. Vui lòng chọn ngày/giờ trong tương lai.',
   'shift.create.error.INSUFFICIENT_BALANCE':
     'Số dư ví không đủ để đặt cọc. Vui lòng nạp thêm tiền.',
+  // CORE-STABILITY-8 Part 2 — required on-site contact for publish.
+  'shift.create.error.CONTACT_PERSON_REQUIRED':
+    'Vui lòng nhập người phụ trách tại chỗ.',
+  'shift.create.error.CONTACT_PHONE_REQUIRED':
+    'Vui lòng nhập số điện thoại người phụ trách.',
+  // CORE-STABILITY-8 Part 1 — draft save.
+  'shiftForm.saveDraft': 'Lưu nháp',
+  'shiftForm.saveDraft.success':
+    'Đã lưu bản nháp. Bạn có thể tiếp tục chỉnh sửa sau ở mục "Bản nháp đã lưu".',
+  'shiftForm.draft.section.title': 'Bản nháp đã lưu',
+  'shiftForm.draft.section.intro':
+    'Bản nháp là biểu mẫu đã lưu — chưa được đăng, người làm không thấy. Tiếp tục chỉnh sửa rồi đặt cọc để đăng ca.',
+  'shiftForm.draft.untitled': '(Chưa có tiêu đề)',
+  'shiftForm.draft.noDate': 'Chưa chọn ngày giờ',
+  'shiftForm.draft.savedAt': 'Lưu lúc',
+  'shiftForm.draft.continue': 'Tiếp tục chỉnh sửa',
+  'shiftForm.draft.delete': 'Xóa bản nháp',
+  'shiftForm.draft.deleted': 'Đã xóa bản nháp.',
+  // CORE-STABILITY-8 Part 5 — understaffed policy setting.
+  'employer.understaffed.title': 'Chính sách khi không đủ người',
+  'employer.understaffed.intro':
+    'Chọn cách xử lý khi ca làm không đủ số người được duyệt trước giờ bắt đầu.',
+  'employer.understaffed.runWithApproved': 'Vẫn chạy với số người đã duyệt',
+  'employer.understaffed.runWithApproved.hint':
+    'Ca vẫn diễn ra với những người đã được duyệt. Tiền cọc của các vị trí không dùng sẽ được hoàn lại khi ca kết thúc.',
+  'employer.understaffed.requireFull': 'Chỉ chạy khi đủ số người',
+  'employer.understaffed.requireFull.hint':
+    'Nếu chưa đủ người trước giờ bắt đầu, ca sẽ tự hủy, hoàn lại toàn bộ tiền cọc và thông báo cho người đã được duyệt.',
   // CORE-STABILITY-7 Part 2 — insufficient-balance draft modal.
   'deposit.insufficient.title': 'Số dư ví không đủ để đặt cọc',
   'deposit.insufficient.body':
@@ -1682,10 +1729,89 @@ export const vi: Record<string, string> = {
   // Phase 10C-Stab-1 Batch 3 D — worker-facing mismatch warning.
   'lifecycle.mismatch.workerNotCheckedIn':
     'Nhà tuyển dụng đã xác nhận bạn có mặt. Nếu bạn đã bắt đầu làm, hãy check-in để ghi nhận.',
+  // CORE-STABILITY-9 Part 1 — role-aware attendance copy. The SAME
+  // event reads differently for worker / employer / admin so an
+  // employer page never shows worker-perspective text and vice-versa.
+  // Worker side:
+  'attendance.copy.worker.WorkerCheckedInEarly':
+    'Bạn đã check-in. Vui lòng chờ đến giờ bắt đầu ca.',
+  'attendance.copy.worker.WorkerCheckedInInProgress':
+    'Bạn đã check-in. Hãy hoàn thành ca và check-out sau khi ca kết thúc.',
+  'attendance.copy.worker.EmployerMarkedPresentOnly':
+    'Nhà tuyển dụng đã xác nhận bạn có mặt. Vui lòng tự check-in để ghi nhận thời điểm bắt đầu.',
+  'attendance.copy.worker.BothConfirmedPresent':
+    'Hai bên đã xác nhận có mặt. Hãy hoàn thành ca và check-out sau khi ca kết thúc.',
+  'attendance.copy.worker.AwaitingCheckout':
+    'Ca đã kết thúc. Vui lòng check-out để gửi bàn giao.',
+  // Employer side:
+  'attendance.copy.employer.WorkerCheckedInEarly':
+    'Người làm đã check-in. Vui lòng xác nhận có mặt nếu đúng.',
+  'attendance.copy.employer.WorkerCheckedInInProgress':
+    'Người làm đã check-in. Vui lòng xác nhận có mặt nếu đúng.',
+  'attendance.copy.employer.EmployerMarkedPresentOnly':
+    'Bạn đã xác nhận người làm có mặt. Đang chờ người làm tự check-in để ghi nhận thời điểm bắt đầu.',
+  'attendance.copy.employer.BothConfirmedPresent':
+    'Hai bên đã xác nhận có mặt. Đợi đến hết ca để người làm check-out.',
+  'attendance.copy.employer.AwaitingCheckout':
+    'Ca đã kết thúc. Đang chờ người làm check-out.',
+  // Admin side (neutral):
+  'attendance.copy.admin.WorkerCheckedInEarly':
+    'Người làm đã tự check-in.',
+  'attendance.copy.admin.WorkerCheckedInInProgress':
+    'Người làm đã tự check-in.',
+  'attendance.copy.admin.EmployerMarkedPresentOnly':
+    'Nhà tuyển dụng đã xác nhận có mặt.',
+  'attendance.copy.admin.BothConfirmedPresent':
+    'Hai bên đã xác nhận có mặt.',
+  'attendance.copy.admin.AwaitingCheckout':
+    'Ca đã kết thúc, đang chờ người làm check-out.',
+  // CORE-STABILITY-9 Part 4 — skill progression.
+  'skill.highlight.title': 'Kỹ năng nổi bật',
+  'skill.explain':
+    'Kỹ năng tăng khi bạn hoàn thành ca tốt và nhận đánh giá tích cực.',
+  // PRODUCT-UX-FIX-BACKEND-PREP-1 Part 2 — skill section copy.
+  'skill.section.title': 'Kỹ năng của bạn',
+  'skill.section.intro':
+    'Kỹ năng sẽ tăng khi bạn hoàn thành ca tốt và nhận đánh giá tích cực.',
+  'skill.section.footnote':
+    'Điểm kỹ năng tách riêng với điểm uy tín tổng. Nhà tuyển dụng xem cấp kỹ năng phù hợp với loại ca khi duyệt.',
+  'skill.level': 'Cấp độ',
+  'skill.xp': 'Điểm kinh nghiệm',
+  'skill.levelProgress': 'Tiến độ lên cấp',
+  'skill.dashboard.title': 'Kỹ năng của bạn',
+  // CORE-STABILITY-9 Part 5 + PRODUCT-UX-FIX-BACKEND-PREP-1 Part 1 —
+  // availability/busy blocks. The dialog now frames both kinds as a
+  // single "lịch trình" with two choices rather than only "lịch bận".
+  'schedule.kind.label': 'Loại lịch trình',
+  'schedule.kind.busy': 'Lịch bận',
+  'schedule.kind.available': 'Lịch rảnh',
+  'schedule.kind.busyHint':
+    'Khung giờ bận sẽ chặn ứng tuyển trùng giờ.',
+  'schedule.kind.availableHint':
+    'Khung giờ rảnh giúp gợi ý ca làm phù hợp với lịch của bạn — không chặn ứng tuyển.',
+  // Combined helper shown above the choice so the worker understands
+  // both options at a glance.
+  'schedule.kind.helper':
+    'Bạn có thể thêm khoảng thời gian rảnh để hệ thống gợi ý ca phù hợp, hoặc thêm lịch bận để tránh trùng lịch.',
+  'schedule.event.availableLabel': 'Lịch rảnh',
+  'schedule.event.busyLabel': 'Lịch bận',
+  'availability.suggest.title': 'Ca làm phù hợp',
+  'availability.suggest.subtitle':
+    'Gợi ý theo lịch rảnh và kỹ năng của bạn.',
+  'availability.suggest.empty':
+    'Chưa có ca làm phù hợp. Thêm khung giờ rảnh trong lịch cá nhân để nhận gợi ý.',
+  'availability.suggest.viewAll': 'Xem tất cả ca làm',
+  'availability.match.veryGood': 'Rất phù hợp',
+  'availability.match.good': 'Phù hợp',
+  'availability.match.consider': 'Cần cân nhắc',
+  'availability.fitsAvailability': 'Khớp lịch rảnh',
+  'availability.filter.label': 'Sắp xếp',
+  'availability.filter.default': 'Mặc định',
+  'availability.filter.byAvailability': 'Phù hợp lịch rảnh',
   'lifecycle.checkIn.outsideWindow':
     'Hiện chưa đến giờ check-in. Bạn có thể check-in trong khoảng 15 phút trước giờ bắt đầu.',
   'lifecycle.checkOut.outsideWindow':
-    'Bạn chỉ có thể check-out từ giờ bắt đầu đến 60 phút sau giờ kết thúc.',
+    'Bạn chỉ có thể check-out sau khi ca kết thúc, trong vòng 60 phút.',
   'lifecycle.toast.markPresent.success': 'Đã xác nhận người làm có mặt',
 
   // CORE-STABILITY-7 Part 5 — attendance flexibility (absent dimming +

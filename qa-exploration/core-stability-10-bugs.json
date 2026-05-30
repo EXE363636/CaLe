@@ -1,0 +1,143 @@
+{
+  "task": "CORE-STABILITY-10",
+  "date": "2026-05-31",
+  "summary": { "fixed": 6, "productDecisions": 4, "deferred": 1 },
+  "bugs": [
+    {
+      "id": "CS10-1",
+      "part": 1,
+      "title": "Same shift shows different lifecycle status across pages",
+      "role": "worker, employer",
+      "page": "worker dashboard/detail, employer dashboard/detail/calendar, public list, admin",
+      "account": "all",
+      "steps": "Open the same shift on the worker dashboard card and the worker detail page (and the employer's two surfaces) near its start time.",
+      "expected": "One canonical lifecycle state; the same label everywhere at the same instant.",
+      "actual": "Worker dashboard/card showed 'Sắp bắt đầu', worker detail showed 'Đang diễn ra', employer dashboard 'Đang diễn ra', employer detail 'Sắp bắt đầu' — because the codebase had TWO competing status systems (stored Shift.status via ShiftStatusBadge, and live getShiftDisplayPhase via ShiftPhaseChip) used inconsistently across pages.",
+      "severity": "critical",
+      "status": "fixed",
+      "fix": "Added src/domain/shiftLifecycleState.ts: getShiftLifecycleState(shift, applications, nowIso) returns ONE canonical state (Draft/PendingDeposit/Published/StartingSoon/InProgress/AwaitingCheckout/AwaitingEmployerConfirmation/Completed/Expired/Cancelled/Disputed). A single ShiftLifecycleBadge component renders it on every surface with the same (shift, applications, now). Removed the page-local ShiftPhaseChip and the raw ShiftStatusBadge usages.",
+      "tests": [
+        "src/__tests__/coreStability10.test.ts (Part 1 + Part 7 cross-role)",
+        "e2e/25-core-stability-10.spec.ts (same label across worker/employer surfaces)"
+      ]
+    },
+    {
+      "id": "CS10-2",
+      "part": 2,
+      "title": "Check-in / employer mark-present appeared to advance the shift lifecycle",
+      "role": "worker, employer",
+      "page": "worker dashboard, employer detail",
+      "account": "all",
+      "steps": "Worker checks in before start, or employer marks present before start.",
+      "expected": "Shift lifecycle depends on the wall clock only; presence is an application/attendance fact.",
+      "actual": "Because the live phase chip read check-in presence, a check-in before start could make the UI read as if the shift had started.",
+      "severity": "high",
+      "status": "fixed",
+      "fix": "getShiftLifecycleState's time rules never read check-in/mark-present for the start/end transitions. A shift is InProgress iff now >= start && now < end, regardless of presence. Presence is read only to distinguish AwaitingCheckout from Expired after end. Verified the lifecycle state is identical with/without a check-in at the same now.",
+      "tests": [
+        "src/__tests__/coreStability10.test.ts (lifecycle identical with/without check-in; mark-present before start stays StartingSoon)"
+      ]
+    },
+    {
+      "id": "CS10-3",
+      "part": 3,
+      "title": "Check-out could appear before shift end",
+      "role": "worker",
+      "page": "worker dashboard",
+      "account": "an.nguyen@gmail.com",
+      "steps": "Self-check-in to a shift and look for the check-out CTA before the shift end time.",
+      "expected": "Check-out only after shift end (within the 60-minute grace), only for a self-checked-in worker.",
+      "actual": "Re-asserted: checkout must never appear before end (the CS9 gate already enforced now>=end; CS10 adds the cross-role/time-travel coverage and confirms the worker dashboard hides it mid-shift).",
+      "severity": "high",
+      "status": "fixed",
+      "fix": "canCheckOut requires now >= end AND status CheckedIn AND own checkInAt. The worker dashboard gates the checkout button on canCheckOut. Employer-marked-present alone never unlocks checkout.",
+      "tests": [
+        "src/__tests__/coreStability10.test.ts (checkout never before end; employer-only never unlocks)",
+        "e2e/25-core-stability-10.spec.ts (no checkout at 18:04/18:06; visible at 18:10)"
+      ]
+    },
+    {
+      "id": "CS10-4",
+      "part": 4,
+      "title": "Employer attendance actions incomplete / absent button hidden",
+      "role": "employer",
+      "page": "employer detail",
+      "account": "lien@quanphoha.vn",
+      "steps": "Open an applicant row during the attendance window.",
+      "expected": "Both 'Đánh dấu có mặt' and 'Đánh dấu vắng mặt' shown when eligible; if worker checked in, absent stays visible but disabled/dimmed with a reason.",
+      "actual": "Re-asserted and tested: present + absent pairing, absent disabled+dimmed with reason for a checked-in worker, absent independent of evidenceRequirement.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "ApplicationActionButtons renders both actions gated by canEmployerMarkPresent / canEmployerMarkAbsent; a checked-in worker shows the disabled+dimmed absent button with 'Người làm đã check-in. Chỉ đánh dấu vắng mặt nếu có tranh chấp.' canEmployerMarkAbsent does not read evidenceRequirement.",
+      "tests": [
+        "src/__tests__/coreStability10.test.ts (present+absent eligibility; checked-in disables absent; None evidence still allows absent)"
+      ]
+    },
+    {
+      "id": "CS10-5",
+      "part": 5,
+      "title": "Role-aware copy still cross-perspective",
+      "role": "worker, employer, admin",
+      "page": "worker/employer/admin attendance surfaces",
+      "account": "all",
+      "steps": "Compare the attendance banner an employer sees vs a worker.",
+      "expected": "Worker uses 'bạn'; employer uses 'người làm'/'bạn đã xác nhận'; admin neutral. No employer page shows 'Nhà tuyển dụng đã xác nhận bạn…'.",
+      "actual": "Audited: the role-aware attendance.copy.{worker|employer|admin}.* keys from CS9 are correct and the legacy cross-perspective lifecycle.mismatch.* keys are no longer referenced by any UI component.",
+      "severity": "medium",
+      "status": "fixed",
+      "fix": "Confirmed worker dashboard uses attendanceCopyKey(state,'worker') and employer detail uses 'employer'. Verified no UI references lifecycle.mismatch.*. Added per-role key-distinctness tests.",
+      "tests": [
+        "src/__tests__/coreStability10.test.ts (worker/employer/admin keys distinct)",
+        "e2e/04-attendance.spec.ts (employer-perspective copy, from CS9)"
+      ]
+    },
+    {
+      "id": "CS10-6",
+      "part": 6,
+      "title": "Badge colours inconsistent (InProgress purple vs blue/green)",
+      "role": "all",
+      "page": "all shift surfaces",
+      "account": "all",
+      "steps": "Compare the 'Đang diễn ra' badge colour on a card vs on the detail page.",
+      "expected": "Same state = same label + same colour everywhere.",
+      "actual": "InProgress was purple via ShiftStatusBadge but green/success via the phase chip; labels also differed.",
+      "severity": "high",
+      "status": "fixed",
+      "fix": "getShiftStatusBadge(state) is the ONE mapping {labelKey, tone, priority}. InProgress is always 'info' (blue). ShiftLifecycleBadge uses it everywhere. Escrow badge stays visually separate. Calendar tile colour keyed by lifecycle state too.",
+      "tests": [
+        "src/__tests__/coreStability10.test.ts (Part 6 badge mapping; InProgress=info not purple/green)",
+        "e2e/25-core-stability-10.spec.ts (same label across surfaces)"
+      ]
+    }
+  ],
+  "productDecisions": [
+    {
+      "id": "CS10-D-1",
+      "decision": "Shift lifecycle is a pure function of the wall clock for start/end transitions. Check-in and employer mark-present are application/attendance facts and never move the shift lifecycle.",
+      "part": 1
+    },
+    {
+      "id": "CS10-D-2",
+      "decision": "StartingSoon is a distinct state within 15 minutes before start; it is amber and never overlaps InProgress (blue). A shift that has started never reads 'Sắp bắt đầu'.",
+      "part": 6
+    },
+    {
+      "id": "CS10-D-3",
+      "decision": "On the worker's OWN upcoming card, the public recruiting label 'Đang tuyển' (plain Published, far from start) is suppressed in favour of the worker's application-status badge ('Đã duyệt'). The unified lifecycle badge appears from StartingSoon onwards, identical to every other surface. Recruiting is a discovery concern, not the approved worker's.",
+      "part": 6
+    },
+    {
+      "id": "CS10-D-4",
+      "decision": "getShiftDisplayPhase and ShiftStatusBadge are retained (still exported, still covered by prior tests) but are no longer the rendered lifecycle badge on any page; the single source of truth is getShiftLifecycleState + ShiftLifecycleBadge.",
+      "part": 1
+    }
+  ],
+  "deferred": [
+    {
+      "id": "CS10-DEF-1",
+      "title": "Backend implementation",
+      "reason": "Out of scope for this task (explicitly excluded). Plan exists in qa-exploration/backend-migration-plan.md and docs/BACKEND_MIGRATION_PLAN.md.",
+      "docs": ["qa-exploration/backend-migration-plan.md", "docs/BACKEND_MIGRATION_PLAN.md"]
+    }
+  ]
+}

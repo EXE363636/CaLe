@@ -99,6 +99,8 @@ function buildShift(override: Partial<Shift> = {}): Shift {
     createdAt: ANCHOR_ISO,
     updatedAt: ANCHOR_ISO,
     evidenceRequirement: 'OptionalPhoto',
+    onSiteContactName: 'Anh Liêm',
+    onSiteContactPhone: '0901234567',
     ...override,
   };
 }
@@ -371,6 +373,9 @@ describe('Batch 2 H: simulateDeposit employer verification gate', () => {
       hourlyWage: 50_000,
       positionsTotal: 1,
       workplaceImageLabel: 'storefront.jpg',
+      // CORE-STABILITY-8 Part 2 — required on-site contact for publish.
+      onSiteContactName: 'Anh Liêm',
+      onSiteContactPhone: '0901234567',
     });
     // CORE-STABILITY-6 Part 4 — fund the employer so the deposit
     // insufficient-balance guard passes (deposit = 50_000 × 4h × 1).

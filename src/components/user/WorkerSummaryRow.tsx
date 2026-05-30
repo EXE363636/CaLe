@@ -33,6 +33,7 @@ import {
   skillBadgeLabel,
 } from '@/domain/skillScore';
 import { averageRating } from '@/domain/rating';
+import { SkillProgressBar } from './SkillProgressBar';
 import { t } from '@/i18n/vi';
 import type { ReactNode } from 'react';
 import type { Worker } from '@/types';
@@ -194,6 +195,25 @@ export function WorkerSummaryRow({
               +{worker.skills.length - TOP_SKILLS}
             </button>
           )}
+        </div>
+      )}
+
+      {/* CORE-STABILITY-9 Part 4 — "Kỹ năng nổi bật": top skills by
+          XP level so the employer can scan progression at a glance. */}
+      {(worker.skillScores ?? []).some((s) => (s.xp ?? 0) > 0) && (
+        <div className="mt-3">
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+            {t('skill.highlight.title')}
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {[...(worker.skillScores ?? [])]
+              .filter((s) => (s.xp ?? 0) > 0)
+              .sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0))
+              .slice(0, 3)
+              .map((entry) => (
+                <SkillProgressBar key={entry.category} entry={entry} compact />
+              ))}
+          </div>
         </div>
       )}
 

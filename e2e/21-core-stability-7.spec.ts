@@ -73,6 +73,9 @@ async function fillShiftForm(
   await page.getByLabel(/^Giờ bắt đầu/).fill(opts.start);
   await page.getByLabel(/^Giờ kết thúc/).fill(opts.end);
   await page.locator('#shift-hourly-wage').fill('50000');
+  // CORE-STABILITY-8 Part 2 — on-site contact required to publish.
+  await page.getByLabel(/^Người phụ trách tại chỗ/).fill('Anh Liêm');
+  await page.getByLabel(/^SĐT người phụ trách tại chỗ/).fill('0901234567');
 }
 
 test.describe('Part 2: insufficient-deposit draft modal', () => {

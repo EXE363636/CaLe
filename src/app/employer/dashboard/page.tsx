@@ -13,7 +13,7 @@ import {
   useVerificationStore,
 } from '@/stores';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
-import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
+import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
@@ -23,7 +23,7 @@ import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { getUserInitials } from '@/lib/initials';
 import { t } from '@/i18n/vi';
-import type { Shift } from '@/types';
+import type { Application, Shift } from '@/types';
 
 export default function EmployerDashboardPage() {
   return (
@@ -116,7 +116,15 @@ function EmployerDashboardContent() {
   });
 
   const myShifts = useMemo(
-    () => (employer ? shifts.filter((s) => s.employerId === employer.id) : []),
+    () =>
+      employer
+        ? shifts.filter(
+            // CORE-STABILITY-8 Part 1 — Draft shifts are not real
+            // shifts; exclude them from every employer dashboard
+            // list / stat / calendar surface.
+            (s) => s.employerId === employer.id && s.status !== 'Draft',
+          )
+        : [],
     [shifts, employer],
   );
 
@@ -318,7 +326,7 @@ function EmployerDashboardContent() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {activeShifts.map((shift) => (
                   <Link href={`/employer/shifts/${shift.id}`} key={shift.id}>
-                    <ShiftCard shift={shift} showEscrow />
+                    <ShiftCard shift={shift} applications={applications} showEscrow />
                   </Link>
                 ))}
               </div>
@@ -532,6 +540,7 @@ function EmployerDashboardContent() {
         shifts={[...myShifts].sort((a, b) =>
           `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`),
         )}
+        applications={applications}
       />
 
       {/* Phase 9H — active-shifts modal */}
@@ -551,6 +560,7 @@ function EmployerDashboardContent() {
         shifts={[...activeShifts].sort((a, b) =>
           `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
         )}
+        applications={applications}
       />
 
       {/* Phase 9H — completed-shifts modal */}
@@ -570,6 +580,7 @@ function EmployerDashboardContent() {
         shifts={[...completedShifts].sort((a, b) =>
           `${b.date}T${b.startTime}`.localeCompare(`${a.date}T${a.startTime}`),
         )}
+        applications={applications}
       />
 
       {/* Phase 9H — pending-applicants modal */}
@@ -706,6 +717,7 @@ function ShiftListModal({
   intro,
   emptyText,
   shifts,
+  applications = [],
 }: {
   open: boolean;
   onClose: () => void;
@@ -714,6 +726,7 @@ function ShiftListModal({
   intro: string;
   emptyText: string;
   shifts: Shift[];
+  applications?: Application[];
 }) {
   return (
     <Modal open={open} onClose={onClose} title={title} titleAccessory={titleAccessory}>
@@ -747,7 +760,7 @@ function ShiftListModal({
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
-                    <ShiftStatusBadge status={shift.status} />
+                    <ShiftLifecycleBadge shift={shift} applications={applications} />
                     <span className="text-[11px] font-semibold text-orange-600">
                       {formatVND(shift.depositAmount)}
                     </span>

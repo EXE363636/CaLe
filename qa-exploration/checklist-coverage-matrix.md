@@ -1,10 +1,9 @@
 # Manual Checklist A–M Coverage Matrix — QA-Stabilization-Automation Phase 3
 
 **Generated:** 2026-05-30
-**Last updated:** 2026-05-30 (CORE-STABILITY-7 — notification deeplinks
-+ dedup, wallet top-up/withdraw notifications, insufficient-deposit
-draft flow, avatar initials, numeric validation, attendance late-arrival
-reversal, feedback sort/report)
+**Last updated:** 2026-05-31 (CORE-STABILITY-9 — role-aware attendance
+copy, checkout timing lock, attendance state machine, skill XP/levels,
+availability blocks + recommendations, backend status note)
 **App:** CaLẻ / ShiftNow (localStorage-only Next.js 16 MVP)
 
 Coverage types:
@@ -282,3 +281,109 @@ Every checkbox is mapped individually.
   on input and validate; contact phone E2E covered.
 
 All checkboxes mapped. No hidden uncovered Critical/High items.
+
+### CORE-STABILITY-8 additions (2026-05-30)
+
+- **A (Repost) / I (Wallet):** drafts are now a separate `ShiftDraft`
+  model (save / restore / delete) — NOT real shifts. Excluded from the
+  public listing, employer lists/stats/calendar, lifecycle sync, and the
+  worker job list. Covered: `coreStability8.test.ts` (draft store +
+  `byEmployer`/`discardDraftShift` exclusion + lifecycle skips Draft),
+  `e2e/22-core-stability-8.spec.ts` (save/restore/delete; worker never
+  sees a draft).
+- **New (Contact required):** publish/deposit requires on-site contact
+  person + numeric phone; draft can save incomplete.
+  `coreStability8.test.ts` (`simulateDeposit` `CONTACT_PERSON_REQUIRED` /
+  `CONTACT_PHONE_REQUIRED`); `ShiftForm.test.tsx` (form blocks submit).
+- **B (Time status):** recruiting window closes at start — a started
+  shift shows "Đang diễn ra", never "Đang tuyển"; consistent across
+  roles via the one lifecycle engine. `coreStability8.test.ts`
+  (12:59/13:00/13:59) + updated phase10cStab1Batch3/Batch4 assertions.
+- **C (Check-in / present / absent):** two-sided attendance — employer
+  mark-present establishes presence but does NOT set the worker's
+  `checkInAt`; check-out requires the worker's own self check-in.
+  `coreStability8.test.ts` (mark-present ≠ checkInAt; checkout locked
+  until self check-in) + updated phase10cStab1 checkout test.
+- **New (Refund policy):** empty deposited-shift expiry refunds the full
+  deposit (+ wallet deeplink); RequireFull understaffed auto-cancel +
+  full refund; RunWithApproved runs as-is. `coreStability8.test.ts`
+  (empty-expiry refund no-dup; RequireFull/RunWithApproved).
+- **Backend readiness:** localStorage limitation documented +
+  migration plan (`backend-readiness-plan.md`, `backend-migration-plan.md`).
+
+All CORE-STABILITY-8 checkboxes mapped. No hidden uncovered
+Critical/High items.
+
+### CORE-STABILITY-9 additions (2026-05-31)
+
+- **C (Check-in / mark present / mark absent):** attendance status text
+  is now **role-aware** — the employer surface renders employer-addressed
+  copy and the worker surface renders worker-addressed copy (never
+  cross-perspective). Backed by a canonical attendance **state machine**
+  (`deriveAttendanceState` → 11 states; `attendanceCopyKey(state, role)`).
+  Covered: `coreStability9.test.ts` (11-state matrix; worker/employer
+  keys distinct; non-banner states undefined), `e2e/04-attendance.spec.ts`
+  (employer-perspective copy shown / clears).
+- **D (Check-out / confirm completion):** check-out now opens at shift
+  **END** (window `[end, end+60min]`), not start — the CTA stays hidden
+  mid-shift and still requires the worker's own self check-in. Covered:
+  `coreStability9.test.ts` (15:50/15:55/15:59 hidden; 16:00/16:01
+  visible; +61min hidden; employer-only never unlocks) + updated
+  `coreStability8.test.ts` / `phase10cStab1.test.ts`.
+- **New (Skill progression):** workers earn **XP / levels** per job
+  category on confirmed shifts (levels 1–5; +10/+5/+3/+2; 0 if disputed);
+  the profile shows level + XP progress bars (`SkillProgressBar`),
+  applicant cards show a compact level. Covered: `coreStability9.test.ts`
+  (levels, xpForCompletion, skillProgress, awardSkillXp),
+  `e2e/23-core-stability-9.spec.ts` (profile shows Cấp 3 for 130 XP).
+- **K (Worker job list) / New (Availability):** workers can declare
+  **free time** (`ScheduleBlock.kind='available'`, non-blocking) and the
+  job list offers a **"Phù hợp lịch rảnh"** sort with per-card match
+  pills; the worker dashboard surfaces an **availability-based
+  recommendation** section ("Gợi ý theo lịch rảnh và kỹ năng của bạn.").
+  Rule-based scorer (time 40 / location 25 / skill 25 / wage 10; excludes
+  busy/approved overlaps). Covered: `coreStability9.test.ts`
+  (fitsInsideAvailability, matchLabel, scoreShiftForWorker, ranking/drop),
+  `e2e/23-core-stability-9.spec.ts` (availability sort toggle + match
+  pill; schedule busy/available toggle).
+- **New (Backend status):** the footer now states site-wide, honestly,
+  that demo data lives in the browser ("Dữ liệu demo đang lưu trên trình
+  duyệt. Xóa cache sẽ mất dữ liệu."). Covered: `e2e/23-core-stability-9.spec.ts`
+  (footer note visible). Migration plan extended
+  (`backend-migration-plan.md` §11).
+
+All CORE-STABILITY-9 checkboxes mapped. No hidden uncovered
+Critical/High items. Unit (504) / build (28 routes) / E2E (105) / time
+(22) all pass.
+
+### CORE-STABILITY-10 additions (2026-05-31)
+
+- **B (Shift time status):** the cross-page status disagreement is fixed
+  by a single source of truth — `getShiftLifecycleState(shift,
+  applications, nowIso)` rendered by one `ShiftLifecycleBadge` on every
+  surface (worker dashboard/detail/job list, public list, employer
+  dashboard + stat modals, employer detail, employer calendar, admin).
+  The lifecycle is time-only; check-in / employer mark-present never
+  advance it. Covered: `coreStability10.test.ts` (Part 1 time rules +
+  Part 7 cross-role time-travel 18:05–18:09), `e2e/25-core-stability-10.spec.ts`
+  (same label across worker/employer surfaces at 18:04 / 18:06 / 18:10).
+- **C (Check-in / mark present / mark absent):** present + absent paired;
+  absent disabled+dimmed with reason for a checked-in worker; absent
+  independent of evidenceRequirement. Covered: `coreStability10.test.ts`
+  (Part 4 eligibility).
+- **D (Check-out / confirm completion):** checkout only after end,
+  re-asserted across roles + time-travel. Covered: `coreStability10.test.ts`
+  (Part 2/3), `e2e/25-core-stability-10.spec.ts` (no checkout 18:04/18:06,
+  visible 18:10).
+- **Badge consistency (Part 6):** `getShiftStatusBadge(state)` is the one
+  label+tone+priority map; "Đang diễn ra" (InProgress) is `info` (blue)
+  everywhere — never purple or green. Covered: `coreStability10.test.ts`
+  (Part 6).
+- **Role-aware copy (Part 5):** re-audited; worker "bạn" / employer
+  "người làm, bạn đã xác nhận" / admin neutral; no UI references the
+  legacy cross-perspective `lifecycle.mismatch.*` keys. Covered:
+  `coreStability10.test.ts` (key distinctness), `e2e/04-attendance.spec.ts`.
+
+All CORE-STABILITY-10 checkboxes mapped. No hidden uncovered
+Critical/High items. Unit (544) / build (28 routes) / E2E (112) / time
+(22) all pass.

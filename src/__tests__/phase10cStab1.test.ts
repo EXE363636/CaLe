@@ -333,23 +333,30 @@ describe('Stab-1 Bug 6: check-in / check-out windows', () => {
     ).toBe(false);
   });
 
-  it('canWorkerCheckOut allows [start, end + 60min] when CheckedIn', () => {
+  it('canWorkerCheckOut allows [end, end + 60min] when CheckedIn (opens at end, not start)', () => {
+    // CORE-STABILITY-9 Part 2 — check-out now opens at shift END, not
+    // start. A worker mid-shift must not see the check-out CTA.
     const start = new Date(ANCHOR_MS);
     start.setHours(10, 0, 0, 0);
     const end = new Date(start.getTime() + 60 * 60_000); // 11:00
     const shift = shiftFromEpoch(start.getTime(), end.getTime());
-    const app = buildApp(shift.id, 'w1', { status: 'CheckedIn' });
+    // CORE-STABILITY-8 Part 4 — check-out requires the worker's own
+    // self check-in (`checkInAt`), so the CheckedIn app carries it.
+    const app = buildApp(shift.id, 'w1', {
+      status: 'CheckedIn',
+      checkInAt: start.toISOString(),
+    });
 
-    // Right before start — too early.
+    // At start — too early now (mid-shift, must wait until end).
+    expect(canWorkerCheckOut(start.toISOString(), app, shift)).toBe(false);
+    // Just before end — still too early.
     expect(
       canWorkerCheckOut(
-        new Date(start.getTime() - 1).toISOString(),
+        new Date(end.getTime() - 60_000).toISOString(),
         app,
         shift,
       ),
     ).toBe(false);
-    // At start — allowed.
-    expect(canWorkerCheckOut(start.toISOString(), app, shift)).toBe(true);
     // At end — allowed.
     expect(canWorkerCheckOut(end.toISOString(), app, shift)).toBe(true);
     // End + 60 min grace — still allowed.

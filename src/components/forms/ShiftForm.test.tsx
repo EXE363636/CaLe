@@ -48,6 +48,15 @@ function fillRequiredFields(): void {
   fireEvent.change(screen.getByLabelText(/Lương theo giờ/i), {
     target: { value: '50000' },
   });
+  // CORE-STABILITY-8 Part 2 — on-site contact person + phone are now
+  // required to publish (the "Đăng ca" submit path). Anchor the name
+  // regex so it doesn't also match "SĐT người phụ trách tại chỗ".
+  fireEvent.change(screen.getByLabelText(/^Người phụ trách tại chỗ/), {
+    target: { value: 'Anh Liêm' },
+  });
+  fireEvent.change(screen.getByLabelText(/^SĐT người phụ trách tại chỗ/), {
+    target: { value: '0901234567' },
+  });
 }
 
 describe('<ShiftForm/> — Phase 10C evidence picker', () => {
@@ -197,5 +206,24 @@ describe('<ShiftForm/> — Phase 10C evidence picker', () => {
     );
     expect(handle).toHaveBeenCalledTimes(1);
     expect(handle.mock.calls[0]![0].evidenceRequirement).toBe('OptionalPhoto');
+  });
+
+  it('CORE-STABILITY-8 Part 2 — blocks submit (onSubmit not called) when on-site contact is missing', () => {
+    const handle = vi.fn<(values: ShiftFormValues) => void>();
+    render(<ShiftForm onSubmit={handle} />);
+    // Fill everything via the shared helper, then CLEAR the on-site
+    // contact fields so the publish path is missing its required
+    // contact. The form must block submit (onSubmit never fires).
+    fillRequiredFields();
+    fireEvent.change(screen.getByLabelText(/^Người phụ trách tại chỗ/), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText(/^SĐT người phụ trách tại chỗ/), {
+      target: { value: '' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /Đăng ca cần tuyển/i }),
+    );
+    expect(handle).not.toHaveBeenCalled();
   });
 });

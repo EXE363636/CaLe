@@ -96,6 +96,13 @@ interface ShiftFormProps {
    * Optional — when omitted the form behaves identically to before.
    */
   onValuesChange?: (values: ShiftFormValues) => void;
+  /**
+   * CORE-STABILITY-8 Part 1: when provided, render a secondary "Lưu
+   * nháp" button that saves the CURRENT form values as a draft WITHOUT
+   * running publish validation (a draft may be incomplete). The parent
+   * persists the snapshot to `shiftDraftStore`.
+   */
+  onSaveDraft?: (values: ShiftFormValues) => void;
 }
 
 const JOB_TYPE_OPTIONS = [
@@ -163,6 +170,7 @@ export function ShiftForm({
   minPositions = 1,
   workplaceImageRequired = false,
   onValuesChange,
+  onSaveDraft,
 }: ShiftFormProps) {
   const [values, setValues] = useState<ShiftFormValues>(() => {
     const seeded = { ...DEFAULT_VALUES, ...initialValues };
@@ -324,13 +332,15 @@ export function ShiftForm({
       errs.workplaceImageLabel = t('error.workplaceImage.required');
     }
 
-    // CORE-STABILITY-7 Part 4 — on-site contact phone is optional, but
-    // when supplied it must be a valid VN phone (digits only; letters
-    // are already stripped on input). Empty stays valid.
-    if (
-      values.onSiteContactPhone.trim() !== '' &&
-      !isValidVNPhone(values.onSiteContactPhone).ok
-    ) {
+    // CORE-STABILITY-8 Part 2 — on-site contact person + phone are
+    // REQUIRED to publish (the "Đăng ca" submit). Drafts bypass this
+    // (the "Lưu nháp" button calls onSaveDraft directly, not submit).
+    if (!isRequired(values.onSiteContactName).ok) {
+      errs.onSiteContactName = t('error.contactPerson.required');
+    }
+    if (values.onSiteContactPhone.trim() === '') {
+      errs.onSiteContactPhone = t('error.contactPhone.required');
+    } else if (!isValidVNPhone(values.onSiteContactPhone).ok) {
       errs.onSiteContactPhone = t('error.phone.invalid');
     }
 
@@ -612,7 +622,9 @@ export function ShiftForm({
               label={t('form.onSiteContactName')}
               value={values.onSiteContactName}
               onChange={(e) => set('onSiteContactName', e.target.value)}
+              error={errors.onSiteContactName}
               placeholder="Anh Liêm — quản lý"
+              required
             />
             <Input
               label={t('form.onSiteContactPhone')}
@@ -624,6 +636,7 @@ export function ShiftForm({
               }
               error={errors.onSiteContactPhone}
               placeholder="0901234567"
+              required
             />
           </div>
 
@@ -680,6 +693,18 @@ export function ShiftForm({
       <Button type="submit" variant="primary" loading={loading}>
         {submitLabel}
       </Button>
+
+      {/* CORE-STABILITY-8 Part 1 — "Lưu nháp" saves the current form
+          values as a draft without publish validation. */}
+      {onSaveDraft && mode === 'create' && (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => onSaveDraft(values)}
+        >
+          {t('shiftForm.saveDraft')}
+        </Button>
+      )}
     </form>
   );
 }

@@ -14,7 +14,7 @@ import { useReviewReportStore } from '@/stores/reviewReportStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { adminVerificationTaskCount, adminDisputeTaskCount } from '@/domain/taskBadges';
 import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge } from '@/components/ui';
-import { ShiftStatusBadge } from '@/components/shift/ShiftStatusBadge';
+import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
@@ -867,6 +867,7 @@ function ShiftsPanel({
   const shifts = useShiftStore((s) => s.shifts);
   const lastSyncAt = useShiftStore((s) => s.lastLifecycleSyncAt);
   const users = useUserStore((s) => s.users);
+  const applications = useApplicationStore((s) => s.applications);
 
   const [filter, setFilter] = useState<typeof initialFilter>(initialFilter);
 
@@ -925,7 +926,14 @@ function ShiftsPanel({
         {sorted.slice(0, 50).map((shift) => {
           const employer = users.find((u) => u.id === shift.employerId);
           const employerName = employer?.role === 'employer' ? employer.companyName : 'Unknown';
-          return <ShiftRow key={shift.id} shift={shift} employerName={employerName} />;
+          return (
+            <ShiftRow
+              key={shift.id}
+              shift={shift}
+              employerName={employerName}
+              applications={applications}
+            />
+          );
         })}
       </ul>
     </div>
@@ -976,7 +984,15 @@ const ESCROW_OPTIONS: EscrowStatus[] = [
   'Refunded',
 ];
 
-function ShiftRow({ shift, employerName }: { shift: Shift; employerName: string }) {
+function ShiftRow({
+  shift,
+  employerName,
+  applications = [],
+}: {
+  shift: Shift;
+  employerName: string;
+  applications?: Application[];
+}) {
   const overrideEscrow = useAdminStore((s) => s.overrideEscrow);
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState<EscrowStatus>(shift.escrowStatus);
@@ -1014,7 +1030,7 @@ function ShiftRow({ shift, employerName }: { shift: Shift; employerName: string 
             {formatVND(shift.depositAmount)}
           </p>
         </div>
-        <ShiftStatusBadge status={shift.status} />
+        <ShiftLifecycleBadge shift={shift} applications={applications} />
         <EscrowStatusBadge status={shift.escrowStatus} />
         {!editing && (
           <>

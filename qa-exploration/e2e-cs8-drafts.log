@@ -1,0 +1,6 @@
+﻿
+Running 2 tests using 2 workers
+
+[1A[2K[1/2] [chromium] ΓÇ║ e2e\22-core-stability-8.spec.ts:43:7 ΓÇ║ Part 1: draft save / restore / delete ΓÇ║ "L╞░u nh├íp" saves a draft (not a published shift); restore repopulates; delete removes
+[1A[2K[2/2] [chromium] ΓÇ║ e2e\22-core-stability-8.spec.ts:97:7 ΓÇ║ Part 1: draft save / restore / delete ΓÇ║ worker job list never shows a draft
+[1A[2K  2 passed (5.6s)

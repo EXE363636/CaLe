@@ -5,16 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useScheduleStore } from '@/stores/scheduleStore';
 import { useAuthStore } from '@/stores/authStore';
 import { isShiftAvailableForRecruiting } from '@/domain/shiftAvailability';
 import { compareShiftsForWorker } from '@/domain/shiftSorting';
+import { suggestShiftsForWorker, type ShiftMatch } from '@/domain/availabilityMatch';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { ShiftFilters } from '@/components/shift/ShiftFilters';
 import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
 import { EmptyState } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { t } from '@/i18n/vi';
-import type { ApplicationStatus } from '@/types';
+import type { ApplicationStatus, Shift, Worker } from '@/types';
 import type { FilterCriteria } from '@/domain/filter';
 
 const JOB_TYPE_OPTIONS = [
@@ -28,10 +30,17 @@ export default function ShiftsPage() {
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
+  const scheduleBlocks = useScheduleStore((s) => s.blocks);
   const currentUserId = useAuthStore((s) => s.currentUserId);
 
   const [criteria, setCriteria] = useState<FilterCriteria>({});
   const [searchText, setSearchText] = useState('');
+  // CORE-STABILITY-9 Part 5 — sort mode. 'default' keeps the existing
+  // preferred-location-then-soonest sort; 'availability' ranks by the
+  // worker's free-schedule + skill fit via `suggestShiftsForWorker`.
+  const [sortMode, setSortMode] = useState<'default' | 'availability'>(
+    'default',
+  );
 
   // Phase 10C-Stab-1 Batch 3 I — index the current worker's
   // applications by shiftId so the card can show an already-applied
@@ -106,6 +115,51 @@ export default function ShiftsPage() {
     );
   }, [shifts, applications, criteria, searchText, currentUserId, users]);
 
+  // CORE-STABILITY-9 Part 5 — availability match map keyed by shift id.
+  // Computed only for the signed-in worker; drives the optional
+  // "Phù hợp lịch rảnh" sort and the per-card match pills.
+  const matchByShift = useMemo(() => {
+    const map = new Map<string, ShiftMatch>();
+    const worker =
+      currentUserId &&
+      (users.find(
+        (u) => u.id === currentUserId && u.role === 'worker',
+      ) as Worker | undefined);
+    if (!worker) return map;
+    const myBlocks = scheduleBlocks.filter((b) => b.userId === worker.id);
+    const approvedApps = applications.filter(
+      (a) =>
+        a.workerId === worker.id &&
+        (a.status === 'Approved' ||
+          a.status === 'CheckedIn' ||
+          a.status === 'CheckedOut'),
+    );
+    const shiftIndex = new Map<string, Shift>(shifts.map((s) => [s.id, s]));
+    const ranked = suggestShiftsForWorker(
+      filtered,
+      worker,
+      myBlocks,
+      approvedApps,
+      shiftIndex,
+    );
+    for (const m of ranked) map.set(m.shift.id, m);
+    return map;
+  }, [filtered, currentUserId, users, scheduleBlocks, applications, shifts]);
+
+  // Final ordered list. In availability mode we surface matched shifts
+  // (those not excluded by a busy/approved conflict) ranked by score;
+  // excluded shifts fall to the bottom in their default order so the
+  // worker can still browse everything.
+  const displayShifts = useMemo(() => {
+    if (sortMode !== 'availability' || matchByShift.size === 0) {
+      return filtered;
+    }
+    const ranked = [...matchByShift.values()].map((m) => m.shift);
+    const rankedIds = new Set(ranked.map((s) => s.id));
+    const rest = filtered.filter((s) => !rankedIds.has(s.id));
+    return [...ranked, ...rest];
+  }, [sortMode, matchByShift, filtered]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Phase 9C: gradient hero header so the listing page reads as a
@@ -124,7 +178,7 @@ export default function ShiftsPage() {
             </p>
           </div>
           <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-            {filtered.length} {t('shifts.listing.matchSuffix')}
+            {displayShifts.length} {t('shifts.listing.matchSuffix')}
           </span>
         </div>
       </header>
@@ -142,10 +196,50 @@ export default function ShiftsPage() {
           onChange={setCriteria}
           jobTypeOptions={JOB_TYPE_OPTIONS}
         />
+        {/* CORE-STABILITY-9 Part 5 — availability sort toggle. Only
+            useful for a signed-in worker, so hidden otherwise. */}
+        {currentUserId && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+            <span className="text-xs font-medium text-gray-500">
+              {t('availability.filter.label')}:
+            </span>
+            <button
+              type="button"
+              onClick={() => setSortMode('default')}
+              aria-pressed={sortMode === 'default'}
+              className={[
+                'rounded-full px-3 py-1 text-xs font-semibold transition',
+                sortMode === 'default'
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              ].join(' ')}
+            >
+              {t('availability.filter.default')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSortMode('availability')}
+              aria-pressed={sortMode === 'availability'}
+              className={[
+                'rounded-full px-3 py-1 text-xs font-semibold transition',
+                sortMode === 'availability'
+                  ? 'bg-emerald-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+              ].join(' ')}
+            >
+              {t('availability.filter.byAvailability')}
+            </button>
+            {sortMode === 'availability' && (
+              <span className="text-xs text-emerald-700">
+                {t('availability.suggest.subtitle')}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Results */}
-      {filtered.length === 0 ? (
+      {displayShifts.length === 0 ? (
         <EmptyState
           tone="warm"
           title={t('shifts.listing.empty')}
@@ -153,15 +247,24 @@ export default function ShiftsPage() {
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((shift) => (
-            <ShiftCard
-              key={shift.id}
-              shift={shift}
-              employerName={employerMap[shift.employerId]}
-              workerApplicationStatus={myAppByShift.get(shift.id)}
-              onClick={() => router.push(`/shifts/${shift.id}`)}
-            />
-          ))}
+          {displayShifts.map((shift) => {
+            const match =
+              sortMode === 'availability'
+                ? matchByShift.get(shift.id)
+                : undefined;
+            return (
+              <ShiftCard
+                key={shift.id}
+                shift={shift}
+                employerName={employerMap[shift.employerId]}
+                workerApplicationStatus={myAppByShift.get(shift.id)}
+                applications={applications}
+                matchLabel={match?.label}
+                fitsAvailability={match?.fitsAvailability ?? false}
+                onClick={() => router.push(`/shifts/${shift.id}`)}
+              />
+            );
+          })}
         </div>
       )}
     </div>

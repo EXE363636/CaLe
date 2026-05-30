@@ -1,9 +1,9 @@
 import { Card, Badge, type BadgeTone } from '@/components/ui';
-import { ShiftStatusBadge } from './ShiftStatusBadge';
+import { ShiftLifecycleBadge } from './ShiftLifecycleBadge';
 import { EscrowStatusBadge } from './EscrowStatusBadge';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
-import type { ApplicationStatus, Shift } from '@/types';
+import type { Application, ApplicationStatus, Shift } from '@/types';
 
 /**
  * QA-Stabilization-Automation — tone for the worker's PERSONAL
@@ -42,6 +42,21 @@ interface ShiftCardProps {
    * matching status here.
    */
   workerApplicationStatus?: ApplicationStatus;
+  /**
+   * CORE-STABILITY-9 Part 5 — optional availability-match label
+   * ("Rất phù hợp" / "Phù hợp" / "Cần cân nhắc") shown as a small
+   * pill when the listing is sorted by "Phù hợp lịch rảnh". The
+   * `fitsAvailability` flag adds a "Khớp lịch rảnh" chip.
+   */
+  matchLabel?: string;
+  fitsAvailability?: boolean;
+  /**
+   * CORE-STABILITY-10 — applications + now for the unified lifecycle
+   * badge. When the worker has NOT applied (no `workerApplicationStatus`),
+   * the card shows the canonical lifecycle badge computed from these.
+   */
+  applications?: Application[];
+  nowIso?: string;
 }
 
 function LocationIcon() {
@@ -110,6 +125,10 @@ export function ShiftCard({
   showEscrow = false,
   className = '',
   workerApplicationStatus,
+  matchLabel,
+  fitsAvailability = false,
+  applications = [],
+  nowIso,
 }: ShiftCardProps) {
   return (
     <Card
@@ -129,9 +148,37 @@ export function ShiftCard({
             {t(`apply.applied.${workerApplicationStatus}`)}
           </Badge>
         ) : (
-          <ShiftStatusBadge status={shift.status} />
+          <ShiftLifecycleBadge
+            shift={shift}
+            applications={applications}
+            nowIso={nowIso}
+          />
         )}
       </div>
+
+      {/* CORE-STABILITY-9 Part 5 — availability-match pills. Only
+          rendered when the listing is sorted by "Phù hợp lịch rảnh". */}
+      {matchLabel && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span
+            className={[
+              'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
+              matchLabel === t('availability.match.veryGood')
+                ? 'bg-emerald-100 text-emerald-800'
+                : matchLabel === t('availability.match.good')
+                  ? 'bg-sky-100 text-sky-800'
+                  : 'bg-amber-100 text-amber-800',
+            ].join(' ')}
+          >
+            {matchLabel}
+          </span>
+          {fitsAvailability && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+              {t('availability.fitsAvailability')}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Row 2: location, date, time */}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">

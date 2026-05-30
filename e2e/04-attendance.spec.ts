@@ -60,9 +60,12 @@ test.describe('Flow 4: check-in + employer mark-present + mismatch', () => {
       page.getByRole('button', { name: 'Xác nhận có mặt' }),
     ).toBeVisible();
 
-    // Mismatch warning: worker checked in but employer hasn't confirmed.
+    // CORE-STABILITY-9 Part 1 — employer sees EMPLOYER-perspective copy
+    // (never worker-perspective). Worker self-checked-in mid-shift →
+    // state WorkerCheckedInInProgress → "Người làm đã check-in. Vui
+    // lòng xác nhận có mặt nếu đúng."
     await expect(
-      page.getByText(/Người làm đã check-in nhưng/),
+      page.getByText(/Người làm đã check-in\. Vui lòng xác nhận có mặt/),
     ).toBeVisible();
   });
 
@@ -99,9 +102,10 @@ test.describe('Flow 4: check-in + employer mark-present + mismatch', () => {
 
     await page.getByRole('button', { name: 'Xác nhận có mặt' }).click();
 
-    // After confirming, the mismatch warning disappears.
+    // After confirming, the state moves to BothConfirmedPresent so the
+    // "Vui lòng xác nhận có mặt" prompt clears.
     await expect(
-      page.getByText(/Người làm đã check-in nhưng/),
+      page.getByText(/Người làm đã check-in\. Vui lòng xác nhận có mặt/),
     ).toHaveCount(0);
   });
 });

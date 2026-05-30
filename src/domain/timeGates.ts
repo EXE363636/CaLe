@@ -108,25 +108,40 @@ export function canCheckIn(
   application: Application,
   shift: Shift,
 ): boolean {
-  if (application.status !== 'Approved') return false;
-
   const now = toEpochMs(nowIso);
   const start = shiftStartMs(shift);
+  const end = shiftEndMs(shift);
   if (Number.isNaN(now) || Number.isNaN(start)) return false;
 
+  // CORE-STABILITY-8 Part 4 — a worker whom the employer marked present
+  // (status CheckedIn but no self `checkInAt`) can still confirm "Tôi
+  // đã có mặt" any time during the shift (start → end + grace) so they
+  // can unlock their own check-out.
+  if (
+    application.status === 'CheckedIn' &&
+    !application.checkInAt &&
+    !Number.isNaN(end)
+  ) {
+    return now >= start - CHECK_IN_EARLY_MS && now <= end + CHECK_OUT_GRACE_MS;
+  }
+
+  if (application.status !== 'Approved') return false;
   return now >= start - CHECK_IN_EARLY_MS && now <= start + CHECK_IN_LATE_MS;
 }
 
 /**
  * Predicate: may the worker check out for this application right now?
  *
- * Phase 10C-Stab-1: rebound from "after end" to "after start AND
- * before end + grace window" so a shift 21:02–21:03 is checkable-out
- * from 21:02 until 22:03 inclusive, and the lifecycle sync rolls the
- * shift forward at 22:03 even if the worker hasn't checked out.
+ * CORE-STABILITY-9 Part 2 — check-out is ONLY available after the shift
+ * has ENDED (not merely started). The window is `[shiftEnd, shiftEnd +
+ * 60min grace]`. Before end the worker is mid-shift and must not see a
+ * check-out CTA (a shift 15:55–16:00 is not checkable-out at 15:55).
  *
- * `true` iff the application is `CheckedIn` and `now` lies in the
- * inclusive window `[shiftStart, shiftEnd + 60min]`.
+ * `true` iff:
+ *   - the application is `'CheckedIn'`, AND
+ *   - the worker has self-confirmed presence (`checkInAt` set — an
+ *     employer mark-present alone never unlocks check-out), AND
+ *   - `now` lies in the inclusive window `[shiftEnd, shiftEnd + 60min]`.
  */
 export function canCheckOut(
   nowIso: string,
@@ -134,13 +149,19 @@ export function canCheckOut(
   shift: Shift,
 ): boolean {
   if (application.status !== 'CheckedIn') return false;
+  // CORE-STABILITY-8 Part 4 — the worker must have self-confirmed
+  // presence ("Tôi đã có mặt", which stamps `checkInAt`). An employer
+  // mark-present alone sets status to CheckedIn + `markedPresentAt`
+  // but NOT `checkInAt`, so it cannot prematurely unlock check-out.
+  if (!application.checkInAt) return false;
 
   const now = toEpochMs(nowIso);
   const start = shiftStartMs(shift);
   const end = shiftEndMs(shift);
   if (Number.isNaN(now) || Number.isNaN(start) || Number.isNaN(end)) return false;
 
-  return now >= start && now <= end + CHECK_OUT_GRACE_MS;
+  // CORE-STABILITY-9 Part 2 — check-out opens at shift END, not start.
+  return now >= end && now <= end + CHECK_OUT_GRACE_MS;
 }
 
 /**

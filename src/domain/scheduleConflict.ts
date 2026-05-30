@@ -60,27 +60,32 @@ function rangesOverlap(target: TimeRange, block: ScheduleBlock): boolean {
 
 /**
  * Predicate: does the `target` shift collide with any of the worker's
- * personal `blocks`?
+ * personal BUSY `blocks`?
+ *
+ * CORE-STABILITY-9 Part 5 — availability blocks (`kind === 'available'`)
+ * are NEVER treated as conflicts; only `'busy'` (or legacy undefined)
+ * blocks gate applications.
  */
 export function hasScheduleConflict(
   target: TimeRange,
   blocks: ScheduleBlock[],
 ): boolean {
   for (const b of blocks) {
+    if (b.kind === 'available') continue;
     if (rangesOverlap(target, b)) return true;
   }
   return false;
 }
 
 /**
- * Return every block that collides with `target`, preserving input order.
- * Useful for rendering "conflicts with: <block titles>" UI hints.
+ * Return every BUSY block that collides with `target`, preserving input
+ * order. Availability blocks are excluded.
  */
 export function findScheduleConflicts(
   target: TimeRange,
   blocks: ScheduleBlock[],
 ): ScheduleBlock[] {
-  return blocks.filter((b) => rangesOverlap(target, b));
+  return blocks.filter((b) => b.kind !== 'available' && rangesOverlap(target, b));
 }
 
 // ---------------------------------------------------------------------------
