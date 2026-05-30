@@ -1,0 +1,75 @@
+{
+  "task": "UI-VISUAL-REDESIGN-1",
+  "date": "2026-06-02",
+  "summary": "Visible visual redesign of the three dashboards (role-distinct gradient heroes + colourful gradient-icon-chip stat cards), worker profile hero, reputation modal score-ring, skill cards, and global Badge/EmptyState polish. No business logic, routes, stores, or tests changed. No horizontal overflow at any tested viewport.",
+  "viewportsChecked": ["1920x1080", "1440x900", "1366x768", "1280x720", "1024x768"],
+  "overflowSweep": {
+    "routesChecked": 9,
+    "viewportsPerRoute": 5,
+    "totalChecks": 45,
+    "offenders": []
+  },
+  "issuesFound": [],
+  "issuesFixed": [
+    {
+      "id": "selfcheck-1",
+      "where": "src/app/worker/profile/page.tsx",
+      "issue": "ReputationBadge import became unused after the hero redesign (would fail the Next.js lint/build).",
+      "fix": "Removed the unused import. Build verified clean."
+    },
+    {
+      "id": "selfcheck-2",
+      "where": "src/app/worker/dashboard/page.tsx",
+      "issue": "Reputation score-ring inner circle used invalid Tailwind classes h-15 w-15.",
+      "fix": "Replaced with arbitrary values h-[60px] w-[60px]."
+    }
+  ],
+  "filesChanged": [
+    "src/components/ui/Badge.tsx",
+    "src/components/ui/EmptyState.tsx",
+    "src/components/user/SkillProgressBar.tsx",
+    "src/app/worker/dashboard/page.tsx",
+    "src/app/employer/dashboard/page.tsx",
+    "src/app/admin/dashboard/page.tsx",
+    "src/app/worker/profile/page.tsx"
+  ],
+  "pagesRedesigned": [
+    "worker-dashboard",
+    "employer-dashboard",
+    "admin-dashboard",
+    "worker-profile",
+    "reputation-modal",
+    "skill-cards (profile + applicant)",
+    "global badges + empty states"
+  ],
+  "testResults": {
+    "unit": "544/544 passed",
+    "build": "clean, 28 routes",
+    "e2e": "112/112 passed",
+    "timeTravel": "22/22 passed"
+  },
+  "logicPreservation": {
+    "getShiftLifecycleState": "untouched",
+    "ShiftLifecycleBadge": "untouched",
+    "attendanceStateMachine": "untouched",
+    "checkoutAfterEnd": "untouched",
+    "employerPresentAbsentButtons": "untouched",
+    "draftSeparation": "untouched",
+    "walletLedger": "untouched",
+    "notificationsDeeplinks": "untouched",
+    "sameRouteIntents": "untouched",
+    "disputes": "untouched",
+    "reviewsReporting": "untouched",
+    "skillProgression": "untouched",
+    "availabilityRecommendations": "untouched",
+    "routes": "28 unchanged",
+    "tests": "all pass"
+  },
+  "remainingVisualIssues": [
+    "Employer create-shift and shift-detail keep their Batch-3 structure (no new gradient hero this pass; they are task forms, not overview surfaces).",
+    "Calendar Week/Day grid scrolls inside its own panel below ~768px (intentional, pre-existing).",
+    "Mock-only data; no real product photography."
+  ],
+  "visuallySignificant": true,
+  "manualQaReady": true
+}

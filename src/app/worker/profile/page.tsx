@@ -23,7 +23,6 @@ import {
   SectionHeader,
 } from '@/components/ui';
 import { UserAvatar } from '@/components/user/UserAvatar';
-import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { averageRating } from '@/domain/rating';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
@@ -58,16 +57,39 @@ function WorkerProfileContent() {
 
   return (
     <PageShell width="6xl">
-      {/* Header card — Bolt-inspired: avatar + identity on a soft warm
-          gradient strip so the profile opens on a designed surface. */}
-      <header className="mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
-        <div className="flex flex-wrap items-center gap-4">
-          <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold text-gray-900">{worker.fullName}</h1>
-            <p className="truncate text-sm text-gray-500">{worker.email}</p>
+      {/* Profile hero — UI-VISUAL-REDESIGN-1: premium gradient header with
+          a large avatar ring, reputation badge, and inline quick-stats so
+          the worker profile opens like a marketplace profile, not a form. */}
+      <header className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-6 text-white shadow-card sm:p-8">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-12 -top-12 h-52 w-52 rounded-full bg-white/15 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-16 left-1/4 h-40 w-40 rounded-full bg-amber-300/30 blur-3xl"
+        />
+        <div className="relative flex flex-wrap items-center gap-5">
+          <div className="rounded-3xl bg-white/20 p-1 ring-2 ring-white/40 backdrop-blur-sm">
+            <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
           </div>
-          <ReputationBadge score={worker.reputationScore} />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">{worker.fullName}</h1>
+            <p className="truncate text-sm text-white/85">{worker.email}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm">
+                ⭐ {worker.reputationScore}/100 uy tín
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm">
+                ✓ {worker.completedShiftCount} ca hoàn thành
+              </span>
+              {worker.verifications.includes('phone') && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm">
+                  📱 Đã xác minh SĐT
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 

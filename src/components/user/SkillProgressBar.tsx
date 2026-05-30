@@ -43,17 +43,17 @@ export function SkillProgressBar({ entry, compact = false }: SkillProgressBarPro
   }
 
   return (
-    <li className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+    <li className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-white px-4 py-3 text-sm shadow-card transition-shadow hover:shadow-card-hover">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate font-medium text-gray-900">{entry.category}</p>
-        <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-800">
+        <p className="truncate font-semibold text-gray-900">{entry.category}</p>
+        <span className="shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 px-2.5 py-0.5 text-[11px] font-bold text-white shadow-sm">
           Cấp {p.level}
         </span>
       </div>
-      <div className="mt-1.5 flex items-center gap-2">
-        <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-gray-200">
+      <div className="mt-2 flex items-center gap-2">
+        <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-indigo-100">
           <span
-            className="block h-full min-w-[3px] bg-indigo-500 transition-[width]"
+            className="block h-full min-w-[3px] rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-[width]"
             style={{ width: `${pct}%` }}
           />
         </span>
@@ -61,7 +61,7 @@ export function SkillProgressBar({ entry, compact = false }: SkillProgressBarPro
           {atMax ? `${p.xp} XP` : `${p.intoLevel}/${p.levelSpan} XP`}
         </span>
       </div>
-      <p className="mt-1 text-[11px] text-gray-500">
+      <p className="mt-1.5 text-[11px] text-gray-500">
         Hoàn thành: {entry.completedCount} ca
         {entry.score > 0 ? ` · ${entry.score}/100 điểm kỹ năng` : ''}
       </p>

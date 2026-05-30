@@ -523,22 +523,30 @@ function WorkerDashboardContent() {
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
       />
-      {/* Welcome card — soft gradient strip with avatar fallback + quick stats peek.
-          UI-REFRESH Batch 2 — layered `shadow-card` to match the design
-          system header treatment used on the profile page. */}
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
+      {/* Welcome hero — UI-VISUAL-REDESIGN-1: bold warm gradient panel
+          with a larger avatar ring + decorative blobs so the worker
+          dashboard opens on a premium, branded surface. */}
+      <header className="entrance-up relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-6 text-white shadow-card sm:p-7">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-amber-300/30 blur-2xl"
+        />
+        <div className="relative flex flex-wrap items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold text-white shadow-sm ring-2 ring-white/40 backdrop-blur-sm">
             {getUserInitials(worker.fullName)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
               {t('worker.dashboard.welcome')}
             </p>
-            <h1 className="truncate text-2xl font-bold text-gray-900">
+            <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">
               {worker.fullName}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-white/90">
               {worker.completedShiftCount > 0
                 ? t('worker.dashboard.welcome.veteran').replace(
                     '{count}',
@@ -585,15 +593,17 @@ function WorkerDashboardContent() {
               ]}
               cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
-            <Link href="/shifts">
-              <Button size="sm" variant="primary">
-                {t('btn.findShift')}
-              </Button>
+            <Link
+              href="/shifts"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-orange-700 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              {t('btn.findShift')}
             </Link>
-            <Link href="/worker/schedule">
-              <Button size="sm" variant="secondary">
-                {t('nav.schedule')}
-              </Button>
+            <Link
+              href="/worker/schedule"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-white/50 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              {t('nav.schedule')}
             </Link>
           </div>
         </div>
@@ -606,8 +616,10 @@ function WorkerDashboardContent() {
         </div>
       )}
 
-      {/* Stats grid — Phase 9 polish: stronger tiles, reputation gets accent treatment */}
-      <section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Stats grid — UI-VISUAL-REDESIGN-1: premium colourful tiles with
+          icon chips, larger gap so the overview reads as a marketplace
+          dashboard. */}
+      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile
           label={t('worker.dashboard.stats.reputationScore')}
           value={String(worker.reputationScore)}
@@ -1142,24 +1154,48 @@ function WorkerDashboardContent() {
         <div className="grid gap-4 text-sm text-gray-700 lg:grid-cols-2">
           {/* Left column — summary + rules + stats */}
           <div className="flex flex-col gap-3">
-            <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-3 ring-1 ring-orange-100">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-orange-600">
-                {t('worker.dashboard.reputationModal.currentLabel')}
-              </p>
-              <p className="mt-1 text-3xl font-extrabold text-orange-700">
-                {worker.reputationScore}
-                <span className="ml-1 text-sm font-medium text-orange-700/80">/ 100</span>
-              </p>
-              <p className="mt-1 text-xs text-orange-700/80">
-                {worker.reputationScore >= 80
-                  ? t('worker.dashboard.reputationModal.bandGood')
-                  : worker.reputationScore >= 50
-                    ? t('worker.dashboard.reputationModal.bandWarn')
-                    : t('worker.dashboard.reputationModal.bandBad')}
-              </p>
+            {/* UI-VISUAL-REDESIGN-1 — bold score hero with a ring gauge so
+                the reputation modal opens on a strong visual, not a flat
+                number. The gauge is a conic-gradient ring sized by score. */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 px-5 py-5 text-white shadow-card">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/15 blur-2xl"
+              />
+              <div className="relative flex items-center gap-4">
+                <div
+                  className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: `conic-gradient(rgba(255,255,255,0.95) ${worker.reputationScore * 3.6}deg, rgba(255,255,255,0.25) 0deg)`,
+                  }}
+                  aria-hidden="true"
+                >
+                  <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-orange-500/90 px-1">
+                    <span className="text-xl font-extrabold leading-none text-white">
+                      {worker.reputationScore}
+                    </span>
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-white/80">
+                    {t('worker.dashboard.reputationModal.currentLabel')}
+                  </p>
+                  <p className="mt-0.5 text-2xl font-extrabold text-white">
+                    {worker.reputationScore}
+                    <span className="ml-1 text-sm font-medium text-white/80">/ 100</span>
+                  </p>
+                  <p className="mt-1 text-xs text-white/90">
+                    {worker.reputationScore >= 80
+                      ? t('worker.dashboard.reputationModal.bandGood')
+                      : worker.reputationScore >= 50
+                        ? t('worker.dashboard.reputationModal.bandWarn')
+                        : t('worker.dashboard.reputationModal.bandBad')}
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="rounded-lg border border-orange-100 bg-orange-50/40 px-3 py-2">
+            <div className="rounded-xl border border-orange-100 bg-orange-50/50 px-3 py-2.5">
               <p className="text-xs font-semibold text-orange-800">
                 {t('worker.dashboard.reputationHint.title')}
               </p>
@@ -1171,20 +1207,20 @@ function WorkerDashboardContent() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 to-white px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
                   {t('worker.dashboard.reputationModal.completedLabel')}
                 </p>
-                <p className="mt-0.5 text-base font-bold text-emerald-600">
+                <p className="mt-0.5 text-xl font-bold text-emerald-600">
                   {worker.completedShiftCount}
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <div className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/70 to-white px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
                   {t('worker.dashboard.reputationModal.ratingsLabel')}
                 </p>
-                <p className="mt-0.5 text-base font-bold text-orange-600">
+                <p className="mt-0.5 text-xl font-bold text-orange-600">
                   {worker.ratingsReceived.length}
                 </p>
               </div>
@@ -1725,12 +1761,22 @@ function StatTile({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
-  const toneRing: Record<Tone, string> = {
-    brand: 'before:bg-orange-500',
-    neutral: 'before:bg-slate-300',
-    good: 'before:bg-emerald-500',
-    warn: 'before:bg-amber-500',
-    bad: 'before:bg-red-500',
+  // UI-VISUAL-REDESIGN-1 — premium stat tile. Each tone now drives a
+  // tinted gradient icon chip + a soft tinted card wash so the overview
+  // reads as a colourful marketplace dashboard, not flat white boxes.
+  const toneChip: Record<Tone, string> = {
+    brand: 'bg-gradient-to-br from-orange-400 to-orange-600 text-white ring-orange-200',
+    neutral: 'bg-gradient-to-br from-slate-400 to-slate-600 text-white ring-slate-200',
+    good: 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-emerald-200',
+    warn: 'bg-gradient-to-br from-amber-400 to-amber-500 text-white ring-amber-200',
+    bad: 'bg-gradient-to-br from-red-400 to-red-600 text-white ring-red-200',
+  };
+  const toneWash: Record<Tone, string> = {
+    brand: 'from-orange-50/80',
+    neutral: 'from-slate-50',
+    good: 'from-emerald-50/80',
+    warn: 'from-amber-50/80',
+    bad: 'from-red-50/80',
   };
   const toneText: Record<Tone, string> = {
     brand: 'text-orange-600',
@@ -1740,14 +1786,9 @@ function StatTile({
     bad: 'text-red-600',
   };
 
-  // `before:rounded-t-2xl` keeps the corner clip on the accent bar so
-  // we don't need `overflow-hidden` on the card. (Carried over from
-  // the Phase 9Y QA fix-up — still useful in case any descendants ever
-  // overflow the rounded corner.)
   const baseClasses = [
-    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-card text-left w-full',
-    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:rounded-t-2xl',
-    toneRing[tone],
+    'group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-5 text-left w-full shadow-card',
+    `bg-gradient-to-br ${toneWash[tone]} to-white`,
   ].join(' ');
 
   const interactiveClasses = onClick
@@ -1756,20 +1797,24 @@ function StatTile({
 
   const body = (
     <>
-      {/* Phase 9Z-Fix-1: dropped the top-right decorative TileIcon.
-          Manual QA found the per-tile icons (star / check / wallet /
-          calendar) made the stat grid look inconsistent — different
-          glyphs, different visual weights, different colours all
-          competing with the value. The colored top accent bar
-          (`before:`) already provides per-tile differentiation. The
-          `icon` prop is preserved for call-site compatibility but is
-          intentionally a no-op. */}
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+      {/* UI-VISUAL-REDESIGN-1 — colourful icon chip restored. The chip
+          gives each tile a distinct identity (star = uy tín, check =
+          completed, wallet = thu nhập, calendar = quota) on a tinted
+          gradient so the stat grid reads as a premium dashboard. */}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           {label}
         </p>
+        {icon && (
+          <span
+            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-2', toneChip[tone]].join(' ')}
+            aria-hidden="true"
+          >
+            <TileIcon name={icon} />
+          </span>
+        )}
       </div>
-      <p className={['mt-2 text-2xl font-extrabold', toneText[tone]].join(' ')}>
+      <p className={['mt-3 text-3xl font-extrabold leading-none', toneText[tone]].join(' ')}>
         {value}
         {suffix && (
           <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
@@ -1778,7 +1823,7 @@ function StatTile({
       {onClick && (
         <span
           aria-hidden="true"
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
         >
           Xem chi tiết →
         </span>
@@ -1803,7 +1848,7 @@ function StatTile({
 }
 
 function TileIcon({ name }: { name: IconName }) {
-  const cls = 'h-5 w-5 text-gray-300';
+  const cls = 'h-5 w-5';
   switch (name) {
     case 'star':
       return (

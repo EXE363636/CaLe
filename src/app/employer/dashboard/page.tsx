@@ -152,22 +152,30 @@ function EmployerDashboardContent() {
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
       />
-      {/* Welcome strip — Phase 9D entrance-up on first paint.
-          UI-REFRESH Batch 3 — layered `shadow-card` for design-system
-          consistency with the worker dashboard header. */}
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-lg font-bold text-white shadow-sm">
+      {/* Welcome strip — UI-VISUAL-REDESIGN-1: bold gradient command-center
+          hero. Employer leans a deeper orange→rose gradient so the
+          employer area reads as visually distinct from the worker side. */}
+      <header className="entrance-up relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-rose-500 p-6 text-white shadow-card sm:p-7">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-rose-300/30 blur-2xl"
+        />
+        <div className="relative flex flex-wrap items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold text-white shadow-sm ring-2 ring-white/40 backdrop-blur-sm">
             {getUserInitials(employer.companyName)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
               {t('employer.dashboard.title')}
             </p>
-            <h1 className="truncate text-2xl font-bold text-gray-900">
+            <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">
               {employer.companyName}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-white/90">
               {activeShifts.length > 0
                 ? t('employer.dashboard.welcome.active').replace(
                     '{count}',
@@ -214,15 +222,17 @@ function EmployerDashboardContent() {
               ]}
               cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
-            <Link href="/employer/schedule">
-              <Button size="sm" variant="secondary">
-                {t('employer.dashboard.viewSchedule')}
-              </Button>
+            <Link
+              href="/employer/schedule"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-white/50 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              {t('employer.dashboard.viewSchedule')}
             </Link>
-            <Link href="/employer/shifts/new">
-              <Button size="sm" variant="primary">
-                {t('btn.postShift')}
-              </Button>
+            <Link
+              href="/employer/shifts/new"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-orange-700 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              {t('btn.postShift')}
             </Link>
           </div>
         </div>
@@ -231,7 +241,7 @@ function EmployerDashboardContent() {
       {/* Stats — Phase 9H: each tile opens a dedicated detail modal
           (no more scroll-to-section, which was misleading when the
           target section wasn't actually on the dashboard). */}
-      <section className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <StatTile
           label={t('employer.dashboard.stats.activeShifts')}
           value={String(activeShifts.length)}
@@ -832,12 +842,21 @@ function StatTile({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
-  const toneRing: Record<Tone, string> = {
-    brand: 'before:bg-orange-500',
-    neutral: 'before:bg-slate-300',
-    good: 'before:bg-emerald-500',
-    warn: 'before:bg-amber-500',
-    bad: 'before:bg-red-500',
+  // UI-VISUAL-REDESIGN-1 — premium employer stat tile, in sync with the
+  // worker dashboard: colourful gradient icon chip + tinted card wash.
+  const toneChip: Record<Tone, string> = {
+    brand: 'bg-gradient-to-br from-orange-400 to-orange-600 text-white ring-orange-200',
+    neutral: 'bg-gradient-to-br from-slate-400 to-slate-600 text-white ring-slate-200',
+    good: 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-emerald-200',
+    warn: 'bg-gradient-to-br from-amber-400 to-amber-500 text-white ring-amber-200',
+    bad: 'bg-gradient-to-br from-red-400 to-red-600 text-white ring-red-200',
+  };
+  const toneWash: Record<Tone, string> = {
+    brand: 'from-orange-50/80',
+    neutral: 'from-slate-50',
+    good: 'from-emerald-50/80',
+    warn: 'from-amber-50/80',
+    bad: 'from-red-50/80',
   };
   const toneText: Record<Tone, string> = {
     brand: 'text-orange-600',
@@ -848,9 +867,8 @@ function StatTile({
   };
 
   const baseClasses = [
-    'group relative rounded-2xl border border-gray-200 bg-white p-4 shadow-card text-left w-full',
-    'before:absolute before:left-0 before:top-0 before:h-1 before:w-full before:rounded-t-2xl',
-    toneRing[tone],
+    'group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-5 text-left w-full shadow-card',
+    `bg-gradient-to-br ${toneWash[tone]} to-white`,
   ].join(' ');
 
   const interactiveClasses = onClick
@@ -859,16 +877,20 @@ function StatTile({
 
   const body = (
     <>
-      {/* Phase 9Z-Fix-1: dropped the top-right decorative TileIcon —
-          see the matching note in `src/app/worker/dashboard/page.tsx`.
-          The `icon` prop is preserved for call-site compatibility but
-          is intentionally a no-op. */}
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           {label}
         </p>
+        {icon && (
+          <span
+            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-2', toneChip[tone]].join(' ')}
+            aria-hidden="true"
+          >
+            <TileIcon name={icon} />
+          </span>
+        )}
       </div>
-      <p className={['mt-2 text-2xl font-extrabold', toneText[tone]].join(' ')}>
+      <p className={['mt-3 text-3xl font-extrabold leading-none', toneText[tone]].join(' ')}>
         {value}
         {suffix && (
           <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
@@ -877,7 +899,7 @@ function StatTile({
       {onClick && (
         <span
           aria-hidden="true"
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
         >
           Xem chi tiết →
         </span>
@@ -902,7 +924,7 @@ function StatTile({
 }
 
 function TileIcon({ name }: { name: IconName }) {
-  const cls = 'h-5 w-5 text-gray-300';
+  const cls = 'h-5 w-5';
   switch (name) {
     case 'star':
       return (

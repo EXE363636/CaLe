@@ -14,7 +14,7 @@ const DefaultIcon = () => (
   // Calendar-with-spark glyph — feels closer to a "schedule a shift" cue
   // than a plain document icon. Inline SVG, no external library.
   <svg
-    className="h-14 w-14 text-orange-300"
+    className="h-10 w-10 text-orange-400"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
@@ -54,12 +54,14 @@ export function EmptyState({
         className,
       ].join(' ')}
     >
-      <div className="flex items-center justify-center">
+      {/* UI-VISUAL-REDESIGN-1 — icon sits in a soft gradient chip so
+          empty states read as friendly designed cards, not bare glyphs. */}
+      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-orange-100 to-amber-50 shadow-sm ring-1 ring-orange-100">
         {icon ?? <DefaultIcon />}
       </div>
-      <p className="text-sm font-medium text-gray-800">{title}</p>
+      <p className="text-base font-semibold text-gray-800">{title}</p>
       {description && (
-        <p className="max-w-sm text-xs leading-relaxed text-gray-500">
+        <p className="max-w-sm text-sm leading-relaxed text-gray-500">
           {description}
         </p>
       )}
