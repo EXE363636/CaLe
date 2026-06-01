@@ -22,8 +22,8 @@ Nguyên tắc xuyên suốt (BẮT BUỘC):
 
 ## Tasks
 
-- [ ] 1. i18n — Audit chuỗi rủi ro, ngôn từ thanh toán mềm và nhãn điều hướng
-  - [ ] 1.1 Audit các test/e2e đang assert chuỗi "đặt cọc" trước khi đổi value
+- [x] 1. i18n — Audit chuỗi rủi ro, ngôn từ thanh toán mềm và nhãn điều hướng
+  - [x] 1.1 Audit các test/e2e đang assert chuỗi "đặt cọc" trước khi đổi value
     - **Mục tiêu:** Lập danh sách chuỗi nội bộ KHÔNG được đổi value để tránh gãy baseline.
     - **File chạm:** chỉ đọc — `e2e/20-core-stability-6.spec.ts`, `e2e/21-core-stability-7.spec.ts`, quét `src/__tests__/*` và `e2e/*` tìm "đặt cọc"/"cọc"/"VNĐ"/"₫".
     - **Phát hiện đã biết:** e2e 20/21 assert chuỗi ví/lỗi `"Số dư ví không đủ để đặt cọc"` (và biến thể "...Vui lòng nạp thêm tiền."). Đây là **thông điệp lỗi ví nội bộ**, NẰM NGOÀI phạm vi "nhãn marketing" của R4 → **không được đổi value**.
@@ -31,14 +31,14 @@ Nguyên tắc xuyên suốt (BẮT BUỘC):
     - **Kiểm tra sau:** không cần build; xác nhận danh sách whitelist đầy đủ (rg "đặt cọc|cọc|VNĐ|₫" trên `e2e/` và `src/__tests__/`).
     - _Requirements: 4.2, 4.3, 12.5_
 
-  - [ ] 1.2 Đổi VALUE ngôn từ thanh toán mềm trong `vi.ts` (giữ nguyên mọi KEY)
+  - [x] 1.2 Đổi VALUE ngôn từ thanh toán mềm trong `vi.ts` (giữ nguyên mọi KEY)
     - **Mục tiêu:** Áp nhóm Đảm_Bảo_Thanh_Toán cho các nhãn "cọc/đặt cọc" hiển thị cho người dùng theo bảng ánh xạ R4 trong design.
     - **File chạm:** `src/i18n/vi.ts` (chỉ đổi value các key như `btn.deposit`, `escrow.*`, `shift.lifecycle.PendingDeposit`, `shifts.deposit.*`, `shifts.detail.depositStatus`, `employer.dashboard.stats.totalDeposited`, `employer.payments.*`, `landing.trust.*`, `landing.howItWorks.employer.step2`, `landing.safety.deposit.*`, `landing.finalCta.subtitle`, `auth.side.benefit*`).
     - **Rủi ro:** (1) Đổi nhầm KEY (chỉ được đổi value); (2) đổi value trùng chuỗi trong whitelist 1.1; (3) còn sót "VNĐ"/"₫" → vi phạm R4.4. Giữ nguyên định danh nội bộ `deposit`/`escrow`.
     - **Kiểm tra sau:** `npx tsc --noEmit`, `npx eslint src/i18n/vi.ts`, `npx vitest run` (toàn bộ — bảo đảm không unit test nào assert value cũ), và rg đảm bảo không còn "VNĐ"/"₫" ngoài whitelist.
     - _Requirements: 4.1, 4.2, 4.4, 4.5, 4.6_
 
-  - [ ] 1.3 Thêm key nhãn điều hướng mới `nav.label.safety` và `nav.label.userGuide`
+  - [x] 1.3 Thêm key nhãn điều hướng mới `nav.label.safety` và `nav.label.userGuide`
     - **Mục tiêu:** Tạo nguồn nhãn dùng chung cho `/safety` ("An toàn & bảo vệ") và `/user-guide` ("Hướng dẫn sử dụng") để NavBar/MobileNav/Footer đọc cùng key (R3.6).
     - **File chạm:** `src/i18n/vi.ts` (chỉ THÊM key mới, không xoá key cũ).
     - **Rủi ro:** Trùng key sẵn có; chưa xoá nhãn cũ nhưng không ảnh hưởng vì task 2 sẽ trỏ component sang key mới. Không đổi `href`.
@@ -53,14 +53,14 @@ Nguyên tắc xuyên suốt (BẮT BUỘC):
     - _Requirements: 4.1, 4.4, 3.3, 3.4_
 
 - [ ] 2. Điều hướng & Footer — sắp xếp lại nhãn (chỉ hiển thị)
-  - [ ] 2.1 Bỏ mục "Hỗ trợ" khỏi NavBar và trỏ nhãn safety/user-guide sang i18n key
+  - [x] 2.1 Bỏ mục "Hỗ trợ" khỏi NavBar và trỏ nhãn safety/user-guide sang i18n key
     - **Mục tiêu:** Gỡ "Hỗ trợ" khỏi mọi biến thể nav (Public/Worker/Employer/Admin) và đọc `nav.label.safety`/`nav.label.userGuide` thay vì hardcode (R3.1/R3.3/R3.4/R3.6).
     - **File chạm:** `src/components/layout/NavBar.tsx`.
     - **Rủi ro:** Đổi/xoá `href` (cấm — R3.5); e2e điều hướng (vd `e2e/16`, `e2e/18`) có thể phụ thuộc cấu trúc nav → giữ nguyên route, chỉ gỡ mục Hỗ trợ và đổi văn bản nhãn.
     - **Kiểm tra sau:** `npx tsc --noEmit`, `npx eslint src/components/layout/NavBar.tsx`, `npx vitest run`.
     - _Requirements: 3.1, 3.3, 3.4, 3.5, 3.6_
 
-  - [ ] 2.2 Đồng bộ nhãn safety/user-guide trong MobileNav
+  - [x] 2.2 Đồng bộ nhãn safety/user-guide trong MobileNav
     - **Mục tiêu:** MobileNav đọc cùng `nav.label.*`; "Liên hệ hỗ trợ" vẫn nằm ở footer của drawer (không phải NavBar).
     - **File chạm:** `src/components/layout/MobileNav.tsx`.
     - **Rủi ro:** Không đổi `href`; giữ "Liên hệ hỗ trợ" ở drawer footer (nếu gỡ nhầm sẽ lệch R3.2 tinh thần). Đồng nhất nhãn với NavBar (R3.6).
@@ -68,6 +68,7 @@ Nguyên tắc xuyên suốt (BẮT BUỘC):
     - _Requirements: 3.5, 3.6_
 
   - [ ] 2.3 Giữ "Hỗ trợ" ở Footer, thêm "Góp ý / Khảo sát" và đồng bộ nhãn
+    - **⚠️ PARTIAL (chưa tick):** Đã xong phần Footer giữ "Hỗ trợ" (`/support` — R3.2), có "Giới thiệu" (`/about`), và đồng bộ nhãn `/safety`/`/user-guide` qua `nav.label.*`. **CÒN THIẾU:** liên kết "Góp ý / Khảo sát" trỏ `/khao-sat` chưa được thêm (route `/khao-sat` cũng chưa tồn tại — phụ thuộc Task 8). Hoàn tất khi thêm link này.
     - **Mục tiêu:** Footer giữ liên kết "Hỗ trợ" (`/support` — R3.2), thêm liên kết "Góp ý / Khảo sát" trỏ `/khao-sat`, bảo đảm "Giới thiệu" (`/about`) hiện diện, đổi nhãn `/safety`,`/user-guide` qua cùng key.
     - **File chạm:** `src/components/layout/Footer.tsx`.
     - **Rủi ro:** Link `/khao-sat` chưa tồn tại tới task 6 → tạm chấp nhận link tới route sẽ có; bảo đảm không đổi `href` hiện có. Lưu ý `next build` của bước này không phụ thuộc route khảo sát (link tĩnh).
@@ -84,22 +85,26 @@ Nguyên tắc xuyên suốt (BẮT BUỘC):
 - [ ] 3. Checkpoint — Bảo đảm baseline còn xanh sau thay đổi nhãn
   - Chạy lại `npx tsc --noEmit`, `npx eslint .`, `npx vitest run`. Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Nội dung tĩnh — About (tầm nhìn/sứ mệnh/giá trị/đội ngũ) + Đối tác
-  - [ ] 4.1 Thêm key nội dung About và Đối tác vào i18n
+- [x] 4. Nội dung tĩnh — About (tầm nhìn/sứ mệnh/giá trị/đội ngũ) + Đối tác
+    - **Ghi chú:** Các subtask lõi (4.1, 4.2, 4.4) đã xong; 4.3* (P7) đã viết. Chỉ còn 4.5* (render test) chưa làm — task `*` là tùy chọn, không chặn parent (theo Notes). Tick parent.
+  - [x] 4.1 Thêm key nội dung About và Đối tác vào i18n
+    - **✅ Đã làm:** Đưa toàn bộ copy About + Partners vào `src/i18n/vi.ts` (nhóm key `about.*` và `about.partners.*`): vision/mission/values/trust/team/version + partner intro/badge/empty/group names. `/about` và `PartnersSection` đọc qua `t()`, không còn hardcode copy. Wording mềm ("hướng tới/được xây dựng để/mong muốn"), không claim mạnh (R5.2/R5.3); partner intro nêu rõ chưa có đối tác chính thức, mọi nhóm gắn badge định hướng (R6.2). `labelForPartner` giữ thuần, trả về i18n KEY badge (resolve bằng `t()` ở component).
     - **Mục tiêu:** Khai báo `about.vision.*`, `about.mission.*`, `about.values.*`, `about.team.*` (ngôn từ mềm — R5.2/R5.3) và `about.partners.*` kèm nhãn "tiềm năng / định hướng" (R6).
     - **File chạm:** `src/i18n/vi.ts` (thêm key mới).
     - **Rủi ro:** Tuyên bố mạnh chưa kiểm chứng (R5.3); thiếu nhãn "tiềm năng/định hướng" cho đối tác (R6.2). Dùng "hướng tới/mong muốn/được xây dựng để".
     - **Kiểm tra sau:** `npx tsc --noEmit`, `npx eslint src/i18n/vi.ts`.
     - _Requirements: 5.1, 5.2, 5.3, 6.1, 6.2_
 
-  - [ ] 4.2 Tạo hàm thuần và dữ liệu nhãn đối tác (`labelForPartner`)
+  - [x] 4.2 Tạo hàm thuần và dữ liệu nhãn đối tác (`labelForPartner`)
+    - **✅ Đã làm:** Tạo `src/components/about/partners.ts` (đặt cạnh About thay vì `components/landing/` — design cho phép "hoặc module nhỏ cạnh About"). Export `Partner`, `PartnerStatus`, `PARTNER_GROUPS` (7 nhóm R6.1, tất cả `potential`), `DIRECTIONAL_PARTNER_LABEL`, và hàm thuần `labelForPartner`.
     - **Mục tiêu:** Hàm thuần gắn nhãn "tiềm năng / định hướng" cho `status: 'potential'` và KHÔNG gắn cho `'established'`; kèm danh sách nhóm đối tác R6.1.
     - **File chạm:** `src/components/landing/PartnersSection.tsx` (mới — chứa data + `labelForPartner` export) hoặc module nhỏ cạnh About.
     - **Rủi ro:** Logic nhãn sai (gắn nhầm cho established) vi phạm R6.3. Tách hàm thuần để test P7.
     - **Kiểm tra sau:** `npx tsc --noEmit`, `npx eslint <file>`.
     - _Requirements: 6.2, 6.3, 6.4_
 
-  - [ ]* 4.3 Viết property test P7 — gắn nhãn đối tác
+  - [x]* 4.3 Viết property test P7 — gắn nhãn đối tác
+    - **✅ Đã làm:** `src/__tests__/checkpointReadinessPhase1Partners.test.ts` — 3 test (P7 single + list, ≥100 vòng, + structural check `PARTNER_GROUPS` toàn `potential`). Pass.
     - **File chạm:** `src/__tests__/checkpointReadinessPhase1Partners.test.ts` (mới).
     - **Property 7: Mọi đối tác tiềm năng đều được gắn nhãn định hướng**
     - **Validates: Requirements 6.2, 6.3, 6.4**
@@ -107,7 +112,8 @@ Nguyên tắc xuyên suốt (BẮT BUỘC):
     - **Kiểm tra sau:** `npx vitest run checkpointReadinessPhase1Partners`.
     - _Requirements: 6.2, 6.3, 6.4_
 
-  - [ ] 4.4 Mở rộng trang About với các InfoSection + PartnersSection
+  - [x] 4.4 Mở rộng trang About với các InfoSection + PartnersSection
+    - **✅ Đã làm:** `src/app/about/page.tsx` thêm các InfoSection "Tầm nhìn", "Sứ mệnh", "Giá trị cốt lõi", "Đội ngũ sáng lập" + `<PartnersSection />`; giữ nguyên các section cũ. Tạo `src/components/about/PartnersSection.tsx` (đặt ở `components/about/` thay vì `components/landing/`), map từng đối tác độc lập + fallback "Nội dung đang được cập nhật.". Tái dùng `InfoPage`/`InfoSection`/`InfoList`, không redesign.
     - **Mục tiêu:** Render Tầm nhìn/Sứ mệnh/Giá trị/Đội ngũ + section Đối tác, mỗi phần độc lập (render một phần khi lỗi — R5.5). Tái dùng `InfoPage`/`InfoSection`/`InfoList`.
     - **File chạm:** `src/app/about/page.tsx`, `src/components/landing/PartnersSection.tsx`.
     - **Rủi ro:** Một section lỗi kéo đổ trang (tránh `throw` ở nhánh render tĩnh — R5.5); thiết kế lại UI (cấm — R12.9, phải tái dùng primitive).

@@ -2168,6 +2168,72 @@ export const vi: Record<string, string> = {
   'worker.postPaymentRating.banner.body':
     'Đánh giá giúp các bạn làm khác có thông tin trước khi nhận ca.',
   'worker.postPaymentRating.banner.button': 'Đánh giá ngay',
+
+  // -------------------------------------------------------------------------
+  // checkpoint-readiness-phase-1 (Task 4.1) — About page + Partners content.
+  // Static brand copy moved out of the page/component into the dictionary so
+  // NavBar/MobileNav/Footer-style single-source consistency also applies to
+  // /about. Wording is intentionally soft ("hướng tới", "được xây dựng để",
+  // "mong muốn", "định hướng") and makes NO unverified/strong claims (R5.2/
+  // R5.3). All partner groups are presented as potential/directional only
+  // (R6.2/R6.3/R6.4) — no real brand names or logos.
+  // -------------------------------------------------------------------------
+  'about.intro':
+    'CaLẻ (Now) là sản phẩm của CaLedo Tech — đội ngũ Việt Nam mong muốn xây dựng một nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương.',
+
+  'about.vision.title': 'Tầm nhìn',
+  'about.vision.body':
+    'CaLẻ hướng tới một thị trường ca làm ngắn hạn nơi mỗi giờ làm việc đều minh bạch và đáng tin. Chúng tôi mong muốn người lao động linh hoạt và nhà tuyển dụng địa phương có thể tìm thấy nhau một cách rõ ràng về giờ giấc, mức lương và kỳ vọng — thay vì dựa vào các kênh tin nhắn rời rạc.',
+
+  'about.mission.title': 'Sứ mệnh',
+  'about.mission.body':
+    'CaLẻ được xây dựng để giúp người lao động nhận ca minh bạch về giờ giấc, mức lương, địa điểm, và giúp nhà tuyển dụng tìm được người phù hợp một cách an toàn. Chúng tôi mong muốn giảm bớt rủi ro cho cả hai phía trong mỗi ca làm ngắn hạn.',
+
+  'about.values.title': 'Giá trị cốt lõi',
+  'about.values.item.transparency':
+    'Minh bạch: thông tin ca làm, mức lương và kỳ vọng được nêu rõ trước khi nhận ca.',
+  'about.values.item.twoWayTrust':
+    'Tin cậy hai chiều: cả người làm và nhà tuyển dụng đều có hồ sơ và điểm uy tín.',
+  'about.values.item.safety':
+    'An toàn: quy trình huỷ ca, xác minh và xử lý tranh chấp được thiết kế để bảo vệ cả hai bên.',
+  'about.values.item.userCentric':
+    'Lấy người dùng làm trung tâm: hỗ trợ tiếng Việt, phù hợp với nhịp làm việc linh hoạt tại Việt Nam.',
+
+  'about.trust.title': 'Cách chúng tôi xây dựng niềm tin',
+  'about.trust.item.payment':
+    'Đảm bảo thanh toán trước khi ca được công khai để đảm bảo người lao động nhận đúng tiền công.',
+  'about.trust.item.reputation':
+    'Điểm uy tín hai chiều: cả người làm và nhà tuyển dụng đều có hồ sơ minh bạch.',
+  'about.trust.item.cancellation':
+    'Quy trình huỷ ca rõ ràng để hạn chế rủi ro cho cả hai bên.',
+  'about.trust.item.support':
+    'Hỗ trợ tiếng Việt từ đội ngũ tại Hà Nội.',
+
+  'about.team.title': 'Đội ngũ sáng lập',
+  'about.team.body':
+    'CaLẻ được phát triển bởi CaLedo Tech — một đội ngũ tại Việt Nam mong muốn đưa các công cụ làm việc ngắn hạn đến gần hơn với thị trường lao động trong nước. Chúng tôi đặc biệt hướng tới các bạn cần ca linh hoạt theo lịch học hoặc lịch cá nhân, và các chủ quán/cửa hàng cần người làm bù trong giờ cao điểm.',
+
+  'about.version.title': 'Phiên bản hiện tại',
+  'about.version.body':
+    'Đây là phiên bản dùng thử. Mọi giao dịch tiền tệ trên ứng dụng đều là mô phỏng — chưa kết nối với hệ thống thanh toán thực. Khi sản phẩm chính thức ra mắt, chúng tôi sẽ thông báo trước cho người dùng đã đăng ký.',
+
+  // About > Partners (R6). The intro states plainly that CaLẻ has no
+  // established partnerships yet; the badge marks every group as
+  // potential/directional. Group names are generic categories only.
+  'about.partners.title': 'Đối tác tiềm năng & định hướng hợp tác',
+  'about.partners.intro':
+    'CaLẻ đang trong giai đoạn đầu và chưa xác lập quan hệ đối tác chính thức. Các nhóm dưới đây là những hướng hợp tác mà chúng tôi mong muốn xây dựng trong tương lai.',
+  'about.partners.disclaimerEmphasis': 'chưa xác lập quan hệ đối tác chính thức',
+  'about.partners.empty': 'Nội dung đang được cập nhật.',
+  'about.partners.badge.directional': 'Đối tác tiềm năng / định hướng',
+  'about.partners.group.universities':
+    'Trường đại học & phòng công tác sinh viên',
+  'about.partners.group.fnb': 'Nhà hàng, quán café & chuỗi F&B',
+  'about.partners.group.events': 'Đơn vị tổ chức sự kiện',
+  'about.partners.group.weddings': 'Dịch vụ tiệc cưới',
+  'about.partners.group.payments': 'Cổng thanh toán',
+  'about.partners.group.seasonal': 'Doanh nghiệp thời vụ',
+  'about.partners.group.verification': 'Đối tác xác minh & an toàn',
 };
 
 // ---------------------------------------------------------------------------

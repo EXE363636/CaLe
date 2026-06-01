@@ -1,4 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
+import { PartnersSection } from '@/components/about/PartnersSection';
+import { t } from '@/i18n/vi';
 
 export const metadata = { title: 'Giới thiệu — CaLẻ / Now' };
 
@@ -7,41 +9,50 @@ export default function AboutPage() {
     <InfoPage
       eyebrow="Về chúng tôi"
       title="Giới thiệu CaLẻ / Now"
-      intro="CaLẻ (Now) là sản phẩm của CaLedo Tech — đội ngũ Việt Nam xây dựng nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương."
+      intro={t('about.intro')}
       ctas={[
         { label: 'Tìm ca làm', href: '/shifts' },
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new', variant: 'secondary' },
       ]}
     >
-      <InfoSection title="Sứ mệnh">
-        Chúng tôi tin rằng mọi giờ làm việc đều có giá trị. CaLẻ giúp người
-        lao động nhận ca minh bạch về giờ giấc, mức lương, địa điểm, và giúp
-        nhà tuyển dụng tìm được người phù hợp một cách an toàn.
+      <InfoSection title={t('about.vision.title')}>
+        {t('about.vision.body')}
       </InfoSection>
 
-      <InfoSection title="Cách chúng tôi xây dựng niềm tin">
+      <InfoSection title={t('about.mission.title')}>
+        {t('about.mission.body')}
+      </InfoSection>
+
+      <InfoSection title={t('about.values.title')}>
         <InfoList
           items={[
-            'Đảm bảo thanh toán trước khi ca được công khai để đảm bảo người lao động nhận đúng tiền công.',
-            'Điểm uy tín hai chiều: cả người làm và nhà tuyển dụng đều có hồ sơ minh bạch.',
-            'Quy trình huỷ ca rõ ràng để hạn chế rủi ro cho cả hai bên.',
-            'Hỗ trợ tiếng Việt từ đội ngũ tại Hà Nội.',
+            t('about.values.item.transparency'),
+            t('about.values.item.twoWayTrust'),
+            t('about.values.item.safety'),
+            t('about.values.item.userCentric'),
           ]}
         />
       </InfoSection>
 
-      <InfoSection title="Đội ngũ phía sau">
-        CaLedo Tech được thành lập với mục tiêu đưa các công cụ làm việc
-        ngắn hạn đến gần hơn với thị trường lao động Việt Nam, đặc biệt là
-        các bạn cần ca linh hoạt theo lịch học hoặc lịch cá nhân, và các
-        chủ quán/cửa hàng cần người làm bù trong giờ cao điểm.
+      <InfoSection title={t('about.trust.title')}>
+        <InfoList
+          items={[
+            t('about.trust.item.payment'),
+            t('about.trust.item.reputation'),
+            t('about.trust.item.cancellation'),
+            t('about.trust.item.support'),
+          ]}
+        />
       </InfoSection>
 
-      <InfoSection title="Phiên bản hiện tại">
-        Đây là phiên bản dùng thử. Mọi giao dịch tiền tệ trên ứng dụng đều
-        là mô phỏng — chưa kết nối với hệ thống thanh toán thực. Khi sản
-        phẩm chính thức ra mắt, chúng tôi sẽ thông báo trước cho người dùng
-        đã đăng ký.
+      <InfoSection title={t('about.team.title')}>
+        {t('about.team.body')}
+      </InfoSection>
+
+      <PartnersSection />
+
+      <InfoSection title={t('about.version.title')}>
+        {t('about.version.body')}
       </InfoSection>
     </InfoPage>
   );
