@@ -230,6 +230,7 @@ export function UserMenu() {
   // Close on route change.
   useEffect(() => {
     cancelClose();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional close-on-route-change for the user menu; refactor would change navigation dismissal behavior
     setOpen(false);
   }, [pathname, cancelClose]);
 

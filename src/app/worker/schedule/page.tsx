@@ -747,6 +747,7 @@ function ScheduleBlockDialog({
   useEffect(() => {
     if (!open || !seed) return;
     if (seed.block) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional dialog field sync from seed prop on open; refactor would change edit/prefill behavior
       setTitle(seed.block.title);
       setDate(seed.block.date);
       setStartTime(seed.block.startTime);

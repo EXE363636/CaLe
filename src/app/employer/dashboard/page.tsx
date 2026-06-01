@@ -818,7 +818,6 @@ function StatTile({
   value,
   suffix,
   tone = 'neutral',
-  icon,
   onClick,
   ariaLabel,
 }: {
@@ -897,59 +896,6 @@ function StatTile({
   }
 
   return <div className={baseClasses}>{body}</div>;
-}
-
-function TileIcon({ name }: { name: IconName }) {
-  const cls = 'h-5 w-5 text-gray-300';
-  switch (name) {
-    case 'star':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="m12 2 3 7 7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z" />
-        </svg>
-      );
-    case 'check':
-      return (
-        <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-      );
-    case 'wallet':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
-        </svg>
-      );
-    case 'calendar':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <rect x="3" y="5" width="18" height="16" rx="3" />
-          <path strokeLinecap="round" d="M3 10h18M8 3v4M16 3v4" />
-        </svg>
-      );
-    case 'briefcase':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <rect x="3" y="7" width="18" height="13" rx="2" />
-          <path strokeLinecap="round" d="M9 7V5h6v2" />
-        </svg>
-      );
-    case 'users':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <circle cx="9" cy="8" r="3" />
-          <path strokeLinecap="round" d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 1 0 0-6M21 20c0-2.5-2-4.5-5-5" />
-        </svg>
-      );
-    case 'shield':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
 }
 
 // ---------------------------------------------------------------------------

@@ -88,6 +88,7 @@ function AdminDashboardContent() {
 
     const validTabs: readonly Tab[] = ['analytics', 'users', 'shifts', 'disputes', 'verifications'];
     if (qTab && (validTabs as readonly string[]).includes(qTab)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional one-shot deeplink query→tab sync (guarded by handledQuery ref); refactor would change navigation behavior
       setTab(qTab as Tab);
     }
     if (qFilter) {
@@ -439,10 +440,8 @@ function StatCard({
 
 function UsersPanel({
   initialFilter = 'all',
-  helpButton,
 }: {
   initialFilter?: 'all' | 'worker' | 'employer' | 'admin';
-  helpButton?: React.ReactNode;
 }) {
   const users = useUserStore((s) => s.users);
   const suspend = useAdminStore((s) => s.suspend);

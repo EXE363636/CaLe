@@ -26,7 +26,7 @@ export default function DisputesPage() {
       </InfoSection>
 
       <InfoSection title="Cách mở yêu cầu">
-        Vào trang chi tiết ca làm liên quan và bấm "Báo cáo sự cố". Mô
+        Vào trang chi tiết ca làm liên quan và bấm &quot;Báo cáo sự cố&quot;. Mô
         tả tình huống cụ thể, thời điểm xảy ra, và đính kèm chứng cứ
         nếu có (ảnh màn hình, lịch check-in/out, đoạn hội thoại trong
         app).

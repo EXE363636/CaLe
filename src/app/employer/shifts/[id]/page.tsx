@@ -153,6 +153,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   // `Expired`). The same predicate drives the "Đơn đã hết hạn xử lý"
   // badge inside `ApplicationActionButtons` below.
   const shiftStarted =
+    // eslint-disable-next-line react-hooks/purity -- intentional real-time gate: locks approve/reject once the shift start time has passed
     new Date(`${shift.date}T${shift.startTime}:00`).getTime() <= Date.now() ||
     shift.status === 'InProgress' ||
     shift.status === 'AwaitingConfirmation' ||
@@ -414,6 +415,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     return computeEmployerCancellationPenalty(
       shift,
       applications,
+      // eslint-disable-next-line react-hooks/purity -- intentional real-time penalty preview; recomputed each render so the rate reflects the current time vs the 6h cutoff
       Date.now(),
     );
   }, [shift, applications]);
@@ -1169,8 +1171,6 @@ function ApplicationActionButtons({
   onMarkAbsent,
   onMarkPresent,
   onRevertToPresent,
-  onConfirm,
-  onReport,
   onApproveCancellation,
   onRejectCancellation,
 }: {

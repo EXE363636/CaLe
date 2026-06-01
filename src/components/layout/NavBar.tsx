@@ -383,6 +383,7 @@ export function NavBar() {
   // that triggered before the child's `onClick` handler ran).
   useEffect(() => {
     cancelClose();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional close-on-route-change for the nav dropdown; refactor would change navigation dismissal behavior
     setActiveDropdown(null);
   }, [pathname, cancelClose]);
 

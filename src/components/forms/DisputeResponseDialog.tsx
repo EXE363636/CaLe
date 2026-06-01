@@ -75,6 +75,7 @@ export function DisputeResponseDialog({
   // Reset on each open so a previous failed submit doesn't leak in.
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional response-form reset on open / side flip so a prior attempt doesn't leak; refactor would change dialog behavior
       setReason('');
       setEvidenceDescription('');
       setEvidenceFileName('');

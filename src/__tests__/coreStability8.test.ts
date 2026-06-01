@@ -231,7 +231,7 @@ describe('simulateDeposit contact-required guard (Part 2)', () => {
     useVerificationStore.setState({
       workerDocuments: [],
       employerDocuments: [],
-      employerTypeChangeRequests: [],
+      typeChangeRequests: [],
     });
   });
 

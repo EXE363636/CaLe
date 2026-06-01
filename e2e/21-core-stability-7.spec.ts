@@ -1,8 +1,6 @@
 import { test, expect } from './fixtures/test';
 import {
   buildSnapshot,
-  buildShift,
-  buildApplication,
   buildEmployerVerificationDocs,
 } from './fixtures/seed';
 import { ACCOUNTS } from './fixtures/constants';

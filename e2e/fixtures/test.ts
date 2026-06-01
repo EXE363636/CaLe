@@ -40,18 +40,18 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
-  seed: async ({}, use) => {
-    await use({ current: buildSnapshot(), seeded: false });
+  seed: async ({}, provide) => {
+    await provide({ current: buildSnapshot(), seeded: false });
   },
 
-  seedState: async ({ seed }, use) => {
+  seedState: async ({ seed }, provide) => {
     async function stage(snapshot: SeedSnapshot): Promise<void> {
       seed.current = snapshot;
     }
-    await use(stage);
+    await provide(stage);
   },
 
-  loginAs: async ({ page, seed }, use) => {
+  loginAs: async ({ page, seed }, provide) => {
     async function login(userId: string, lastActivityAt?: string): Promise<void> {
       const auth = {
         currentUserId: userId,
@@ -70,10 +70,10 @@ export const test = base.extend<Fixtures>({
       }
       seed.current.auth = auth;
     }
-    await use(login);
+    await provide(login);
   },
 
-  gotoApp: async ({ page, context, seed }, use) => {
+  gotoApp: async ({ page, context, seed }, provide) => {
     async function goto(path: string): Promise<void> {
       if (!seed.seeded) {
         // Register the seed exactly once, BEFORE any app script runs.
@@ -100,7 +100,7 @@ export const test = base.extend<Fixtures>({
       await page.goto(path);
       await page.waitForLoadState('networkidle');
     }
-    await use(goto);
+    await provide(goto);
   },
 });
 

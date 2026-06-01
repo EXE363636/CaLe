@@ -28,7 +28,7 @@ export default function PrivacyPage() {
 
       <InfoSection title="Lưu trữ trong phiên bản dùng thử">
         Phiên bản hiện tại lưu dữ liệu trong localStorage trình duyệt
-        của bạn. Khi bạn xoá dữ liệu trình duyệt hoặc bấm "Đăng xuất"
+        của bạn. Khi bạn xoá dữ liệu trình duyệt hoặc bấm &quot;Đăng xuất&quot;
         rồi clear storage, dữ liệu sẽ trở về trạng thái khởi tạo.
         Phiên bản chính thức sẽ chuyển sang lưu trữ máy chủ với mã hoá
         và sẽ được công bố rõ trước khi áp dụng.

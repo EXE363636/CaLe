@@ -317,6 +317,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
   // render only the trigger, never the portaled overlay.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional SSR-safe portal mount gate; the overlay must not render until client mount
     setMounted(true);
   }, []);
 
@@ -337,6 +338,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
 
   // Close drawer on route change.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional close-drawer-on-route-change; refactor would change navigation dismissal behavior
     setOpen(false);
   }, [pathname]);
 

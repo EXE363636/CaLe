@@ -102,6 +102,15 @@ function WorkerDashboardContent() {
   // `?modal=wallet` query (cold load) and the same-route notification
   // event (top-up / withdraw / wage-release notifications).
   const [walletLedgerSignal, setWalletLedgerSignal] = useState(0);
+  // CORE-STABILITY-9 Part 5 — stable "now" sample for the recommended-
+  // shifts memo. Captured once per mount via a lazy `useState`
+  // initializer so it is NOT an impure `Date.now()` call during render
+  // (react-hooks/purity). The recommendations feed is a soft, non-
+  // authoritative widget (top 4 future shifts that fit availability);
+  // it has no timer and only recomputes when its data deps change, so
+  // sampling the clock at mount instead of at each recompute does not
+  // change any lifecycle, money, or business rule.
+  const [nowMs] = useState(() => Date.now());
   const openWalletHistory = useCallback(() => {
     setWalletLedgerSignal((n) => n + 1);
   }, []);
@@ -167,8 +176,6 @@ function WorkerDashboardContent() {
     );
   }, [worker]);
 
-  if (!worker) return null;
-
   // Helper to look up a shift
   const shiftMap = new Map(shifts.map((s) => [s.id, s]));
   const getShift = (id: string) => shiftMap.get(id);
@@ -183,13 +190,13 @@ function WorkerDashboardContent() {
   // worker selector (both stable references) and call the pure helper in
   // a `useMemo` so we never feed Zustand a fresh array selector.
   const cancelQuota = useMemo(() => {
-    if (!cancelTarget) return undefined;
+    if (!cancelTarget || !worker) return undefined;
     return quotaUsage(
       worker.cancellationHistory,
       worker.reputationScore,
       new Date().toISOString(),
     );
-  }, [cancelTarget, worker.cancellationHistory, worker.reputationScore]);
+  }, [cancelTarget, worker]);
 
   // Upcoming approved/checked-in shifts (date in future or today).
   // Includes `CancellationRequested` so the worker still sees the shift
@@ -285,7 +292,6 @@ function WorkerDashboardContent() {
     const myBlocks = scheduleBlocks.filter((b) => b.userId === worker.id);
     if (myBlocks.every((b) => b.kind !== 'available')) return [];
     const appliedShiftIds = new Set(myApps.map((a) => a.shiftId));
-    const nowMs = Date.now();
     const candidates = shifts.filter((s) => {
       if (appliedShiftIds.has(s.id)) return false;
       if (s.status !== 'Published' && s.status !== 'FullyBooked') return false;
@@ -309,7 +315,7 @@ function WorkerDashboardContent() {
     )
       .filter((m) => m.fitsAvailability)
       .slice(0, 4);
-  }, [worker, scheduleBlocks, myApps, shifts]);
+  }, [worker, scheduleBlocks, myApps, shifts, nowMs]);
   // Phase 9I — derive a reputation score timeline from observable
   // events so the modal can explain *why* the score is what it is.
   // Source: confirmed applications (+5 each), late cancellations (−10
@@ -429,6 +435,8 @@ function WorkerDashboardContent() {
     // Sort descending so the most-recent event is first.
     return events.sort((a, b) => b.at.localeCompare(a.at));
   }, [worker, myApps, shifts]);
+
+  if (!worker) return null;
 
   const restricted = worker.reputationScore < 50;
 
@@ -1703,7 +1711,6 @@ function StatTile({
   value,
   suffix,
   tone = 'neutral',
-  icon,
   onClick,
   ariaLabel,
 }: {
@@ -1790,59 +1797,6 @@ function StatTile({
   }
 
   return <div className={baseClasses}>{body}</div>;
-}
-
-function TileIcon({ name }: { name: IconName }) {
-  const cls = 'h-5 w-5 text-gray-300';
-  switch (name) {
-    case 'star':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="m12 2 3 7 7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z" />
-        </svg>
-      );
-    case 'check':
-      return (
-        <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-      );
-    case 'wallet':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
-        </svg>
-      );
-    case 'calendar':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <rect x="3" y="5" width="18" height="16" rx="3" />
-          <path strokeLinecap="round" d="M3 10h18M8 3v4M16 3v4" />
-        </svg>
-      );
-    case 'briefcase':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <rect x="3" y="7" width="18" height="13" rx="2" />
-          <path strokeLinecap="round" d="M9 7V5h6v2" />
-        </svg>
-      );
-    case 'users':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <circle cx="9" cy="8" r="3" />
-          <path strokeLinecap="round" d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 1 0 0-6M21 20c0-2.5-2-4.5-5-5" />
-        </svg>
-      );
-    case 'shield':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
 }
 
 function UpcomingShiftCard({

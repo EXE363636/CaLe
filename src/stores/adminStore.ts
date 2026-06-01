@@ -448,7 +448,6 @@ export const useAdminStore = create<AdminStore>(() => ({
       return { ok: false, error: 'WRONG_STATUS' };
     }
 
-    const ts = nowIso();
     const updated: Dispute = {
       ...dispute,
       status: 'RequestedMoreEvidence',

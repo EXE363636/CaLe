@@ -52,6 +52,7 @@ export function NotificationBell() {
 
   // Close dropdown on logout (currentUserId becomes null) or any route change.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional close-on-logout/route-change for the notification dropdown; refactor would change dismissal behavior
     setOpen(false);
   }, [currentUserId, pathname]);
 

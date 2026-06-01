@@ -205,6 +205,7 @@ function NewShiftContent() {
   // on first render.
   useEffect(() => {
     if (sourceShift?.workplaceImageLabel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional prefill sync from source shift (repost flow) into local draft; refactor would change first-render readiness display
       setWorkplaceImageDraft(sourceShift.workplaceImageLabel);
     }
   }, [sourceShift]);

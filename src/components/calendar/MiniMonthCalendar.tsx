@@ -69,6 +69,7 @@ export function MiniMonthCalendar({
   const selectedYM = useMemo(() => parseYearMonth(selectedDateIso), [selectedDateIso]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional visible-month resync when the selected month changes externally; functional update is a no-op when unchanged
     setVisible((prev) =>
       prev.year === selectedYM.year && prev.month === selectedYM.month
         ? prev

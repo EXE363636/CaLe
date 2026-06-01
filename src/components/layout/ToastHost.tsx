@@ -33,6 +33,7 @@ export function ToastHost() {
   // SSR-safe portal: only render after mount on the client.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional SSR-safe portal mount gate; toasts only render after client mount
     setMounted(true);
     return () => {
       // Defensive: drop any in-flight toasts when the host unmounts so

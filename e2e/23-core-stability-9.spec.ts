@@ -2,7 +2,6 @@ import { test, expect } from './fixtures/test';
 import {
   buildSnapshot,
   buildShift,
-  buildApplication,
   buildScheduleBlock,
   buildWorker,
   buildEmployer,

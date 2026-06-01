@@ -24,7 +24,7 @@ import {
   useVerificationStore,
 } from '@/stores';
 import { averageRating } from '@/domain/rating';
-import { formatDateVN, formatLogDateTime } from '@/lib/format';
+import { formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Worker } from '@/types';
 

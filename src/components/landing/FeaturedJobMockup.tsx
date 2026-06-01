@@ -93,6 +93,7 @@ export function FeaturedJobMockup() {
   const [mounted, setMounted] = useState(false);
   const [tick, setTick] = useState(0);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional SSR-safe mount gate so the live countdown only renders client-side (avoids hydration mismatch)
     setMounted(true);
     const id = setInterval(() => setTick((n) => n + 1), 60_000);
     return () => clearInterval(id);
@@ -106,6 +107,7 @@ export function FeaturedJobMockup() {
     const eligible = selectAvailableShiftsForRecruiting(
       shifts,
       applications,
+      // eslint-disable-next-line react-hooks/purity -- intentional real-time recruiting filter; re-sampled each minute via the `tick` dep so a shift that hits its start-time falls out
       Date.now(),
     );
     return eligible[0] ?? null;
@@ -235,6 +237,7 @@ function FeaturedCardBody({
     if (!mounted) return null;
     const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
     if (!Number.isFinite(startMs)) return null;
+    // eslint-disable-next-line react-hooks/purity -- intentional live countdown to shift start; gated behind `mounted` and re-sampled via parent `tick`
     return formatFeaturedCountdown(startMs - Date.now());
   }, [mounted, shift.date, shift.startTime]);
   return (

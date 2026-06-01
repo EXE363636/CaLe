@@ -59,6 +59,7 @@ export function Modal({
   // a hydration mismatch when the page server-renders.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional SSR-safe portal mount gate; avoids hydration mismatch for the modal
     setMounted(true);
   }, []);
 
