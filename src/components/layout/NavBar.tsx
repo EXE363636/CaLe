@@ -121,8 +121,8 @@ const EMPLOYER_GROUP: MenuGroup = {
     },
     {
       href: '/employer/payments',
-      label: 'Đặt cọc & thanh toán',
-      description: 'Cấp độ tin cậy và tỷ lệ đặt cọc',
+      label: 'Đảm bảo thanh toán',
+      description: 'Cấp độ tin cậy và tỷ lệ đảm bảo thanh toán',
     },
     {
       href: '/employer/reviews',
@@ -133,7 +133,7 @@ const EMPLOYER_GROUP: MenuGroup = {
 };
 
 const SAFETY_GROUP: MenuGroup = {
-  label: 'An toàn & hướng dẫn',
+  label: 'Tin cậy & cẩm nang',
   activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide'],
   items: [
     {
@@ -143,7 +143,7 @@ const SAFETY_GROUP: MenuGroup = {
     },
     {
       href: '/safety',
-      label: 'An toàn & xác minh',
+      label: t('nav.label.safety'),
       description: 'Cơ chế bảo vệ người dùng của CaLẻ',
     },
     {
@@ -158,7 +158,7 @@ const SAFETY_GROUP: MenuGroup = {
     },
     {
       href: '/user-guide',
-      label: 'Hướng dẫn sử dụng',
+      label: t('nav.label.userGuide'),
       description: 'Hướng dẫn từng bước cho cả hai phía',
     },
   ],
@@ -219,7 +219,7 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
       // posting-flow explanation.
       href: '/user-guide#employer-post-shift',
       label: 'Đăng ca tuyển',
-      description: 'Quy trình tạo ca và đặt cọc',
+      description: 'Quy trình tạo ca và đảm bảo thanh toán',
     },
     {
       href: '/user-guide#employer-applicants',
@@ -228,8 +228,8 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
     },
     {
       href: '/employer/payments',
-      label: 'Đặt cọc & thanh toán',
-      description: 'Cấp độ tin cậy và tỷ lệ đặt cọc',
+      label: 'Đảm bảo thanh toán',
+      description: 'Cấp độ tin cậy và tỷ lệ đảm bảo thanh toán',
     },
     {
       href: '/employer/reviews',
@@ -608,9 +608,6 @@ function PublicNav({
         onToggle={onToggle}
         onItemClick={onItemClick}
       />
-      <NavLink href="/support" pathname={pathname}>
-        Hỗ trợ
-      </NavLink>
     </>
   );
 }
@@ -656,9 +653,6 @@ function WorkerNav({
         }
       >
         {t('nav.profile')}
-      </NavLink>
-      <NavLink href="/support" pathname={pathname}>
-        Hỗ trợ
       </NavLink>
     </>
   );
@@ -728,9 +722,6 @@ function EmployerNav({
       >
         {t('nav.short.employerProfile')}
       </NavLink>
-      <NavLink href="/support" pathname={pathname}>
-        {t('nav.support')}
-      </NavLink>
     </>
   );
 }
@@ -779,9 +770,6 @@ function AdminNav({ pathname }: { pathname: string }) {
         }
       >
         Tổng quan admin
-      </NavLink>
-      <NavLink href="/support" pathname={pathname}>
-        Hỗ trợ
       </NavLink>
     </>
   );

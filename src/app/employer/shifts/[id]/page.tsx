@@ -394,7 +394,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         t('feedback.shift.cancel.success'),
         `Hệ thống đã thông báo cho người lao động và áp dụng phí hủy ${Math.round(
           (result.value.employerCancellationPenaltyRate ?? 0) * 100,
-        )}% tiền cọc.`,
+        )}% khoản đảm bảo thanh toán.`,
       );
     } else {
       showSuccess(
@@ -544,7 +544,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 {Math.round(
                   (shift.employerCancellationPenaltyRate ?? 0) * 100,
                 )}
-                % tiền cọc ({formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
+                % khoản đảm bảo thanh toán ({formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
                 ).
               </p>
             )}
@@ -616,7 +616,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           {cancelPreview.afterApproval && cancelPreview.amount > 0 && (
             <div className="rounded-md bg-orange-50 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-200">
               <p className="font-medium">
-                Phí hủy: {Math.round(cancelPreview.rate * 100)}% tiền cọc
+                Phí hủy: {Math.round(cancelPreview.rate * 100)}% khoản đảm bảo thanh toán
                 ({formatVND(cancelPreview.amount)})
               </p>
               <p className="mt-0.5 text-orange-800/80">

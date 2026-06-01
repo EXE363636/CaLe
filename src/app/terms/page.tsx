@@ -33,11 +33,11 @@ export default function TermsPage() {
         />
       </InfoSection>
 
-      <InfoSection title="4. Đặt cọc và thanh toán">
-        Nhà tuyển dụng đặt cọc trước khi ca công khai. Tiền cọc được giải
-        ngân hoặc hoàn lại theo trạng thái ca. Trong phiên bản dùng thử
-        hiện tại, mọi giao dịch tiền tệ là mô phỏng và không tạo nghĩa vụ
-        tài chính thực tế giữa các bên.
+      <InfoSection title="4. Đảm bảo thanh toán">
+        Nhà tuyển dụng đảm bảo thanh toán trước khi ca công khai. Khoản
+        đảm bảo thanh toán được giải ngân hoặc hoàn lại theo trạng thái
+        ca. Trong phiên bản dùng thử hiện tại, mọi giao dịch tiền tệ là
+        mô phỏng và không tạo nghĩa vụ tài chính thực tế giữa các bên.
       </InfoSection>
 
       <InfoSection title="5. Thay đổi điều khoản">

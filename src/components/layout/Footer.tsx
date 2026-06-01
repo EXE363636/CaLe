@@ -27,6 +27,7 @@
  */
 
 import Link from 'next/link';
+import { t } from '@/i18n/vi';
 
 interface ColumnLink {
   label: string;
@@ -43,7 +44,7 @@ const ABOUT_COLUMN: Column = {
   links: [
     { label: 'Giới thiệu', href: '/about' },
     { label: 'Cách hoạt động', href: '/how-it-works' },
-    { label: 'An toàn & xác minh', href: '/safety' },
+    { label: t('nav.label.safety'), href: '/safety' },
     { label: 'Câu hỏi thường gặp', href: '/faq' },
   ],
 };
@@ -63,7 +64,7 @@ const EMPLOYER_COLUMN: Column = {
   links: [
     { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
     { label: 'Quản lý ứng viên', href: '/employer/dashboard' },
-    { label: 'Đặt cọc & thanh toán', href: '/employer/payments' },
+    { label: 'Đảm bảo thanh toán', href: '/employer/payments' },
     { label: 'Đánh giá sau ca', href: '/employer/reviews' },
   ],
 };
@@ -71,7 +72,7 @@ const EMPLOYER_COLUMN: Column = {
 const LEGAL_COLUMN: Column = {
   heading: 'Pháp lý & hỗ trợ',
   links: [
-    { label: 'Hướng dẫn sử dụng', href: '/user-guide' },
+    { label: t('nav.label.userGuide'), href: '/user-guide' },
     { label: 'Điều khoản sử dụng', href: '/terms' },
     { label: 'Chính sách bảo mật', href: '/privacy' },
     { label: 'Chính sách xử lý tranh chấp', href: '/disputes' },

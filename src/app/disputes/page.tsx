@@ -38,7 +38,7 @@ export default function DisputesPage() {
             'Quản trị viên CaLẻ nhận yêu cầu và liên hệ cả hai bên trong vòng 24–48 giờ.',
             'Cả hai bên có quyền cung cấp giải trình và bằng chứng.',
             'Quản trị viên đối chiếu với lịch sử ca, điểm uy tín và đánh giá liên quan.',
-            'Quyết định cuối cùng có thể là giải ngân tiền cọc cho người làm, hoàn cọc cho nhà tuyển dụng, hoặc giải pháp khác phù hợp.',
+            'Quyết định cuối cùng có thể là giải ngân khoản đảm bảo thanh toán cho người làm, hoàn khoản đảm bảo thanh toán cho nhà tuyển dụng, hoặc giải pháp khác phù hợp.',
           ]}
         />
       </InfoSection>

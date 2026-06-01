@@ -278,7 +278,7 @@ const EMPLOYER_TYPES: EmployerType10A[] = [
 
 const TYPE_HINT: Record<EmployerType10A, string> = {
   Individual:
-    'Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đặt cọc 100% tiền công.',
+    'Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đảm bảo thanh toán 100% tiền công.',
   HouseholdBusiness:
     'Hộ kinh doanh: nộp CCCD đại diện + giấy phép hộ kinh doanh + ảnh mặt tiền.',
   Company:

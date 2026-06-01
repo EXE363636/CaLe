@@ -22,7 +22,7 @@ export default function AboutPage() {
       <InfoSection title="Cách chúng tôi xây dựng niềm tin">
         <InfoList
           items={[
-            'Đặt cọc trước khi ca được công khai để đảm bảo người lao động nhận đúng tiền công.',
+            'Đảm bảo thanh toán trước khi ca được công khai để đảm bảo người lao động nhận đúng tiền công.',
             'Điểm uy tín hai chiều: cả người làm và nhà tuyển dụng đều có hồ sơ minh bạch.',
             'Quy trình huỷ ca rõ ràng để hạn chế rủi ro cho cả hai bên.',
             'Hỗ trợ tiếng Việt từ đội ngũ tại Hà Nội.',

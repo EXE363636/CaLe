@@ -12,10 +12,10 @@ export default function FaqPage() {
         { label: 'Liên hệ hỗ trợ', href: '/support' },
       ]}
     >
-      <InfoSection title="Tôi có cần đặt cọc gì khi đăng ký người lao động không?">
-        Không. Người lao động hoàn toàn không phải nộp phí đăng ký, phí đặt
-        cọc hoặc phí ẩn nào. Mọi khoản đặt cọc trên hệ thống đều do nhà
-        tuyển dụng thực hiện trước khi ca được công khai.
+      <InfoSection title="Tôi có phải trả trước khoản nào khi đăng ký người lao động không?">
+        Không. Người lao động hoàn toàn không phải nộp phí đăng ký, khoản
+        trả trước hoặc phí ẩn nào. Mọi khoản đảm bảo thanh toán trên hệ
+        thống đều do nhà tuyển dụng thực hiện trước khi ca được công khai.
       </InfoSection>
 
       <InfoSection title="Tại sao tôi không ứng tuyển được một số ca?">
@@ -40,7 +40,7 @@ export default function FaqPage() {
       </InfoSection>
 
       <InfoSection title="Tôi đăng ca xong nhưng chưa ai ứng tuyển, làm sao bây giờ?">
-        Hãy đảm bảo ca đã được đặt cọc và công khai (kiểm tra trạng thái
+        Hãy đảm bảo ca đã được đảm bảo thanh toán và công khai (kiểm tra trạng thái
         hiển thị &quot;Đang tuyển&quot;). Mô tả ca rõ ràng, mức lương theo thị
         trường khu vực, và sử dụng lượt boost (nếu có) để ưu tiên hiển
         thị. Nếu cần thay đổi mô tả, dùng nút Chỉnh sửa trước 24h.
@@ -49,7 +49,7 @@ export default function FaqPage() {
       <InfoSection title="Tôi gặp tranh chấp với người lao động/nhà tuyển dụng — phải làm sao?">
         Mở chi tiết ca làm và bấm &quot;Báo cáo sự cố&quot;. Quản trị viên sẽ xem
         xét hồ sơ, đánh giá từ cả hai bên và đưa ra quyết định giải
-        ngân hoặc hoàn cọc. Vui lòng tham khảo &quot;Chính sách xử lý tranh
+        ngân hoặc hoàn khoản đảm bảo thanh toán. Vui lòng tham khảo &quot;Chính sách xử lý tranh
         chấp&quot; để biết quy trình.
       </InfoSection>
     </InfoPage>

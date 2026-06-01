@@ -42,8 +42,9 @@ export default function WorkerCancellationPolicyPage() {
 
       <InfoSection title="Khi nhà tuyển dụng huỷ ca">
         Nếu nhà tuyển dụng chủ động huỷ ca, bạn sẽ nhận thông báo trong
-        ứng dụng và không bị trừ điểm. Tiền cọc của họ sẽ được hoàn về
-        ví ký quỹ. Bạn có thể tìm ca khác phù hợp với lịch của mình.
+        ứng dụng và không bị trừ điểm. Khoản đảm bảo thanh toán của họ sẽ
+        được hoàn về ví ký quỹ. Bạn có thể tìm ca khác phù hợp với lịch
+        của mình.
       </InfoSection>
     </InfoPage>
   );

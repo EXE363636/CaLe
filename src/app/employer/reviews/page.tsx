@@ -17,8 +17,8 @@ export default function EmployerReviewsPage() {
       <InfoSection title="Khi nào cần đánh giá">
         Sau khi người làm check-out, ứng dụng nhắc bạn xác nhận hoàn
         thành ca. Tại bước đó, bạn có thể chấm 1–5 sao và viết nhận
-        xét ngắn. Đánh giá là bắt buộc để tiền cọc được giải ngân
-        thành tiền công cho người làm.
+        xét ngắn. Đánh giá là bắt buộc để khoản đảm bảo thanh toán được
+        giải ngân thành tiền công cho người làm.
       </InfoSection>
 
       <InfoSection title="Tiêu chí gợi ý">
