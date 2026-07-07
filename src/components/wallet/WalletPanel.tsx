@@ -155,6 +155,7 @@ export function WalletPanel({
   useEffect(() => {
     if (openLedgerSignal !== prevSignal.current) {
       prevSignal.current = openLedgerSignal;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional deeplink signal→open-ledger-modal sync (guarded by prevSignal ref so initial 0 doesn't auto-open); refactor would break the wallet deeplink
       if (openLedgerSignal > 0) setModalOpen(true);
     }
   }, [openLedgerSignal]);

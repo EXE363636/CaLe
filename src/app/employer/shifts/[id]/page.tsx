@@ -153,6 +153,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   // `Expired`). The same predicate drives the "Đơn đã hết hạn xử lý"
   // badge inside `ApplicationActionButtons` below.
   const shiftStarted =
+    // eslint-disable-next-line react-hooks/purity -- intentional real-time gate: locks approve/reject once the shift start time has passed
     new Date(`${shift.date}T${shift.startTime}:00`).getTime() <= Date.now() ||
     shift.status === 'InProgress' ||
     shift.status === 'AwaitingConfirmation' ||
@@ -393,7 +394,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         t('feedback.shift.cancel.success'),
         `Hệ thống đã thông báo cho người lao động và áp dụng phí hủy ${Math.round(
           (result.value.employerCancellationPenaltyRate ?? 0) * 100,
-        )}% tiền cọc.`,
+        )}% khoản đảm bảo thanh toán.`,
       );
     } else {
       showSuccess(
@@ -414,6 +415,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     return computeEmployerCancellationPenalty(
       shift,
       applications,
+      // eslint-disable-next-line react-hooks/purity -- intentional real-time penalty preview; recomputed each render so the rate reflects the current time vs the 6h cutoff
       Date.now(),
     );
   }, [shift, applications]);
@@ -542,7 +544,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 {Math.round(
                   (shift.employerCancellationPenaltyRate ?? 0) * 100,
                 )}
-                % tiền cọc ({formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
+                % khoản đảm bảo thanh toán ({formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
                 ).
               </p>
             )}
@@ -614,7 +616,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           {cancelPreview.afterApproval && cancelPreview.amount > 0 && (
             <div className="rounded-md bg-orange-50 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-200">
               <p className="font-medium">
-                Phí hủy: {Math.round(cancelPreview.rate * 100)}% tiền cọc
+                Phí hủy: {Math.round(cancelPreview.rate * 100)}% khoản đảm bảo thanh toán
                 ({formatVND(cancelPreview.amount)})
               </p>
               <p className="mt-0.5 text-orange-800/80">
@@ -1169,8 +1171,6 @@ function ApplicationActionButtons({
   onMarkAbsent,
   onMarkPresent,
   onRevertToPresent,
-  onConfirm,
-  onReport,
   onApproveCancellation,
   onRejectCancellation,
 }: {

@@ -65,6 +65,7 @@ export function Reveal({
   useEffect(() => {
     // No window / SSR? Reveal immediately so no content is hidden.
     if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional immediate reveal fallback when IntersectionObserver is unavailable (SSR/old browsers); refactor would hide content
       setRevealed(true);
       return;
     }

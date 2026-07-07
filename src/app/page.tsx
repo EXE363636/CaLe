@@ -220,8 +220,8 @@ export default function LandingPage() {
               style={{ ['--entrance-delay' as string]: '360ms' } as React.CSSProperties}
             >
               {[
-                'Người làm không đặt cọc',
-                'Nhà tuyển dụng đặt cọc tiền công',
+                'Người lao động không phải trả trước',
+                'Nhà tuyển dụng đảm bảo thanh toán tiền công',
                 'Điểm uy tín minh bạch',
               ].map((chip) => (
                 <span

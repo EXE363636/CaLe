@@ -830,7 +830,6 @@ function StatTile({
   value,
   suffix,
   tone = 'neutral',
-  icon,
   onClick,
   ariaLabel,
 }: {
@@ -923,6 +922,7 @@ function StatTile({
   return <div className={baseClasses}>{body}</div>;
 }
 
+<<<<<<< HEAD
 function TileIcon({ name }: { name: IconName }) {
   const cls = 'h-5 w-5';
   switch (name) {
@@ -976,6 +976,8 @@ function TileIcon({ name }: { name: IconName }) {
   }
 }
 
+=======
+>>>>>>> 13cc5657a5b0800a8d1d5e1fc64c581b0d44168c
 // ---------------------------------------------------------------------------
 // Phase 10A-Fix-4 — live verification chips
 // ---------------------------------------------------------------------------
@@ -1070,7 +1072,7 @@ function EmployerPenaltyLedger({
                   {Math.round(
                     (shift.employerCancellationPenaltyRate ?? 0) * 100,
                   )}
-                  % tiền cọc
+                  % khoản đảm bảo thanh toán
                 </p>
                 <p className="text-sm font-bold text-red-800">
                   -{formatVND(shift.employerCancellationPenaltyAmount ?? 0)}

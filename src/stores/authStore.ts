@@ -19,7 +19,6 @@ import { create } from 'zustand';
 
 import {
   STORAGE_KEYS,
-  read,
   write,
   type AuthState as PersistedAuthState,
 } from '@/data/persistence';

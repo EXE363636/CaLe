@@ -120,6 +120,7 @@ export function Toast({
   // the previous value across renders without scheduling another
   // render itself.
   const prevVersion = useRef(version);
+  // eslint-disable-next-line react-hooks/refs -- intentional previous-version tracking to play the shake pulse only on a real re-trigger, not initial mount; ref is synced in the effect below
   const shouldShake = version !== prevVersion.current;
   useEffect(() => {
     prevVersion.current = version;

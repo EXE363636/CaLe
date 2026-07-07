@@ -102,6 +102,15 @@ function WorkerDashboardContent() {
   // `?modal=wallet` query (cold load) and the same-route notification
   // event (top-up / withdraw / wage-release notifications).
   const [walletLedgerSignal, setWalletLedgerSignal] = useState(0);
+  // CORE-STABILITY-9 Part 5 — stable "now" sample for the recommended-
+  // shifts memo. Captured once per mount via a lazy `useState`
+  // initializer so it is NOT an impure `Date.now()` call during render
+  // (react-hooks/purity). The recommendations feed is a soft, non-
+  // authoritative widget (top 4 future shifts that fit availability);
+  // it has no timer and only recomputes when its data deps change, so
+  // sampling the clock at mount instead of at each recompute does not
+  // change any lifecycle, money, or business rule.
+  const [nowMs] = useState(() => Date.now());
   const openWalletHistory = useCallback(() => {
     setWalletLedgerSignal((n) => n + 1);
   }, []);
@@ -167,8 +176,6 @@ function WorkerDashboardContent() {
     );
   }, [worker]);
 
-  if (!worker) return null;
-
   // Helper to look up a shift
   const shiftMap = new Map(shifts.map((s) => [s.id, s]));
   const getShift = (id: string) => shiftMap.get(id);
@@ -183,13 +190,13 @@ function WorkerDashboardContent() {
   // worker selector (both stable references) and call the pure helper in
   // a `useMemo` so we never feed Zustand a fresh array selector.
   const cancelQuota = useMemo(() => {
-    if (!cancelTarget) return undefined;
+    if (!cancelTarget || !worker) return undefined;
     return quotaUsage(
       worker.cancellationHistory,
       worker.reputationScore,
       new Date().toISOString(),
     );
-  }, [cancelTarget, worker.cancellationHistory, worker.reputationScore]);
+  }, [cancelTarget, worker]);
 
   // Upcoming approved/checked-in shifts (date in future or today).
   // Includes `CancellationRequested` so the worker still sees the shift
@@ -285,7 +292,6 @@ function WorkerDashboardContent() {
     const myBlocks = scheduleBlocks.filter((b) => b.userId === worker.id);
     if (myBlocks.every((b) => b.kind !== 'available')) return [];
     const appliedShiftIds = new Set(myApps.map((a) => a.shiftId));
-    const nowMs = Date.now();
     const candidates = shifts.filter((s) => {
       if (appliedShiftIds.has(s.id)) return false;
       if (s.status !== 'Published' && s.status !== 'FullyBooked') return false;
@@ -309,7 +315,7 @@ function WorkerDashboardContent() {
     )
       .filter((m) => m.fitsAvailability)
       .slice(0, 4);
-  }, [worker, scheduleBlocks, myApps, shifts]);
+  }, [worker, scheduleBlocks, myApps, shifts, nowMs]);
   // Phase 9I — derive a reputation score timeline from observable
   // events so the modal can explain *why* the score is what it is.
   // Source: confirmed applications (+5 each), late cancellations (−10
@@ -429,6 +435,8 @@ function WorkerDashboardContent() {
     // Sort descending so the most-recent event is first.
     return events.sort((a, b) => b.at.localeCompare(a.at));
   }, [worker, myApps, shifts]);
+
+  if (!worker) return null;
 
   const restricted = worker.reputationScore < 50;
 
@@ -1749,7 +1757,6 @@ function StatTile({
   value,
   suffix,
   tone = 'neutral',
-  icon,
   onClick,
   ariaLabel,
 }: {
@@ -1847,6 +1854,7 @@ function StatTile({
   return <div className={baseClasses}>{body}</div>;
 }
 
+<<<<<<< HEAD
 function TileIcon({ name }: { name: IconName }) {
   const cls = 'h-5 w-5';
   switch (name) {
@@ -1900,6 +1908,8 @@ function TileIcon({ name }: { name: IconName }) {
   }
 }
 
+=======
+>>>>>>> 13cc5657a5b0800a8d1d5e1fc64c581b0d44168c
 function UpcomingShiftCard({
   application,
   shift,

@@ -609,6 +609,8 @@ describe('Batch 2 F: schedule-conflict exact-minute boundary', () => {
       startTime: '08:00',
       endTime: '09:00',
       title: 'Cá nhân',
+      createdAt: '2030-06-01T00:00:00.000Z',
+      updatedAt: '2030-06-01T00:00:00.000Z',
     };
     const target = {
       date: '2030-07-01',
@@ -626,6 +628,8 @@ describe('Batch 2 F: schedule-conflict exact-minute boundary', () => {
       startTime: '08:00',
       endTime: '09:00',
       title: 'Cá nhân',
+      createdAt: '2030-06-01T00:00:00.000Z',
+      updatedAt: '2030-06-01T00:00:00.000Z',
     };
     const target = {
       date: '2030-07-01',

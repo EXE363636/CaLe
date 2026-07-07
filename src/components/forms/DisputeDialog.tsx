@@ -103,6 +103,7 @@ export function DisputeDialog({
       // Phase 10C-Stab-1 Batch 4B — honour the optional
       // `defaultCategory` prop (e.g. preset `'AbsentDispute'` from
       // the worker absent-dispute banner).
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional dispute-form reset/preset on open / side flip; refactor would change dialog behavior
       setCategory(defaultCategory ?? '');
       setReason('');
       setEvidenceDescription('');

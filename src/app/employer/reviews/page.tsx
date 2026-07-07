@@ -17,8 +17,8 @@ export default function EmployerReviewsPage() {
       <InfoSection title="Khi nào cần đánh giá">
         Sau khi người làm check-out, ứng dụng nhắc bạn xác nhận hoàn
         thành ca. Tại bước đó, bạn có thể chấm 1–5 sao và viết nhận
-        xét ngắn. Đánh giá là bắt buộc để tiền cọc được giải ngân
-        thành tiền công cho người làm.
+        xét ngắn. Đánh giá là bắt buộc để khoản đảm bảo thanh toán được
+        giải ngân thành tiền công cho người làm.
       </InfoSection>
 
       <InfoSection title="Tiêu chí gợi ý">
@@ -33,15 +33,15 @@ export default function EmployerReviewsPage() {
       </InfoSection>
 
       <InfoSection title="Đánh giá xây dựng">
-        Hãy viết nhận xét cụ thể. "Bạn pha chế nhanh, gọn quầy" hữu ích
-        hơn "Tốt". Người làm sau này sẽ tham khảo nhận xét của bạn để
+        Hãy viết nhận xét cụ thể. &quot;Bạn pha chế nhanh, gọn quầy&quot; hữu ích
+        hơn &quot;Tốt&quot;. Người làm sau này sẽ tham khảo nhận xét của bạn để
         biết quán cần gì, và người làm hiện tại sẽ biết phần nào cần
         cải thiện.
       </InfoSection>
 
       <InfoSection title="Khi cần báo cáo thay vì đánh giá">
         Nếu có hành vi không phù hợp (vắng mặt không báo, gây mất an
-        toàn), không nên chỉ đánh giá thấp — hãy mở "Báo cáo sự cố" để
+        toàn), không nên chỉ đánh giá thấp — hãy mở &quot;Báo cáo sự cố&quot; để
         quản trị viên xem xét. Đánh giá vẫn nên trung thực nhưng tranh
         chấp cần luồng riêng.
       </InfoSection>

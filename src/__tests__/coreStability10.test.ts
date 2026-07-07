@@ -27,7 +27,7 @@ import {
   deriveAttendanceState,
   attendanceCopyKey,
 } from '@/domain/attendanceState';
-import { canCheckIn, canCheckOut } from '@/domain/timeGates';
+import { canCheckOut } from '@/domain/timeGates';
 import {
   canEmployerMarkPresent,
   canEmployerMarkAbsent,

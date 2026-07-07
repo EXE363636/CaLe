@@ -37,6 +37,7 @@ export function RejectApplicationDialog({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional form reset on open so a prior failed submit doesn't leak; refactor would change dialog behavior
       setReason('');
       setError(null);
     }

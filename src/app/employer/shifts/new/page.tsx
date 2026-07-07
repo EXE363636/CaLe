@@ -205,6 +205,7 @@ function NewShiftContent() {
   // on first render.
   useEffect(() => {
     if (sourceShift?.workplaceImageLabel) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional prefill sync from source shift (repost flow) into local draft; refactor would change first-render readiness display
       setWorkplaceImageDraft(sourceShift.workplaceImageLabel);
     }
   }, [sourceShift]);
@@ -505,8 +506,8 @@ function NewShiftContent() {
           </h2>
           <p className="mb-3 text-sm leading-relaxed text-gray-600">
             Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.
-            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đặt cọc
-            và quy tắc an toàn cho người lao động.
+            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đảm bảo
+            thanh toán và quy tắc an toàn cho người lao động.
           </p>
           <Link href="/employer/profile">
             <Button variant="primary" size="md">
@@ -554,7 +555,7 @@ function NewShiftContent() {
       {!createdShiftId && sourceShift && (
         <Card className="mb-4 border-orange-200 bg-orange-50">
           <p className="text-sm text-orange-900">
-            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi đặt cọc.
+            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi đảm bảo thanh toán.
           </p>
         </Card>
       )}

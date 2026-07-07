@@ -72,6 +72,7 @@ export default function ShiftsPage() {
   // Apply filters + search + publication invariant
   const filtered = useMemo(() => {
     const merged: FilterCriteria = { ...criteria, text: searchText || criteria.text };
+    // eslint-disable-next-line react-hooks/purity -- intentional real-time recruiting filter (future-shift / availability gate); recompute on render is acceptable for this listing
     const nowMs = Date.now();
     // Phase 10A-Fix-5: canonical recruiting predicate. Reconciles
     // `positionsFilled` against the live application store so a

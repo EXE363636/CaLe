@@ -119,7 +119,7 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       // lands on the right feature explanation.
       { href: '/user-guide#employer-post-shift', label: 'Đăng ca tuyển' },
       { href: '/user-guide#employer-applicants', label: 'Quản lý ứng viên' },
-      { href: '/employer/payments', label: 'Đặt cọc & thanh toán' },
+      { href: '/employer/payments', label: 'Đảm bảo thanh toán' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
     ],
   },
@@ -127,10 +127,10 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
     heading: 'Hướng dẫn & hỗ trợ',
     links: [
       { href: '/how-it-works', label: 'Cách hoạt động' },
-      { href: '/safety', label: 'An toàn & xác minh' },
+      { href: '/safety', label: t('nav.label.safety') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/disputes', label: 'Xử lý tranh chấp' },
-      { href: '/user-guide', label: 'Hướng dẫn sử dụng' },
+      { href: '/user-guide', label: t('nav.label.userGuide') },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
     ],
   },
@@ -152,7 +152,7 @@ const WORKER_SECTIONS: DrawerSection[] = [
     links: [
       { href: '/worker/reputation-guide', label: 'Điểm uy tín' },
       { href: '/worker/cancellation-policy', label: 'Quy định huỷ ca' },
-      { href: '/user-guide', label: 'Hướng dẫn sử dụng' },
+      { href: '/user-guide', label: t('nav.label.userGuide') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
     ],
@@ -173,9 +173,9 @@ const EMPLOYER_SECTIONS: DrawerSection[] = [
   {
     heading: 'Hướng dẫn',
     links: [
-      { href: '/employer/payments', label: 'Đặt cọc & thanh toán' },
+      { href: '/employer/payments', label: 'Đảm bảo thanh toán' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
-      { href: '/user-guide', label: 'Hướng dẫn sử dụng' },
+      { href: '/user-guide', label: t('nav.label.userGuide') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
     ],
@@ -317,6 +317,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
   // render only the trigger, never the portaled overlay.
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional SSR-safe portal mount gate; the overlay must not render until client mount
     setMounted(true);
   }, []);
 
@@ -337,6 +338,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
 
   // Close drawer on route change.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional close-drawer-on-route-change; refactor would change navigation dismissal behavior
     setOpen(false);
   }, [pathname]);
 

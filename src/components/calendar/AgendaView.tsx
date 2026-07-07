@@ -1,6 +1,5 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { formatDateVN } from '@/lib/format';
 import { CalendarEventCard } from './CalendarEventCard';
 import type { CalendarEvent } from './WeekView';

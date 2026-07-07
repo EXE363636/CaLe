@@ -34,6 +34,7 @@ export function ShiftSearchBar({ value, onSearch, className = '' }: ShiftSearchB
 
   // Sync external value changes (e.g. clear filters)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional controlled→local draft sync (e.g. clear filters); refactor would desync the search input
     setDraft(value);
   }, [value]);
 

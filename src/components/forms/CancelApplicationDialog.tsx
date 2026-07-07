@@ -49,6 +49,7 @@ export function CancelApplicationDialog({
   // Reset state on open
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional form reset when the dialog opens; refactor would leak a prior failed attempt's state
       setReason('');
       setError(null);
     }

@@ -1,39 +1,39 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
 export const metadata = {
-  title: 'Đặt cọc & thanh toán — CaLẻ / Now',
+  title: 'Đảm bảo thanh toán — CaLẻ / Now',
 };
 
 export default function EmployerPaymentsPage() {
   return (
     <InfoPage
       eyebrow="Dành cho nhà tuyển dụng"
-      title="Đặt cọc & thanh toán"
-      intro="CaLẻ áp dụng mô hình ký quỹ: nhà tuyển dụng đặt cọc trước, tiền chỉ được giải ngân khi ca hoàn thành thực tế. Đây là cam kết chất lượng cho người lao động."
+      title="Đảm bảo thanh toán"
+      intro="CaLẻ áp dụng mô hình ký quỹ: nhà tuyển dụng đảm bảo thanh toán trước, tiền chỉ được giải ngân khi ca hoàn thành thực tế. Đây là cam kết chất lượng cho người lao động."
       ctas={[
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
         { label: 'Quản lý ứng viên', href: '/employer/dashboard', variant: 'secondary' },
       ]}
     >
-      <InfoSection title="Cấp độ tin cậy và tỷ lệ đặt cọc">
+      <InfoSection title="Cấp độ tin cậy và tỷ lệ đảm bảo thanh toán">
         <InfoList
           items={[
-            'Trong giai đoạn dùng thử, mọi nhà tuyển dụng đều đặt cọc 100% tiền công của ca, không phụ thuộc cấp độ tin cậy.',
+            'Trong giai đoạn dùng thử, mọi nhà tuyển dụng đều đảm bảo thanh toán 100% tiền công của ca, không phụ thuộc cấp độ tin cậy.',
             'Cấp độ tin cậy (Mới / Đã xác minh / Tin cậy cao) sẽ ảnh hưởng đến hiển thị, ưu tiên và phí dịch vụ trong tương lai, nhưng không làm giảm tỷ lệ ký quỹ.',
             'Mục tiêu là bảo vệ tiền công cho người lao động ngay cả khi nhà tuyển dụng không liên hệ được.',
           ]}
         />
-        Tổng tiền cọc = mức theo giờ × số giờ × số vị trí. Toàn bộ
-        khoản này được giữ trong ví ký quỹ cho đến khi ca hoàn thành
-        hoặc được hoàn theo quy định huỷ.
+        Tổng khoản đảm bảo thanh toán = mức theo giờ × số giờ × số vị
+        trí. Toàn bộ khoản này được giữ trong ví ký quỹ cho đến khi ca
+        hoàn thành hoặc được hoàn theo quy định huỷ.
       </InfoSection>
 
       <InfoSection title="Khi nào tiền được giải ngân">
         <InfoList
           items={[
-            'Khi bạn xác nhận hoàn thành ca, hệ thống chuyển tiền cọc thành tiền công cho người làm.',
+            'Khi bạn xác nhận hoàn thành ca, hệ thống chuyển khoản đảm bảo thanh toán thành tiền công cho người làm.',
             'Khi bạn huỷ ca đúng quy định (trước 6 giờ và chưa có ứng viên), tiền được hoàn về ví ký quỹ.',
-            'Khi xảy ra tranh chấp, quản trị viên quyết định giải ngân hoặc hoàn cọc dựa trên bằng chứng.',
+            'Khi xảy ra tranh chấp, quản trị viên quyết định giải ngân hoặc hoàn khoản đảm bảo thanh toán dựa trên bằng chứng.',
           ]}
         />
       </InfoSection>
@@ -41,7 +41,7 @@ export default function EmployerPaymentsPage() {
       <InfoSection title="Quy định huỷ ca cho nhà tuyển dụng">
         <InfoList
           items={[
-            'Trước 6 giờ: huỷ tự do, hoàn 100% cọc.',
+            'Trước 6 giờ: huỷ tự do, hoàn 100% khoản đảm bảo thanh toán.',
             'Trong vòng 6 giờ trước giờ bắt đầu, có ứng viên đang chờ duyệt hoặc đã được duyệt: chặn huỷ để bảo vệ người lao động.',
             'Trong vòng 6 giờ và chưa có ứng viên nào: vẫn được phép huỷ.',
             'Sau giờ bắt đầu: không được phép huỷ.',

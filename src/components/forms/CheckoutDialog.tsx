@@ -127,6 +127,7 @@ export function CheckoutDialog({
   // leak into a fresh attempt for a different shift / application.
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional checkout-form reset on open so a prior failed submit doesn't leak across shifts; refactor would change dialog behavior
       setChecklist(initialChecklist);
       setNote('');
       setFileName('');

@@ -140,7 +140,7 @@ function setupStores(opts: {
   useVerificationStore.setState({
     workerDocuments: [],
     employerDocuments: [],
-    employerTypeChangeRequests: [],
+    typeChangeRequests: [],
   });
   useEmployerFeedbackStore.setState({ feedback: [] });
 }
@@ -344,7 +344,7 @@ describe('Batch 4B: wallet ledger', () => {
           submittedAt: ANCHOR_ISO,
         },
       ],
-      employerTypeChangeRequests: [],
+      typeChangeRequests: [],
     });
     // CORE-STABILITY-6 Part 4 — fund the employer so the new
     // insufficient-balance deposit guard is satisfied.
