@@ -39,7 +39,7 @@ export default function WorkerReputationGuidePage() {
         <InfoList
           items={[
             'Chỉ ứng tuyển ca bạn chắc chắn tham gia được.',
-            'Đến đúng giờ, check-in qua ứng dụng để có dấu thời gian rõ ràng.',
+            'Đến đúng giờ, check-in qua hệ thống để có dấu thời gian rõ ràng.',
             'Nếu có việc đột xuất, huỷ càng sớm càng tốt — huỷ trước 24h không bị trừ điểm.',
             'Hoàn thành tốt ca làm để nhận đánh giá 4–5 sao và cộng điểm.',
           ]}

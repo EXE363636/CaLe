@@ -1,18 +1,18 @@
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 
 /**
- * Cẩm nang đi ca — practical dual-audience handbook.
+ * Cẩm nang đi ca - practical dual-audience handbook.
  *
  * Cluster 5 · Task 19.1 (Property 7, Req 2.7). This page was previously
- * an app-usage walkthrough ("Cách dùng CaLẻ / Now" — step-by-step
+ * an app-usage walkthrough ("Cách dùng CaLẻ / Now" - step-by-step
  * timelines + feature-anchor cards). It is now reframed as a short,
  * PRACTICAL behavioural handbook ("Cẩm nang đi ca") that coaches BOTH
  * audiences on working together well, rather than on which button to
  * press:
  *
- *   • Người lao động — tạo thiện cảm với nhà tuyển dụng, đi làm đúng
+ *   • Người lao động - tạo thiện cảm với nhà tuyển dụng, đi làm đúng
  *     giờ, chủ động báo khi lịch trùng, và huỷ ca một cách văn minh.
- *   • Nhà tuyển dụng — thu hút và giữ chân người làm tốt, viết mô tả ca
+ *   • Nhà tuyển dụng - thu hút và giữ chân người làm tốt, viết mô tả ca
  *     rõ ràng, trả công hợp lý/tương xứng, và giảm huỷ ca / vắng mặt.
  *
  * Copy is original (written for CaLẻ / Now, not sourced from the web).
@@ -20,7 +20,7 @@ import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
  * shared `<InfoPage>` shell, so the page title continues to render as an
  * `<h1>`.
  *
- * Server component — no client interactivity needed.
+ * Server component - no client interactivity needed.
  */
 
 interface Tip {
@@ -29,14 +29,14 @@ interface Tip {
 }
 
 // ---------------------------------------------------------------------------
-// Người lao động — làm việc sao cho được tin tưởng và mời lại
+// Người lao động - làm việc sao cho được tin tưởng và mời lại
 // ---------------------------------------------------------------------------
 
 const WORKER_TIPS: Tip[] = [
   {
     title: 'Làm nhà tuyển dụng hài lòng',
     body:
-      'Hỏi rõ yêu cầu ngay đầu ca, làm tốt phần việc được giao và giữ thái độ tích cực đến phút cuối. Một người làm khiến nhà tuyển dụng hài lòng thường được mời lại cho các ca sau và nhận đánh giá cao — đây là cách bền vững nhất để có việc đều.',
+      'Hỏi rõ yêu cầu ngay đầu ca, làm tốt phần việc được giao và giữ thái độ tích cực đến phút cuối. Một người làm khiến nhà tuyển dụng hài lòng thường được mời lại cho các ca sau và nhận đánh giá cao - đây là cách bền vững nhất để có việc đều.',
   },
   {
     title: 'Đi làm đúng giờ, tốt nhất là sớm vài phút',
@@ -56,7 +56,7 @@ const WORKER_TIPS: Tip[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Nhà tuyển dụng — đăng ca sao cho tuyển được và giữ được người tốt
+// Nhà tuyển dụng - đăng ca sao cho tuyển được và giữ được người tốt
 // ---------------------------------------------------------------------------
 
 const EMPLOYER_TIPS: Tip[] = [
@@ -136,7 +136,7 @@ export default function UserGuidePage() {
     <InfoPage
       eyebrow="Cẩm nang"
       title="Cẩm nang đi ca cho người làm và nhà tuyển dụng"
-      intro="Những lời khuyên ngắn gọn, thực tế giúp mỗi ca làm diễn ra suôn sẻ cho cả hai phía — từ cách tạo thiện cảm và giữ đúng giờ giấc đến cách viết tin tuyển rõ ràng và trả công hợp lý."
+      intro="Những lời khuyên ngắn gọn, thực tế giúp mỗi ca làm diễn ra suôn sẻ cho cả hai phía - từ cách tạo thiện cảm và giữ đúng giờ giấc đến cách viết tin tuyển rõ ràng và trả công hợp lý."
       ctas={[
         { label: 'Tìm ca làm ngay', href: '/shifts' },
         {

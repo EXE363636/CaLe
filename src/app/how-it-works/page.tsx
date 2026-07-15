@@ -28,8 +28,7 @@ export default function HowItWorksPage() {
 
       <InfoStep n={3} title="Duyệt và thực hiện ca">
         Nhà tuyển dụng duyệt người ứng tuyển dựa trên hồ sơ, điểm uy tín
-        và kinh nghiệm. Đến giờ làm, người lao động check-in qua ứng
-        dụng, làm việc, rồi check-out khi xong.
+        và kinh nghiệm. Đến giờ làm, người lao động check-in hệ thống, làm việc, rồi check-out khi xong.
       </InfoStep>
 
       <InfoStep n={4} title="Xác nhận và thanh toán">

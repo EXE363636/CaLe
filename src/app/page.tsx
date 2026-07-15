@@ -165,13 +165,13 @@ export default function LandingPage() {
               <li key={item.label} className="flex min-w-0 items-start gap-3 sm:px-5 sm:first:pl-0">
                 <span className="mt-0.5 shrink-0">{item.icon}</span>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{item.desc}</p>
+                  <p className="text-base font-semibold text-gray-900">{item.label}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-gray-500">{item.desc}</p>
                 </div>
               </li>
             ))}
           </ul>
-          <p className="mt-5 border-t border-gray-100 pt-4 text-center text-xs text-gray-500">
+          <p className="mt-5 border-t border-gray-100 pt-4 text-center text-sm text-gray-500">
             {t('landing.trust.simNote')}
           </p>
         </div>
@@ -230,7 +230,7 @@ export default function LandingPage() {
 
           <div className="mt-10">
             <Link
-              href="/user-guide"
+              href="/how-it-works"
               className="cta-arrow-nudge inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-orange-200 bg-white px-5 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
             >
               {t('landing.howItWorks.viewGuide')} <span className="cta-arrow"><ArrowRightIcon /></span>

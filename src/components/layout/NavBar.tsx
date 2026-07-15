@@ -182,7 +182,7 @@ const SAFETY_GROUP: MenuGroup = {
 
 const WORKER_GROUP_PUBLIC: MenuGroup = {
   label: 'Người lao động',
-  activePrefixes: ['/worker', '/shifts'],
+  activePrefixes: ['/worker'],
   items: [
     {
       href: '/shifts',
@@ -212,7 +212,7 @@ const WORKER_GROUP_PUBLIC: MenuGroup = {
 
 const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
   label: 'Nhà tuyển dụng',
-  activePrefixes: ['/employer', '/how-it-works'],
+  activePrefixes: ['/employer'],
   items: [
     {
       // Phase 9Z-Fix-4: deep-link to the Đăng ca tuyển anchor on
@@ -464,14 +464,16 @@ export function NavBar() {
           href="/"
           className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:rounded xl:justify-self-start"
         >
-          <span className="text-lg font-bold text-orange-700 hover:text-orange-800">
-            {t('site.name')}
-          </span>
+          <img
+            src="/images/logo.png"
+            alt={t('site.name')}
+            className="h-8 m-2 w-auto object-contain"
+          />
           {/* Visual-polish pass — bumped from gray-400 (~2.5:1 on the
               white header) to gray-500 (~4.8:1) so the tagline clears
               the WCAG AA 4.5:1 floor (Req 10.1). Purely a color token
               swap; text content is unchanged (Req 12.2). */}
-          <span className="hidden text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:block">
+          <span className="hidden text-[8px] font-medium uppercase tracking-wide text-gray-500 sm:block">
             by CaLedo Tech
           </span>
         </Link>
@@ -801,9 +803,7 @@ function navLinkClasses(active: boolean): string {
     // the token ramp (orange-*/gray-*), so no hex touches here.
     'whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-h-[44px] flex items-center 2xl:px-3',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
-    active
-      ? 'bg-orange-50 text-orange-700'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+    'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   ].join(' ');
 }
 

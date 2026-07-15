@@ -50,7 +50,7 @@ export default function EmployerPaymentsPage() {
       </InfoSection>
 
       <InfoSection title="Lượt boost">
-        Khi người lao động vắng mặt không báo trước (no-show), bạn được
+        Khi người lao động vắng mặt không báo trước, bạn được
         tặng 1 lượt boost để dùng cho ca tiếp theo, giúp ca hiển thị
         ưu tiên trong danh sách tìm việc.
       </InfoSection>

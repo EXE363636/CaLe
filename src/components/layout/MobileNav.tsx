@@ -600,28 +600,17 @@ function DrawerSectionView({
         {heading}
       </p>
       <ul className="flex flex-col gap-0.5">
-        {links.map((link) => {
-          const targetPath = link.href.split('?')[0];
-          const active =
-            pathname === targetPath ||
-            (targetPath !== '/' && pathname.startsWith(`${targetPath}/`));
-          return (
-            <li key={link.href}>
-              <Link
-                href={link.href}
-                onClick={onNavigate}
-                className={[
-                  'flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-orange-50 text-orange-700'
-                    : 'text-gray-700 hover:bg-gray-100',
-                ].join(' ')}
-              >
-                {link.label}
-              </Link>
-            </li>
-          );
-        })}
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              onClick={onNavigate}
+              className="flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
       </ul>
     </section>
   );
