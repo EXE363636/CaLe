@@ -1,12 +1,12 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'An toàn & xác minh — CaLẻ / Now' };
+export const metadata = { title: 'Bảo vệ người dùng — CaLẻ / Now' };
 
 export default function SafetyPage() {
   return (
     <InfoPage
-      eyebrow="An toàn"
-      title="An toàn & xác minh"
+      eyebrow="Bảo vệ"
+      title="Bảo vệ người dùng"
       intro="An toàn của người lao động và nhà tuyển dụng là ưu tiên đầu tiên của CaLẻ. Chúng tôi xây dựng nhiều lớp kiểm tra trước khi một ca làm được công khai."
     >
       <InfoSection title="Xác minh tài khoản">

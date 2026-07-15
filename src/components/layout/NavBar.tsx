@@ -164,7 +164,7 @@ const SAFETY_GROUP: MenuGroup = {
     },
     {
       href: '/handbook',
-      label: 'Cẩm nang đi ca',
+      label: 'Cẩm nang làm việc',
       description: 'Bí quyết để làm việc suôn sẻ',
     },
   ],
@@ -472,13 +472,13 @@ export function NavBar() {
           <img
             src="/images/logo.png"
             alt={t('site.name')}
-            className="h-8 m-2 w-auto object-contain"
+            className="h-10 m-2 w-auto object-contain"
           />
           {/* Visual-polish pass — bumped from gray-400 (~2.5:1 on the
               white header) to gray-500 (~4.8:1) so the tagline clears
               the WCAG AA 4.5:1 floor (Req 10.1). Purely a color token
               swap; text content is unchanged (Req 12.2). */}
-          <span className="hidden text-[8px] font-medium uppercase tracking-wide text-gray-500 sm:block">
+          <span className="hidden text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:block">
             by CaLedo Tech
           </span>
         </Link>
@@ -655,6 +655,9 @@ function WorkerNav({
       <NavLink href="/worker/schedule" pathname={pathname}>
         {t('nav.schedule')}
       </NavLink>
+      <NavLink href="/handbook" pathname={pathname}>
+        Cẩm nang làm việc
+      </NavLink>
       <NavLink
         href="/worker/profile"
         pathname={pathname}
@@ -727,6 +730,9 @@ function EmployerNav({
         title={t('nav.full.publicShifts')}
       >
         {t('nav.short.publicShifts')}
+      </NavLink>
+      <NavLink href="/handbook" pathname={pathname}>
+        Cẩm nang làm việc
       </NavLink>
       <NavLink
         href="/employer/profile"

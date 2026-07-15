@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppHydrator } from "@/components/layout/AppHydrator";
@@ -62,7 +63,7 @@ export default function RootLayout({
           <ToastHost />
         </AppHydrator>
       {/* impeccable-live-start */}
-<script src="http://localhost:8400/live.js"></script>
+<Script src="http://localhost:8400/live.js" strategy="afterInteractive" />
 {/* impeccable-live-end */}
 </body>
     </html>

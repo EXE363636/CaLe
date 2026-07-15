@@ -64,8 +64,8 @@ export const vi: Record<string, string> = {
   // checkpoint-readiness-phase-1 (Task 1.3) - shared nav labels so
   // NavBar / MobileNav / Footer render the SAME text for these routes.
   // Route paths are unchanged; only the display label is updated.
-  'nav.label.safety': 'An toàn & Tin cậy',
-  'nav.label.userGuide': 'Cẩm nang nghề nghiệp',
+  'nav.label.safety': 'Bảo vệ người dùng',
+  'nav.label.userGuide': 'Hướng dẫn sử dụng',
 
 
   // Phase 9X - user menu (authenticated avatar dropdown).

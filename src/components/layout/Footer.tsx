@@ -44,10 +44,8 @@ const ABOUT_COLUMN: Column = {
   links: [
     { label: 'Giới thiệu', href: '/about' },
     { label: 'Cách hoạt động', href: '/how-it-works' },
-    // Cluster 5 · Task 19.2 — the guide/handbook link ("Cẩm nang đi ca")
-    // lives in this about/guide group alongside how-it-works, safety, and
-    // FAQ, NOT under the legal/support group. Route unchanged (/user-guide).
     { label: t('nav.label.userGuide'), href: '/user-guide' },
+    { label: 'Cẩm nang làm việc', href: '/handbook' },
     { label: t('nav.label.safety'), href: '/safety' },
     { label: 'Câu hỏi thường gặp', href: '/faq' },
   ],
@@ -76,7 +74,7 @@ const EMPLOYER_COLUMN: Column = {
 const LEGAL_COLUMN: Column = {
   heading: 'Pháp lý & hỗ trợ',
   // Cluster 5 · Task 19.2 — legal/support group now holds ONLY the four
-  // legal/support entries. The guide link ("Cẩm nang đi ca", /user-guide)
+  // legal/support entries. The guide link ("Cẩm nang làm việc", /user-guide)
   // moved to ABOUT_COLUMN (the handbook/guide group) above.
   links: [
     { label: 'Điều khoản sử dụng', href: '/terms' },
