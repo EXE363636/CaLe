@@ -197,6 +197,7 @@ export default function LandingPage() {
                     t('landing.howItWorks.worker.step1'),
                     t('landing.howItWorks.worker.step2'),
                     t('landing.howItWorks.worker.step3'),
+                    t('landing.howItWorks.worker.step4'),
                   ].map((step, i) => (
                     <li key={i} className="relative flex items-start gap-3">
                       <StepNumber n={i + 1} />
@@ -217,6 +218,7 @@ export default function LandingPage() {
                     t('landing.howItWorks.employer.step1'),
                     t('landing.howItWorks.employer.step2'),
                     t('landing.howItWorks.employer.step3'),
+                    t('landing.howItWorks.employer.step4'),
                   ].map((step, i) => (
                     <li key={i} className="relative flex items-start gap-3">
                       <StepNumber n={i + 1} />

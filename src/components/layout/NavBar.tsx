@@ -135,7 +135,7 @@ const EMPLOYER_GROUP: MenuGroup = {
 
 const SAFETY_GROUP: MenuGroup = {
   label: 'Cẩm nang',
-  activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide'],
+  activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide', '/handbook'],
   items: [
     {
       href: '/how-it-works',
@@ -161,6 +161,11 @@ const SAFETY_GROUP: MenuGroup = {
       href: '/user-guide',
       label: t('nav.label.userGuide'),
       description: 'Hướng dẫn từng bước cho cả hai phía',
+    },
+    {
+      href: '/handbook',
+      label: 'Cẩm nang đi ca',
+      description: 'Bí quyết để làm việc suôn sẻ',
     },
   ],
 };

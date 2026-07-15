@@ -57,18 +57,18 @@ const WORKER_COLUMN: Column = {
   heading: 'Dành cho người lao động',
   links: [
     { label: 'Tìm ca làm', href: '/shifts' },
-    { label: 'Hồ sơ & điểm uy tín', href: '/worker/reputation-guide' },
-    { label: 'Lịch cá nhân', href: '/worker/schedule' },
-    { label: 'Quy định huỷ ca', href: '/worker/cancellation-policy' },
+    { label: 'Hồ sơ & điểm uy tín', href: '/user-guide#worker-reputation' },
+    { label: 'Lịch cá nhân', href: '/user-guide#worker-schedule' },
+    { label: 'Quy định huỷ ca', href: '/user-guide#worker-cancellation-quota' },
   ],
 };
 
 const EMPLOYER_COLUMN: Column = {
   heading: 'Dành cho nhà tuyển dụng',
   links: [
-    { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
-    { label: 'Quản lý ứng viên', href: '/employer/dashboard' },
-    { label: 'Giữ tiền ca làm (mô phỏng)', href: '/employer/payments' },
+    { label: 'Đăng ca tuyển', href: '/user-guide#employer-post-shift' },
+    { label: 'Quản lý ứng viên', href: '/user-guide#employer-applicants' },
+    { label: 'Giữ tiền ca làm', href: '/user-guide#employer-payments' },
     { label: 'Đánh giá sau ca', href: '/employer/reviews' },
   ],
 };
@@ -141,7 +141,7 @@ export function Footer() {
         <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-gray-100 pt-6 text-xs text-gray-500 sm:flex-row sm:items-center">
           <p>© 2026 CaLedo Tech. All rights reserved.</p>
           <p className="text-xs text-gray-400">
-            Made with care in Hà Nội · Phiên bản dùng thử
+            Made with care by CaLeDo Tech ❤️
           </p>
         </div>
 

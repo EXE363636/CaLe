@@ -1,0 +1,102 @@
+[
+  {
+    "id": "notif-001",
+    "userId": "worker-001",
+    "kind": "ApplicationApproved",
+    "title": "Đơn ứng tuyển đã được duyệt",
+    "body": "Bạn đã được nhận vào ca \"Phục vụ quán phở giờ trưa\" ngày 25/05/2026.",
+    "link": "/worker/dashboard",
+    "read": false,
+    "createdAt": "2026-05-16T14:30:00.000Z"
+  },
+  {
+    "id": "notif-002",
+    "userId": "worker-002",
+    "kind": "ApplicationApproved",
+    "title": "Đơn ứng tuyển đã được duyệt",
+    "body": "Bạn đã được nhận vào ca \"Pha chế cafe ca sáng\" ngày 26/05/2026.",
+    "link": "/worker/dashboard",
+    "read": true,
+    "createdAt": "2026-05-15T12:00:00.000Z"
+  },
+  {
+    "id": "notif-003",
+    "userId": "worker-006",
+    "kind": "ApplicationRejected",
+    "title": "Đơn ứng tuyển bị từ chối",
+    "body": "Đơn ứng tuyển ca \"Pha chế cafe ca sáng\" của bạn đã bị từ chối.",
+    "link": "/worker/dashboard",
+    "read": false,
+    "createdAt": "2026-05-17T09:00:00.000Z"
+  },
+  {
+    "id": "notif-004",
+    "userId": "employer-001",
+    "kind": "ApplicationReceived",
+    "title": "Có đơn ứng tuyển mới",
+    "body": "Lê Hoàng Bình vừa ứng tuyển ca \"Phục vụ quán phở giờ trưa\".",
+    "link": "/employer/shifts/shift-001",
+    "read": false,
+    "createdAt": "2026-05-19T09:15:00.000Z"
+  },
+  {
+    "id": "notif-005",
+    "userId": "employer-001",
+    "kind": "ApplicationReceived",
+    "title": "Có đơn ứng tuyển mới",
+    "body": "Trần Thị Hà vừa ứng tuyển ca \"Phục vụ quán phở giờ tối\".",
+    "link": "/employer/shifts/shift-002",
+    "read": true,
+    "createdAt": "2026-05-18T20:00:00.000Z"
+  },
+  {
+    "id": "notif-006",
+    "userId": "employer-001",
+    "kind": "NoShow",
+    "title": "Người làm vắng mặt",
+    "body": "Đặng Hoàng Em không tới ca \"Phục vụ buổi sáng\". Bạn được tặng 1 lượt boost.",
+    "link": "/employer/dashboard",
+    "read": true,
+    "createdAt": "2026-04-15T07:00:00.000Z"
+  },
+  {
+    "id": "notif-007",
+    "userId": "worker-006",
+    "kind": "NoShow",
+    "title": "Bạn bị đánh dấu vắng mặt",
+    "body": "Bạn không tới ca \"Phục vụ buổi sáng\" ngày 15/04/2026. Điểm uy tín giảm 20.",
+    "link": "/worker/profile",
+    "read": true,
+    "createdAt": "2026-04-15T07:00:00.000Z"
+  },
+  {
+    "id": "notif-008",
+    "userId": "worker-002",
+    "kind": "ShiftCompletedConfirmed",
+    "title": "Ca làm đã được xác nhận",
+    "body": "Ca \"Phục vụ tiệc cưới\" đã được xác nhận hoàn thành. Tiền công đã chuyển.",
+    "link": "/worker/dashboard",
+    "read": true,
+    "createdAt": "2026-04-26T22:30:00.000Z"
+  },
+  {
+    "id": "notif-009",
+    "userId": "worker-005",
+    "kind": "ShiftCompletedConfirmed",
+    "title": "Ca làm đã được xác nhận",
+    "body": "Ca \"Phục vụ tiệc cưới\" đã được xác nhận hoàn thành. Tiền công đã chuyển.",
+    "link": "/worker/dashboard",
+    "read": false,
+    "createdAt": "2026-04-26T22:30:00.000Z"
+  },
+  {
+    "id": "notif-010",
+    "userId": "employer-001",
+    "kind": "LateCancel",
+    "title": "Người làm huỷ muộn",
+    "body": "Võ Quang Duy đã huỷ ca \"Phục vụ buổi sáng\" trong vòng 24h trước giờ bắt đầu.",
+    "link": "/employer/dashboard",
+    "read": true,
+    "createdAt": "2026-04-10T20:00:00.000Z"
+  }
+]

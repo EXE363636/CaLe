@@ -1,0 +1,22 @@
+[
+  {
+    "id": "dispute-001",
+    "shiftId": "shift-008",
+    "applicationId": "app-011",
+    "raisedBy": "employer",
+    "reason": "Người làm tới muộn 30 phút và rời sớm 15 phút so với cam kết.",
+    "status": "Open",
+    "createdAt": "2026-05-19T17:30:00.000Z"
+  },
+  {
+    "id": "dispute-002",
+    "shiftId": "shift-007",
+    "applicationId": "app-010",
+    "raisedBy": "worker",
+    "reason": "Nhà tuyển dụng yêu cầu làm thêm 1h ngoài giờ nhưng chưa thanh toán phần thêm.",
+    "status": "ResolvedReleased",
+    "resolutionNote": "Đã xác minh người làm hoàn thành đúng giờ ban đầu. Phần phụ trội cần thoả thuận riêng.",
+    "createdAt": "2026-04-27T09:00:00.000Z",
+    "resolvedAt": "2026-04-28T15:00:00.000Z"
+  }
+]

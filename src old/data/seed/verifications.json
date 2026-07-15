@@ -1,0 +1,160 @@
+{
+  "workerDocuments": [
+    {
+      "id": "wver-001",
+      "workerId": "worker-001",
+      "documentType": "NationalId",
+      "status": "Approved",
+      "displayLabel": "CCCD / CMND",
+      "fullIdentifier": "079198001234",
+      "maskedIdentifier": "0791•••••234",
+      "submittedAt": "2026-02-21T09:00:00.000Z",
+      "reviewedAt": "2026-02-22T11:00:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockFrontImageUrl": "mock://worker-001/cccd-front.jpg",
+      "mockBackImageUrl": "mock://worker-001/cccd-back.jpg",
+      "mockSelfieImageUrl": "mock://worker-001/selfie.jpg",
+      "verificationMethodLabel": "Xác minh bằng CCCD"
+    },
+    {
+      "id": "wver-002",
+      "workerId": "worker-002",
+      "documentType": "StudentCard",
+      "status": "Approved",
+      "displayLabel": "Thẻ sinh viên",
+      "fullIdentifier": "SV2024-87654",
+      "maskedIdentifier": "SV2024-•••54",
+      "submittedAt": "2026-02-23T10:00:00.000Z",
+      "reviewedAt": "2026-02-24T08:30:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockFrontImageUrl": "mock://worker-002/student-front.jpg",
+      "mockSelfieImageUrl": "mock://worker-002/selfie.jpg",
+      "verificationMethodLabel": "Xác minh bằng thẻ sinh viên"
+    },
+    {
+      "id": "wver-003",
+      "workerId": "worker-003",
+      "documentType": "DriverLicense",
+      "status": "Pending",
+      "displayLabel": "Bằng lái xe",
+      "fullIdentifier": "B1-079123987",
+      "maskedIdentifier": "B1-079•••987",
+      "submittedAt": "2026-05-23T14:30:00.000Z",
+      "mockFrontImageUrl": "mock://worker-003/driver-front.jpg",
+      "mockBackImageUrl": "mock://worker-003/driver-back.jpg",
+      "mockSelfieImageUrl": "mock://worker-003/selfie.jpg",
+      "verificationMethodLabel": "Xác minh bằng bằng lái xe"
+    },
+    {
+      "id": "wver-004",
+      "workerId": "worker-004",
+      "documentType": "NationalId",
+      "status": "NeedsMoreInfo",
+      "displayLabel": "CCCD / CMND",
+      "submittedAt": "2026-05-22T11:00:00.000Z",
+      "reviewedAt": "2026-05-23T09:15:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "rejectionReason": "Ảnh mặt sau bị mờ, vui lòng chụp lại rõ hơn để dễ đối chiếu.",
+      "mockFrontImageUrl": "mock://worker-004/cccd-front-blurry.jpg",
+      "mockSelfieImageUrl": "mock://worker-004/selfie.jpg",
+      "verificationMethodLabel": "Xác minh bằng CCCD"
+    }
+  ],
+  "employerDocuments": [
+    {
+      "id": "ever-001",
+      "employerId": "employer-001",
+      "employerType": "HouseholdBusiness",
+      "documentType": "RepresentativeId",
+      "status": "Approved",
+      "displayLabel": "CCCD đại diện",
+      "submittedAt": "2026-02-11T10:00:00.000Z",
+      "reviewedAt": "2026-02-12T09:00:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockFileName": "lien-cccd.jpg"
+    },
+    {
+      "id": "ever-002",
+      "employerId": "employer-001",
+      "employerType": "HouseholdBusiness",
+      "documentType": "BusinessLicense",
+      "status": "Approved",
+      "displayLabel": "Giấy phép hộ kinh doanh",
+      "submittedAt": "2026-02-11T10:05:00.000Z",
+      "reviewedAt": "2026-02-12T09:05:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockFileName": "pho-ha-license.pdf"
+    },
+    {
+      "id": "ever-003",
+      "employerId": "employer-001",
+      "employerType": "HouseholdBusiness",
+      "documentType": "StorefrontPhoto",
+      "status": "Approved",
+      "displayLabel": "Ảnh mặt tiền",
+      "submittedAt": "2026-02-11T10:08:00.000Z",
+      "reviewedAt": "2026-02-12T09:10:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockImageUrl": "mock://employer-001/storefront.jpg"
+    },
+    {
+      "id": "ever-004",
+      "employerId": "employer-002",
+      "employerType": "Company",
+      "documentType": "BusinessLicense",
+      "status": "Approved",
+      "displayLabel": "Giấy phép kinh doanh",
+      "submittedAt": "2026-02-19T09:00:00.000Z",
+      "reviewedAt": "2026-02-20T11:00:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockFileName": "cafe-cong-license.pdf"
+    },
+    {
+      "id": "ever-005",
+      "employerId": "employer-002",
+      "employerType": "Company",
+      "documentType": "TaxCode",
+      "status": "Approved",
+      "displayLabel": "Mã số thuế",
+      "submittedAt": "2026-02-19T09:05:00.000Z",
+      "reviewedAt": "2026-02-20T11:05:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockFileName": "cafe-cong-tax.pdf"
+    },
+    {
+      "id": "ever-006",
+      "employerId": "employer-002",
+      "employerType": "Company",
+      "documentType": "StorefrontPhoto",
+      "status": "Approved",
+      "displayLabel": "Ảnh chi nhánh",
+      "submittedAt": "2026-02-19T09:08:00.000Z",
+      "reviewedAt": "2026-02-20T11:08:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "mockImageUrl": "mock://employer-002/branch.jpg"
+    },
+    {
+      "id": "ever-007",
+      "employerId": "employer-003",
+      "employerType": "AgencyEvent",
+      "documentType": "BusinessLicense",
+      "status": "Pending",
+      "displayLabel": "Giấy phép sự kiện",
+      "submittedAt": "2026-05-23T13:00:00.000Z",
+      "mockFileName": "vinh-quang-license.pdf"
+    },
+    {
+      "id": "ever-008",
+      "employerId": "employer-003",
+      "employerType": "AgencyEvent",
+      "documentType": "EventProof",
+      "status": "NeedsMoreInfo",
+      "displayLabel": "Hợp đồng / xác nhận sự kiện",
+      "submittedAt": "2026-05-22T15:00:00.000Z",
+      "reviewedAt": "2026-05-23T08:00:00.000Z",
+      "reviewedByAdminId": "admin-001",
+      "rejectionReason": "Vui lòng cung cấp hợp đồng hoặc xác nhận từ đơn vị tổ chức để đối chiếu địa điểm và thời gian.",
+      "mockFileName": "event-summary.docx"
+    }
+  ]
+}
