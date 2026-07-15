@@ -16,7 +16,9 @@ import type { Application, ApplicationStatus, Shift } from '@/types';
 const applicationToneMap: Record<ApplicationStatus, BadgeTone> = {
   Pending: 'info',
   Approved: 'success',
-  CheckedIn: 'purple',
+  // DESIGN.md reserves purple; CheckedIn (worker present/working) maps to
+  // the info/blue family, consistent with the worker dashboard.
+  CheckedIn: 'info',
   CheckedOut: 'warning',
   Confirmed: 'success',
   Disputed: 'danger',
@@ -134,7 +136,35 @@ export function ShiftCard({
     <Card
       clickable={!!onClick}
       onClick={onClick}
-      className={className}
+      // A11y — a clickable card must be keyboard-operable. Card renders a
+      // plain <div>, so when it acts as a navigation target we give it a
+      // button role, make it focusable, add Enter/Space activation, and a
+      // visible focus ring. Only applied when an onClick is provided.
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={
+        onClick
+          ? `${shift.title} — ${formatVND(shift.hourlyWage)}${t('common.perHour')}, ${formatDateVN(shift.date)}`
+          : undefined
+      }
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={[
+        onClick
+          ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
+          : '',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       {/* Row 1: title + status.
           When the current worker has an active application on this
@@ -205,7 +235,7 @@ export function ShiftCard({
           the available count derived from the shift's own
           `positionsFilled` + `positionsTotal`. */}
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        <span className="font-medium text-orange-600">
+        <span className="font-medium text-orange-700">
           {formatVND(shift.hourlyWage)}{t('common.perHour')}
         </span>
         <span className="text-gray-500">
@@ -216,7 +246,7 @@ export function ShiftCard({
 
       {/* Optional: employer name */}
       {employerName && (
-        <p className="mt-1.5 text-xs text-gray-400">{employerName}</p>
+        <p className="mt-1.5 text-xs text-gray-500">{employerName}</p>
       )}
 
       {/* Optional: escrow badge */}
@@ -232,11 +262,11 @@ export function ShiftCard({
           clickable to /shifts/{id}; this just gives the worker an
           at-a-glance status pin. */}
       {workerApplicationStatus && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs">
-          <span className="font-semibold text-orange-900">
-            {t(`apply.applied.${workerApplicationStatus}`)}
-          </span>
-          <span className="text-orange-700">{t('btn.viewApplication')}</span>
+        // The status is already the single primary badge in row 1, so this
+        // footer is just a "view your application" affordance and no longer
+        // repeats the status text.
+        <div className="mt-3 flex items-center justify-end gap-1 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs font-medium text-orange-700">
+          {t('btn.viewApplication')} →
         </div>
       )}
     </Card>

@@ -20,6 +20,7 @@ import { t } from '@/i18n/vi';
 import { useWalletStore } from '@/stores/walletStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { walletHistoryLink } from '@/lib/notificationTarget';
+import { deriveWalletBalance, projectRecentTransactions } from '@/domain/finance';
 import type { Role, WalletLedgerEntry } from '@/types';
 
 interface WalletPanelProps {
@@ -126,23 +127,29 @@ export function WalletPanel({
   openLedgerSignal = 0,
   className = '',
 }: WalletPanelProps) {
-  const balance = useWalletStore((s) => s.getBalance(userId));
   const ledger = useWalletStore((s) => s.ledger);
   const topUp = useWalletStore((s) => s.topUp);
   const withdraw = useWalletStore((s) => s.withdraw);
   const pushNotification = useNotificationStore((s) => s.push);
 
+  // Cluster 3 · BUG 5 (Req 2.5): route the balance + transaction list through
+  // the single derived money module. `deriveWalletBalance` equals the store's
+  // `getBalance` by the wallet invariant (balance == Σ of the user's ledger
+  // entries, kept in sync on every mutation), and `projectRecentTransactions`
+  // reproduces the same user-scoped, newest-first projection the panel built
+  // inline — so the panel's behavior + format are unchanged; only the source
+  // is unified.
+  const balance = useMemo(
+    () => deriveWalletBalance(ledger, userId),
+    [ledger, userId],
+  );
   const userLedger = useMemo(
-    () =>
-      ledger
-        .filter((l) => l.userId === userId)
-        .slice()
-        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)),
+    () => projectRecentTransactions(ledger, userId),
     [ledger, userId],
   );
   const recent = useMemo(
-    () => userLedger.slice(0, recentLimit),
-    [userLedger, recentLimit],
+    () => projectRecentTransactions(ledger, userId, recentLimit),
+    [ledger, userId, recentLimit],
   );
 
   const [modalOpen, setModalOpen] = useState(false);

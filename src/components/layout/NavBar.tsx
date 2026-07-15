@@ -121,8 +121,9 @@ const EMPLOYER_GROUP: MenuGroup = {
     },
     {
       href: '/employer/payments',
-      label: 'Đảm bảo thanh toán',
-      description: 'Cấp độ tin cậy và tỷ lệ đảm bảo thanh toán',
+      label: 'Giữ tiền ca làm (mô phỏng)',
+      description:
+        'Mô phỏng giữ tiền ca để đảm bảo trả công. Trong MVP/demo không có giao dịch thật.',
     },
     {
       href: '/employer/reviews',
@@ -133,7 +134,7 @@ const EMPLOYER_GROUP: MenuGroup = {
 };
 
 const SAFETY_GROUP: MenuGroup = {
-  label: 'Tin cậy & cẩm nang',
+  label: 'Cẩm nang',
   activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide'],
   items: [
     {
@@ -219,7 +220,7 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
       // posting-flow explanation.
       href: '/user-guide#employer-post-shift',
       label: 'Đăng ca tuyển',
-      description: 'Quy trình tạo ca và đảm bảo thanh toán',
+      description: 'Quy trình tạo ca và giữ tiền ca làm (mô phỏng)',
     },
     {
       href: '/user-guide#employer-applicants',
@@ -228,8 +229,9 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
     },
     {
       href: '/employer/payments',
-      label: 'Đảm bảo thanh toán',
-      description: 'Cấp độ tin cậy và tỷ lệ đảm bảo thanh toán',
+      label: 'Giữ tiền ca làm (mô phỏng)',
+      description:
+        'Mô phỏng giữ tiền ca để đảm bảo trả công. Trong MVP/demo không có giao dịch thật.',
     },
     {
       href: '/employer/reviews',
@@ -460,12 +462,16 @@ export function NavBar() {
         {/* Brand block — LEFT zone */}
         <Link
           href="/"
-          className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded xl:justify-self-start"
+          className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:rounded xl:justify-self-start"
         >
-          <span className="text-lg font-bold text-orange-600 hover:text-orange-700">
+          <span className="text-lg font-bold text-orange-700 hover:text-orange-800">
             {t('site.name')}
           </span>
-          <span className="hidden text-[10px] font-medium uppercase tracking-wide text-gray-400 sm:block">
+          {/* Visual-polish pass — bumped from gray-400 (~2.5:1 on the
+              white header) to gray-500 (~4.8:1) so the tagline clears
+              the WCAG AA 4.5:1 floor (Req 10.1). Purely a color token
+              swap; text content is unchanged (Req 12.2). */}
+          <span className="hidden text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:block">
             by CaLedo Tech
           </span>
         </Link>
@@ -521,7 +527,7 @@ export function NavBar() {
                   shift" CTA fighting itself for attention. */}
               <Link
                 href="/register?role=employer"
-                className="ml-1 inline-flex min-h-[40px] items-center whitespace-nowrap rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 px-4 text-sm font-semibold text-white shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1"
+                className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
               >
                 Đăng ca tuyển
               </Link>
@@ -787,8 +793,14 @@ function navLinkClasses(active: boolean): string {
     // HEADER-NAV-LAYOUT-3 — compact horizontal padding at `xl`
     // (`px-2`) so the full employer nav fits one row at 1280px, with
     // roomier `px-3` from `2xl` (>= 1536px) upward.
-    'whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-h-[40px] flex items-center 2xl:px-3',
-    'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
+    // Visual-polish pass — `min-h-[44px]` guarantees the >=44px touch
+    // target (Req 9.1) even though the visible label is shorter, and
+    // the focus ring matches the shared Button contract
+    // (`ring-orange-400` + `ring-offset-2`) for a uniform 2px orange
+    // focus indicator with offset (Req 10.3). Colors already come from
+    // the token ramp (orange-*/gray-*), so no hex touches here.
+    'whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-h-[44px] flex items-center 2xl:px-3',
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
     active
       ? 'bg-orange-50 text-orange-700'
       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
@@ -946,7 +958,7 @@ function Dropdown({
         {group.label}
         <svg
           className={[
-            'h-3.5 w-3.5 text-gray-400 transition-transform',
+            'h-3.5 w-3.5 text-gray-400 transition-transform motion-reduce:transition-none',
             isOpen ? 'rotate-180' : '',
           ].join(' ')}
           viewBox="0 0 20 20"
@@ -974,7 +986,7 @@ function Dropdown({
                   href={item.href}
                   role="menuitem"
                   onClick={() => onItemClick()}
-                  className="flex flex-col rounded-lg px-3 py-2 text-sm transition-colors hover:bg-orange-50 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-400"
+                  className="flex flex-col rounded-lg px-3 py-2 text-sm transition-colors hover:bg-orange-50 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
                 >
                   <span className="font-medium text-gray-900">
                     {item.label}

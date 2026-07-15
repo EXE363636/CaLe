@@ -98,9 +98,9 @@ export function CalendarToolbar({
               onClick={() => onViewChange(opt.value)}
               className={[
                 'min-h-[44px] rounded-md px-4 text-sm font-medium transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
                 active
-                  ? 'bg-orange-500 text-white shadow-sm'
+                  ? 'bg-orange-500 text-gray-900 shadow-sm'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
               ].join(' ')}
             >

@@ -83,7 +83,7 @@ export function EmployerTrustPanel({
         <button
           type="button"
           onClick={onOpenProfile}
-          className="ml-auto text-xs font-medium text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
+          className="ml-auto text-xs font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
         >
           {t('employer.trust.viewProfile')} →
         </button>

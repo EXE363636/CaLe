@@ -44,6 +44,10 @@ const ABOUT_COLUMN: Column = {
   links: [
     { label: 'Giới thiệu', href: '/about' },
     { label: 'Cách hoạt động', href: '/how-it-works' },
+    // Cluster 5 · Task 19.2 — the guide/handbook link ("Cẩm nang đi ca")
+    // lives in this about/guide group alongside how-it-works, safety, and
+    // FAQ, NOT under the legal/support group. Route unchanged (/user-guide).
+    { label: t('nav.label.userGuide'), href: '/user-guide' },
     { label: t('nav.label.safety'), href: '/safety' },
     { label: 'Câu hỏi thường gặp', href: '/faq' },
   ],
@@ -64,15 +68,17 @@ const EMPLOYER_COLUMN: Column = {
   links: [
     { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
     { label: 'Quản lý ứng viên', href: '/employer/dashboard' },
-    { label: 'Đảm bảo thanh toán', href: '/employer/payments' },
+    { label: 'Giữ tiền ca làm (mô phỏng)', href: '/employer/payments' },
     { label: 'Đánh giá sau ca', href: '/employer/reviews' },
   ],
 };
 
 const LEGAL_COLUMN: Column = {
   heading: 'Pháp lý & hỗ trợ',
+  // Cluster 5 · Task 19.2 — legal/support group now holds ONLY the four
+  // legal/support entries. The guide link ("Cẩm nang đi ca", /user-guide)
+  // moved to ABOUT_COLUMN (the handbook/guide group) above.
   links: [
-    { label: t('nav.label.userGuide'), href: '/user-guide' },
     { label: 'Điều khoản sử dụng', href: '/terms' },
     { label: 'Chính sách bảo mật', href: '/privacy' },
     { label: 'Chính sách xử lý tranh chấp', href: '/disputes' },
@@ -94,7 +100,7 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
           {/* Column 1 — brand + contact */}
           <div className="lg:col-span-1">
-            <p className="text-base font-bold text-orange-600">
+            <p className="text-base font-bold text-orange-700">
               CaLẻ / Now
             </p>
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -109,7 +115,7 @@ export function Footer() {
                 <span className="text-gray-400">Email: </span>
                 <a
                   href="mailto:support@caledo.vn"
-                  className="hover:text-orange-600 hover:underline"
+                  className="hover:text-orange-700 hover:underline"
                 >
                   support@caledo.vn
                 </a>
@@ -145,6 +151,7 @@ export function Footer() {
             demo's persistence model and don't expect server sync. */}
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">
           Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu.
+          Trong MVP/demo không có giao dịch thật.
         </p>
       </div>
     </footer>
@@ -156,7 +163,7 @@ export function Footer() {
 function FooterColumn({ column }: { column: Column }) {
   return (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-orange-600">
+      <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
         {column.heading}
       </p>
       <ul className="mt-3 flex flex-col gap-2 text-sm text-gray-600">
@@ -164,7 +171,7 @@ function FooterColumn({ column }: { column: Column }) {
           <li key={link.label}>
             <Link
               href={link.href}
-              className="hover:text-orange-600 hover:underline"
+              className="hover:text-orange-700 hover:underline"
             >
               {link.label}
             </Link>

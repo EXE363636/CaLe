@@ -33,10 +33,26 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { useCurrentUser } from '@/stores/authStore';
+import { getWorkerReputation } from '@/stores/userStore';
+import { useHydrationStore } from '@/stores/hydrationStore';
 import { selectAvailableShiftsForRecruiting, effectiveFilledCount } from '@/domain/shiftAvailability';
-import { formatDateVN, formatVND } from '@/lib/format';
+import { formatDateVN, formatTimeVN, formatVND } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Application, Shift } from '@/types';
+
+/**
+ * Application statuses that keep a worker attached to an upcoming shift —
+ * the exact set the worker dashboard (`src/app/worker/dashboard/page.tsx`)
+ * uses to build its "Ca sắp tới" list. Shared here so the landing-hero
+ * preview derives the same soonest-upcoming shift the dashboard would.
+ */
+const ACTIVE_UPCOMING_STATUSES = [
+  'Approved',
+  'CancellationRequested',
+  'CheckedIn',
+  'CheckedOut',
+];
 
 /** Same invariant `/shifts/page.tsx` enforces. Pure helper, no side effects. */
 // Phase 10A-Fix-5 — replaced inline `isListable` with the canonical
@@ -115,6 +131,58 @@ export function FeaturedJobMockup() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shifts, applications, tick]);
 
+  // ---------------------------------------------------------------------
+  // Cluster 2 · BUG 2 (Req 2.2, preserve 3.3) — supporting-stat previews
+  // derived from the CURRENT user + role instead of hard-coded literals.
+  //
+  // `hydrated` gates the previews so the SSR markup and the first client
+  // paint agree: the auth/user/shift/application stores are only populated
+  // after `AppHydrator` runs its effect, so before that we render neither
+  // tile (matching the server output) and let them appear once the stores
+  // are ready.
+  // ---------------------------------------------------------------------
+  const currentUser = useCurrentUser();
+  const hydrated = useHydrationStore((s) => s.hydrated);
+
+  // Reputation preview: shown ONLY for a logged-in worker, sourced from the
+  // single shared reader so it matches every other reputation surface
+  // (dashboard StatTile, UserMenu chip, employer badges). `null` ⇒ no tile,
+  // which is the correct result for a logged-out visitor or an employer.
+  const reputationScore =
+    currentUser && currentUser.role === 'worker'
+      ? getWorkerReputation(currentUser.id)
+      : null;
+
+  // Stable "today" (YYYY-MM-DD) captured once per mount via a lazy
+  // initializer so it is not an impure clock read during render
+  // (react-hooks/purity), mirroring the worker dashboard's `nowMs`.
+  const [todayStr] = useState(() => new Date().toISOString().slice(0, 10));
+
+  // Upcoming preview: the current user's soonest real upcoming shift,
+  // derived exactly like the worker dashboard — an active application on a
+  // non-cancelled shift dated today-or-later, soonest first. Only a worker
+  // has applications under their id, so this is naturally empty for an
+  // employer / logged-out visitor ⇒ no upcoming card is shown.
+  const upcomingShift = useMemo<Shift | null>(() => {
+    if (!currentUser) return null;
+    const byId = new Map(shifts.map((s) => [s.id, s]));
+    const mine = applications
+      .filter(
+        (a) =>
+          a.workerId === currentUser.id &&
+          ACTIVE_UPCOMING_STATUSES.includes(a.status),
+      )
+      .map((a) => byId.get(a.shiftId))
+      .filter(
+        (s): s is Shift =>
+          s !== undefined && s.status !== 'Cancelled' && s.date >= todayStr,
+      )
+      .sort((a, b) =>
+        `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
+      );
+    return mine[0] ?? null;
+  }, [currentUser, applications, shifts, todayStr]);
+
   // Resolve href + aria-label up-front so the JSX stays clean.
   const href = featured ? `/shifts/${featured.id}` : '/shifts';
   const ariaLabel = featured
@@ -123,38 +191,27 @@ export function FeaturedJobMockup() {
 
   return (
     <div
-      className="entrance-right relative"
+      className="entrance-right"
       style={{ ['--entrance-delay' as string]: '320ms' } as React.CSSProperties}
     >
-      {/* Backdrop blob — gentle float for ambient warmth.
-          Decorative, no input intercept. */}
-      <div
-        className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-orange-200/60 to-amber-100/40 blur-2xl float-soft float-soft-slow"
-        aria-hidden="true"
-      />
+      {/* Dispatch board — a single designed surface. Header + one featured
+          shift row + (worker-only) secondary stat rows + a footer note so
+          the board stays balanced even for a logged-out visitor. */}
+      <div className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-lg ring-1 ring-orange-100/60">
+        {/* Board header */}
+        <div className="flex items-center gap-2 border-b border-gray-100 bg-orange-50/50 px-4 py-3 sm:px-5">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-orange-500" aria-hidden="true" />
+          <span className="text-sm font-semibold text-gray-900">
+            {t('landing.hero.featured.badge')}
+          </span>
+        </div>
 
-      {/* Subtle dot-grid behind the cards (CSS-only, masked). */}
-      <div
-        className="pointer-events-none absolute -inset-6 rounded-[2.5rem] bg-dot-grid opacity-60 [mask-image:radial-gradient(circle_at_center,black,transparent_70%)]"
-        aria-hidden="true"
-      />
-
-      <div className="relative grid gap-3 sm:grid-cols-2">
-        {/* Featured-job pill — replaces Phase 9D "Bản xem trước". */}
-        <span className="col-span-2 inline-flex w-fit items-center gap-1.5 rounded-full border border-orange-200 bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700 shadow-sm backdrop-blur-sm">
-          <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            {/* Spark / fire glyph — reads as "đang nổi bật" */}
-            <path d="M10 2c.4 0 .76.24.92.6l1.06 2.4 2.6.4a1 1 0 0 1 .56 1.7l-1.9 1.85.45 2.6a1 1 0 0 1-1.46 1.05L10 11.34l-2.23 1.26a1 1 0 0 1-1.46-1.05l.45-2.6L4.86 7.1a1 1 0 0 1 .56-1.7l2.6-.4 1.06-2.4A1 1 0 0 1 10 2Z" />
-          </svg>
-          {t('landing.hero.featured.badge')}
-        </span>
-
-        {/* Featured / clickable job card. Float gives it a touch of life
-            but the hover lift is the primary affordance. */}
+        {/* Featured shift row — clickable, links to the real shift (or the
+            full list when nothing is featured yet). */}
         <Link
           href={href}
           aria-label={ariaLabel}
-          className="motion-lift group sm:col-span-2 rounded-2xl border border-orange-200 bg-white p-4 shadow-md ring-1 ring-orange-100 transition-shadow hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+          className="group block px-4 py-4 transition-colors hover:bg-orange-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400 sm:px-5"
         >
           {featured ? (
             <FeaturedCardBody
@@ -167,44 +224,44 @@ export function FeaturedJobMockup() {
           )}
         </Link>
 
-        {/* Supporting stats — decorative only, marked aria-hidden. They
-            live in their own group with subtle muted styling so they
-            don't compete with the primary card. No hover lift, no focus
-            ring, no pointer cursor.
-
-            Phase 9U — hidden below `sm` (mobile). Manual screenshot QA
-            at 360 / 390 / 430 px showed these two cards fighting the
-            featured card for breathing room and pushing the hero
-            taller than the viewport. The featured card alone reads
-            cleaner on mobile; the stats stay on tablet and up. */}
-        <div
-          className="contents"
-          aria-hidden="true"
-        >
-          <div className="hidden rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm sm:block">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              {t('landing.hero.featured.repLabel')}
-            </p>
-            <p className="mt-1 text-3xl font-extrabold text-emerald-500">95</p>
-            <p className="mt-1 text-xs text-gray-500">
+        {/* Secondary stats — DERIVED from the current user + role (Cluster 2 ·
+            BUG 2, Req 2.2), never hard-coded. Same derivation + gating as
+            before; presentation is now a quiet board row instead of a
+            big-number tile. A logged-out visitor / an employer sees neither. */}
+        {hydrated && reputationScore !== null && (
+          <div className="border-t border-gray-100 px-4 py-3 sm:px-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-xs font-medium text-gray-500">
+                {t('landing.hero.featured.repLabel')}
+              </p>
+              <p className="text-lg font-bold text-gray-900">{reputationScore}</p>
+            </div>
+            <p className="mt-0.5 text-[11px] text-gray-400">
               {t('landing.hero.featured.repHint')}
             </p>
           </div>
+        )}
 
-          <div className="hidden rounded-2xl border border-gray-200/80 bg-white/80 p-4 shadow-sm sm:block">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              {t('landing.hero.featured.upcomingLabel')}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gray-900">
-              {t('landing.hero.featured.upcomingDay')}
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-orange-500" aria-hidden="true" />
-              <p className="text-xs text-gray-600">
-                {t('landing.hero.featured.upcomingTime')}
+        {hydrated && upcomingShift && (
+          <div className="border-t border-gray-100 px-4 py-3 sm:px-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-xs font-medium text-gray-500">
+                {t('landing.hero.featured.upcomingLabel')}
+              </p>
+              <p className="text-sm font-semibold text-gray-900">
+                {formatTimeVN(upcomingShift.startTime)}–{formatTimeVN(upcomingShift.endTime)}
               </p>
             </div>
+            <p className="mt-0.5 text-[11px] text-gray-500">
+              {formatDateVN(upcomingShift.date)}
+            </p>
           </div>
+        )}
+
+        {/* Board footer — a plain, honest legend that keeps the board
+            visually balanced regardless of who is viewing. */}
+        <div className="border-t border-gray-100 px-4 py-2.5 text-[11px] text-gray-500 sm:px-5">
+          {t('landing.hero.featured.boardNote')}
         </div>
       </div>
     </div>
@@ -255,24 +312,39 @@ function FeaturedCardBody({
           {t('landing.hero.featured.statusBadge')}
         </span>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-gray-600">
-        <span className="font-mono">
-          {formatDateVN(shift.date)} • {shift.startTime}–{shift.endTime}
+      {/* Columnar shift data: thời gian · tiền công · chỗ trống. */}
+      <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
+        <div className="min-w-0">
+          <dt className="text-[11px] text-gray-400">Thời gian</dt>
+          <dd className="mt-0.5 font-medium text-gray-900">{formatDateVN(shift.date)}</dd>
+          <dd className="text-gray-600">
+            {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[11px] text-gray-400">Tiền công</dt>
+          <dd className="mt-0.5 font-semibold text-orange-700">
+            {formatVND(shift.hourlyWage)}
+          </dd>
+          <dd className="text-gray-600">mỗi giờ</dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-[11px] text-gray-400">Chỗ trống</dt>
+          <dd className="mt-0.5 font-medium text-gray-900">
+            {available}/{shift.positionsTotal}
+          </dd>
+          <dd className="text-gray-600">vị trí</dd>
+        </div>
+      </dl>
+
+      {/* Bottom row: view CTA + live countdown chip (Phase 10A-Fix-4,
+          mount-gated so SSR and the first client paint agree). */}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-orange-700">
+          {t('landing.hero.featured.viewCta')} <span aria-hidden="true">→</span>
         </span>
-        <span aria-hidden="true">•</span>
-        <span className="font-semibold text-orange-600">
-          {formatVND(shift.hourlyWage)}/giờ
-        </span>
-        <span aria-hidden="true">•</span>
-        <span>
-          Còn {available}/{shift.positionsTotal} vị trí
-        </span>
-      </div>
-      {/* Phase 10A-Fix-4 — live countdown chip. Mount-gated so SSR
-          and first client paint agree. */}
-      {countdown && (
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
+        {countdown && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
             <svg
               className="h-3 w-3"
               viewBox="0 0 20 20"
@@ -288,12 +360,7 @@ function FeaturedCardBody({
             </svg>
             {countdown}
           </span>
-        </div>
-      )}
-      <div className="mt-3 flex items-center justify-between text-xs">
-        <span className="font-medium text-orange-700">
-          {t('landing.hero.featured.viewCta')} →
-        </span>
+        )}
       </div>
     </>
   );
@@ -304,7 +371,7 @@ function FeaturedFallbackBody() {
     <>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-gray-900 group-hover:text-orange-700">
             {t('landing.hero.featured.fallbackTitle')}
           </p>
           <p className="mt-0.5 text-xs text-gray-500">
@@ -315,11 +382,9 @@ function FeaturedFallbackBody() {
           {t('landing.hero.featured.statusBadge')}
         </span>
       </div>
-      <div className="mt-3 flex items-center justify-between text-xs">
-        <span className="font-medium text-orange-700">
-          {t('landing.hero.featured.exploreCta')} →
-        </span>
-      </div>
+      <p className="mt-3 text-xs font-semibold text-orange-700">
+        {t('landing.hero.featured.exploreCta')} <span aria-hidden="true">→</span>
+      </p>
     </>
   );
 }

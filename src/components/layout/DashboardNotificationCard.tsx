@@ -66,7 +66,7 @@ export function DashboardNotificationCard({
       {isActionable && (
         <span
           aria-hidden="true"
-          className="mt-1 inline-flex items-center text-[11px] font-medium text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-1 inline-flex items-center text-[11px] font-medium text-orange-700 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
         >
           {t('notification.viewDetail')} →
         </span>

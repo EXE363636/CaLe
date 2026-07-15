@@ -1,0 +1,435 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Xác minh & khoá canonical palette trong `src/app/globals.css`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783670674657
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671261270
+      }
+    ],
+    "1. Khoá lớp token runtime làm nguồn sự thật duy nhất": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671261485
+      }
+    ],
+    "2.1 Hội tụ các lớp trang trí & InfoPage off-token về palette runtime": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608133
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671654845
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672254616
+      }
+    ],
+    "3.1 Siết `Button` + quy tắc primary CTA + tiêu điểm": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608282
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671655985
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672255633
+      }
+    ],
+    "3.2 Siết `Card` + `StatCard` cho độ nâng/bóng": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608419
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671656826
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672506172
+      }
+    ],
+    "3.3 Siết `Badge` cho cặp màu trạng thái ngữ nghĩa": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608536
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671657873
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672507178
+      }
+    ],
+    "3.4 Siết `Modal` cho bóng độ nâng": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608652
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671658885
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672258600
+      }
+    ],
+    "3.5 Siết các trường nhập (Input, Select, Textarea, DateFieldVN, TimeFieldVN)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608783
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672509149
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673091970
+      }
+    ],
+    "3.6 Siết `EmptyState` thành cấu trúc rỗng dùng chung": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671608933
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672510154
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673092933
+      }
+    ],
+    "3.7 Siết `Toast` + `Reveal` + chỉ báo tải (tôn trọng reduced-motion)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609118
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672511153
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673093960
+      }
+    ],
+    "3.8 Siết `ShiftLifecycleBadge` + các component shift để tiêu thụ mapping chuẩn": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609228
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672513105
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673095581
+      }
+    ],
+    "4. Checkpoint — Bảo đảm token + primitive ổn định": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609333
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673171798
+      }
+    ],
+    "5.1 Cập nhật `DESIGN.md` (YAML frontmatter màu + narrative)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609449
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673228370
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674099992
+      }
+    ],
+    "5.2 Cập nhật `.impeccable/design.json` (colorMeta + component samples)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609565
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673229379
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674101034
+      }
+    ],
+    "6.1 Bảng điều khiển Worker — `src/app/worker/dashboard/page.tsx`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609679
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673230402
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674104014
+      }
+    ],
+    "6.2 Bảng điều khiển Employer — `src/app/employer/dashboard/page.tsx`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609798
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673232372
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674104382
+      }
+    ],
+    "6.3 Trang Landing — `src/app/page.tsx` (+ `src/components/landing/*`)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671609916
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673233378
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674105384
+      }
+    ],
+    "6.4 Trang Chi tiết ca (công khai) — `src/app/shifts/[id]/page.tsx`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610045
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674107346
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679180792
+      }
+    ],
+    "6.5 Trang Chi tiết ca (employer) — `src/app/employer/shifts/[id]/page.tsx`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610239
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674108971
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679182812
+      }
+    ],
+    "6.6 Bề mặt marketing/info còn lại": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610347
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674109372
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679183174
+      }
+    ],
+    "6.7 Bề mặt admin/disputes": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610467
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674112513
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679184695
+      }
+    ],
+    "6.8 NavBar responsive — `src/components/layout/NavBar.tsx`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610571
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674112182
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679185982
+      }
+    ],
+    "7. Checkpoint — Bảo đảm các màn ưu tiên + tài liệu ổn định": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610682
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679395579
+      }
+    ],
+    "9.1 Chạy build + lint và sửa lỗi MỚI (nếu có)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610799
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679396447
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783680047140
+      }
+    ],
+    "10. Checkpoint cuối — Bảo đảm toàn bộ cổng chất lượng đạt": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783671610922
+      },
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783680048409
+      }
+    ],
+    "2. Hoà giải drift nội bộ trong `globals.css`": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783672254818
+      }
+    ],
+    "3. Đánh bóng & siết hợp đồng token cho UI_Primitive (`src/components/ui/*`, `src/components/shift/*`)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783673095767
+      }
+    ],
+    "5. Hoà giải tài liệu khớp runtime (deliverable — thay đổi tài liệu, không đổi hành vi)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783674102137
+      }
+    ],
+    "6. Quét đánh bóng từng màn theo thứ tự ưu tiên lưu lượng (Yêu cầu 11)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783679186281
+      }
+    ],
+    "9. Cổng chất lượng (Yêu cầu 13)": [
+      {
+        "executionId": "1327503d-bd85-4086-9afc-0c5d60c75f67",
+        "chatSessionId": "sess_f713dbaf-608a-4681-98e1-db1175817455",
+        "timestamp": 1783680047403
+      }
+    ]
+  }
+}

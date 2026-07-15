@@ -13,6 +13,7 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
+import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import {
   DisputeDialog,
   DisputeResponseDialog,
@@ -24,6 +25,7 @@ import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
+import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -74,6 +76,11 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const applications = useApplicationStore((s) => s.applications);
   const apply = useApplicationStore((s) => s.apply);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
+  // Cluster 1 (Property 2, Req 2.4) — reuse the SAME check-in/check-out
+  // actions the worker dashboard uses so a check-in notification deep-link
+  // lands on a surface where the worker can act in place.
+  const checkIn = useApplicationStore((s) => s.checkIn);
+  const checkOut = useApplicationStore((s) => s.checkOut);
   const workerOpenDispute = useApplicationStore((s) => s.workerOpenDispute);
   // Phase 10C-Stab-1 Batch 2 — dispute tracking. We need the current
   // dispute (if any) to render the right status copy depending on
@@ -83,6 +90,11 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const [applyError, setApplyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  // Cluster 1 (Property 2, Req 2.4) — worker check-out dialog state, mirroring
+  // the worker dashboard: check-out opens the evidence dialog rather than
+  // firing instantly.
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [employerModalOpen, setEmployerModalOpen] = useState(false);
   // Phase 10C Wave 5 — worker-side dispute dialog state.
   const [disputeDialogOpen, setDisputeDialogOpen] = useState(false);
@@ -224,21 +236,71 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     setCancelDialogOpen(false);
   }
 
+  // Cluster 1 (Property 2, Req 2.4) — check-in / check-out handlers reused
+  // verbatim from the worker dashboard so a `ShiftStartingSoon` (or other
+  // check-in-window) notification deep-link can be acted on in place.
+  function handleCheckIn() {
+    if (!myApp) return;
+    setLoading(true);
+    const result = checkIn(myApp.id);
+    setLoading(false);
+    if (result.ok) {
+      showSuccess(t('feedback.checkIn.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
+  }
+
+  function handleCheckoutSubmit(payload: {
+    checklist?: boolean[];
+    note?: string;
+    evidenceFileName?: string;
+  }) {
+    if (!myApp) return;
+    setLoading(true);
+    const result = checkOut({ applicationId: myApp.id, ...payload });
+    setLoading(false);
+    if (result.ok) {
+      showSuccess(
+        t('feedback.checkOut.success'),
+        t('feedback.checkOut.success.desc'),
+      );
+      setCheckoutDialogOpen(false);
+      setCheckoutError(null);
+      return;
+    }
+    // Keep the dialog open so the worker can correct the evidence payload;
+    // surface the typed store error inline and as a toast.
+    const message = toastFromStoreError(result.error);
+    setCheckoutError(message);
+    showError(message);
+  }
+
   const positionsLeft = shift.positionsTotal - shift.positionsFilled;
+
+  // Cluster 1 (Property 2, Req 2.4) — gate the check-in/check-out CTA with
+  // the SAME time-gate predicates the dashboard uses. `myApp` is already
+  // scoped to the current authenticated worker, so a deep-link can never
+  // expose the action to a different user or outside the allowed window.
+  const nowIso = new Date().toISOString();
+  const showCheckIn = myApp ? canCheckIn(nowIso, myApp, shift) : false;
+  const showCheckOut = myApp ? canCheckOut(nowIso, myApp, shift) : false;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Back */}
       <Link
         href="/shifts"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-orange-600 hover:underline"
+        className="mb-4 -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-sm font-medium text-orange-700 transition-colors hover:text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
       >
         ← {t('btn.back')}
       </Link>
 
       {/* Header */}
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{shift.title}</h1>
+        <h1 className="min-w-0 text-balance break-words text-2xl font-bold text-gray-900">
+          {shift.title}
+        </h1>
         <ShiftLifecycleBadge shift={shift} applications={applications} />
       </div>
 
@@ -267,7 +329,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           <button
             type="button"
             onClick={() => setEmployerModalOpen(true)}
-            className="font-medium text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
+            className="font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
           >
             {employerName}
           </button>
@@ -320,7 +382,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             clipRule="evenodd"
           />
         </svg>
-        <span>{shift.location}</span>
+        <span className="min-w-0 break-words">{shift.location}</span>
       </div>
 
       {/* Payment status */}
@@ -441,6 +503,44 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             loading={loading}
             error={applyError}
           />
+        )}
+
+        {/* Cluster 1 (Property 2, Req 2.4) — check-in / check-out action.
+            This is the deep-link target for check-in notifications
+            (`ShiftStartingSoon`, ...). It renders ONLY for the worker who
+            owns this application and ONLY while the same time gates the
+            dashboard uses (`canCheckIn` / `canCheckOut`) allow it, so a
+            notification link can't expose the action to the wrong user or
+            outside the window. Wiring (actions, dialog, labels) is reused
+            from the worker dashboard's UpcomingShiftCard. */}
+        {worker && myApp && (showCheckIn || showCheckOut) && (
+          <div className="mt-4 flex flex-col items-start gap-2 border-t border-gray-100 pt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              {showCheckIn && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={handleCheckIn}
+                  loading={loading}
+                >
+                  {t('btn.checkIn')}
+                </Button>
+              )}
+              {showCheckOut && (
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => {
+                    setCheckoutError(null);
+                    setCheckoutDialogOpen(true);
+                  }}
+                  loading={loading}
+                >
+                  {t('btn.checkOut')}
+                </Button>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Phase 10C-Stab-1 Batch 4B — absent dispute banner.
@@ -805,6 +905,26 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         />
       )}
 
+      {/* Cluster 1 (Property 2, Req 2.4) — worker check-out dialog. Mounted
+          as a sibling of the cancel dialog and reusing the dashboard's
+          <CheckoutDialog/> so the evidence payload flow is identical. Opens
+          from the check-out CTA above; resolves the live application + shift
+          so a background lifecycle update never leaves it stale. */}
+      {worker && myApp && (
+        <CheckoutDialog
+          open={checkoutDialogOpen}
+          onClose={() => {
+            setCheckoutDialogOpen(false);
+            setCheckoutError(null);
+          }}
+          application={myApp}
+          shift={shift}
+          onSubmit={handleCheckoutSubmit}
+          loading={loading}
+          errorMessage={checkoutError}
+        />
+      )}
+
       {/* Cancel confirmation dialog */}
       {myApp && (
         <CancelApplicationDialog
@@ -843,7 +963,7 @@ function InfoItem({
       <p
         className={[
           'mt-0.5 text-sm font-semibold',
-          highlight ? 'text-orange-600' : 'text-gray-900',
+          highlight ? 'text-orange-700' : 'text-gray-900',
         ].join(' ')}
       >
         {value}
@@ -883,7 +1003,7 @@ function WorkplaceCard({ shift }: { shift: Shift }) {
       {/* Mock image placeholder — renders the filename + a generic
           icon so the worker sees something concrete without us hosting
           actual photos in the MVP. */}
-      <div className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-4">
+      <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
         {hasImage ? (
           <div className="flex items-start gap-3">
             <span
@@ -942,7 +1062,7 @@ function WorkplaceCard({ shift }: { shift: Shift }) {
               {shift.onSiteContactPhone && (
                 <a
                   href={`tel:${shift.onSiteContactPhone}`}
-                  className="font-medium text-orange-600 hover:underline"
+                  className="font-medium text-orange-700 hover:underline"
                 >
                   {shift.onSiteContactPhone}
                 </a>

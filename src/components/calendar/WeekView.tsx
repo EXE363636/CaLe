@@ -217,7 +217,12 @@ export function WeekView({
                     }
                     style={{ height: SLOT_ROW_HEIGHT }}
                     aria-label={`${formatDateVN(date)} ${slot.startTime}-${slot.endTime}`}
-                    className="block w-full border-t border-gray-100 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50"
+                    // P3 focus: empty slot cells are flush in a tight grid,
+                    // so an offset ring would overlap neighbours. Use an
+                    // INSET ring (plus the existing bg tint) so keyboard
+                    // focus is clearly visible without spilling over
+                    // adjacent cells.
+                    className="block w-full border-t border-gray-100 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400"
                   />
                 ))}
 

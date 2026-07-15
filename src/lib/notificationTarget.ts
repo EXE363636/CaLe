@@ -33,6 +33,21 @@ const WALLET_KINDS: ReadonlySet<NotificationKind> = new Set([
 ]);
 
 /**
+ * Worker check-in / check-out window prompts (Cluster 1, Property 2,
+ * Req 2.4). Tapping one of these should deep-link the worker to the shift
+ * detail — which now hosts the check-in / check-out action — so they can
+ * act in place instead of detouring back to `/worker/dashboard`. These are
+ * the lifecycle "window" kinds a worker receives: the shift is about to
+ * start (`ShiftStartingSoon`), has started (`ShiftStarted` → check in), or
+ * has ended without a check-out (`ShiftEnded` → check out).
+ */
+const WORKER_CHECKIN_KINDS: ReadonlySet<NotificationKind> = new Set([
+  'ShiftStartingSoon',
+  'ShiftStarted',
+  'ShiftEnded',
+]);
+
+/**
  * Resolve the deeplink for a notification, given the recipient's role.
  *
  * Returns a relative URL string (path + optional query) or `undefined`
@@ -58,6 +73,16 @@ export function resolveNotificationTarget(
   // Wallet events → wallet history on the recipient's own dashboard.
   if (WALLET_KINDS.has(notification.kind)) {
     return walletHistoryLink(r);
+  }
+
+  // Worker check-in / check-out window prompts → the worker shift detail,
+  // which hosts the matching check-in / check-out action. Fall back to the
+  // worker dashboard when no shift id is available. Scoped to the worker
+  // view: an employer who happens to receive one of these keeps the prior
+  // behavior (it falls through to the switch / `undefined`), so no existing
+  // routing regresses.
+  if (r !== 'employer' && WORKER_CHECKIN_KINDS.has(notification.kind)) {
+    return shiftLink('worker', shiftId) ?? '/worker/dashboard';
   }
 
   switch (notification.kind) {

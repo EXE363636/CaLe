@@ -4,14 +4,16 @@ import { useMemo, useState, useCallback, type ReactNode } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
-import { useUserStore, asEmployer } from '@/stores/userStore';
+import { useUserStore, asEmployer, getWorkerReputation } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useWalletStore } from '@/stores/walletStore';
 import {
   getWorkerVerificationSummary,
   useVerificationStore,
 } from '@/stores';
+import { deriveEmployerPaidOut, sumDepositBasis } from '@/domain/finance';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
@@ -39,6 +41,10 @@ function EmployerDashboardContent() {
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
   const applications = useApplicationStore((s) => s.applications);
+  // Cluster 3 · BUG 5 (Req 2.5): subscribe to the append-only wallet ledger so
+  // the employer's paid-out tile stays reactive and is derived from the single
+  // money source (see `totalPaidOut` below).
+  const ledger = useWalletStore((s) => s.ledger);
   const allNotifications = useNotificationStore((s) => s.notifications);
   const notifications = useMemo(
     () =>
@@ -128,9 +134,23 @@ function EmployerDashboardContent() {
     [shifts, employer],
   );
 
-  const totalDeposited = myShifts.reduce((acc, s) => acc + s.depositAmount, 0);
+  // Cluster 3 · BUG 5 (Req 2.5): source the employer money tiles from the single
+  // derived money module instead of two independent reductions.
+  // - "Tổng đã đảm bảo" (totalDeposited) keeps its CUMULATIVE-deposit meaning —
+  //   Σ depositAmount over the employer's non-Draft shifts — via `sumDepositBasis`.
+  //   That equals the previous `myShifts.reduce(...)` exactly, so the number is
+  //   UNCHANGED; only its source is unified.
+  // - "Tổng đã chi trả" (totalPaidOut) becomes the wages actually RELEASED from
+  //   the wallet ledger for this employer's shifts (`deriveEmployerPaidOut`),
+  //   rather than Σ completed `shift.depositAmount`. This legitimately CHANGES
+  //   the figure for any completed shift with unfilled positions (or a partial
+  //   release): the deposit basis counted positions no wage was released for,
+  //   while the released-wage basis reconciles with what workers received.
+  const totalDeposited = employer ? sumDepositBasis(shifts, employer.id) : 0;
   const completedShifts = myShifts.filter((s) => s.status === 'Completed');
-  const totalPaidOut = completedShifts.reduce((acc, s) => acc + s.depositAmount, 0);
+  const totalPaidOut = employer
+    ? deriveEmployerPaidOut(ledger, employer.id, { shifts, applications })
+    : 0;
   const activeShifts = myShifts.filter((s) =>
     ['Published', 'FullyBooked', 'InProgress', 'AwaitingConfirmation'].includes(s.status),
   );
@@ -145,37 +165,28 @@ function EmployerDashboardContent() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="relative isolate mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
       {/* Phase 9T — subtle decorative warmth anchored to the top-right
           of the dashboard. See worker dashboard for rationale. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
       />
-      {/* Welcome strip — UI-VISUAL-REDESIGN-1: bold gradient command-center
-          hero. Employer leans a deeper orange→rose gradient so the
-          employer area reads as visually distinct from the worker side. */}
-      <header className="entrance-up relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-rose-500 p-6 text-white shadow-card sm:p-7">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-rose-300/30 blur-2xl"
-        />
-        <div className="relative flex flex-wrap items-start gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold text-white shadow-sm ring-2 ring-white/40 backdrop-blur-sm">
+      {/* Quieter — compact white "command center" header matching the
+          worker dashboard: white surface, soft border, ink text, one
+          orange primary CTA. Warmth comes from the page bg + white card
+          (DESIGN.md: One Orange Rule / Warmth-From-Background). */}
+      <header className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-xl font-bold text-orange-700 ring-1 ring-orange-100">
             {getUserInitials(employer.companyName)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              {t('employer.dashboard.title')}
-            </p>
-            <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">
+            <p className="text-sm text-gray-500">{t('employer.dashboard.title')}</p>
+            <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
               {employer.companyName}
             </h1>
-            <p className="mt-1 text-sm text-white/90">
+            <p className="mt-1 text-sm text-gray-500">
               {activeShifts.length > 0
                 ? t('employer.dashboard.welcome.active').replace(
                     '{count}',
@@ -224,13 +235,13 @@ function EmployerDashboardContent() {
             />
             <Link
               href="/employer/schedule"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-white/50 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
               {t('employer.dashboard.viewSchedule')}
             </Link>
             <Link
               href="/employer/shifts/new"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-orange-700 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-orange-400 hover:shadow-md active:bg-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
               {t('btn.postShift')}
             </Link>
@@ -241,7 +252,7 @@ function EmployerDashboardContent() {
       {/* Stats — Phase 9H: each tile opens a dedicated detail modal
           (no more scroll-to-section, which was misleading when the
           target section wasn't actually on the dashboard). */}
-      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <section className="order-2 mb-8 mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:order-none lg:mt-0 lg:grid-cols-3">
         <StatTile
           label={t('employer.dashboard.stats.activeShifts')}
           value={String(activeShifts.length)}
@@ -292,9 +303,10 @@ function EmployerDashboardContent() {
         />
       </section>
 
-      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. */}
+      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
+          this follows the work area + stats (order-3); desktop unchanged. */}
       {currentUserId && (
-        <section className="mb-8">
+        <section className="order-3 mb-8 lg:order-none">
           <WalletPanel
             userId={currentUserId}
             role="employer"
@@ -303,19 +315,22 @@ function EmployerDashboardContent() {
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Mobile-first ordering — the work area (active shifts + pending
+          applicants + notifications) leads on small screens (order-1),
+          above the stats + wallet. */}
+      <div className="order-1 grid gap-6 lg:order-none lg:grid-cols-3">
         {/* Main */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Active shifts */}
           <section id="employer-active-shifts">
-            <div className="mb-3 flex items-baseline justify-between">
+            <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
                 {t('employer.dashboard.upcomingShifts')}
               </h2>
               {activeShifts.length > 0 && (
                 <Link
                   href="/employer/schedule"
-                  className="text-xs font-medium text-orange-600 hover:underline"
+                  className="text-xs font-medium text-orange-700 hover:underline"
                 >
                   {t('employer.dashboard.viewSchedule')} →
                 </Link>
@@ -335,7 +350,7 @@ function EmployerDashboardContent() {
                 }
               />
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {activeShifts.map((shift) => (
                   <Link href={`/employer/shifts/${shift.id}`} key={shift.id}>
                     <ShiftCard shift={shift} applications={applications} showEscrow />
@@ -348,7 +363,7 @@ function EmployerDashboardContent() {
           {/* Pending applications */}
           {pendingApps.length > 0 && (
             <section id="employer-pending-apps">
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">
                 {t('employer.dashboard.pendingApps').replace('{count}', String(pendingApps.length))}
               </h2>
               <div className="flex flex-col gap-2">
@@ -383,7 +398,7 @@ function EmployerDashboardContent() {
               {unreadCount > 0 && (
                 <button
                   onClick={() => markAllRead(employer.id)}
-                  className="text-xs text-orange-600 hover:underline"
+                  className="text-xs text-orange-700 hover:underline"
                 >
                   {t('btn.markAllRead')}
                 </button>
@@ -451,7 +466,7 @@ function EmployerDashboardContent() {
                   learnMoreHref="/user-guide#employer-total-paid"
                 />
               </dt>
-              <dd className="mt-1 text-base font-bold text-orange-600">
+              <dd className="mt-1 text-base font-bold text-orange-700">
                 {formatVND(totalPaidOut)}
               </dd>
             </div>
@@ -503,7 +518,7 @@ function EmployerDashboardContent() {
                           {formatTimeVN(shift.endTime)}
                         </p>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold text-orange-600">
+                      <span className="shrink-0 text-sm font-semibold text-orange-700">
                         {formatVND(shift.depositAmount)}
                       </span>
                     </li>
@@ -633,6 +648,10 @@ function EmployerDashboardContent() {
                 const w = users.find((u) => u.id === a.workerId);
                 const worker = w?.role === 'worker' ? w : null;
                 const wName = worker?.fullName ?? 'Người làm';
+                // Cluster 2 · BUG 3 (Req 2.3): read the applicant's reputation
+                // through the single shared source so this badge matches the
+                // worker's own dashboard / trust chip. Same clamped value.
+                const repScore = worker ? getWorkerReputation(worker.id) : 0;
                 return (
                   <li
                     key={a.id}
@@ -657,16 +676,16 @@ function EmployerDashboardContent() {
                             <span
                               className={[
                                 'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                                worker.reputationScore >= 80
+                                repScore >= 80
                                   ? 'bg-emerald-50 text-emerald-700'
-                                  : worker.reputationScore >= 50
+                                  : repScore >= 50
                                     ? 'bg-amber-50 text-amber-700'
                                     : 'bg-red-50 text-red-700',
                               ].join(' ')}
                             >
                               {t('employer.detail.pending.repBadge').replace(
                                 '{score}',
-                                String(worker.reputationScore),
+                                String(repScore),
                               )}
                             </span>
                             {/* Phase 10A-Fix-4 — verification chips
@@ -679,7 +698,7 @@ function EmployerDashboardContent() {
                               worker={worker}
                               workerDocuments={workerDocuments}
                             />
-                            <span className="text-[10px] text-gray-400">
+                            <span className="text-[10px] text-gray-500">
                               {t('employer.detail.pending.completedShifts').replace(
                                 '{count}',
                                 String(worker.completedShiftCount),
@@ -766,14 +785,14 @@ function ShiftListModal({
                       {formatTimeVN(shift.endTime)}
                     </p>
                     {shift.location && (
-                      <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                      <p className="mt-0.5 truncate text-[11px] text-gray-500">
                         {shift.location}
                       </p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <ShiftLifecycleBadge shift={shift} applications={applications} />
-                    <span className="text-[11px] font-semibold text-orange-600">
+                    <span className="text-[11px] font-semibold text-orange-700">
                       {formatVND(shift.depositAmount)}
                     </span>
                   </div>
@@ -786,7 +805,7 @@ function ShiftListModal({
                   <Link
                     href={`/employer/shifts/${shift.id}`}
                     onClick={onClose}
-                    className="text-[11px] font-medium text-orange-600 hover:underline"
+                    className="text-[11px] font-medium text-orange-700 hover:underline"
                   >
                     {t('btn.viewDetail')} →
                   </Link>
@@ -830,6 +849,7 @@ function StatTile({
   value,
   suffix,
   tone = 'neutral',
+  icon,
   onClick,
   ariaLabel,
 }: {
@@ -841,21 +861,15 @@ function StatTile({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
-  // UI-VISUAL-REDESIGN-1 — premium employer stat tile, in sync with the
-  // worker dashboard: colourful gradient icon chip + tinted card wash.
+  // Quieter — stat tiles are calm: white surface, soft border, no tinted
+  // wash and no saturated gradient chips. Colour is a small accent on the
+  // icon glyph + the value only (DESIGN.md: One Orange / status-as-accent).
   const toneChip: Record<Tone, string> = {
-    brand: 'bg-gradient-to-br from-orange-400 to-orange-600 text-white ring-orange-200',
-    neutral: 'bg-gradient-to-br from-slate-400 to-slate-600 text-white ring-slate-200',
-    good: 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-emerald-200',
-    warn: 'bg-gradient-to-br from-amber-400 to-amber-500 text-white ring-amber-200',
-    bad: 'bg-gradient-to-br from-red-400 to-red-600 text-white ring-red-200',
-  };
-  const toneWash: Record<Tone, string> = {
-    brand: 'from-orange-50/80',
-    neutral: 'from-slate-50',
-    good: 'from-emerald-50/80',
-    warn: 'from-amber-50/80',
-    bad: 'from-red-50/80',
+    brand: 'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
+    neutral: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
+    good: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
+    warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
+    bad: 'bg-red-50 text-red-600 ring-1 ring-red-100',
   };
   const toneText: Record<Tone, string> = {
     brand: 'text-orange-600',
@@ -865,10 +879,8 @@ function StatTile({
     bad: 'text-red-600',
   };
 
-  const baseClasses = [
-    'group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-5 text-left w-full shadow-card',
-    `bg-gradient-to-br ${toneWash[tone]} to-white`,
-  ].join(' ');
+  const baseClasses =
+    'group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 text-left w-full shadow-card';
 
   const interactiveClasses = onClick
     ? 'motion-lift cursor-pointer hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
@@ -882,23 +894,25 @@ function StatTile({
         </p>
         {icon && (
           <span
-            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-2', toneChip[tone]].join(' ')}
+            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', toneChip[tone]].join(' ')}
             aria-hidden="true"
           >
             <TileIcon name={icon} />
           </span>
         )}
       </div>
-      <p className={['mt-3 text-3xl font-extrabold leading-none', toneText[tone]].join(' ')}>
+      <p className={['mt-3 text-2xl font-extrabold leading-none', toneText[tone]].join(' ')}>
         {value}
         {suffix && (
           <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
         )}
       </p>
       {onClick && (
+        // Persistent affordance (not hover-only) so touch users see the
+        // tile is tappable; calm gray by default, orange on hover/focus.
         <span
           aria-hidden="true"
-          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
         >
           Xem chi tiết →
         </span>
@@ -922,7 +936,6 @@ function StatTile({
   return <div className={baseClasses}>{body}</div>;
 }
 
-<<<<<<< HEAD
 function TileIcon({ name }: { name: IconName }) {
   const cls = 'h-5 w-5';
   switch (name) {
@@ -976,8 +989,6 @@ function TileIcon({ name }: { name: IconName }) {
   }
 }
 
-=======
->>>>>>> 13cc5657a5b0800a8d1d5e1fc64c581b0d44168c
 // ---------------------------------------------------------------------------
 // Phase 10A-Fix-4 — live verification chips
 // ---------------------------------------------------------------------------

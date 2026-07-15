@@ -55,7 +55,7 @@ export default function DisputesPage() {
         bằng văn bản về{' '}
         <a
           href="mailto:support@caledo.vn"
-          className="text-orange-600 hover:underline"
+          className="text-orange-700 hover:underline"
         >
           support@caledo.vn
         </a>

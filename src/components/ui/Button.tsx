@@ -12,26 +12,34 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Variant styling for the four button intents. Phase 9 polish:
- *   - `primary` gets a subtle gradient + orange shadow ring on hover for
- *     extra "tap me" affordance.
- *   - `secondary` keeps the outlined orange look but tightens hover bg.
- *   - `ghost` reads as a tertiary action with muted hover.
- *   - `danger` keeps red but with consistent hover shadow.
+ * Variant styling for the four button intents. Colors are drawn from the
+ * design token ramp (orange-*, gray-*, red-*) — no discrete hex literals.
  *
- * All variants share the same focus ring (`focus-visible:ring-orange-400`)
- * so keyboard users get a uniform accent. Disabled state explicitly
- * removes shadows so the button reads as inactive.
+ *   - `primary` is a SOLID brand fill: `bg-orange-500` (#FF9A5F) with DARK
+ *     ink text `text-gray-900` (#37373B). GUARDRAIL: never a gradient and
+ *     never white text on the light orange. The dark-ink-on-#FF9A5F pairing
+ *     is intentional and meets WCAG AA — a contrast tool flagging it is a
+ *     known false-positive; do not "fix" it back to white or #f97316.
+ *   - `secondary` is the outlined orange action (white bg, orange border/text).
+ *   - `ghost` is a tertiary action with a muted neutral hover.
+ *   - `danger` is a solid red action (`bg-red-600` + white text) that stays
+ *     above the 4.5:1 contrast floor across its hover/active states.
+ *
+ * Every variant exposes distinguishable default / hover / active / disabled
+ * states drawn from tokens, and shares one focus ring
+ * (`focus-visible:ring-orange-400` + offset) so keyboard focus is uniform.
  */
 const variantClasses: Record<ButtonVariant, string> = {
   primary: [
-    'bg-gradient-to-b from-orange-500 to-orange-600 text-white',
-    'shadow-sm hover:shadow-md hover:from-orange-500 hover:to-orange-700',
-    'active:from-orange-600 active:to-orange-700',
-    'disabled:from-orange-300 disabled:to-orange-300 disabled:shadow-none',
+    // Solid brand fill: #FF9A5F (orange-500) with dark ink #37373B
+    // (text-gray-900). No gradient, no white text (guardrail). Hover/active
+    // lighten within the orange ramp; dark ink keeps >=4.5:1 throughout.
+    'bg-orange-500 text-gray-900',
+    'shadow-sm hover:bg-orange-400 hover:shadow-md active:bg-orange-300',
+    'disabled:bg-orange-200 disabled:text-gray-500 disabled:shadow-none',
   ].join(' '),
   secondary: [
-    'bg-white text-orange-600 border border-orange-500',
+    'bg-white text-orange-700 border border-orange-500',
     'shadow-sm hover:bg-orange-50 hover:shadow-md active:bg-orange-100',
     'disabled:opacity-50 disabled:shadow-none',
   ].join(' '),
@@ -41,10 +49,12 @@ const variantClasses: Record<ButtonVariant, string> = {
     'disabled:opacity-50',
   ].join(' '),
   danger: [
-    'bg-gradient-to-b from-red-500 to-red-600 text-white',
-    'shadow-sm hover:shadow-md hover:from-red-500 hover:to-red-700',
-    'active:from-red-600 active:to-red-700',
-    'disabled:from-red-300 disabled:to-red-300 disabled:shadow-none',
+    // Solid danger fill from the red token ramp. White text stays >=4.5:1
+    // (red-600/700/800 all clear the AA floor; the prior red-500 gradient
+    // end did not). No gradient — flat token fill like the other variants.
+    'bg-red-600 text-white',
+    'shadow-sm hover:bg-red-700 hover:shadow-md active:bg-red-800',
+    'disabled:bg-red-300 disabled:shadow-none',
   ].join(' '),
 };
 
@@ -87,7 +97,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {loading && (
           <svg
-            className="h-4 w-4 animate-spin"
+            // P3 reduced-motion: `btn-loading-spinner` marker lets
+            // globals.css swap the aggressive spin for a gentle opacity
+            // pulse under `prefers-reduced-motion: reduce`. The spinner
+            // stays visible and the button stays disabled — loading logic,
+            // the `loading` prop, and this markup are unchanged.
+            className="h-4 w-4 animate-spin btn-loading-spinner"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"

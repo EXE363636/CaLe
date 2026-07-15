@@ -51,10 +51,10 @@ export function InfoPage({
       <header className="info-page-hero relative mb-8 overflow-hidden">
         <RouteBackdrop variant="page" className="opacity-70" />
         <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+          <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
             {eyebrow}
           </p>
-          <h1 className="mt-1 text-3xl font-bold text-gray-900 sm:text-4xl">
+          <h1 className="mt-1 text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
             {title}
           </h1>
           <p className="mt-3 text-base leading-relaxed text-gray-600">
@@ -76,10 +76,17 @@ export function InfoPage({
               className={[
                 // Phase 9Z-Fix-3: `.cta-arrow-nudge` shifts the inner
                 // `<span class="cta-arrow">` 4 px right on hover/focus.
-                'cta-arrow-nudge inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-sm transition-colors',
+                // Shared focus ring mirrors the Button primitive so keyboard
+                // focus is uniform across both CTA variants (Req 10.3).
+                'cta-arrow-nudge inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
                 cta.variant === 'secondary'
                   ? 'border border-orange-300 bg-white text-orange-700 hover:bg-orange-50'
-                  : 'bg-gradient-to-b from-orange-500 to-orange-600 text-white hover:from-orange-500 hover:to-orange-700',
+                  : // Primary CTA follows the Button primitive contract:
+                    // SOLID #FF9A5F (orange-500) + dark ink #37373B
+                    // (text-gray-900). GUARDRAIL: never a gradient, never
+                    // white text on light orange. Hover/active lighten within
+                    // the orange ramp; dark ink stays >=4.5:1 throughout.
+                    'bg-orange-500 text-gray-900 hover:bg-orange-400 active:bg-orange-300',
               ].join(' ')}
             >
               {cta.label}

@@ -76,7 +76,7 @@ export function EmployerConfirmationPanel({
   return (
     <section
       aria-labelledby={`employer-confirm-${application.id}`}
-      className="ml-2 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 shadow-sm"
+      className="ml-2 rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm"
     >
       <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
         <div>

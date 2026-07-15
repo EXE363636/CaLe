@@ -128,7 +128,7 @@ export function NotificationBell() {
                 onClick={() => {
                   markAllRead(currentUserId);
                 }}
-                className="text-xs text-orange-600 hover:underline"
+                className="text-xs text-orange-700 hover:underline"
               >
                 {t('btn.markAllRead')}
               </button>

@@ -50,10 +50,15 @@ export function AuthSidePanel({ mode }: AuthSidePanelProps) {
 
   return (
     <aside className="hidden lg:block">
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-8 text-white shadow-xl">
+      {/* Brand palette — the entry panel uses the brand DARK ink
+          (gray-900, remapped to #37373B in globals) as a solid surface so
+          its white/light text stays high-contrast (white on the light
+          #FF9A5F primary would fail). Warmth is carried by the coral/peach
+          decorative blobs below, kept on-palette (no off-palette amber). */}
+      <div className="relative overflow-hidden rounded-3xl bg-gray-900 p-8 text-white shadow-xl">
         {/* Decorative blobs */}
         <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-        <div className="absolute -bottom-16 -left-12 h-48 w-48 rounded-full bg-amber-200/20 blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-16 -left-12 h-48 w-48 rounded-full bg-orange-200/20 blur-3xl" aria-hidden="true" />
 
         <div className="relative">
           <Link href="/" className="inline-flex text-2xl font-extrabold tracking-tight">

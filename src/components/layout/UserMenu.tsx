@@ -46,6 +46,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
+import { getWorkerReputation } from '@/stores/userStore';
 import { useToastStore } from '@/stores/toastStore';
 import { showSuccess } from '@/lib/toast';
 import { navigateWithIntent } from '@/lib/notificationAction';
@@ -146,7 +147,9 @@ function roleLabel(user: User): string {
 
 function trustChip(user: User): { label: string; tone: 'good' | 'warn' | 'neutral' } {
   if (user.role === 'worker') {
-    const score = (user as Worker).reputationScore;
+    // Cluster 2 · BUG 3 (Req 2.3): read through the single shared source so
+    // the trust chip matches the worker dashboard / employer badges exactly.
+    const score = getWorkerReputation(user.id);
     return {
       label: t('nav.userMenu.chip.reputation').replace('{score}', String(score)),
       tone: score >= 80 ? 'good' : score >= 50 ? 'warn' : 'neutral',
@@ -306,7 +309,7 @@ export function UserMenu() {
         </span>
         <svg
           className={[
-            'h-3.5 w-3.5 text-gray-400 transition-transform',
+            'h-3.5 w-3.5 text-gray-400 transition-transform motion-reduce:transition-none',
             open ? 'rotate-180' : '',
           ].join(' ')}
           viewBox="0 0 20 20"
@@ -330,7 +333,7 @@ export function UserMenu() {
           ].join(' ')}
         >
           {/* User summary card */}
-          <div className="flex items-start gap-3 rounded-lg bg-gradient-to-r from-orange-50 via-amber-50 to-white px-3 py-3">
+          <div className="flex items-start gap-3 rounded-lg bg-orange-50 px-3 py-3">
             <UserAvatar name={name} avatarUrl={avatarUrl} size="md" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-gray-900">

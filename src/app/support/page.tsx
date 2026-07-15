@@ -16,7 +16,7 @@ export default function SupportPage() {
         Gửi email về{' '}
         <a
           href="mailto:support@caledo.vn"
-          className="font-medium text-orange-600 hover:underline"
+          className="font-medium text-orange-700 hover:underline"
         >
           support@caledo.vn
         </a>

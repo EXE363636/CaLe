@@ -99,7 +99,11 @@ export function Modal({
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
-      {/* Backdrop — solid dark layer, no backdrop-blur (Phase 9G fix). */}
+      {/* Backdrop — solid `bg-slate-900/60` layer. No `backdrop-blur`
+          (Phase 9G fix) AND no elevation/lift shadow: per the
+          frontend-visual-polish spec (Req 4.4) the `shadow-modal` lift is
+          the panel's alone, never the backdrop. Keep this className free of
+          any `shadow-*` / `backdrop-blur-*` utility. */}
       <div
         className="modal-backdrop-anim fixed inset-0 bg-slate-900/60"
         onClick={onClose}
@@ -131,6 +135,13 @@ export function Modal({
             // elevation (`shadow-modal`) adopted from the Bolt reference,
             // replacing the harsher `shadow-2xl`. Entrance animation
             // (`modal-panel-anim`) and portal behaviour are unchanged.
+            //
+            // frontend-visual-polish spec (Req 4.4 / 4.5): the PANEL is the
+            // only surface carrying the lift shadow, and it consumes the
+            // shared `shadow-modal` token — a two-layer soft elevation
+            // (blur >= 8px, alpha <= 0.12 per layer) defined in globals.css.
+            // Keep it token-backed; never inline a hard single-layer shadow
+            // (e.g. `shadow-2xl`) or bump the alpha above 0.12.
             'modal-panel-anim relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-modal',
             'ring-1 ring-black/5 focus:outline-none',
             className,

@@ -44,15 +44,29 @@ interface ToastProps {
   version?: number;
 }
 
+/**
+ * Semantic tone palette — sourced from Design_Tokens through Tailwind color
+ * utilities ONLY (no discrete hex literals). Each tone maps to the design
+ * system's canonical status family so a Toast reads consistently with the
+ * matching `Badge` tone (Req 1.2, 1.4, 1.5):
+ *
+ *   success → green    error → red    info → blue    warning → amber
+ *
+ * The icon chip (bg-50 + text-600), hairline ring (family-200) and progress
+ * bar (family-500) share one family per tone. Entrance / progress / shake
+ * motion lives in `globals.css` (`toast-anim`, `toast-progress`,
+ * `toast-shake`) and is disabled under `prefers-reduced-motion` there — the
+ * progress bar then holds a static full-width state (Req 7.3, 8.5).
+ */
 const tonePalette: Record<
   ToastTone,
   { ring: string; icon: string; bar: string; progress: string }
 > = {
   success: {
-    ring: 'ring-emerald-200',
-    icon: 'text-emerald-600 bg-emerald-50',
-    bar: 'before:bg-emerald-500',
-    progress: 'bg-emerald-500',
+    ring: 'ring-green-200',
+    icon: 'text-green-600 bg-green-50',
+    bar: 'before:bg-green-500',
+    progress: 'bg-green-500',
   },
   error: {
     ring: 'ring-red-200',

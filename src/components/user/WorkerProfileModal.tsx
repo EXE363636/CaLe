@@ -19,11 +19,13 @@ import { useMemo } from 'react';
 import { Modal, StarRating, Badge } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
+import { SkillProgressBar } from './SkillProgressBar';
 import {
   getWorkerVerificationSummary,
   useVerificationStore,
 } from '@/stores';
 import { averageRating } from '@/domain/rating';
+import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Worker } from '@/types';
@@ -44,6 +46,22 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
       worker ? getWorkerVerificationSummary(worker, workerDocuments) : null,
     [worker, workerDocuments],
   );
+
+  // BUG 11 / Property 9 — render each skill as a per-skill level/progress bar
+  // derived from THIS worker's own `skillScores`, replacing the old flat
+  // name-only chips. `buildSkillDisplayList` appends DEFAULT_SKILL_CATEGORIES
+  // placeholders (Cấp 1 / 0 XP) so a worker's OWN dashboard/profile is never
+  // blank — but an employer viewing a SPECIFIC worker must see only the skills
+  // this worker actually earned (BUG 10 — "not hard-coded the same for
+  // everyone"), so we filter those injected placeholders back out to the
+  // worker's real recorded categories (kept in the XP-desc order
+  // buildSkillDisplayList already applies to the real scores).
+  const recordedSkills = useMemo(() => {
+    const recorded = new Set((worker?.skillScores ?? []).map((s) => s.category));
+    return buildSkillDisplayList(worker?.skillScores).filter((s) =>
+      recorded.has(s.category),
+    );
+  }, [worker?.skillScores]);
 
   if (!worker) return null;
 
@@ -132,10 +150,18 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
           )}
         </Section>
 
-        {/* Skills */}
-        {worker.skills.length > 0 && (
+        {/* Skills — BUG 11 / Property 9: each recorded skill renders a derived
+            level ("Cấp N") + XP/score progress bar from THIS worker's own
+            skillScores, not flat identical chips. Only the worker's real
+            recorded skills are shown (no fabricated default placeholders); when
+            the worker has no skill data the section is omitted (Property 16). */}
+        {recordedSkills.length > 0 && (
           <Section title={t('employer.applicant.skills')}>
-            <ChipList items={worker.skills} />
+            <ul className="flex flex-col gap-2">
+              {recordedSkills.map((entry) => (
+                <SkillProgressBar key={entry.category} entry={entry} />
+              ))}
+            </ul>
           </Section>
         )}
 

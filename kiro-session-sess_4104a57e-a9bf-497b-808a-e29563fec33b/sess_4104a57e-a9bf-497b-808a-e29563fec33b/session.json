@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "dataModelVersion": 1,
+  "id": "sess_4104a57e-a9bf-497b-808a-e29563fec33b",
+  "title": "Critique xong worker dashboard",
+  "agentMode": "vibe",
+  "workspacePaths": [
+    "f:\\CaLe"
+  ],
+  "createdAt": "2026-07-07T16:13:08.927Z",
+  "lastModifiedAt": "2026-07-08T08:11:47.171Z",
+  "modelId": "claude-opus-4.8",
+  "autopilot": true,
+  "effortLevel": "xhigh",
+  "semanticReviewEnabled": true,
+  "ftaEnabled": false,
+  "specPlanEnabled": false,
+  "specWorkflow": "quick",
+  "specSkipClarificationEnabled": true,
+  "description": "Đã sửa P0 merge conflict + bug icon ở 2 dashboard (tsc sạch), rồi critique worker dashboard: 28/40. Đang trình bày báo cáo và hỏi hướng ưu tiên tiếp theo.",
+  "status": "failed"
+}

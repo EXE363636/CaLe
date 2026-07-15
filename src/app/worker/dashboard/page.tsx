@@ -4,11 +4,12 @@ import { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
-import { useUserStore, asWorker } from '@/stores/userStore';
+import { useUserStore, asWorker, getWorkerReputation } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useWalletStore } from '@/stores/walletStore';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
@@ -18,6 +19,7 @@ import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { deriveAttendanceState, attendanceCopyKey } from '@/domain/attendanceState';
 import { suggestShiftsForWorker } from '@/domain/availabilityMatch';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
+import { deriveWorkerIncome } from '@/domain/finance';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { getShiftLifecycleState } from '@/domain/shiftLifecycleState';
@@ -55,6 +57,10 @@ function WorkerDashboardContent() {
   const submitFeedback = useEmployerFeedbackStore((s) => s.submit);
   const allNotifications = useNotificationStore((s) => s.notifications);
   const scheduleBlocks = useScheduleStore((s) => s.blocks);
+  // Cluster 3 · BUG 5 (Req 2.5): subscribe to the append-only wallet ledger so
+  // the worker's income tile stays reactive and is derived from the single
+  // money source (see `totalEarnings` below).
+  const ledger = useWalletStore((s) => s.ledger);
   const notifications = useMemo(
     () =>
       currentUserId
@@ -182,7 +188,15 @@ function WorkerDashboardContent() {
 
   // Stats
   const completedShifts = myApps.filter((a) => a.status === 'Confirmed');
-  const totalEarnings = completedShifts.reduce((acc, a) => acc + (a.payoutAmount ?? 0), 0);
+  // Cluster 3 · BUG 5 (Req 2.5): the worker's total income is derived from the
+  // single money source — the wallet ledger's wage-release credits
+  // (`deriveWorkerIncome`) — instead of summing per-application `payoutAmount`
+  // snapshots. This makes the income tile + income modal reconcile with the
+  // wallet balance and every other money surface. For a clean account the
+  // figure is unchanged (each confirmed shift released its payout to the
+  // wallet); it legitimately differs only when a wage was partially released
+  // (a resolved dispute), where the ledger reflects what the wallet holds.
+  const totalEarnings = worker ? deriveWorkerIncome(ledger, worker.id) : 0;
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   // Phase 3: derive the worker's current cancellation quota whenever the
@@ -439,6 +453,10 @@ function WorkerDashboardContent() {
   if (!worker) return null;
 
   const restricted = worker.reputationScore < 50;
+  // Cluster 2 · BUG 3 (Req 2.3): read the displayed reputation through the
+  // single shared source so this tile matches every other surface. Returns
+  // the same clamped `worker.reputationScore` — no visible change.
+  const reputationScore = getWorkerReputation(worker.id);
 
   function handleCheckIn(appId: string) {
     setActionLoading(appId);
@@ -519,7 +537,7 @@ function WorkerDashboardContent() {
   }
 
   return (
-    <div className="relative isolate mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
       {/* Phase 9T — subtle decorative warmth anchored to the top-right
           of the dashboard, behind every card. Same principle as the
           homepage hero blobs: low alpha, blurred, pointer-events-none,
@@ -531,30 +549,21 @@ function WorkerDashboardContent() {
         aria-hidden="true"
         className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
       />
-      {/* Welcome hero — UI-VISUAL-REDESIGN-1: bold warm gradient panel
-          with a larger avatar ring + decorative blobs so the worker
-          dashboard opens on a premium, branded surface. */}
-      <header className="entrance-up relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-6 text-white shadow-card sm:p-7">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-16 right-1/3 h-40 w-40 rounded-full bg-amber-300/30 blur-2xl"
-        />
-        <div className="relative flex flex-wrap items-start gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl font-bold text-white shadow-sm ring-2 ring-white/40 backdrop-blur-sm">
+      {/* Quieter — the dashboard opens on a compact "dispatch block",
+          not a marketing hero: white surface, soft border, ink text, one
+          orange primary CTA. Warmth comes from the page's cream bg + the
+          white card (DESIGN.md: One Orange Rule / Warmth-From-Background). */}
+      <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-xl font-bold text-orange-700 ring-1 ring-orange-100">
             {getUserInitials(worker.fullName)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              {t('worker.dashboard.welcome')}
-            </p>
-            <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">
+            <p className="text-sm text-gray-500">{t('worker.dashboard.welcome')}</p>
+            <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
               {worker.fullName}
             </h1>
-            <p className="mt-1 text-sm text-white/90">
+            <p className="mt-1 text-sm text-gray-500">
               {worker.completedShiftCount > 0
                 ? t('worker.dashboard.welcome.veteran').replace(
                     '{count}',
@@ -601,15 +610,21 @@ function WorkerDashboardContent() {
               ]}
               cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
+            {/* THE single page-level primary CTA (One-Orange / Req 2.4,
+                11.3). This inline Link replicates the Button primitive's
+                primary contract exactly — solid bg-orange-500 (#FF9A5F) +
+                dark ink text-gray-900 (#37373B), no gradient, no white
+                text, shared hover/active/focus treatment — so it never
+                drifts from `<Button variant="primary">`. */}
             <Link
               href="/shifts"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-orange-700 shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-orange-400 hover:shadow-md active:bg-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
               {t('btn.findShift')}
             </Link>
             <Link
               href="/worker/schedule"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-white/50 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
               {t('nav.schedule')}
             </Link>
@@ -624,18 +639,18 @@ function WorkerDashboardContent() {
         </div>
       )}
 
-      {/* Stats grid — UI-VISUAL-REDESIGN-1: premium colourful tiles with
-          icon chips, larger gap so the overview reads as a marketplace
-          dashboard. */}
-      <section className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* Stats grid — calm reference metrics. On mobile these sit BELOW
+          the actionable work area (order-2) so the worker sees "Ca sắp
+          tới" first; on desktop they return to the top strip. */}
+      <section className="order-2 mb-8 mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:order-none lg:mt-0">
         <StatTile
           label={t('worker.dashboard.stats.reputationScore')}
-          value={String(worker.reputationScore)}
+          value={String(reputationScore)}
           suffix="/ 100"
           tone={
-            worker.reputationScore >= 80
+            reputationScore >= 80
               ? 'good'
-              : worker.reputationScore >= 50
+              : reputationScore >= 50
                 ? 'warn'
                 : 'bad'
           }
@@ -680,8 +695,9 @@ function WorkerDashboardContent() {
         />
       </section>
 
-      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. */}
-      <section className="mb-8">
+      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
+          this follows the work area + stats (order-3); desktop unchanged. */}
+      <section className="order-3 mb-8 lg:order-none">
         <WalletPanel
           userId={worker.id}
           role="worker"
@@ -689,7 +705,9 @@ function WorkerDashboardContent() {
         />
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* Mobile-first ordering — the work area (upcoming + actions) leads
+          on small screens (order-1), above the stats + wallet. */}
+      <div className="order-1 grid gap-6 lg:order-none lg:grid-cols-3">
         {/* Main column */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Upcoming */}
@@ -767,119 +785,148 @@ function WorkerDashboardContent() {
             )}
           </section>
 
-          {/* Phase 6: recently-rejected applications. Surfaces the
-              employer's rejection reason so the worker doesn't have to
-              dig through notifications. */}
-          {recentlyRejected.length > 0 && (
+          {/* Distill — the three "bad-news" histories (rejected,
+              employer-cancelled, expired) are consolidated into ONE
+              collapsible "Lịch sử gần đây". The work area now leads with
+              the next shift + action; past setbacks stay one tap away
+              (progressive disclosure), collapsed by default. */}
+          {recentlyRejected.length +
+            recentlyCancelledByEmployer.length +
+            recentlyExpired.length >
+            0 && (
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">
-                {t('worker.dashboard.recentlyRejected')}
-              </h2>
-              <div className="flex flex-col gap-3">
-                {recentlyRejected.map((a) => {
-                  const shift = getShift(a.shiftId);
-                  if (!shift) return null;
-                  return (
-                    <RejectedApplicationCard
-                      key={a.id}
-                      application={a}
-                      shift={shift}
+              <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
+                <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                  <span className="text-sm font-semibold text-gray-900">
+                    Lịch sử gần đây
+                    <span className="ml-1 font-normal text-gray-500">
+                      (
+                      {recentlyRejected.length +
+                        recentlyCancelledByEmployer.length +
+                        recentlyExpired.length}
+                      )
+                    </span>
+                  </span>
+                  <svg
+                    className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                      clipRule="evenodd"
                     />
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                  </svg>
+                </summary>
+                <div className="flex flex-col gap-5 border-t border-gray-100 px-5 py-4">
+                  {recentlyRejected.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                        {t('worker.dashboard.recentlyRejected')}
+                      </h3>
+                      <div className="flex flex-col gap-3">
+                        {recentlyRejected.map((a) => {
+                          const shift = getShift(a.shiftId);
+                          if (!shift) return null;
+                          return (
+                            <RejectedApplicationCard
+                              key={a.id}
+                              application={a}
+                              shift={shift}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-          {/* Phase 10A-Fix-7: recently-cancelled-by-employer
-              applications. Each card is a `<Link>` to `/shifts/{id}`
-              where the cancellation banner explains the reason and the
-              worker-protection note. */}
-          {recentlyCancelledByEmployer.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">
-                Ca làm bị nhà tuyển dụng hủy
-              </h2>
-              <div className="flex flex-col gap-3">
-                {recentlyCancelledByEmployer.map((a) => {
-                  const shift = getShift(a.shiftId);
-                  if (!shift) return null;
-                  return (
-                    <Link key={a.id} href={`/shifts/${shift.id}`}>
-                      <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900">
-                              {shift.title}
-                            </p>
-                            <p className="mt-0.5 text-sm text-gray-500">
-                              {formatDateVN(shift.date)} •{' '}
-                              {formatTimeVN(shift.startTime)}–
-                              {formatTimeVN(shift.endTime)}
-                            </p>
-                          </div>
-                          <Badge tone="danger">
-                            {t('application.status.CancelledByEmployer')}
-                          </Badge>
-                        </div>
-                        {shift.employerCancellationReason && (
-                          <p className="mt-2 text-sm text-gray-700">
-                            <span className="font-medium">Lý do:</span>{' '}
-                            {shift.employerCancellationReason}
-                          </p>
-                        )}
-                        <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                          Bạn không bị trừ điểm uy tín hoặc hạn mức hủy
-                          vì ca do nhà tuyển dụng hủy.
-                        </p>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                  {recentlyCancelledByEmployer.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                        Ca làm bị nhà tuyển dụng hủy
+                      </h3>
+                      <div className="flex flex-col gap-3">
+                        {recentlyCancelledByEmployer.map((a) => {
+                          const shift = getShift(a.shiftId);
+                          if (!shift) return null;
+                          return (
+                            <Link key={a.id} href={`/shifts/${shift.id}`}>
+                              <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900">
+                                      {shift.title}
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-gray-500">
+                                      {formatDateVN(shift.date)} •{' '}
+                                      {formatTimeVN(shift.startTime)}–
+                                      {formatTimeVN(shift.endTime)}
+                                    </p>
+                                  </div>
+                                  <Badge tone="danger">
+                                    {t('application.status.CancelledByEmployer')}
+                                  </Badge>
+                                </div>
+                                {shift.employerCancellationReason && (
+                                  <p className="mt-2 text-sm text-gray-700">
+                                    <span className="font-medium">Lý do:</span>{' '}
+                                    {shift.employerCancellationReason}
+                                  </p>
+                                )}
+                                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                                  Bạn không bị trừ điểm uy tín hoặc hạn mức hủy
+                                  vì ca do nhà tuyển dụng hủy.
+                                </p>
+                              </Card>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
-          {/* Phase 10A-Fix-10: recently-expired applications. Pending
-              applications that the employer never approved before the
-              shift started land here. Each card links to the shift
-              detail where the worker can see the same expiry note. */}
-          {recentlyExpired.length > 0 && (
-            <section>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">
-                Đơn ứng tuyển đã hết hạn
-              </h2>
-              <div className="flex flex-col gap-3">
-                {recentlyExpired.map((a) => {
-                  const shift = getShift(a.shiftId);
-                  if (!shift) return null;
-                  return (
-                    <Link key={a.id} href={`/shifts/${shift.id}`}>
-                      <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900">
-                              {shift.title}
-                            </p>
-                            <p className="mt-0.5 text-sm text-gray-500">
-                              {formatDateVN(shift.date)} •{' '}
-                              {formatTimeVN(shift.startTime)}–
-                              {formatTimeVN(shift.endTime)}
-                            </p>
-                          </div>
-                          <Badge tone="neutral">
-                            {t('application.status.Expired')}
-                          </Badge>
-                        </div>
-                        <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                          Ca đã bắt đầu trước khi đơn của bạn được duyệt.
-                          Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.
-                        </p>
-                      </Card>
-                    </Link>
-                  );
-                })}
-              </div>
+                  {recentlyExpired.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                        Đơn ứng tuyển đã hết hạn
+                      </h3>
+                      <div className="flex flex-col gap-3">
+                        {recentlyExpired.map((a) => {
+                          const shift = getShift(a.shiftId);
+                          if (!shift) return null;
+                          return (
+                            <Link key={a.id} href={`/shifts/${shift.id}`}>
+                              <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900">
+                                      {shift.title}
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-gray-500">
+                                      {formatDateVN(shift.date)} •{' '}
+                                      {formatTimeVN(shift.startTime)}–
+                                      {formatTimeVN(shift.endTime)}
+                                    </p>
+                                  </div>
+                                  <Badge tone="neutral">
+                                    {t('application.status.Expired')}
+                                  </Badge>
+                                </div>
+                                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                                  Ca đã bắt đầu trước khi đơn của bạn được duyệt.
+                                  Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.
+                                </p>
+                              </Card>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </details>
             </section>
           )}
 
@@ -906,9 +953,13 @@ function WorkerDashboardContent() {
                           </p>
                         </div>
                         {!showForm && (
+                          // Secondary, not primary: the page's single
+                          // primary CTA is the header "Tìm ca làm" (Req
+                          // 2.4/2.5, 11.3). This per-card action uses the
+                          // outlined orange secondary style.
                           <Button
                             size="sm"
-                            variant="primary"
+                            variant="secondary"
                             onClick={() => setFeedbackForAppId(a.id)}
                           >
                             {t('worker.dashboard.feedbackBtn')}
@@ -1008,55 +1059,73 @@ function WorkerDashboardContent() {
             </section>
           )}
 
-          {/* PRODUCT-UX-FIX-BACKEND-PREP-1 Part 2 — compact skill
-              summary. Shows the worker's top 4 skill cards (real
-              scores first, then default casual-job placeholders) so the
-              progression is visible on the dashboard, not only the
-              profile. Links to the full list on the profile. */}
+          {/* Distill — the skill summary + reputation tips motivate but
+              aren't the worker's immediate job, so they're demoted into
+              one collapsed disclosure. The dashboard leads with shifts +
+              actions; growth/coaching stays one tap away. */}
           <section>
-            <Card>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-gray-900">
-                  {t('skill.dashboard.title')}
-                </h2>
-                <Link
-                  href="/worker/profile"
-                  className="text-xs font-medium text-orange-600 hover:underline"
+            <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <span className="text-sm font-semibold text-gray-900">
+                  Kỹ năng & giữ uy tín
+                </span>
+                <svg
+                  className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
                 >
-                  {t('btn.viewDetail')}
-                </Link>
-              </div>
-              <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
-                {t('skill.section.intro')}
-              </p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {buildSkillDisplayList(worker.skillScores)
-                  .slice(0, 4)
-                  .map((entry) => (
-                    <SkillProgressBar
-                      key={entry.category}
-                      entry={entry}
-                      compact
-                    />
-                  ))}
-              </div>
-            </Card>
-          </section>
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </summary>
+              <div className="flex flex-col gap-4 border-t border-gray-100 px-5 py-4">
+                {/* Skill summary */}
+                <div>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      {t('skill.dashboard.title')}
+                    </h3>
+                    <Link
+                      href="/worker/profile"
+                      className="text-xs font-medium text-orange-700 hover:underline"
+                    >
+                      {t('btn.viewDetail')}
+                    </Link>
+                  </div>
+                  <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
+                    {t('skill.section.intro')}
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {buildSkillDisplayList(worker.skillScores)
+                      .slice(0, 4)
+                      .map((entry) => (
+                        <SkillProgressBar
+                          key={entry.category}
+                          entry={entry}
+                          compact
+                        />
+                      ))}
+                  </div>
+                </div>
 
-          {/* Phase 6: reputation rules note — surfaced on the dashboard
-              so workers see how to recover. */}
-          <section>
-            <Card className="bg-orange-50/40">
-              <p className="text-sm font-semibold text-orange-800">
-                {t('worker.dashboard.reputationHint.title')}
-              </p>
-              <p className="mt-1 text-xs text-orange-700">
-                {t('worker.dashboard.reputationHint.gain')}
-              </p>
-              <p className="mt-1 text-xs text-orange-700">
-                {t('worker.dashboard.reputationHint.lose')}
-              </p>
-            </Card>
+                {/* Reputation recovery tips */}
+                <div className="rounded-xl border border-orange-100 bg-orange-50/40 px-4 py-3">
+                  <p className="text-sm font-semibold text-orange-800">
+                    {t('worker.dashboard.reputationHint.title')}
+                  </p>
+                  <p className="mt-1 text-xs text-orange-700">
+                    {t('worker.dashboard.reputationHint.gain')}
+                  </p>
+                  <p className="mt-1 text-xs text-orange-700">
+                    {t('worker.dashboard.reputationHint.lose')}
+                  </p>
+                </div>
+              </div>
+            </details>
           </section>
         </div>
 
@@ -1068,7 +1137,7 @@ function WorkerDashboardContent() {
               {unreadCount > 0 && (
                 <button
                   onClick={() => markAllRead(worker.id)}
-                  className="text-xs text-orange-600 hover:underline"
+                  className="text-xs text-orange-700 hover:underline"
                 >
                   {t('btn.markAllRead')}
                 </button>
@@ -1165,34 +1234,41 @@ function WorkerDashboardContent() {
             {/* UI-VISUAL-REDESIGN-1 — bold score hero with a ring gauge so
                 the reputation modal opens on a strong visual, not a flat
                 number. The gauge is a conic-gradient ring sized by score. */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 px-5 py-5 text-white shadow-card">
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/15 blur-2xl"
-              />
-              <div className="relative flex items-center gap-4">
+            {/* Quieter — white score card (was a drenched orange→amber
+                gradient with white text + blob). The conic gauge is kept
+                but now reads its stops from the LIVE theme tokens: an
+                orange-500 (#FF9A5F) arc on a soft orange-100 track, with an
+                orange number, so orange stays a small accent and text is
+                ink. Using `var(--color-orange-500)`/`var(--color-orange-100)`
+                (emitted by the Tailwind `@theme` block) keeps the gauge on
+                the current palette and carries NO raw hex — the previous
+                `#f97316`/`#f1f5f9` stops were the stale orange + a slate
+                track. Score is still shown as text (gauge is aria-hidden);
+                the `* 3.6` degree derivation is unchanged. */}
+            <div className="rounded-2xl border border-gray-200 bg-white px-5 py-5 shadow-card">
+              <div className="flex items-center gap-4">
                 <div
                   className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded-full"
                   style={{
-                    background: `conic-gradient(rgba(255,255,255,0.95) ${worker.reputationScore * 3.6}deg, rgba(255,255,255,0.25) 0deg)`,
+                    background: `conic-gradient(var(--color-orange-500) ${worker.reputationScore * 3.6}deg, var(--color-orange-100) 0deg)`,
                   }}
                   aria-hidden="true"
                 >
-                  <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-orange-500/90 px-1">
-                    <span className="text-xl font-extrabold leading-none text-white">
+                  <div className="flex h-[60px] w-[60px] items-center justify-center rounded-full bg-white px-1">
+                    <span className="text-xl font-extrabold leading-none text-orange-600">
                       {worker.reputationScore}
                     </span>
                   </div>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-white/80">
+                  <p className="text-xs text-gray-500">
                     {t('worker.dashboard.reputationModal.currentLabel')}
                   </p>
-                  <p className="mt-0.5 text-2xl font-extrabold text-white">
+                  <p className="mt-0.5 text-2xl font-extrabold text-gray-900">
                     {worker.reputationScore}
-                    <span className="ml-1 text-sm font-medium text-white/80">/ 100</span>
+                    <span className="ml-1 text-sm font-medium text-gray-500">/ 100</span>
                   </p>
-                  <p className="mt-1 text-xs text-white/90">
+                  <p className="mt-1 text-xs text-gray-600">
                     {worker.reputationScore >= 80
                       ? t('worker.dashboard.reputationModal.bandGood')
                       : worker.reputationScore >= 50
@@ -1216,7 +1292,7 @@ function WorkerDashboardContent() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/70 to-white px-3 py-2.5">
+              <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
                   {t('worker.dashboard.reputationModal.completedLabel')}
                 </p>
@@ -1224,7 +1300,7 @@ function WorkerDashboardContent() {
                   {worker.completedShiftCount}
                 </p>
               </div>
-              <div className="rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50/70 to-white px-3 py-2.5">
+              <div className="rounded-xl border border-orange-100 bg-white px-3 py-2.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
                   {t('worker.dashboard.reputationModal.ratingsLabel')}
                 </p>
@@ -1488,8 +1564,8 @@ function WorkerDashboardContent() {
         }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
-          <div className="rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 px-4 py-3 ring-1 ring-orange-100">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-orange-600">
+          <div className="rounded-xl bg-orange-50 px-4 py-3 ring-1 ring-orange-100">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-orange-700">
               {t('worker.dashboard.incomeModal.totalLabel')}
             </p>
             <p className="mt-1 text-2xl font-extrabold text-orange-700">
@@ -1560,7 +1636,7 @@ function WorkerDashboardContent() {
                             </p>
                           )}
                         </div>
-                        <span className="shrink-0 text-sm font-semibold text-orange-600">
+                        <span className="shrink-0 text-sm font-semibold text-orange-700">
                           {formatVND(app.payoutAmount ?? 0)}
                         </span>
                       </li>
@@ -1598,7 +1674,7 @@ function WorkerDashboardContent() {
         }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
-          <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-50/40 px-4 py-3 ring-1 ring-emerald-100">
+          <div className="rounded-xl bg-emerald-50 px-4 py-3 ring-1 ring-emerald-100">
             <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">
               {t('worker.dashboard.completedModal.totalLabel')}
             </p>
@@ -1695,7 +1771,7 @@ function WorkerDashboardContent() {
                           )}
                           {app.payoutAmount !== undefined &&
                             app.payoutAmount > 0 && (
-                              <span className="shrink-0 text-xs font-semibold text-orange-600">
+                              <span className="shrink-0 text-xs font-semibold text-orange-700">
                                 {formatVND(app.payoutAmount)}
                               </span>
                             )}
@@ -1757,6 +1833,7 @@ function StatTile({
   value,
   suffix,
   tone = 'neutral',
+  icon,
   onClick,
   ariaLabel,
 }: {
@@ -1768,22 +1845,15 @@ function StatTile({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
-  // UI-VISUAL-REDESIGN-1 — premium stat tile. Each tone now drives a
-  // tinted gradient icon chip + a soft tinted card wash so the overview
-  // reads as a colourful marketplace dashboard, not flat white boxes.
+  // Quieter — stat tiles are calm: white surface, soft border, no tinted
+  // wash and no saturated gradient chips. Colour is a small accent on the
+  // icon glyph + the value only (DESIGN.md: One Orange / status-as-accent).
   const toneChip: Record<Tone, string> = {
-    brand: 'bg-gradient-to-br from-orange-400 to-orange-600 text-white ring-orange-200',
-    neutral: 'bg-gradient-to-br from-slate-400 to-slate-600 text-white ring-slate-200',
-    good: 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-emerald-200',
-    warn: 'bg-gradient-to-br from-amber-400 to-amber-500 text-white ring-amber-200',
-    bad: 'bg-gradient-to-br from-red-400 to-red-600 text-white ring-red-200',
-  };
-  const toneWash: Record<Tone, string> = {
-    brand: 'from-orange-50/80',
-    neutral: 'from-slate-50',
-    good: 'from-emerald-50/80',
-    warn: 'from-amber-50/80',
-    bad: 'from-red-50/80',
+    brand: 'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
+    neutral: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
+    good: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
+    warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
+    bad: 'bg-red-50 text-red-600 ring-1 ring-red-100',
   };
   const toneText: Record<Tone, string> = {
     brand: 'text-orange-600',
@@ -1793,10 +1863,8 @@ function StatTile({
     bad: 'text-red-600',
   };
 
-  const baseClasses = [
-    'group relative overflow-hidden rounded-3xl border border-gray-100 bg-white p-5 text-left w-full shadow-card',
-    `bg-gradient-to-br ${toneWash[tone]} to-white`,
-  ].join(' ');
+  const baseClasses =
+    'group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 text-left w-full shadow-card';
 
   const interactiveClasses = onClick
     ? 'motion-lift cursor-pointer hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
@@ -1804,33 +1872,32 @@ function StatTile({
 
   const body = (
     <>
-      {/* UI-VISUAL-REDESIGN-1 — colourful icon chip restored. The chip
-          gives each tile a distinct identity (star = uy tín, check =
-          completed, wallet = thu nhập, calendar = quota) on a tinted
-          gradient so the stat grid reads as a premium dashboard. */}
       <div className="flex items-start justify-between gap-3">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           {label}
         </p>
         {icon && (
           <span
-            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-2', toneChip[tone]].join(' ')}
+            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', toneChip[tone]].join(' ')}
             aria-hidden="true"
           >
             <TileIcon name={icon} />
           </span>
         )}
       </div>
-      <p className={['mt-3 text-3xl font-extrabold leading-none', toneText[tone]].join(' ')}>
+      <p className={['mt-3 text-2xl font-extrabold leading-none', toneText[tone]].join(' ')}>
         {value}
         {suffix && (
           <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
         )}
       </p>
       {onClick && (
+        // Affordance is persistent (not hover-only) so touch users see
+        // the tile is tappable; calm gray by default, orange on
+        // hover/focus per the quieter color discipline.
         <span
           aria-hidden="true"
-          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
         >
           Xem chi tiết →
         </span>
@@ -1854,7 +1921,6 @@ function StatTile({
   return <div className={baseClasses}>{body}</div>;
 }
 
-<<<<<<< HEAD
 function TileIcon({ name }: { name: IconName }) {
   const cls = 'h-5 w-5';
   switch (name) {
@@ -1908,8 +1974,6 @@ function TileIcon({ name }: { name: IconName }) {
   }
 }
 
-=======
->>>>>>> 13cc5657a5b0800a8d1d5e1fc64c581b0d44168c
 function UpcomingShiftCard({
   application,
   shift,
@@ -1949,7 +2013,7 @@ function UpcomingShiftCard({
         <div>
           <Link
             href={`/shifts/${shift.id}`}
-            className="font-semibold text-gray-900 hover:text-orange-600"
+            className="font-semibold text-gray-900 hover:text-orange-700"
           >
             {shift.title}
           </Link>
@@ -1974,7 +2038,7 @@ function UpcomingShiftCard({
         <span>
           {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
         </span>
-        <span className="font-medium text-orange-600">{formatVND(shift.hourlyWage)}/giờ</span>
+        <span className="font-medium text-orange-700">{formatVND(shift.hourlyWage)}/giờ</span>
       </div>
 
       {attendanceCopy && (
@@ -1987,17 +2051,45 @@ function UpcomingShiftCard({
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Badge tone={badgeToneFor(application.status)}>
-          {t(`application.status.${application.status}`)}
-        </Badge>
+        {/* Quieter — the shift lifecycle badge (top-right) is the single
+            primary status chip; the worker's application status is a
+            small inline label, not a competing badge. The Approved case
+            gets a subtle emerald check so an approved-but-far shift still
+            reads as reassuring while the lifecycle badge is hidden. */}
+        {application.status === 'Approved' ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+            <svg
+              className="h-3.5 w-3.5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            {t('application.status.Approved')}
+          </span>
+        ) : (
+          <span className="text-xs font-medium text-gray-600">
+            {t(`application.status.${application.status}`)}
+          </span>
+        )}
 
+        {/* Per-row contextual actions use the outlined orange secondary
+            style, not primary: the worker dashboard's single page-level
+            primary CTA is the header "Tìm ca làm" (Req 2.4/2.5, 11.3).
+            Only the variant styling changes here — role, accessible name,
+            handler and loading state are unchanged. */}
         {showCheckIn && (
-          <Button size="sm" variant="primary" onClick={onCheckIn} loading={loading}>
+          <Button size="md" variant="secondary" onClick={onCheckIn} loading={loading}>
             {t('btn.checkIn')}
           </Button>
         )}
         {showCheckOut && (
-          <Button size="sm" variant="primary" onClick={onCheckOut} loading={loading}>
+          <Button size="md" variant="secondary" onClick={onCheckOut} loading={loading}>
             {t('btn.checkOut')}
           </Button>
         )}
@@ -2039,7 +2131,7 @@ function PendingApplicationCard({
         <div>
           <Link
             href={`/shifts/${shift.id}`}
-            className="font-semibold text-gray-900 hover:text-orange-600"
+            className="font-semibold text-gray-900 hover:text-orange-700"
           >
             {shift.title}
           </Link>
@@ -2052,7 +2144,7 @@ function PendingApplicationCard({
         <span>
           {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
         </span>
-        <span className="font-medium text-orange-600">{formatVND(shift.hourlyWage)}/giờ</span>
+        <span className="font-medium text-orange-700">{formatVND(shift.hourlyWage)}/giờ</span>
       </div>
     </Card>
   );
@@ -2071,7 +2163,7 @@ function RejectedApplicationCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/shifts/${shift.id}`}
-            className="font-semibold text-gray-900 hover:text-orange-600"
+            className="font-semibold text-gray-900 hover:text-orange-700"
           >
             {shift.title}
           </Link>
@@ -2093,22 +2185,4 @@ function RejectedApplicationCard({
       )}
     </Card>
   );
-}
-
-function badgeToneFor(status: Application['status']): 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'purple' {
-  switch (status) {
-    case 'Approved': return 'success';
-    case 'CheckedIn': return 'purple';
-    case 'CheckedOut': return 'warning';
-    case 'Confirmed': return 'success';
-    case 'Pending': return 'warning';
-    case 'CancellationRequested': return 'warning';
-    case 'Rejected': return 'danger';
-    case 'NoShow': return 'danger';
-    case 'CancelledByWorker': return 'neutral';
-    case 'CancelledByEmployer': return 'danger';
-    case 'Expired': return 'neutral';
-    case 'Disputed': return 'warning';
-    default: return 'neutral';
-  }
 }

@@ -110,7 +110,7 @@ export function MiniMonthCalendar({
           type="button"
           onClick={handlePrev}
           aria-label={t('calendar.miniMonth.aria.prev')}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
         >
           <svg
             className="h-4 w-4"
@@ -137,7 +137,7 @@ export function MiniMonthCalendar({
           type="button"
           onClick={handleNext}
           aria-label={t('calendar.miniMonth.aria.next')}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
         >
           <svg
             className="h-4 w-4"
@@ -156,7 +156,7 @@ export function MiniMonthCalendar({
         <button
           type="button"
           onClick={handleToday}
-          className="ml-1 rounded-md px-2 py-1 text-xs font-medium text-orange-600 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          className="ml-1 inline-flex min-h-[44px] items-center rounded-md px-2 py-1 text-xs font-medium text-orange-700 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
         >
           {t('calendar.today')}
         </button>
@@ -182,10 +182,10 @@ export function MiniMonthCalendar({
           const classes = [
             'flex items-center justify-center rounded-md text-sm transition-colors',
             'min-h-[44px] min-w-[44px] md:min-h-[36px] md:min-w-[36px]',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
           ];
           if (isSelected) {
-            classes.push('bg-orange-500 text-white font-semibold');
+            classes.push('bg-orange-500 text-gray-900 font-semibold');
           } else if (cell.isToday) {
             classes.push(
               cell.inMonth ? 'text-gray-900' : 'text-gray-400',

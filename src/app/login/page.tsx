@@ -81,17 +81,19 @@ export default function LoginPage() {
 
         {/* Form card */}
         <div className="w-full">
-          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-md ring-1 ring-black/5 sm:p-8">
+          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
             <div className="mb-6 text-center">
               <h1 className="text-2xl font-bold text-gray-900">{t('auth.login.title')}</h1>
-              <p className="mt-1 text-sm text-gray-500">{t('auth.login.subtitle')}</p>
+              <p className="mt-1 text-sm text-gray-600">{t('auth.login.subtitle')}</p>
             </div>
 
-            {/* Demo hint */}
-            <details className="group mb-5 rounded-xl border border-orange-100 bg-orange-50/70 px-4 py-3 text-xs text-orange-800">
-              <summary className="cursor-pointer font-semibold text-orange-700 marker:hidden list-none flex items-center justify-between">
+            {/* Demo hint — neutral surface so the sole orange anchor on the
+                screen stays the primary CTA (The One Orange Rule); borderless
+                to avoid a card-in-card look inside the auth card. */}
+            <details className="group mb-5 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between font-semibold text-gray-700 marker:hidden">
                 <span>Tài khoản demo</span>
-                <span className="transition-transform group-open:rotate-180" aria-hidden="true">▾</span>
+                <span className="transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true">▾</span>
               </summary>
               <div className="mt-2 flex flex-col gap-1">
                 <p>Người làm: <span className="font-mono">an.nguyen@gmail.com</span> / <span className="font-mono">demo</span></p>
@@ -121,7 +123,7 @@ export default function LoginPage() {
               />
 
               {errors.form && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
                   {errors.form}
                 </p>
               )}
@@ -133,7 +135,10 @@ export default function LoginPage() {
 
             <p className="mt-5 text-center text-sm text-gray-500">
               {t('auth.login.noAccount')}{' '}
-              <Link href="/register" className="font-medium text-orange-600 hover:underline">
+              <Link
+                href="/register"
+                className="rounded font-medium text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+              >
                 {t('btn.register')}
               </Link>
             </p>

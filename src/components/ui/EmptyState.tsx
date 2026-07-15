@@ -14,7 +14,7 @@ const DefaultIcon = () => (
   // Calendar-with-spark glyph — feels closer to a "schedule a shift" cue
   // than a plain document icon. Inline SVG, no external library.
   <svg
-    className="h-10 w-10 text-orange-400"
+    className="h-10 w-10 text-orange-500"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
@@ -32,6 +32,11 @@ const DefaultIcon = () => (
   </svg>
 );
 
+// Both tones keep the SHARED empty-state structure (Req 8.4): dashed border,
+// warm gradient icon chip, centered layout, and a neutral LIGHT background.
+// `tone` only warms the neutral tint — `warm` for friendly dashboard surfaces,
+// `subtle` (default) for utility surfaces (admin / search). Colours consume the
+// remapped gray + orange ramp tokens; no discrete hex.
 const toneClasses: Record<NonNullable<EmptyStateProps['tone']>, string> = {
   subtle: 'border-gray-200 bg-gray-50',
   warm: 'border-orange-100 bg-orange-50/60',
@@ -54,12 +59,14 @@ export function EmptyState({
         className,
       ].join(' ')}
     >
-      {/* UI-VISUAL-REDESIGN-1 — icon sits in a soft gradient chip so
-          empty states read as friendly designed cards, not bare glyphs. */}
-      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-orange-100 to-amber-50 shadow-sm ring-1 ring-orange-100">
+      {/* Shared empty-state anatomy (Req 8.1, 8.4): a warm GRADIENT chip holds
+          the icon so every empty region reads as one friendly, designed card.
+          The gradient + ring consume the remapped orange ramp tokens (no
+          discrete hex); border-radius is a token as well. */}
+      <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-linear-to-br from-orange-100 to-orange-300 shadow-sm ring-1 ring-orange-200/70">
         {icon ?? <DefaultIcon />}
       </div>
-      <p className="text-base font-semibold text-gray-800">{title}</p>
+      <p className="text-base font-semibold text-gray-900">{title}</p>
       {description && (
         <p className="max-w-sm text-sm leading-relaxed text-gray-500">
           {description}

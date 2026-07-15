@@ -191,7 +191,7 @@ export function EmployerFeedbackList({
             className={[
               'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
               sortMode === opt.value
-                ? 'bg-orange-500 text-white'
+                ? 'bg-orange-500 text-gray-900'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
             ].join(' ')}
           >

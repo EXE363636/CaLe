@@ -13,7 +13,7 @@ import { suggestShiftsForWorker, type ShiftMatch } from '@/domain/availabilityMa
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { ShiftFilters } from '@/components/shift/ShiftFilters';
 import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
-import { EmptyState, PageShell } from '@/components/ui';
+import { Button, EmptyState, PageShell } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { t } from '@/i18n/vi';
 import type { ApplicationStatus, Shift, Worker } from '@/types';
@@ -161,34 +161,44 @@ export default function ShiftsPage() {
     return [...ranked, ...rest];
   }, [sortMode, matchByShift, filtered]);
 
+  // Presentational helper — is any filter/search currently narrowing the
+  // list? Drives the "clear filters" affordance in the empty state so a
+  // zero-result page tells the worker *why* it's empty and how to recover.
+  // Uses only local filter UI state (no store/domain logic).
+  const hasActiveFilters =
+    searchText.trim().length > 0 ||
+    Object.values(criteria).some((v) => v != null && v !== '');
+
+  function clearAllFilters() {
+    setCriteria({});
+    setSearchText('');
+  }
+
   return (
     <PageShell width="7xl">
-      {/* Phase 9C: gradient hero header so the listing page reads as a
-          designed surface, not a bare title above filters.
-          UI-REFRESH Batch 2 — layered `shadow-card` for design-system
-          consistency with the worker dashboard/profile headers. */}
-      <header className="mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
+      {/* Quieter — calm white header consistent with the worker
+          dashboard: no uppercase eyebrow, no gradient surface. The result
+          count is a soft chip so orange stays a small accent. */}
+      <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
-              {t('shifts.listing.eyebrow')}
-            </p>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
               {t('shifts.listing.title')}
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-gray-600">
               {t('shifts.listing.subtitle')}
             </p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-orange-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+          <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-100">
             {displayShifts.length} {t('shifts.listing.matchSuffix')}
           </span>
         </div>
       </header>
 
       {/* Search + filters wrapped in a single card so they read as a
-          unified control surface. */}
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-card backdrop-blur-sm">
+          unified control surface. Solid white (no glassmorphism) so the
+          controls read crisply against the cream page background. */}
+      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
         <ShiftSearchBar
           value={searchText}
           onSearch={setSearchText}
@@ -206,15 +216,19 @@ export default function ShiftsPage() {
             <span className="text-xs font-medium text-gray-500">
               {t('availability.filter.label')}:
             </span>
+            {/* Touch targets bumped to 44px; the active sort uses a
+                uniform orange selection (One Orange Rule) with a visible
+                focus ring. The availability feature keeps its emerald
+                identity on the match pills + subtitle, not the toggle. */}
             <button
               type="button"
               onClick={() => setSortMode('default')}
               aria-pressed={sortMode === 'default'}
               className={[
-                'rounded-full px-3 py-1 text-xs font-semibold transition',
+                'inline-flex min-h-[44px] items-center rounded-full px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
                 sortMode === 'default'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                  ? 'bg-orange-500 text-gray-900 shadow-sm active:bg-orange-400'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300',
               ].join(' ')}
             >
               {t('availability.filter.default')}
@@ -224,10 +238,10 @@ export default function ShiftsPage() {
               onClick={() => setSortMode('availability')}
               aria-pressed={sortMode === 'availability'}
               className={[
-                'rounded-full px-3 py-1 text-xs font-semibold transition',
+                'inline-flex min-h-[44px] items-center rounded-full px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
                 sortMode === 'availability'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                  ? 'bg-orange-500 text-gray-900 shadow-sm active:bg-orange-400'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300',
               ].join(' ')}
             >
               {t('availability.filter.byAvailability')}
@@ -247,6 +261,18 @@ export default function ShiftsPage() {
           tone="warm"
           title={t('shifts.listing.empty')}
           description={t('shifts.listing.emptyHint')}
+          action={
+            hasActiveFilters ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                onClick={clearAllFilters}
+              >
+                {t('btn.clearFilter')}
+              </Button>
+            ) : undefined
+          }
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

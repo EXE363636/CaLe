@@ -73,7 +73,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
   return (
     <section
       aria-labelledby="payment-evidence-title"
-      className="mt-6 rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-5 shadow-sm"
+      className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5 shadow-sm"
     >
       {/* Heading + HelpPopover. The popover trigger sits inline next
           to the heading so screen readers reach it before the body. */}

@@ -22,7 +22,9 @@ const workerEntries: LegendEntry[] = [
     labelKey: 'calendar.legend.worker.personalBusy',
   },
   {
-    swatchClass: 'bg-emerald-300',
+    // P3 palette: success/positive family unified on `green-*` (was
+    // `emerald-300`) to match the `availableSlot` event-card swatch.
+    swatchClass: 'bg-green-300',
     labelKey: 'calendar.legend.worker.availableSlot',
   },
   {
@@ -45,7 +47,9 @@ const employerEntries: LegendEntry[] = [
     labelKey: 'calendar.legend.employer.fullyBooked',
   },
   {
-    swatchClass: 'bg-yellow-300',
+    // P3 palette: caution/waiting family unified on `amber-*` (was
+    // `yellow-300`) to match the `awaitingShift` event-card swatch.
+    swatchClass: 'bg-amber-300',
     labelKey: 'calendar.legend.employer.awaiting',
   },
   {

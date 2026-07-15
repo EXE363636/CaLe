@@ -57,34 +57,27 @@ function WorkerProfileContent() {
 
   return (
     <PageShell width="6xl">
-      {/* Profile hero — UI-VISUAL-REDESIGN-1: premium gradient header with
-          a large avatar ring, reputation badge, and inline quick-stats so
-          the worker profile opens like a marketplace profile, not a form. */}
-      <header className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-500 p-6 text-white shadow-card sm:p-8">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-12 -top-12 h-52 w-52 rounded-full bg-white/15 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-16 left-1/4 h-40 w-40 rounded-full bg-amber-300/30 blur-3xl"
-        />
-        <div className="relative flex flex-wrap items-center gap-5">
-          <div className="rounded-3xl bg-white/20 p-1 ring-2 ring-white/40 backdrop-blur-sm">
+      {/* Quieter — compact white profile header consistent with the
+          dashboards: white surface, soft border, ink text, orange only as
+          a small avatar accent; quick-stat chips are calm (verified = a
+          semantic emerald chip). No gradient, no eyebrow. */}
+      <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="rounded-2xl bg-orange-50 p-1 ring-1 ring-orange-100">
             <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-2xl font-bold text-white sm:text-3xl">{worker.fullName}</h1>
-            <p className="truncate text-sm text-white/85">{worker.email}</p>
+            <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{worker.fullName}</h1>
+            <p className="truncate text-sm text-gray-500">{worker.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                 ⭐ {worker.reputationScore}/100 uy tín
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                 ✓ {worker.completedShiftCount} ca hoàn thành
               </span>
               {worker.verifications.includes('phone') && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
                   📱 Đã xác minh SĐT
                 </span>
               )}
@@ -122,8 +115,14 @@ function WorkerProfileContent() {
           </Card>
 
           {/* Phase 6: reputation rules — surfaced on the profile so the
-              worker understands how to recover their score. */}
-          <Card className="bg-orange-50/40">
+              worker understands how to recover their score. VISUAL POLISH:
+              use the Card `tone="warm"` API (bg-orange-50/60 + orange-100
+              border) instead of a `bg-orange-50/40` className. The Card's
+              default `bg-white` was defined later in the compiled sheet and
+              won over the className, so the warm callout was rendering flat
+              white; the tone prop restores the intended on-palette warm
+              tint and matches the dashboard's reputation hint. */}
+          <Card tone="warm">
             <p className="font-semibold text-orange-800">
               {t('worker.dashboard.reputationHint.title')}
             </p>
@@ -330,7 +329,7 @@ function RatingsHistory({ worker }: { worker: Worker }) {
           <li key={r.id} className="rounded-lg border border-gray-100 p-3">
             <div className="flex items-center justify-between">
               <StarRating value={r.stars} readOnly size="sm" />
-              <span className="text-xs text-gray-400">{formatDateVN(r.createdAt)}</span>
+              <span className="text-xs text-gray-500">{formatDateVN(r.createdAt)}</span>
             </div>
             {r.feedback && (
               <p className="mt-1.5 text-sm text-gray-700">&ldquo;{r.feedback}&rdquo;</p>
@@ -342,26 +341,7 @@ function RatingsHistory({ worker }: { worker: Worker }) {
   );
 }
 
-function ToggleVerifyButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      size="sm"
-      variant={active ? 'ghost' : 'secondary'}
-      onClick={onClick}
-      className="justify-start"
-    >
-      {active ? '✓ ' : ''}{label}{active ? ' (đã xác minh)' : ''}
-    </Button>
-  );
-}function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
+function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-3 last:mb-0">
       <p className="text-xs font-medium text-gray-500">{label}</p>
@@ -487,7 +467,11 @@ function WorkerIdentityVerificationCard({
       {/* Phone verification row — Phase 10A-Fix-6 merged from the
           legacy "Xác minh" card. Phone has no separate doc model in
           the MVP, so it stays a `worker.verifications` flag toggle. */}
-      <div className="mb-3 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
+      {/* P3 card-in-card: inner rows made flush inside the white Card —
+          dropped the `border border-gray-200 bg-white` box treatment for a
+          soft `bg-gray-50` tint so the rows read as grouped panels, not
+          nested cards. Grouping + content unchanged. */}
+      <div className="mb-3 rounded-lg bg-gray-50 px-3 py-2 text-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="font-medium text-gray-900">
             Xác minh số điện thoại
@@ -500,14 +484,22 @@ function WorkerIdentityVerificationCard({
           Cần thiết trước khi ứng tuyển. Trong bản MVP đây chỉ là mô phỏng,
           không gửi OTP thật.
         </p>
-        <ToggleVerifyButton
-          label={phoneVerified ? t('btn.verifyPhone') : t('btn.verifyPhone')}
-          active={phoneVerified}
+        {/* Honesty — this is a simulated verification toggle for the demo
+            (no real OTP is sent). The label says so explicitly and the
+            action can be undone; it never claims a real verification. */}
+        <Button
+          size="sm"
+          variant={phoneVerified ? 'ghost' : 'secondary'}
           onClick={() => onTogglePhone('phone')}
-        />
+          className="mt-2 justify-start"
+        >
+          {phoneVerified
+            ? '✓ Đã xác minh (mô phỏng) — bấm để hoàn tác'
+            : 'Mô phỏng xác minh SĐT (demo)'}
+        </Button>
       </div>
 
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+      <p className="mb-2 text-xs font-semibold text-gray-700">
         Xác minh danh tính
       </p>
       <div className="flex flex-col gap-2">
@@ -517,7 +509,10 @@ function WorkerIdentityVerificationCard({
           return (
             <div
               key={type}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+              // P3 card-in-card: flush soft-tint row (was
+              // `border border-gray-200 bg-white`) so identity-doc rows
+              // group inside the white Card without nesting card borders.
+              className="rounded-lg bg-gray-50 px-3 py-2 text-sm"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-900">

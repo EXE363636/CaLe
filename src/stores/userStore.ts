@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import { MAX_SCORE, MIN_SCORE } from '@/domain/reputation';
 import type { User, Worker, Employer } from '@/types';
 
 interface UserStore {
@@ -72,4 +73,32 @@ export function asWorker(u: User | undefined): Worker | undefined {
 
 export function asEmployer(u: User | undefined): Employer | undefined {
   return u && u.role === 'employer' ? u : undefined;
+}
+
+/**
+ * Single shared reputation reader (Cluster 2 · BUG 3, Req 2.3).
+ *
+ * Read-only accessor: looks the user up in `userStore` and, when they are a
+ * worker, returns their `reputationScore` clamped to the domain bounds
+ * `[MIN_SCORE, MAX_SCORE]` from `@/domain/reputation`. Every surface that
+ * DISPLAYS a worker's reputation — the worker dashboard `StatTile`, the
+ * `UserMenu` trust chip, the employer applicant badges, and (from task 9.2)
+ * the landing hero — reads through this one function so the same worker shows
+ * an identical value everywhere (Property 4).
+ *
+ * It does NOT modify the scoring rules in `@/domain/reputation`; it only
+ * re-clamps a stored value defensively. Stored scores are already clamped to
+ * `[0, 100]`, so this is a no-op for valid data and never changes the number
+ * a surface renders (Property 12 preservation).
+ *
+ * Missing user / non-worker: returns `MIN_SCORE` (0). This is a fail-closed
+ * default for a defensive path only — real callers invoke it for a confirmed
+ * worker (each surface guards on role / worker existence first), so the
+ * fallback is not reached during normal rendering. Returning the floor rather
+ * than a neutral or high value avoids ever implying trust for an unknown id.
+ */
+export function getWorkerReputation(userId: string): number {
+  const worker = asWorker(useUserStore.getState().findById(userId));
+  if (!worker) return MIN_SCORE;
+  return Math.min(MAX_SCORE, Math.max(MIN_SCORE, worker.reputationScore));
 }

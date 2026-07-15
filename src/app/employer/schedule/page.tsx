@@ -209,8 +209,14 @@ function SchedulePageContent() {
           className="border-0 shadow-none"
         />
       </div>
+      {/* One-primary rule (Req 2.4): the toolbar "Đăng ca" is this
+          surface's single page-level primary (matching the worker
+          schedule, where the primary lives in the toolbar). This
+          sidebar shortcut to the SAME action is a secondary (outlined)
+          affordance so only one solid-orange primary shows at rest —
+          which also trims orange fill for the One Orange Rule (Req 2.2). */}
       <Link href="/employer/shifts/new" className="block">
-        <Button variant="primary" className="w-full">
+        <Button variant="secondary" className="w-full">
           {t('btn.postShift')}
         </Button>
       </Link>
@@ -246,7 +252,7 @@ function SchedulePageContent() {
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
           <span>{t('schedule.slotCfg.toggle')}</span>
           <span
-            className="text-xs text-gray-500 transition-transform group-open:rotate-180"
+            className="text-xs text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none"
             aria-hidden="true"
           >
             ▾
@@ -333,7 +339,7 @@ function SchedulePageContent() {
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
               {t('nav.employerSchedule')}
             </p>
             <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">

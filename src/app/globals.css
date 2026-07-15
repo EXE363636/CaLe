@@ -33,24 +33,93 @@
 @source "../**/*.ts";
 @source "../**/*.tsx";
 
-:root {
-  /* Page chrome — soft warm gradient anchor + readable foreground. */
-  --background: #f8fafc;       /* slate-50 fallback for older browsers */
-  --foreground: #0f172a;       /* slate-900 — body text */
+/* ============================================================================
+ * CANONICAL DESIGN TOKENS — SINGLE SOURCE OF TRUTH  (NGUỒN SỰ THẬT CHUẨN)
+ * ----------------------------------------------------------------------------
+ * ANCHOR: the `:root` custom properties plus the two `@theme` blocks that
+ * follow are the ONE canonical runtime source of truth for the CaLẻ brand
+ * palette. `DESIGN.md` and `.impeccable/design.json` are DOCUMENTATION kept
+ * in sync with THESE values — never the reverse (Req 1.7).
+ *
+ * Canonical brand palette (already WCAG AA — DO NOT re-color these values):
+ *   --background  #FFF4E9  cream / page background  -> --color-background, bg-*
+ *   --foreground  #37373B  ink / body text          -> --color-foreground,
+ *                                                       gray-900, slate-900
+ *   --brand       #FF9A5F  primary accent           -> orange-500
+ *   --brand-soft  #FFD5AE  soft neutral (chips)     -> orange-200
+ * The orange ramp remap + ink alias live in the `@theme` block below.
+ *
+ * RULE (Req 1.1, 1.3, 1.4): brand-palette hex literals are declared ONLY
+ * inside this canonical block. Do NOT redeclare a brand hex ad-hoc anywhere
+ * else in `:root` / `@theme`; everything else consumes the tokens through
+ * Tailwind utilities (`orange-*`, `gray-900`, `slate-900`, `bg-*`, `text-*`,
+ * `ring-*`) or `var(--…)`.
+ *
+ * GUARDRAIL — PRIMARY CTA (Req 1.6, locked decision):
+ *   Primary call-to-action = SOLID `#FF9A5F` fill + DARK `#37373B` text.
+ *   This pairing is intentional and meets WCAG AA 4.5:1.
+ *     - NEVER white text on the light-orange (#FF9A5F) fill.
+ *     - NEVER revert the brand orange to the old `#f97316`.
+ *     - NEVER reuse the old orange GRADIENT for a primary button.
+ *   A contrast checker flagging "dark text on light orange" here is a KNOWN
+ *   false-positive against this locked decision — do not act on it.
+ * ========================================================================== */
 
-  /* Brand palette — surfaces and accents (matches Tailwind orange-500). */
-  --brand: #f97316;            /* orange-500 */
-  --brand-soft: #ffedd5;       /* orange-100 */
-  --brand-tint: #fff7ed;       /* orange-50 */
+:root {
+  /* Brand palette alignment — cream background + warm-dark ink.
+   * Canonical anchors — see the SINGLE SOURCE OF TRUTH block above. */
+  --background: #fff4e9;       /* canonical cream page background (#FFF4E9) */
+  --foreground: #37373b;       /* canonical ink / body text (#37373B) */
+
+  /* Brand palette — primary accent + soft neutral + background tint. */
+  --brand: #ff9a5f;            /* canonical primary accent (#FF9A5F -> orange-500) */
+  --brand-soft: #ffd5ae;       /* canonical soft neutral (#FFD5AE -> orange-200) */
+  --brand-tint: var(--background); /* background tint — references --background so the
+                                    * #FFF4E9 cream can never drift from its canonical
+                                    * declaration (single source of truth) */
 
   color-scheme: light;
 }
 
+/* Canonical token region (part of the SINGLE SOURCE OF TRUTH block above):
+ * expose the canonical background/foreground to Tailwind so `bg-background`
+ * and `text-foreground` resolve to the canonical `:root` vars. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Brand palette alignment pass — remap the orange ramp + ink so the whole
+ * app picks up the brand palette through the Tailwind utilities it already
+ * uses (`orange-*`, `gray-900`, `slate-900`).
+ *   - primary  #FF9A5F  -> orange-500 (CTA/accent fills; DARK text on it)
+ *   - neutral  #FFD5AE  -> orange-200 (chips / soft callouts)
+ *   - tints 50-100 stay a touch deeper than the page bg so `bg-orange-50`
+ *     callouts remain visible on the cream background
+ *   - dark end 600-900 kept near default so `text-orange-{600,700}` links
+ *     stay readable on light surfaces (contrast)
+ *   - ink  #37373B  -> gray-900 / slate-900 (headings + body base)
+ *
+ * Canonical token region — part of the SINGLE SOURCE OF TRUTH block above.
+ * This is the ONLY place the brand orange ramp + ink hexes are declared;
+ * consume them via Tailwind utilities, never by re-hardcoding the hex. The
+ * values already pass WCAG AA — do not re-color (Req 1.1, 1.3, 1.4, 1.6). */
+@theme {
+  --color-orange-50: #ffead5;
+  --color-orange-100: #ffdbb8;
+  --color-orange-200: #ffd5ae;
+  --color-orange-300: #fec091;
+  --color-orange-400: #feac74;
+  --color-orange-500: #ff9a5f;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+  --color-orange-800: #9a3412;
+  --color-orange-900: #7c2d12;
+
+  --color-gray-900: #37373b;
+  --color-slate-900: #37373b;
 }
 
 html,
@@ -111,25 +180,12 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-image:
-    radial-gradient(
-      ellipse 1200px 720px at 0% -10%,
-      rgba(253, 186, 116, 0.22) 0%,
-      rgba(253, 186, 116, 0) 60%
-    ),
-    radial-gradient(
-      ellipse 700px 480px at 100% 20%,
-      rgba(252, 211, 77, 0.14) 0%,
-      rgba(252, 211, 77, 0) 65%
-    ),
-    radial-gradient(
-      ellipse 520px 360px at 50% 110%,
-      rgba(254, 215, 170, 0.18) 0%,
-      rgba(254, 215, 170, 0) 70%
-    ),
-    linear-gradient(180deg, #fff7ed 0%, #fff7ed 18%, #fafaf7 60%, #f8fafc 100%);
-  background-repeat: no-repeat;
-  background-attachment: scroll;
+  /* Brand palette alignment — flat cream app background (#FFF4E9). The
+   * previous warm radial + linear gradient wash was removed so app
+   * surfaces read as one clean brand background; white cards pop against
+   * it (req: no app-surface gradients, #FFF4E9 as the background). */
+  background-color: var(--background);
+  background-image: none;
 }
 
 /* ----------------------------------------------------------------------------
@@ -289,13 +345,16 @@ body {
  * supplies the visual focus.
  * ------------------------------------------------------------------------- */
 .hero-decor {
+  /* Brand palette alignment — coral (#FF9A5F) top-right wash fading into a
+   * soft peach (#FFD5AE) foot on the cream page background. Replaces the old
+   * orange-300 (#fdba74) + old-cream (#fff7ed) wash. Kept subtle. */
   background-image:
     radial-gradient(
       ellipse 900px 520px at 80% 0%,
-      rgba(253, 186, 116, 0.28) 0%,
-      rgba(253, 186, 116, 0) 60%
+      rgba(255, 154, 95, 0.18) 0%,
+      rgba(255, 154, 95, 0) 60%
     ),
-    linear-gradient(180deg, rgba(255, 247, 237, 0) 0%, rgba(255, 247, 237, 0.55) 100%);
+    linear-gradient(180deg, rgba(255, 244, 233, 0) 0%, rgba(255, 213, 174, 0.35) 100%);
 }
 
 /* ----------------------------------------------------------------------------
@@ -460,7 +519,7 @@ summary::-webkit-details-marker {
  * the grid reads as paper texture, not active chrome. */
 .bg-dot-grid {
   background-image: radial-gradient(
-    rgba(249, 115, 22, 0.10) 1px,
+    rgba(255, 154, 95, 0.10) 1px,
     transparent 1px
   );
   background-size: 22px 22px;
@@ -483,28 +542,31 @@ summary::-webkit-details-marker {
 .hero-panel {
   position: relative;
   border-radius: 24px;
+  /* Brand palette alignment — coral (#FF9A5F) + soft peach (#FFD5AE) washes
+   * over a cream→peach gradient. Replaces the old orange (#fb923c) + amber
+   * (#fcd34d) + off-palette hex (#fff7ed/#ffedd5/#fef3c7) recipe. */
   background-image:
     radial-gradient(
       ellipse 600px 420px at 100% 0%,
-      rgba(251, 146, 60, 0.22) 0%,
-      rgba(251, 146, 60, 0) 65%
+      rgba(255, 154, 95, 0.22) 0%,
+      rgba(255, 154, 95, 0) 65%
     ),
     radial-gradient(
       ellipse 500px 400px at 0% 100%,
-      rgba(252, 211, 77, 0.18) 0%,
-      rgba(252, 211, 77, 0) 60%
+      rgba(255, 213, 174, 0.30) 0%,
+      rgba(255, 213, 174, 0) 60%
     ),
-    linear-gradient(135deg, #fff7ed 0%, #ffedd5 60%, #fef3c7 100%);
+    linear-gradient(135deg, #fff4e9 0%, #ffe4cf 60%, #ffd5ae 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(251, 146, 60, 0.18),
-    0 24px 60px -28px rgba(251, 146, 60, 0.35);
+    inset 0 0 0 1px rgba(255, 154, 95, 0.18),
+    0 24px 60px -28px rgba(255, 154, 95, 0.35);
 }
 .hero-panel::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-image: radial-gradient(rgba(249, 115, 22, 0.10) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 154, 95, 0.10) 1px, transparent 1px);
   background-size: 18px 18px;
   opacity: 0.5;
   pointer-events: none;
@@ -563,7 +625,7 @@ summary::-webkit-details-marker {
  * card itself, otherwise text legibility suffers. */
 .bg-grid-soft {
   background-image: radial-gradient(
-    rgba(249, 115, 22, 0.06) 1px,
+    rgba(255, 154, 95, 0.06) 1px,
     transparent 1px
   );
   background-size: 16px 16px;
@@ -614,8 +676,8 @@ summary::-webkit-details-marker {
   background:
     radial-gradient(
       ellipse 100% 100% at 50% 0%,
-      rgba(255, 247, 237, 0.95) 0%,
-      rgba(255, 247, 237, 0) 70%
+      rgba(255, 244, 233, 0.95) 0%,
+      rgba(255, 244, 233, 0) 70%
     );
   /* Soft inverse curve sweeping down so the section visibly "lifts"
    * out of the page chrome above it. */
@@ -624,13 +686,16 @@ summary::-webkit-details-marker {
 }
 
 .audience-card-emp {
+  /* Employer strip leans coral (#FF9A5F); worker strip leans soft peach
+   * (#FFD5AE). Both replace the old orange (#fb923c) / amber (#fcd34d)
+   * header washes so the two cards stay distinct on-palette. */
   background-image:
-    linear-gradient(180deg, rgba(251, 146, 60, 0.10) 0%, rgba(251, 146, 60, 0) 80px),
+    linear-gradient(180deg, rgba(255, 154, 95, 0.10) 0%, rgba(255, 154, 95, 0) 80px),
     linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
 }
 .audience-card-wrk {
   background-image:
-    linear-gradient(180deg, rgba(252, 211, 77, 0.16) 0%, rgba(252, 211, 77, 0) 80px),
+    linear-gradient(180deg, rgba(255, 213, 174, 0.45) 0%, rgba(255, 213, 174, 0) 80px),
     linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
 }
 
@@ -645,21 +710,25 @@ summary::-webkit-details-marker {
   bottom: 8px;
   width: 2px;
   background: linear-gradient(180deg,
-    rgba(251, 146, 60, 0.35) 0%,
-    rgba(251, 146, 60, 0.10) 100%);
+    rgba(255, 154, 95, 0.35) 0%,
+    rgba(255, 154, 95, 0.10) 100%);
   pointer-events: none;
 }
 
 .cta-band {
   position: relative;
   isolation: isolate;
+  /* Brand palette alignment — dark #37373B band (brand dark) with a soft
+   * coral (#FF9A5F) glow, replacing the old orange->amber gradient that
+   * clashed with the new palette (no amber/yellow in the brand). White
+   * text stays high-contrast on the dark surface. */
+  background-color: #37373b;
   background-image:
     radial-gradient(
       ellipse 800px 320px at 20% 0%,
-      rgba(255, 255, 255, 0.18) 0%,
-      rgba(255, 255, 255, 0) 60%
-    ),
-    linear-gradient(135deg, #f97316 0%, #fb923c 50%, #f59e0b 100%);
+      rgba(255, 154, 95, 0.22) 0%,
+      rgba(255, 154, 95, 0) 60%
+    );
 }
 .cta-band::before {
   content: "";
@@ -669,8 +738,8 @@ summary::-webkit-details-marker {
   height: 32px;
   background: radial-gradient(
     ellipse 100% 100% at 50% 0%,
-    rgba(255, 247, 237, 0.85) 0%,
-    rgba(255, 247, 237, 0) 70%
+    rgba(255, 244, 233, 0.85) 0%,
+    rgba(255, 244, 233, 0) 70%
   );
   border-bottom-left-radius: 50% 100%;
   border-bottom-right-radius: 50% 100%;
@@ -748,14 +817,17 @@ summary::-webkit-details-marker {
 }
 
 .bg-route-soft {
+  /* Brand palette alignment — coral (#FF9A5F) wash + faint dot texture.
+   * Replaces the old orange (#fb923c / #f97316) rgba values so this
+   * decorative fallback layer converges on the runtime palette. */
   background-image:
     radial-gradient(
       ellipse 700px 300px at 100% 0%,
-      rgba(251, 146, 60, 0.08) 0%,
-      rgba(251, 146, 60, 0) 65%
+      rgba(255, 154, 95, 0.08) 0%,
+      rgba(255, 154, 95, 0) 65%
     ),
     radial-gradient(
-      rgba(249, 115, 22, 0.05) 1px,
+      rgba(255, 154, 95, 0.05) 1px,
       transparent 1px
     );
   background-size: auto, 22px 22px;
@@ -764,28 +836,31 @@ summary::-webkit-details-marker {
 .section-shell {
   position: relative;
   border-radius: 24px;
+  /* Brand palette alignment — coral (#FF9A5F) + soft peach (#FFD5AE) corner
+   * washes over a white→warm-white panel. Replaces the old orange (#fb923c)
+   * + amber (#fcd34d) recipe so the panel pops on the cream background. */
   background-image:
     radial-gradient(
       ellipse 600px 320px at 0% 0%,
-      rgba(251, 146, 60, 0.10) 0%,
-      rgba(251, 146, 60, 0) 65%
+      rgba(255, 154, 95, 0.10) 0%,
+      rgba(255, 154, 95, 0) 65%
     ),
     radial-gradient(
       ellipse 500px 300px at 100% 100%,
-      rgba(252, 211, 77, 0.10) 0%,
-      rgba(252, 211, 77, 0) 65%
+      rgba(255, 213, 174, 0.14) 0%,
+      rgba(255, 213, 174, 0) 65%
     ),
     linear-gradient(180deg, #ffffff 0%, #fffaf3 100%);
   box-shadow:
-    inset 0 0 0 1px rgba(251, 146, 60, 0.12),
-    0 16px 40px -28px rgba(251, 146, 60, 0.18);
+    inset 0 0 0 1px rgba(255, 154, 95, 0.12),
+    0 16px 40px -28px rgba(255, 154, 95, 0.18);
 }
 .section-shell::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-image: radial-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 154, 95, 0.06) 1px, transparent 1px);
   background-size: 18px 18px;
   opacity: 0.5;
   pointer-events: none;
@@ -798,7 +873,7 @@ summary::-webkit-details-marker {
 }
 .card-lift:hover {
   transform: translateY(-3px);
-  box-shadow: 0 18px 40px -22px rgba(251, 146, 60, 0.35);
+  box-shadow: 0 18px 40px -22px rgba(255, 154, 95, 0.35);
 }
 
 /* InfoPage hero strip — Phase 9Z. Replaces the previous flat orange
@@ -810,14 +885,17 @@ summary::-webkit-details-marker {
   position: relative;
   border-radius: 20px;
   padding: 24px 24px 20px;
+  /* Brand palette alignment — coral (#FF9A5F) corner wash over a
+   * canonical cream (#FFF4E9) -> white gradient. Replaces the old
+   * orange (#fb923c) rgba values + old cream (#fff7ed). */
   background-image:
     radial-gradient(
       ellipse 500px 240px at 100% 0%,
-      rgba(251, 146, 60, 0.14) 0%,
-      rgba(251, 146, 60, 0) 70%
+      rgba(255, 154, 95, 0.14) 0%,
+      rgba(255, 154, 95, 0) 70%
     ),
-    linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
-  box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.18);
+    linear-gradient(180deg, #fff4e9 0%, #ffffff 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 154, 95, 0.18);
   overflow: hidden;
 }
 
@@ -883,7 +961,7 @@ summary::-webkit-details-marker {
 .info-section-card {
   position: relative;
   padding-left: 1.25rem;
-  border-left: 2px solid rgba(251, 146, 60, 0.25);
+  border-left: 2px solid rgba(255, 154, 95, 0.25); /* coral #FF9A5F rail (was old orange #fb923c) */
   /* Slightly tighter top + bottom rhythm so adjacent sections breathe
    * without leaving a "gap of nothing" between them. The outer
    * `.info-content` `gap: 1.5rem` already separates blocks. */
@@ -896,7 +974,7 @@ summary::-webkit-details-marker {
   font-size: 1.0625rem;        /* between text-base (16px) and text-lg (18px) */
   line-height: 1.4;
   font-weight: 600;
-  color: #111827;              /* gray-900 */
+  color: #37373b;              /* canonical ink #37373B (gray-900) */
   margin-bottom: 0.5rem;
 }
 
@@ -906,14 +984,14 @@ summary::-webkit-details-marker {
   background: #ffffff;
   padding: 1.25rem 1.25rem 1.25rem 3.75rem;
   box-shadow:
-    inset 0 0 0 1px rgba(251, 146, 60, 0.16),
-    0 4px 16px -10px rgba(251, 146, 60, 0.18);
+    inset 0 0 0 1px rgba(255, 154, 95, 0.16), /* coral #FF9A5F ring (was old orange #fb923c) */
+    0 4px 16px -10px rgba(255, 154, 95, 0.18);
 }
 .info-step-card > h3 {
   font-size: 1.0625rem;
   line-height: 1.4;
   font-weight: 600;
-  color: #111827;
+  color: #37373b;              /* canonical ink #37373B (gray-900) */
   margin-bottom: 0.5rem;
 }
 .info-step-badge {
@@ -926,13 +1004,19 @@ summary::-webkit-details-marker {
   width: 2rem;
   height: 2rem;
   border-radius: 9999px;
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  /* Brand palette alignment — on-palette orange gradient using the
+   * runtime ramp: coral #FF9A5F (orange-500) -> deep #C2410C (orange-700).
+   * Replaces the old orange gradient (#fb923c -> #f97316). This is a
+   * DECORATIVE, aria-hidden numbered chip (NOT a primary CTA), so white
+   * text is kept; the deep end keeps the number legible. The "dark text
+   * on orange" primary-CTA rule does not apply here. */
+  background: linear-gradient(135deg, #ff9a5f 0%, #c2410c 100%);
   color: #ffffff;
   font-weight: 700;
   font-size: 0.875rem;
   box-shadow:
-    0 0 0 4px rgba(255, 247, 237, 1),
-    0 4px 8px -4px rgba(249, 115, 22, 0.5);
+    0 0 0 4px rgba(255, 244, 233, 1), /* canonical cream #FFF4E9 halo (was old cream #fff7ed) */
+    0 4px 8px -4px rgba(255, 154, 95, 0.5); /* coral #FF9A5F drop (was old orange #f97316) */
 }
 
 /* ----------------------------------------------------------------------------
@@ -1017,5 +1101,31 @@ summary::-webkit-details-marker {
 @media (min-width: 768px) {
   .public-section-rhythm {
     padding-block: 80px;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+ * P3 (Visual / A11y Polish Round 2) — Button loading spinner, reduced motion.
+ *
+ * The `<Button loading>` spinner uses Tailwind's `animate-spin` (a 1s linear
+ * rotation). Under `prefers-reduced-motion: reduce` a continuous spin can
+ * trigger vestibular discomfort, so we swap the rotation for a gentle
+ * opacity pulse. The spinner stays VISIBLE (opacity floors at 0.55) and the
+ * button stays disabled, so the control still clearly reads as "loading" —
+ * only the aggressive motion is removed. This is presentation-only and
+ * scoped to the spinner via the `.btn-loading-spinner` marker class; the
+ * loading LOGIC (the `loading` prop, disabled behaviour, spinner markup) is
+ * untouched.
+ * ------------------------------------------------------------------------- */
+@keyframes btn-spinner-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* `.animate-spin.btn-loading-spinner` (0,2,0) outranks `.animate-spin`
+   * (0,1,0), so this replaces the rotation with the pulse under the cascade
+   * without needing `!important`. */
+  .animate-spin.btn-loading-spinner {
+    animation: btn-spinner-pulse 1.6s ease-in-out infinite;
   }
 }

@@ -515,7 +515,7 @@ export function ShiftForm({
               'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
               'min-h-[44px] transition-colors duration-150',
               'placeholder:font-sans placeholder:text-gray-400',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
               errors.hourlyWage
                 ? 'border-red-400 bg-red-50 focus-visible:ring-red-400'
                 : 'border-gray-300 bg-white hover:border-gray-400',
@@ -623,7 +623,11 @@ export function ShiftForm({
         {/* Phase 10A-Fix-3 — workplace image + on-site contact info.
             Helps workers judge whether the job/location looks real
             before they apply. Mock filename only — no real upload. */}
-        <div className="md:col-span-2 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+        {/* P3 card-in-card: flush soft surface — dropped the inner
+            `border-orange-100` so this callout reads as a grouped soft
+            tint inside the white FormSection card, not a competing box.
+            Heading + fields grouping unchanged. */}
+        <div className="md:col-span-2 rounded-xl bg-orange-50/40 p-4">
           <p className="mb-1 text-sm font-semibold text-orange-900">
             {t('form.workplaceSection.title')}
           </p>
@@ -784,8 +788,12 @@ function EvidenceFieldset({
     return EVIDENCE_RANK[option] < HIGH_RISK_MIN_RANK;
   }
 
+  // P3 card-in-card: flush soft surface — dropped the inner
+  // `border-orange-100` so this evidence fieldset reads as a grouped soft
+  // tint inside the white FormSection card. Legend + radio-row grouping
+  // unchanged.
   return (
-    <fieldset className="md:col-span-2 rounded-xl border border-orange-100 bg-orange-50/40 p-4">
+    <fieldset className="md:col-span-2 rounded-xl bg-orange-50/40 p-4">
       {/*
         Per the HTML5 spec, `<legend>` must be a direct child of
         `<fieldset>` for assistive tech to associate it as the

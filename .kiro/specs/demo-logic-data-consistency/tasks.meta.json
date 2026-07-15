@@ -1,0 +1,750 @@
+{
+  "pbtResults": {
+    "1. Explore: attendance CTA under \"both confirmed present\" (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Exploration test correctly FAILED on unfixed code, proving the bug (this is the success case for a bug-condition probe).\n\nDeterministic case — input triple with deriveAttendanceState(app, shift, now) === 'BothConfirmedPresent':\n  app = { status: 'CheckedIn', checkInAt: <set>, markedPresentAt: <set> }  // worker \"Tôi đã có mặt\" + employer \"Xác nhận có mặt\"\n  shift = in-progress window [now-60m, now+60m], status 'InProgress'\n  Rendered banner (correct): \"Hai bên đã xác nhận có mặt. Đợi đến hết ca để người làm check-out.\"\n  Offending CTA (bug): a disabled red <button disabled> with text \"Đánh dấu vắng mặt\" STILL renders.\n  Assertion: expect(screen.queryAllByText('Đánh dấu vắng mặt')).toHaveLength(0)\n  Actual: length 1  ->  \"expected [ <button disabled …(3)></button> ] to have a length of +0 but got 1\"\n\nProperty case (fast-check) — counterexample: [5, 5]  (startAgoMin=5, endInMin=5)\n  \"Property failed after 1 tests { seed: -1704719076, path: '0:0:0' } Shrunk 2 time(s)\"\n  markAbsentCount === 1 (expected 0).\n\nRoot cause confirmed: the action row's `absentDisabledReason` branch\n(`!shiftTerminal && app.status === 'CheckedIn' && Boolean(app.checkInAt)`) in\nsrc/app/employer/shifts/[id]/page.tsx is truthy for BothConfirmedPresent, so the disabled\n\"Đánh dấu vắng mặt\" button renders despite the \"both confirmed\" banner. No product code changed.",
+      "lastRunTimestamp": 1783594154935
+    },
+    "2. Explore: check-in notification deep-link target (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Bug-condition exploration test FAILED on unfixed code as expected (bug confirmed). Counterexamples:\n\n(A) Resolver has no target for a worker check-in notification:\n    resolveNotificationTarget({ kind: 'ShiftStartingSoon', shiftId: 's1' }, 'worker')\n      → returned: undefined\n      → expected: '/shifts/s1' (= shiftLink('worker','s1'))\n    Cause: resolveNotificationTarget (src/lib/notificationTarget.ts) has no case for 'ShiftStartingSoon'; it is not in WALLET_KINDS and falls through the switch to `default: return undefined`.\n\n(A') Fallback also missing:\n    resolveNotificationTarget({ kind: 'ShiftStartingSoon' }, 'worker')\n      → returned: undefined\n      → expected: '/worker/dashboard'\n\n(B) Deep-link target does not host the action:\n    src/app/shifts/[id]/page.tsx source contains none of canCheckIn / canWorkerCheckIn / btn.checkIn / canCheckOut / btn.checkOut\n      → hostsCheckInAction = false, hostsCheckOutAction = false\n      → expected: true/true\n    The worker check-in/check-out CTA lives ONLY on /worker/dashboard (UpcomingShiftCard, gated by canCheckIn/canCheckOut from @/domain/timeGates, labeled t('btn.checkIn')/t('btn.checkOut')).\n\nResult: 3/3 assertions failed — the exploration test correctly surfaces Property 2's bug condition (Req 1.4/2.4). Do not fix product code in this task; the same test validates fix tasks 5.2/5.3.",
+      "lastRunTimestamp": 1783594795491
+    },
+    "3. Preserve: attendance states other than \"both confirmed present\" (baseline)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783595801179
+    },
+    "4. Preserve: existing notification routing (baseline)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783596113725
+    },
+    "5.3 Verify bug-condition tests now pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1783598495057
+    },
+    "5.4 Verify preservation tests still pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1783598500172
+    },
+    "6. Explore: landing hero hard-coding (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Bug-condition exploration test FAILED on unfixed code (expected — proves the bug). File: src/__tests__/featuredJobMockup.test.tsx.\n\nCounterexample (identical for BOTH scenarios):\n- Scenario (a) logged-out visitor (currentUserId=null, empty stores)\n- Scenario (b) logged-in employer with no upcoming shift (currentUserId=emp-hero, empty shift/application stores)\n\nAssertion that failed first, per scenario:\n  expect(screen.queryAllByText('95')).toHaveLength(0)\n  => AssertionError: expected [ <p …(1)></p> ] to have a length of +0 but got 1\n\nMeaning: the hero renders the hard-coded reputation literal \"95\" (FeaturedJobMockup.tsx line 188) regardless of the current user/role. The same always-rendered aria-hidden stats block (lines 183–207) also emits the fabricated upcoming card — label \"Sắp diễn ra\" (upcomingLabel), day \"Thứ Bảy, 24/05\" (upcomingDay), time \"Ca 14:00 – 18:00\" (upcomingTime) — and the reputation-preview label \"Điểm uy tín\" (repLabel), none of which are gated by user/role or by a real upcoming shift. These are exactly the counterexamples for Property 3 (Requirements 1.2, 2.2). No product code changed; the SAME test will validate the fix in tasks 9.2/9.3.",
+      "lastRunTimestamp": 1783599692324
+    },
+    "7. Explore: reputation read-source divergence (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Bug-condition exploration test FAILED as expected (this is the success outcome — it proves the divergence). Two runtime counterexamples:\n\n1) Deterministic case — AssertionError: expected 95 to be 80 (Object.is). The landing hero (FeaturedJobMockup) renders the hard-coded literal 95, while the seeded worker's real reputationScore is 80 (the value the dashboard StatTile and UserMenu trust chip render). hero 95 vs worker 80 → surfaces diverge.\n\n2) Property (fast-check, scores in [0,100] excluding 95) — Property failed after 1 test. Counterexample: [0] (shrunk 1 time; seed -1979237997). For a worker whose real score is 0, the hero still shows the hard-coded 95, so 95 !== 0.\n\nRoot cause confirmed: there is no shared getWorkerReputation(userId) reader yet — the hero hard-codes 95 while every worker.reputationScore-backed surface shows the real value. Same test will validate the fix at tasks 9.1/9.3.",
+      "lastRunTimestamp": 1783600402798
+    },
+    "8. Preserve: worker's own dashboard + reputation rules (baseline)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783601766676
+    },
+    "9.3 Verify bug-condition tests now pass": {
+      "status": "passed",
+      "lastRunTimestamp": 1783603296466
+    },
+    "9.4 Verify preservation test still passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1783603301496
+    },
+    "10. Explore: money figures not reconciled (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Exploration test FAILED on unfixed code as expected (bug confirmed). Three independent money sources do not reconcile:\n\n(A) Deterministic — under-filled completed shift:\n  AssertionError: expected 400000 to be 200000\n  Completed 2-position shift, 1 position filled, wage 50000/h x 4h.\n  employer totalPaidOut = Σ shift.depositAmount = calculateDeposit(50000,4,2) = 400000 (BOTH positions)\n  wallet released wages (walletStore ledger, WorkerWageReleased) = 200000 (only the filled position)\n  worker totalIncome = Σ payoutAmount = 200000 (anchors to the wallet). Employer figure overstates by the unfilled position's deposit.\n\n(B) Deterministic — partial dispute release:\n  AssertionError: expected 450000 to be 350000\n  Two confirmed apps, payoutAmount 300000 + 150000. Ledger released WorkerPartialRelease 200000 + WorkerWageReleased 150000.\n  worker totalIncome (Σ payoutAmount snapshots) = 450000\n  walletStore.getBalance = 350000 (ledger truth). Dashboard trusts the stale payoutAmount.\n\n(C) Property (fast-check) — Property failed after 1 test; seed -603971446, path \"0:0\"; shrunk 1 time.\n  Counterexample: one Completed shift, positionsTotal 2, positionsFilled 1, hourlyWage 20000, 4h, depositAmount 40000; one Confirmed app payoutAmount 20000.\n  employer totalPaidOut = 40000 != wallet released wages = 20000.\n\nRoot cause confirmed: worker income sums application.payoutAmount (wage x hours, per position); employer paid sums shift.depositAmount (wage x hours x positionsTotal, all positions); wallet balance reads walletStore.getBalance — three independent sources, no single derived computation. No product code changed; test does not import the not-yet-existing src/domain/finance.ts.",
+      "lastRunTimestamp": 1783606524547
+    },
+    "11. Preserve: wallet mutations + deposit/escrow (baseline)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783608423999
+    },
+    "12.3 Verify bug-condition test now passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1783610462936
+    },
+    "12.4 Verify preservation test still passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1783610742140
+    },
+    "13. Explore: payment-guarantee wording + missing demo note (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Bug-condition exploration test FAILED on unfixed code as expected — this IS the success outcome (it proves Property 6's bug: confusing payment-guarantee wording + missing standardized demo note). File: src/__tests__/paymentGuaranteeWording.test.tsx. 6/6 assertions failed (clean AssertionErrors; both rendered surfaces mounted without runtime error). No product code changed; the SAME test validates the fix at tasks 15.1/15.2.\n\nMatch keys: CONFUSING_LABEL = \"đảm bảo thanh toán\" (case-insensitive; catches \"Đảm bảo thanh toán\" / \"Mô phỏng đảm bảo thanh toán\"); DEMO_NOTE = \"Trong MVP/demo không có giao dịch thật\" (exact standardized note, matched w/o trailing period). Grep confirms the note string appears NOWHERE in src/.\n\nCOUNTEREXAMPLES per surface:\n\n(1) NavBar — NAV_GROUPS.employer (src/components/layout/NavBar.tsx), item href '/employer/payments':\n    label = \"Đảm bảo thanh toán\", description = \"Cấp độ tin cậy và tỷ lệ đảm bảo thanh toán\".\n    - wording: expected NOT to contain \"đảm bảo thanh toán\"; received \"đảm bảo thanh toán cấp độ tin cậy và tỷ lệ đảm bảo thanh toán\" -> FAIL.\n    - note: employer-group text has no \"Trong MVP/demo không có giao dịch thật\" -> FAIL.\n\n(2) Footer (src/components/layout/Footer.tsx), EMPLOYER_COLUMN link:\n    label = \"Đảm bảo thanh toán\".\n    - wording: rendered footer text contains \"đảm bảo thanh toán\" -> FAIL.\n    - note: only a localStorage-persistence note is present (\"Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu.\"), not the standardized note -> FAIL.\n\n(3) /employer/payments (src/app/employer/payments/page.tsx):\n    - wording: h1 (page title) textContent = \"Đảm bảo thanh toán\"; expected NOT to contain \"đảm bảo thanh toán\" -> FAIL.\n    - note: closest disclaimer reads \"Mọi giao dịch tiền tệ trên CaLẻ hiện tại là mô phỏng. …\", not \"Trong MVP/demo không có giao dịch thật.\" -> FAIL.\n\nRoot cause confirmed (matches design.md Cluster 4 / BUG 6): the payment-guarantee label was never standardized and the mandatory no-real-transactions note was never added to the surfaces that present the concept. Encoding is fix-agnostic: it asserts absence of the confusing \"đảm bảo thanh toán\" label + presence of the exact demo note, which holds for every standardized phrasing the design allows (e.g. \"Giữ tiền ca làm (mô phỏng)\", \"Tiền ca được giữ tạm trong demo\", \"Mô phỏng giữ tiền để đảm bảo trả công\").\n\nConstraints honored: no product/visual changes, detector skipped, no git commit.",
+      "lastRunTimestamp": 1783613106209
+    },
+    "14. Preserve: escrow status strings + payment routes (baseline)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783613897712
+    },
+    "15.2 Verify bug-condition test now passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1783614921273
+    },
+    "15.3 Verify preservation test still passes": {
+      "status": "passed",
+      "lastRunTimestamp": 1783614933404
+    },
+    "16. Explore: handbook content + menu label (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Bug-condition exploration test FAILED on unfixed code as expected — this IS the success outcome (it proves Property 7's bug: non-handbook menu label + missing practical dual-audience handbook content). File: src/__tests__/handbookContent.test.tsx. 3/3 tests failed with clean AssertionErrors; the /user-guide page mounted without runtime error (the page assertions ran on real rendered content and returned false). No product code changed; the SAME test validates the fix at task 19.1 / 19.3.\n\nCURRENT STATE recorded from source:\n- Menu label — src/i18n/vi.ts: `'nav.label.userGuide': 'Bắt đầu nhanh'`. Parent NavBar dropdown group (src/components/layout/NavBar.tsx SAFETY_GROUP) is labelled \"Tin cậy & cẩm nang\", and `'nav.label.safety': 'An toàn & Tin cậy'` — the trust/safety framing.\n- Page framing — src/app/user-guide/page.tsx: an app USAGE walkthrough (InfoPage eyebrow \"Hướng dẫn sử dụng\", title \"Cách dùng CaLẻ / Now\"): 9-step worker timeline + 9-step employer timeline + feature-anchor cards + FAQ, all PROCEDURAL, not a practical behavioral handbook.\n\nMatch keys: HANDBOOK_LABEL_MARKER = \"cẩm nang\" (accepts \"Cẩm nang\" + \"Cẩm nang đi ca\"); TRUST_SAFETY_MARKERS = [\"tin cậy\",\"an toàn\"]; practical-topic OR-sets (all grep-verified ABSENT from the page): WORKER_SATISFY = [\"hài lòng\",\"vừa lòng\"], WORKER_PUNCTUAL = [\"đúng giờ\"], EMPLOYER_ATTRACT = [\"thu hút\",\"giữ chân\"], EMPLOYER_FAIR_PAY = [\"hợp lý\",\"tương xứng\"].\n\nCOUNTEREXAMPLES per assertion:\n\n(1) Menu label — expect(lc(t('nav.label.userGuide'))).toContain('cẩm nang')\n    AssertionError: expected 'bắt đầu nhanh' to contain 'cẩm nang'  (Received: \"bắt đầu nhanh\").\n    The label is neither a handbook label nor free of the trust/safety framing.\n\n(2) Page — practical WORKER guidance\n    expect(includesAny(pageText, ['hài lòng','vừa lòng'])).toBe(true)  → AssertionError: expected false to be true.\n    (also expect(includesAny(pageText, ['đúng giờ'])) would be false.)\n    The rendered /user-guide has NO worker coaching on satisfying employers or punctuality — only procedural steps.\n\n(3) Page — practical EMPLOYER guidance\n    expect(includesAny(pageText, ['thu hút','giữ chân'])).toBe(true)  → AssertionError: expected false to be true.\n    (also expect(includesAny(pageText, ['hợp lý','tương xứng'])) would be false.)\n    The rendered /user-guide has NO employer coaching on attracting staff or setting appropriate pay.\n\nRoot cause confirmed (matches design.md Cluster 5 / BUG 7): the menu label + page content were never aligned to a practical \"Cẩm nang\" handbook — the label is still \"Bắt đầu nhanh\" and the page is a procedural usage walkthrough framed under the trust/safety group, not an original short practical handbook for both workers and employers (Req 1.7 / 2.7).\n\nEncoding is fix-agnostic: it asserts the label CONTAINS \"cẩm nang\" (accepting \"Cẩm nang\" and \"Cẩm nang đi ca\") and rejects the trust/safety framing, plus per-audience practical-topic OR-sets so the fix isn't pinned to exact prose. The SAME test will PASS once task 19.1 renames the label and rewrites /user-guide as a practical dual-audience handbook.\n\nConstraints honored: no product/visual changes, detector skipped, no git commit.",
+      "lastRunTimestamp": 1783617958388
+    },
+    "17. Explore: footer grouping (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Bug-condition exploration test FAILED on unfixed code as expected — this confirms the bug (quickStartLinkGroupedUnderLegal). Counterexample from the rendered Footer:\n\nLegal/support group heading \"Pháp lý & hỗ trợ\" rendered hrefs (UNFIXED, 5 links):\n  ['/user-guide', '/terms', '/privacy', '/disputes', '/support']\n\nAssertion 1 — legal group must NOT include the guide link:\n  AssertionError: expected [ '/user-guide', '/terms', …(3) ] to not include '/user-guide'\n\nAssertion 2 — legal group must equal exactly the four legal/support routes:\n  - Expected: ['/disputes','/privacy','/support','/terms']\n  + Received: ['/disputes','/privacy','/support','/terms','/user-guide']\n\nAssertion 3 — guide link must live in a non-legal (handbook/guide) group:\n  AssertionError: expected [ '/about', '/how-it-works', …(10) ] to include '/user-guide'\n  (12 non-legal route links exist; '/user-guide' is not among them — it sits only in LEGAL_COLUMN)",
+      "lastRunTimestamp": 1783618706065
+    },
+    "20. Explore: flat skill chips in the worker profile modal (bug-condition check)": {
+      "status": "passed",
+      "failingExample": "Task-20 exploration test (src/__tests__/workerProfileSkills.test.tsx) REWRITTEN to query the real DOM element-by-element (Testing Library within(dialog).getByText) instead of regex/substring over the concatenated dialog.textContent. Re-run: 2/2 PASS on the fixed implementation (no product code changed).\n\nWhy still a valid Property 9 bug-condition test: getByText matches each element's OWN direct text (getNodeText), so the level chip resolves as its own element whose text is exactly \"Cấp N\" (never fused with the sibling XP line \"50/250 XP\"), and the score resolves inside the SkillProgressBar footer that owns it. On the UNFIXED flat-chip render (ChipList, names only) there is no \"Cấp N\" element and no \"{score}/100\" element, so getByText throws and the test FAILS — the counterexample proving state = WorkerProfileModal AND skillsRenderedAsFlatChips.\n\nAssertions now: (a) each seeded skill NAME renders (getByText(s.category)); (b) each derived level chip \"Cấp N\" — level = skillProgress(xp).level → 4/3/2 — renders as its own element (NFC-normalized exact match), three distinct levels; (c) each derived score \"85/100\" / \"72/100\" / \"60/100\" renders in its own footer element (substring matcher tolerant of surrounding prose in the same element), three distinct scores.",
+      "lastRunTimestamp": 1783653777737
+    },
+    "21. Preserve: profile non-skill sections + no-skill-data (baseline)": {
+      "status": "passed",
+      "lastRunTimestamp": 1783623972621
+    },
+    "22.2 Verify bug-condition test now passes": {
+      "status": "passed",
+      "failingExample": "Re-ran the SAME task-20 exploration test after rewriting its assertions to robust element-scoped Testing Library queries: `npm run test:run -- src/__tests__/workerProfileSkills.test.tsx` → 2/2 PASS. Property 9 (Expected Behavior) satisfied: each recorded skill renders a derived level chip (\"Cấp N\") and derived score (\"{score}/100\") from worker.skillScores via SkillProgressBar. No product code modified.",
+      "lastRunTimestamp": 1783653786901
+    },
+    "22.3 Verify preservation test still passes": {
+      "status": "passed",
+      "failingExample": "Re-ran the SAME task-21 preservation baseline: `npm run test:run -- src/__tests__/workerProfileModalPreservation.test.tsx` → 3/3 PASS. Property 16 (Preservation) holds: identity/verification/stats/bio/preferences/rating-history sections and the no-skill-data graceful path are unchanged after the skills chips→progress-bars fix. No product code modified.",
+      "lastRunTimestamp": 1783653788239
+    }
+  },
+  "executionHistory": {
+    "1. Explore: attendance CTA under \"both confirmed present\" (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581401476
+      },
+      {
+        "executionId": "e5dde6b0-26dd-4751-852e-cb645a26d73e",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783590175877
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783594201751
+      }
+    ],
+    "2. Explore: check-in notification deep-link target (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581401780
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783594202018
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783594899832
+      }
+    ],
+    "3. Preserve: attendance states other than \"both confirmed present\" (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581401952
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783594900960
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783595848697
+      }
+    ],
+    "4. Preserve: existing notification routing (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402106
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783595848988
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783596194105
+      }
+    ],
+    "5.1 Suppress the stray mark-absent CTA when both sides confirmed": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402188
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783596240811
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783597285082
+      }
+    ],
+    "5.2 Deep-link check-in notifications to a surface that hosts the action": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402282
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783597285676
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598329074
+      }
+    ],
+    "5.3 Verify bug-condition tests now pass": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402377
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598329558
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598878370
+      }
+    ],
+    "5.4 Verify preservation tests still pass": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402505
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598891158
+      }
+    ],
+    "5.5 Cluster 1 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402584
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598905433
+      }
+    ],
+    "6. Explore: landing hero hard-coding (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402660
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598969988
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783599727907
+      }
+    ],
+    "7. Explore: reputation read-source divergence (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402737
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783599728272
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783600437015
+      }
+    ],
+    "8. Preserve: worker's own dashboard + reputation rules (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402823
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783600437422
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783601167440
+      }
+    ],
+    "9.1 Add the shared reputation reader and route all displays through it": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402911
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783601167313
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783601897734
+      }
+    ],
+    "9.2 Derive the landing hero from the current user + role": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581402999
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783601898615
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783603117317
+      }
+    ],
+    "9.3 Verify bug-condition tests now pass": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403160
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783603117617
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783604695074
+      }
+    ],
+    "9.4 Verify preservation test still passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403243
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783604799584
+      }
+    ],
+    "9.5 Cluster 2 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403329
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783604806806
+      }
+    ],
+    "10. Explore: money figures not reconciled (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403417
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783604994396
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783606689823
+      }
+    ],
+    "11. Preserve: wallet mutations + deposit/escrow (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403507
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783606690779
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783607636982
+      }
+    ],
+    "12.1 Add the derived money source (pure)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403602
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783607637205
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783608536727
+      }
+    ],
+    "12.2 Consume the derived source on every money surface": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403688
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783608538674
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783609770516
+      }
+    ],
+    "12.3 Verify bug-condition test now passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403769
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783609775000
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783610525511
+      }
+    ],
+    "12.4 Verify preservation test still passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403868
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783610525955
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783612123354
+      }
+    ],
+    "12.5 Cluster 3 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581403984
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783612126009
+      }
+    ],
+    "13. Explore: payment-guarantee wording + missing demo note (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404056
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783612175182
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783613171241
+      }
+    ],
+    "14. Preserve: escrow status strings + payment routes (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404133
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783613171725
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783613979893
+      }
+    ],
+    "15.1 Standardize the label and add the demo note everywhere": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404207
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783615086537
+      }
+    ],
+    "15.2 Verify bug-condition test now passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404294
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783615087386
+      }
+    ],
+    "15.3 Verify preservation test still passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404388
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783615088352
+      }
+    ],
+    "15.4 Cluster 4 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404469
+      },
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783615089417
+      }
+    ],
+    "16. Explore: handbook content + menu label (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404563
+      }
+    ],
+    "17. Explore: footer grouping (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404651
+      }
+    ],
+    "18. Preserve: legal links + guide/safety routes (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404736
+      }
+    ],
+    "19.1 Rewrite the guide as an original practical handbook and rename the menu label": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404826
+      }
+    ],
+    "19.2 Regroup the footer": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581404920
+      }
+    ],
+    "19.3 Verify bug-condition tests now pass": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405010
+      }
+    ],
+    "19.4 Verify preservation test still passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405102
+      }
+    ],
+    "19.5 Cluster 5 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405186
+      }
+    ],
+    "20. Explore: flat skill chips in the worker profile modal (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405266
+      }
+    ],
+    "21. Preserve: profile non-skill sections + no-skill-data (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405355
+      }
+    ],
+    "22.1 Replace flat chips with derived per-skill progress bars": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405440
+      }
+    ],
+    "22.2 Verify bug-condition test now passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405522
+      }
+    ],
+    "22.3 Verify preservation test still passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405604
+      }
+    ],
+    "22.4 Cluster 6 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405687
+      }
+    ],
+    "23. Explore: AI assistant absent / unlabelled (bug-condition check)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405768
+      }
+    ],
+    "24. Preserve: no real external AI/API or financial transactions (baseline)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405852
+      }
+    ],
+    "25.1 Build the worker and employer mock assistants (local, labelled, no network)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581405937
+      }
+    ],
+    "25.2 Verify bug-condition test now passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581406019
+      }
+    ],
+    "25.3 Verify preservation test still passes": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581406102
+      }
+    ],
+    "25.4 Cluster 7 verification (NO commits)": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581406243
+      }
+    ],
+    "26. Checkpoint — full suite green, no regressions, no commits": [
+      {
+        "executionId": "801d01c6-bd89-4378-b951-6d7452d038ee",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783581406341
+      }
+    ],
+    "5. Fix: gate the attendance action row + deep-link check-in notifications": [
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783598905593
+      }
+    ],
+    "9. Fix: single shared reputation reader + hero derives from current user/role": [
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783604806885
+      }
+    ],
+    "12. Fix: single derived money computation consumed on every surface": [
+      {
+        "executionId": "92214675-7e83-4c8a-adce-023d52ce7112",
+        "chatSessionId": "sess_777c13d2-d4bc-474d-9a40-58d7a0bae694",
+        "timestamp": 1783612126125
+      }
+    ]
+  }
+}

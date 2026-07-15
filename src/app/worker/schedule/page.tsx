@@ -404,7 +404,7 @@ function SchedulePageContent() {
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
           <span>{t('schedule.slotCfg.toggle')}</span>
           <span
-            className="text-xs text-gray-500 transition-transform group-open:rotate-180"
+            className="text-xs text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none"
             aria-hidden="true"
           >
             ▾
@@ -541,7 +541,7 @@ function SchedulePageContent() {
       <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
               {t('nav.schedule')}
             </p>
             <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">

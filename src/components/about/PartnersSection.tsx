@@ -48,7 +48,7 @@ export function PartnersSection({
               >
                 <span>{t(partner.nameKey)}</span>
                 {labelKey && (
-                  <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700">
+                  <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
                     {t(labelKey)}
                   </span>
                 )}

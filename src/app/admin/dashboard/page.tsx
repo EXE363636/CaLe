@@ -298,6 +298,7 @@ function TabButton({
       onClick={onClick}
       className={[
         'relative min-h-[44px] flex-1 rounded-md px-4 text-sm font-medium transition-colors',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
         active ? 'bg-white text-orange-700 shadow-sm' : 'text-gray-600 hover:text-gray-900',
       ].join(' ')}
     >
@@ -425,7 +426,7 @@ function StatCard({
       {onClick && (
         <span
           aria-hidden="true"
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-600 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
         >
           Xem chi tiết →
         </span>
@@ -588,7 +589,7 @@ function UsersPanel({
           <select
             value={sortField}
             onChange={(e) => setSortField(e.target.value as typeof sortField)}
-            className="min-h-[44px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            className="min-h-[44px] rounded-lg border border-gray-300 bg-white px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
           >
             <option value="name">{t('admin.user.sortField.name')}</option>
             <option value="role">{t('admin.user.sortField.role')}</option>
@@ -740,11 +741,11 @@ function UserRow({
             <button
               type="button"
               onClick={onOpenProfile}
-              className="text-left text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
+              className="text-left text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
             >
               {displayName}
             </button>
-            <span className="ml-2 text-xs font-normal text-gray-400">
+            <span className="ml-2 text-xs font-normal text-gray-500">
               ({t(`role.${user.role}`)})
             </span>
             {isSelf && (
@@ -1033,7 +1034,7 @@ function ShiftRow({
               flow. The page already handles the admin viewer branch. */}
           <Link
             href={`/shifts/${shift.id}`}
-            className="block truncate text-sm font-semibold text-gray-900 hover:text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded"
+            className="block truncate text-sm font-semibold text-gray-900 hover:text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:rounded"
           >
             {shift.title}
           </Link>
@@ -1071,7 +1072,7 @@ function ShiftRow({
               <select
                 value={target}
                 onChange={(e) => setTarget(e.target.value as EscrowStatus)}
-                className="min-h-[44px] rounded-lg border border-gray-300 px-3 text-sm"
+                className="min-h-[44px] rounded-lg border border-gray-300 px-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
               >
                 {ESCROW_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -1228,7 +1229,7 @@ function ReportedReviewsCard() {
                   {review.stars}★ — &ldquo;{review.comment ?? '—'}&rdquo;
                 </p>
               )}
-              <p className="mt-1.5 font-mono text-[10px] text-gray-400">
+              <p className="mt-1.5 font-mono text-[10px] text-gray-500">
                 {formatLogDateTime(r.createdAt)}
               </p>
               <div className="mt-2 flex gap-2">
@@ -1341,7 +1342,7 @@ function DisputeRow({
         >
           <p className="text-sm font-semibold text-gray-900">
             {shiftTitle}
-            <span className="ml-2 text-xs font-normal text-orange-600">
+            <span className="ml-2 text-xs font-normal text-orange-700">
               {expanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
             </span>
           </p>

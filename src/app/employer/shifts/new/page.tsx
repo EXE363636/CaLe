@@ -493,7 +493,7 @@ function NewShiftContent() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-6">
-          <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+          <p className="text-sm text-gray-500">
             {t('employer.dashboard.title')}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -525,7 +525,7 @@ function NewShiftContent() {
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-orange-600">
+            <p className="text-sm text-gray-500">
               {t('employer.dashboard.title')}
             </p>
             <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -612,7 +612,7 @@ function NewShiftContent() {
             {myDrafts.map((d) => (
               <li
                 key={d.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm"
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-gray-900">
@@ -621,7 +621,7 @@ function NewShiftContent() {
                   <p className="text-xs text-gray-500">
                     {d.date ? `${d.date}${d.startTime ? ` ${d.startTime}` : ''}` : t('shiftForm.draft.noDate')}
                   </p>
-                  <p className="font-mono text-[11px] text-gray-400">
+                  <p className="font-mono text-[11px] text-gray-500">
                     {t('shiftForm.draft.savedAt')}: {formatLogDateTime(d.updatedAt)}
                   </p>
                 </div>
@@ -683,7 +683,7 @@ function NewShiftContent() {
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-gray-600">{t('deposit.insufficient.shortfall')}</dt>
-              <dd className="font-bold text-rose-700">
+              <dd className="font-bold text-red-700">
                 {formatVND(Math.max(0, depositAmount - walletBalance))}
               </dd>
             </div>
@@ -757,6 +757,10 @@ function NewShiftContent() {
               {topUpError}
             </p>
           )}
+          {/* Honesty — top-up is simulated (no real payment gateway). */}
+          <p className="text-[11px] italic leading-relaxed text-gray-500">
+            {t('employer.payments.disclaimer')}
+          </p>
           <div className="flex justify-end gap-2 pt-1">
             <Button size="sm" variant="ghost" onClick={() => setTopUpOpen(false)}>
               {t('wallet.topUp.modal.cancel')}
@@ -913,21 +917,10 @@ function TrustExplainerCard({
   trust: 'low' | 'medium' | 'high';
   ratio: number;
 }) {
-  const toneRing: Record<typeof trust, string> = {
-    low: 'before:bg-amber-500',
-    medium: 'before:bg-orange-500',
-    high: 'before:bg-emerald-500',
-  };
   return (
-    <div
-      className={[
-        'relative mb-5 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-amber-50 p-5 shadow-card',
-        'before:absolute before:left-0 before:top-0 before:h-1 before:w-full',
-        toneRing[trust],
-      ].join(' ')}
-    >
+    <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50 p-5 shadow-card">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
           <svg className="h-5 w-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
             <path d="m9 12 2 2 4-4" />
@@ -973,9 +966,9 @@ function DepositConfirmCard({
   const fullWage = ratio > 0 ? Math.round(depositAmount / ratio) : depositAmount;
 
   return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
+    <div className="mb-6 overflow-hidden rounded-2xl border border-orange-200 bg-orange-50 p-6 shadow-card">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-gray-900 shadow-sm">
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
             <path strokeLinecap="round" d="M16 11h4M16 14h4" />
@@ -991,7 +984,7 @@ function DepositConfirmCard({
         </div>
       </div>
 
-      <dl className="mt-4 flex flex-col gap-1.5 rounded-xl bg-white/80 px-4 py-3 text-xs text-gray-700 ring-1 ring-orange-100">
+      <dl className="mt-4 flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 text-xs text-gray-700 ring-1 ring-orange-100">
         <DepositRow
           label={t('deposit.breakdown.fullWage')}
           value={formatVND(fullWage)}
@@ -1015,6 +1008,12 @@ function DepositConfirmCard({
       <Button variant="primary" size="lg" onClick={onConfirm} className="mt-4 w-full">
         {t('deposit.confirmPaid')}
       </Button>
+      {/* Honesty — this is a simulated deposit in the demo; make it
+          explicit at the confirm moment so no one thinks real money
+          moves or a payment backend exists. */}
+      <p className="mt-2 text-center text-[11px] italic leading-relaxed text-gray-500">
+        {t('employer.payments.disclaimer')}
+      </p>
     </div>
   );
 }

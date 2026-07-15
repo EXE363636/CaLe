@@ -434,15 +434,17 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
       {/* Back */}
       <Link
         href="/employer/dashboard"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-orange-600 hover:underline"
+        className="mb-4 -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-sm font-medium text-orange-700 transition-colors hover:text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
       >
         ← {t('btn.back')}
       </Link>
 
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{shift.title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-balance break-words text-2xl font-bold text-gray-900">
+            {shift.title}
+          </h1>
           <p className="mt-1 text-sm text-gray-500">
             {formatDateVN(shift.date)} • {formatTimeVN(shift.startTime)}–
             {formatTimeVN(shift.endTime)} • {formatVND(shift.hourlyWage)}/giờ
@@ -706,7 +708,12 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     (bucket) => (
                 <section
                   key={bucket.bucket}
-                  className="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 shadow-card"
+                  // P3 card-in-card: this bucket groups `WorkerSummaryRow`
+                  // cards (each already a bordered, shadowed Card). Dropped
+                  // the bucket's own `shadow-card` and lightened its border
+                  // (gray-200 -> gray-100) so it reads as a soft grouping
+                  // tray, not a competing card. Heading + spacing kept.
+                  className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-gray-50/60 p-4"
                   aria-labelledby={`applicant-bucket-${bucket.bucket}`}
                 >
                   <header className="flex flex-col gap-0.5 border-b border-gray-200 pb-2">
@@ -729,6 +736,12 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               if (!worker) return null;
 
               const nowIso = new Date().toISOString();
+              // CORE-STABILITY-9 Parts 1 & 3 · demo-logic-data-consistency
+              // Cluster 1 — derive the canonical attendance state ONCE and
+              // reuse it for BOTH the action-row gating below and the
+              // employer banner, so the buttons never diverge from the
+              // copy. `deriveAttendanceState` is the single source of truth.
+              const attendanceState = deriveAttendanceState(app, shift, nowIso);
               // QA-Fix-1 C1 — attendance controls must NOT appear on
               // terminal shift states (Expired / Cancelled /
               // Completed). The time-gate predicates below would
@@ -755,10 +768,20 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               // checked in, the "Đánh dấu vắng mặt" action is shown but
               // disabled/dimmed with an explanatory reason (an absence
               // on a checked-in worker should go through a dispute).
+              //
+              // demo-logic-data-consistency Cluster 1 (BUG 1 · Property 1):
+              // once BOTH sides have confirmed presence
+              // (`BothConfirmedPresent`), the worker has self-confirmed and
+              // any absence must go through the dispute / "report issue"
+              // flow — so the stray disabled red button is suppressed and
+              // only the "Hai bên đã xác nhận có mặt…" waiting-for-checkout
+              // banner remains. Other checked-in states keep the existing
+              // disabled affordance unchanged (Property 11).
               const absentDisabledReason =
                 !shiftTerminal &&
                 app.status === 'CheckedIn' &&
-                Boolean(app.checkInAt)
+                Boolean(app.checkInAt) &&
+                attendanceState !== 'BothConfirmedPresent'
                   ? t('attendance.absentDisabled.checkedIn')
                   : null;
               // CORE-STABILITY-7 Part 5.4 — a NoShow can be corrected to
@@ -770,9 +793,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 shift.escrowStatus !== 'Released';
               // CORE-STABILITY-9 Parts 1 & 3 — role-aware attendance
               // copy for the EMPLOYER viewer (never worker-perspective
-              // text). One banner derived from the canonical state.
+              // text). One banner derived from the canonical state
+              // (reuses `attendanceState` above — the same single source
+              // that gates the action row, so copy and buttons agree).
               const employerAttendanceCopy = attendanceCopyKey(
-                deriveAttendanceState(app, shift, nowIso),
+                attendanceState,
                 'employer',
               );
               const showRating = ratingForAppId === app.id;
@@ -1243,10 +1268,10 @@ function ApplicationActionButtons({
     }
     return (
       <>
-        <Button size="sm" variant="primary" onClick={onApprove} loading={loading}>
+        <Button size="md" variant="primary" onClick={onApprove} loading={loading}>
           {t('btn.approve')}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onReject} loading={loading}>
+        <Button size="md" variant="ghost" onClick={onReject} loading={loading}>
           {t('btn.reject')}
         </Button>
       </>
@@ -1262,7 +1287,7 @@ function ApplicationActionButtons({
       <>
         {canMarkPresent && (
           <Button
-            size="sm"
+            size="md"
             variant="primary"
             onClick={onMarkPresent}
             loading={loading}
@@ -1272,7 +1297,7 @@ function ApplicationActionButtons({
         )}
         {canMarkAbsent && (
           <Button
-            size="sm"
+            size="md"
             variant="danger"
             onClick={onMarkAbsent}
             loading={loading}
@@ -1285,7 +1310,7 @@ function ApplicationActionButtons({
         {!canMarkAbsent && absentDisabledReason && (
           <span className="inline-flex flex-col">
             <Button
-              size="sm"
+              size="md"
               variant="danger"
               disabled
               title={absentDisabledReason}
@@ -1404,7 +1429,7 @@ function ShiftTimelineSection({
   return (
     <section
       aria-labelledby="shift-timeline-title"
-      className="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+      className="mt-4 rounded-lg border border-gray-200 bg-white p-5 shadow-card"
     >
       <h2
         id="shift-timeline-title"

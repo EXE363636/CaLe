@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Button, Badge } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import type { ApplicationStatus, VerificationFlag, ShiftStatus } from '@/types';
@@ -45,14 +46,20 @@ export function ApplicationActions({
     );
   }
 
-  // Phone verification gate
+  // Phone verification gate — the demo has no real phone-verification
+  // flow, so instead of a no-op button the CTA navigates to the worker
+  // profile (where phone / verification is managed). It never fakes a
+  // successful verification.
   if (!workerVerifications.includes('phone')) {
     return (
       <div className={['flex flex-col gap-2', className].join(' ')}>
         <p className="text-sm text-amber-700">{t('verification.required')}</p>
-        <Button variant="secondary" size="sm" onClick={() => {}}>
-          {t('btn.verifyPhone')}
-        </Button>
+        <Link
+          href="/worker/profile"
+          className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-orange-500 bg-white px-4 text-sm font-medium text-orange-700 shadow-sm transition hover:bg-orange-50 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+        >
+          {t('verification.goToProfile')}
+        </Link>
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     );

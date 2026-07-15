@@ -92,7 +92,7 @@ export function WorkerSummaryRow({
             <button
               type="button"
               onClick={onViewProfile}
-              className="truncate text-left font-semibold text-gray-900 hover:text-orange-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 rounded"
+              className="truncate text-left font-semibold text-gray-900 hover:text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 rounded"
             >
               {worker.fullName}
             </button>
@@ -190,7 +190,7 @@ export function WorkerSummaryRow({
             <button
               type="button"
               onClick={onViewProfile}
-              className="text-xs font-medium text-orange-600 hover:underline"
+              className="rounded text-xs font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
               +{worker.skills.length - TOP_SKILLS}
             </button>

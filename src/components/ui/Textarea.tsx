@@ -28,7 +28,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           rows={rest.rows ?? 4}
           className={[
             'w-full rounded-lg border px-3 py-2 text-sm text-gray-900',
-            'resize-y transition-colors duration-150',
+            'min-h-[44px] resize-y transition-colors duration-150',
             'placeholder:text-gray-400',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1',
             error

@@ -119,7 +119,7 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       // lands on the right feature explanation.
       { href: '/user-guide#employer-post-shift', label: 'Đăng ca tuyển' },
       { href: '/user-guide#employer-applicants', label: 'Quản lý ứng viên' },
-      { href: '/employer/payments', label: 'Đảm bảo thanh toán' },
+      { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
     ],
   },
@@ -173,7 +173,7 @@ const EMPLOYER_SECTIONS: DrawerSection[] = [
   {
     heading: 'Hướng dẫn',
     links: [
-      { href: '/employer/payments', label: 'Đảm bảo thanh toán' },
+      { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
       { href: '/user-guide', label: t('nav.label.userGuide') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
@@ -422,18 +422,18 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
         ref={drawerRef}
         className={[
           'fixed inset-0 sm:inset-y-0 sm:right-0 sm:left-auto sm:w-96 sm:max-w-[90vw] z-[80] bg-white shadow-xl',
-          'flex flex-col transition-transform duration-200',
+          'flex flex-col transition-transform duration-200 motion-reduce:transition-none',
           open ? 'translate-x-0' : 'translate-x-full',
         ].join(' ')}
         aria-hidden={!open}
       >
         {/* Drawer header — warm gradient strip as before. */}
-        <div className="flex items-center justify-between border-b border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-white px-4 py-4">
+        <div className="flex items-center justify-between border-b border-orange-100 bg-orange-50 px-4 py-4">
           <div className="flex flex-col leading-tight">
-            <span className="text-base font-bold text-orange-600">
+            <span className="text-base font-bold text-orange-700">
               {t('site.name')}
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
               by CaLedo Tech
             </span>
           </div>
@@ -509,7 +509,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
               <Link
                 href="/register"
                 onClick={() => setOpen(false)}
-                className="flex min-h-[44px] items-center justify-center rounded-lg bg-gradient-to-b from-orange-500 to-orange-600 px-3 text-sm font-semibold text-white shadow-sm"
+                className="flex min-h-[44px] items-center justify-center rounded-lg bg-orange-500 px-3 text-sm font-semibold text-gray-900 shadow-sm"
               >
                 {t('nav.register')}
               </Link>
@@ -532,7 +532,10 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
         aria-label={open ? t('btn.close') : 'Menu'}
         aria-expanded={open}
         aria-controls="mobile-nav-drawer"
-        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+        // Visual-polish pass — hamburger already meets the >=44px touch
+        // target; add `ring-offset-2` so its focus ring matches the
+        // shared 2px-orange-plus-offset contract (Req 10.3, 9.1).
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
       >
         <HamburgerIcon open={open} />
       </button>
@@ -557,7 +560,7 @@ function UserSummaryCard({ user }: { user: User }) {
   const chip = trustChip(user);
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-gradient-to-r from-orange-50 via-amber-50 to-white px-3 py-3 shadow-sm">
+    <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-orange-50 px-3 py-3 shadow-sm">
       <UserAvatar name={name} avatarUrl={avatarUrl} size="lg" />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-gray-900">{name}</p>

@@ -57,9 +57,15 @@ export function StatCard({
 }: StatCardProps) {
   const accent = toneAccent[tone];
   const base = [
-    'rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-sm',
+    // Resting elevation uses the soft two-layer `shadow-card` token
+    // (matching `Card`) instead of the flat `shadow-sm` (Req 4.1).
+    'rounded-2xl border border-gray-200 bg-white p-4 text-left shadow-card',
+    // Only interactive (onClick) tiles lift: `motion-lift` supplies the
+    // translateY(-2px) on hover, and `shadow-card-hover` applies on both
+    // pointer hover and keyboard focus (Req 4.2). Static tiles keep the
+    // resting shadow with no lift (Req 4.3).
     onClick
-      ? 'motion-lift cursor-pointer hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
+      ? 'motion-lift cursor-pointer hover:shadow-card-hover focus-visible:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
       : '',
     className,
   ]

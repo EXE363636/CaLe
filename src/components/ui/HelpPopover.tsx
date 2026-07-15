@@ -100,7 +100,7 @@ export function HelpPopover({
         aria-expanded={open}
         className={[
           // Compact circular `(?)` button — sits inline with label text.
-          'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-orange-300 bg-white text-[10px] font-bold text-orange-600',
+          'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-orange-300 bg-white text-[10px] font-bold text-orange-700',
           'cursor-pointer transition-colors hover:bg-orange-50 hover:border-orange-400',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1',
           // Vertical alignment with the surrounding label baseline.

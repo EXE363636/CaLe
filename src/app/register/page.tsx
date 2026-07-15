@@ -167,10 +167,10 @@ function RegisterForm() {
         <AuthSidePanel mode="register" />
 
         <div className="w-full">
-          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-md ring-1 ring-black/5 sm:p-8">
+          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
           <div className="mb-6 text-center">
             <h1 className="text-2xl font-bold text-gray-900">{t('auth.register.title')}</h1>
-            <p className="mt-1 text-sm text-gray-500">{t('auth.register.subtitle')}</p>
+            <p className="mt-1 text-sm text-gray-600">{t('auth.register.subtitle')}</p>
           </div>
 
           {/* Role selector */}
@@ -183,10 +183,11 @@ function RegisterForm() {
                   type="button"
                   onClick={() => set('role', r)}
                   className={[
-                    'rounded-xl border-2 px-4 py-3 text-sm font-medium transition-colors min-h-[44px]',
+                    'min-h-[44px] rounded-xl border-2 px-4 py-3 text-sm font-medium',
+                    'motion-press transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
                     values.role === r
                       ? 'border-orange-500 bg-orange-50 text-orange-700'
-                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400',
                   ].join(' ')}
                 >
                   {r === 'worker' ? t('auth.register.asWorker') : t('auth.register.asEmployer')}
@@ -241,16 +242,17 @@ function RegisterForm() {
                             );
                           }}
                           className={[
-                            'rounded-xl border-2 px-3 py-2 text-left text-xs font-medium transition-colors min-h-[64px]',
+                            'min-h-[64px] rounded-xl border-2 px-3 py-2 text-left text-xs font-medium',
+                            'motion-press transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
                             selected
                               ? 'border-orange-500 bg-orange-50 text-orange-700'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
+                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-400',
                           ].join(' ')}
                         >
                           <span className="block text-sm font-semibold">
                             {t(`employerType10A.${et}`)}
                           </span>
-                          <span className="mt-1 block text-[11px] font-normal leading-snug text-gray-500">
+                          <span className="mt-1 block text-[11px] font-normal leading-snug text-gray-600">
                             {t(`employerType10A.${et}.hint`)}
                           </span>
                         </button>
@@ -315,7 +317,7 @@ function RegisterForm() {
             />
 
             {errors.form && (
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
                 {errors.form}
               </p>
             )}
@@ -327,7 +329,10 @@ function RegisterForm() {
 
           <p className="mt-5 text-center text-sm text-gray-500">
             {t('auth.register.hasAccount')}{' '}
-            <Link href="/login" className="font-medium text-orange-600 hover:underline">
+            <Link
+              href="/login"
+              className="rounded font-medium text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+            >
               {t('btn.login')}
             </Link>
           </p>

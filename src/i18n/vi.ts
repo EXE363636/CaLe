@@ -65,7 +65,7 @@ export const vi: Record<string, string> = {
   // NavBar / MobileNav / Footer render the SAME text for these routes.
   // Route paths are unchanged; only the display label is updated.
   'nav.label.safety': 'An toàn & Tin cậy',
-  'nav.label.userGuide': 'Bắt đầu nhanh',
+  'nav.label.userGuide': 'Cẩm nang đi ca',
 
 
   // Phase 9X — user menu (authenticated avatar dropdown).
@@ -325,6 +325,7 @@ export const vi: Record<string, string> = {
   'verification.none': 'Chưa xác minh',
   'verification.notVerified': 'Chưa xác minh số điện thoại',
   'verification.required': 'Bạn cần xác minh số điện thoại trước khi ứng tuyển.',
+  'verification.goToProfile': 'Đến hồ sơ để xác minh SĐT',
 
   // -------------------------------------------------------------------------
   // Form labels
@@ -696,112 +697,102 @@ export const vi: Record<string, string> = {
 
   // -------------------------------------------------------------------------
   // Landing page
+  //
+  // HONESTY RULE (PRODUCT.md "Trung thực mặc định"): landing copy must NOT
+  // imply that deposits, escrow, payouts, or ID/business verification are
+  // real, working systems. Anything financial is described as a prototype
+  // simulation ("mô phỏng") — never a real transaction or a payout guarantee.
+  // NOTE: `landing.hero.featured.repLabel` MUST stay "Điểm uy tín" — the
+  // featuredJobMockup + reputationDisplayEquality tests key on that string.
   // -------------------------------------------------------------------------
-  'landing.hero.badge': 'Linh hoạt · Tin cậy · Minh bạch',
-  'landing.hero.title': 'Việc làm ngắn hạn',
-  'landing.hero.titleAccent': 'cho người lao động linh hoạt',
-  'landing.hero.subtitle':
-    'Nền tảng kết nối nhà tuyển dụng với người lao động linh hoạt tại Việt Nam. Thanh toán được đảm bảo minh bạch, đánh giá hai chiều, không cần tải ứng dụng.',
-  // Phase 9U — mobile-specific hero copy. The desktop title is too
-  // long for 360 / 390 / 430 px viewports and wraps badly. Mobile
-  // gets a punchier two-line headline + a single-sentence subcopy.
-  'landing.hero.title.mobile': 'Việc ngắn hạn,',
-  'landing.hero.titleAccent.mobile': 'rõ ca – rõ tiền',
-  'landing.hero.subtitle.mobile':
-    'Tìm ca làm linh hoạt hoặc tuyển người làm cho ca trống — tất cả minh bạch.',
-  'landing.hero.trustHint':
-    'Miễn phí đăng ký · Người lao động không phải trả trước · Toàn bộ thanh toán giả lập trong MVP.',
 
-  'landing.hero.featured.badge': 'Việc đang nổi bật',
+  // Hero — one unified message across every breakpoint ("rõ ca – rõ tiền").
+  'landing.hero.badge': 'Rõ ràng · Đáng tin · Nhanh gọn',
+  'landing.hero.title': 'Việc làm ngắn hạn,',
+  'landing.hero.titleAccent': 'rõ ca – rõ tiền',
+  'landing.hero.subtitle':
+    'Nền tảng điều phối ca làm ngắn hạn tại Việt Nam: rõ thời gian, rõ tiền công và rõ trạng thái từng ca. Dùng ngay trên trình duyệt, không cần cài ứng dụng.',
+  // Honest microcopy rendered directly under the hero CTAs.
+  'landing.hero.trustHint':
+    'Miễn phí dùng thử · Đây là bản demo · Các bước thanh toán đều là mô phỏng.',
+
+  // Live shift board (FeaturedJobMockup). Presentation-only labels for the
+  // dispatch board. repLabel is locked (see HONESTY RULE note above).
+  'landing.hero.featured.badge': 'Ca đang mở tuyển',
   'landing.hero.featured.statusBadge': 'Đang tuyển',
   'landing.hero.featured.viewCta': 'Xem chi tiết',
   'landing.hero.featured.exploreCta': 'Khám phá ca làm',
-  'landing.hero.featured.exploreAria': 'Khám phá ca làm trên CaLẻ / Now',
+  'landing.hero.featured.exploreAria': 'Khám phá ca làm trên CaLẻ',
   'landing.hero.featured.fallbackTitle': 'Khám phá ca làm phù hợp',
   'landing.hero.featured.fallbackHint':
-    'Hệ thống đang cập nhật ca làm. Bấm để xem danh sách đầy đủ.',
+    'Chưa có ca nổi bật ngay lúc này — bấm để xem toàn bộ ca đang mở.',
   'landing.hero.featured.repLabel': 'Điểm uy tín',
-  'landing.hero.featured.repHint': '/ 100 — đáng tin cậy',
-  'landing.hero.featured.upcomingLabel': 'Sắp diễn ra',
-  'landing.hero.featured.upcomingDay': 'Thứ Bảy, 24/05',
-  'landing.hero.featured.upcomingTime': 'Ca 14:00 – 18:00',
-  'landing.cta.employer': 'Đăng ca cần tuyển',
+  'landing.hero.featured.repHint': 'trên thang 100',
+  'landing.hero.featured.upcomingLabel': 'Ca sắp tới của bạn',
+  'landing.hero.featured.boardNote': 'Danh sách ca cập nhật theo thời gian thực.',
+
+  // CTAs — worker always explores shifts first (/shifts); employer registers
+  // to post a shift (/register?role=employer). Never send a worker to register.
   'landing.cta.worker': 'Tìm ca làm ngay',
-  'landing.cta.registerEmployer': 'Đăng ký Nhà tuyển dụng',
-  'landing.cta.registerWorker': 'Đăng ký Người làm',
+  'landing.cta.employer': 'Đăng ca cần tuyển',
 
-  'landing.trust.escrow': 'Thanh toán được đảm bảo minh bạch',
-  'landing.trust.noDeposit': 'Người lao động không phải trả trước',
-  'landing.trust.reputation': 'Hệ thống điểm uy tín',
-  'landing.trust.schedule': 'Lịch cá nhân & lịch tuyển dụng',
+  // Trust strip — three honest signals + a plain-language simulation note.
+  'landing.trust.time': 'Rõ thời gian và tiền công',
+  'landing.trust.time.desc':
+    'Mỗi ca ghi rõ giờ làm và mức tiền công trước khi bạn ứng tuyển.',
+  'landing.trust.confirm': 'Xác nhận hai chiều',
+  'landing.trust.confirm.desc':
+    'Hai bên cùng xác nhận trạng thái ca, không ai tự quyết một mình.',
+  'landing.trust.reputation': 'Uy tín sau mỗi ca',
+  'landing.trust.reputation.desc':
+    'Điểm uy tín được cập nhật sau mỗi ca đã hoàn thành.',
+  'landing.trust.simNote':
+    'Các bước giữ tiền và thanh toán hiện là mô phỏng trong prototype.',
 
-  'landing.employer.title': 'Dành cho Nhà tuyển dụng',
-  'landing.employer.lead':
-    'Đăng ca, đảm bảo thanh toán minh bạch, duyệt người làm và xác nhận hoàn thành — tất cả trên một nền tảng.',
-  'landing.employer.benefit1': 'Tìm người nhanh',
-  'landing.employer.benefit1.desc': 'Đăng ca và nhận đơn ứng tuyển trong vài giờ.',
-  'landing.employer.benefit2': 'Thanh toán an toàn',
-  'landing.employer.benefit2.desc': 'Tiền được giữ trong hệ thống, chỉ giải ngân khi hoàn thành.',
-  'landing.employer.benefit3': 'Đánh giá uy tín',
-  'landing.employer.benefit3.desc': 'Xem điểm uy tín và lịch sử làm việc của người làm.',
-
-  'landing.worker.title': 'Dành cho Người làm',
-  'landing.worker.lead':
-    'Tìm ca làm phù hợp, ứng tuyển nhanh, nhận tiền sau khi hoàn thành — và xây dựng điểm uy tín cá nhân.',
-  'landing.worker.benefit1': 'Làm linh hoạt',
-  'landing.worker.benefit1.desc': 'Chọn ca theo lịch của bạn, không ràng buộc.',
-  'landing.worker.benefit2': 'Nhận tiền nhanh',
-  'landing.worker.benefit2.desc': 'Tiền công được chuyển ngay sau khi ca được xác nhận.',
-  'landing.worker.benefit3': 'Không phải trả trước',
-  'landing.worker.benefit3.desc': 'Người lao động không phải trả trước bất kỳ khoản tiền nào.',
-
+  // How it works — merged worker lane + employer lane, three steps each.
   'landing.howItWorks.title': 'Cách hoạt động',
   'landing.howItWorks.lead':
-    'Quy trình ngắn gọn cho cả hai phía. Mọi bước đều có thông báo và trạng thái rõ ràng.',
-  'landing.howItWorks.employer.step1': 'Đăng ca làm với đầy đủ thông tin',
-  'landing.howItWorks.employer.step2': 'Đảm bảo thanh toán trước (ví doanh nghiệp)',
-  'landing.howItWorks.employer.step3': 'Duyệt người làm và xác nhận hoàn thành',
-  'landing.howItWorks.worker.step1': 'Tạo hồ sơ và xác minh số điện thoại',
-  'landing.howItWorks.worker.step2': 'Tìm và ứng tuyển ca làm phù hợp',
-  'landing.howItWorks.worker.step3': 'Làm việc, check-in/out và nhận tiền',
+    'Một quy trình rõ ràng cho cả hai phía — mỗi bước đều có trạng thái minh bạch.',
+  'landing.howItWorks.worker.title': 'Người làm',
+  'landing.howItWorks.worker.step1': 'Tìm và ứng tuyển ca làm phù hợp',
+  'landing.howItWorks.worker.step2': 'Được duyệt và xác nhận ca',
+  'landing.howItWorks.worker.step3': 'Hoàn thành ca và nhận đánh giá',
+  'landing.howItWorks.employer.title': 'Nhà tuyển dụng',
+  'landing.howItWorks.employer.step1': 'Đăng ca với thời gian và tiền công rõ ràng',
+  'landing.howItWorks.employer.step2': 'Chọn người làm từ danh sách ứng tuyển',
+  'landing.howItWorks.employer.step3': 'Xác nhận kết quả sau ca làm',
   'landing.howItWorks.viewGuide': 'Xem hướng dẫn chi tiết',
 
-  // Phase 9Z — Designed-for-Vietnam network strip
-  'landing.vn.eyebrow': 'Kết nối ca làm tại Việt Nam',
-  'landing.vn.title': 'Thiết kế cho nhu cầu ca làm linh hoạt',
-  'landing.vn.lead':
-    'Thị trường lao động ngắn hạn của Việt Nam có đặc thù riêng — chúng tôi xây dựng CaLẻ / Now theo cách người tuyển và người làm thực sự cần.',
-  'landing.vn.disclaimer':
-    'Hiện đang trong giai đoạn thử nghiệm — danh sách thành phố ở trên là minh hoạ định hướng, không phải dữ liệu phủ sóng thực tế.',
-
-  'landing.finalCta.title': 'Bắt đầu ngay hôm nay',
-  'landing.finalCta.subtitle': 'Đăng ký miễn phí, người lao động không phải trả trước.',
-
-  // Phase 9U — homepage section additions (safety strip, audience
-  // card details, mobile-specific copy).
-  'landing.audience.worker.eyebrow': 'Dành cho người làm',
-  'landing.audience.employer.eyebrow': 'Dành cho nhà tuyển dụng',
-  'landing.howItWorks.eyebrow': 'Quy trình',
-  'landing.safety.eyebrow': 'An toàn & minh bạch',
-  'landing.safety.title': 'Cách chúng tôi giữ ca làm an toàn',
+  // Safety & trust — one short list; the financial row is explicitly a mock.
+  'landing.safety.title': 'An toàn và minh bạch theo từng ca',
   'landing.safety.lead':
-    'Bốn cơ chế nền tảng giúp người làm và nhà tuyển dụng yên tâm trên từng ca.',
-  'landing.safety.verify.title': 'Xác minh hai chiều',
-  'landing.safety.verify.desc':
-    'Số điện thoại, CMND/CCCD và doanh nghiệp đều được xác minh trước khi giao ca.',
-  'landing.safety.verify.cta': 'Tìm hiểu xác minh',
-  'landing.safety.deposit.title': 'Đảm bảo thanh toán minh bạch',
-  'landing.safety.deposit.desc':
-    'Nhà tuyển dụng thanh toán trước khi đăng ca. Tiền chỉ giải ngân khi ca hoàn tất.',
-  'landing.safety.deposit.cta': 'Cách tính khoản đảm bảo',
-  'landing.safety.reputation.title': 'Điểm uy tín hai chiều',
+    'Những cơ chế giúp hai bên yên tâm — và phần tài chính hiện chỉ là mô phỏng.',
+  'landing.safety.confirm.title': 'Xác nhận hai chiều',
+  'landing.safety.confirm.desc':
+    'Người làm và nhà tuyển dụng cùng xác nhận trạng thái từng ca.',
+  'landing.safety.reputation.title': 'Lịch sử uy tín',
   'landing.safety.reputation.desc':
-    'Hệ thống điểm 0–100 ghi nhận hành vi của cả hai phía sau mỗi ca làm.',
-  'landing.safety.reputation.cta': 'Xem cách chấm điểm',
-  'landing.safety.dispute.title': 'Xử lý tranh chấp',
+    'Điểm uy tín 0–100 ghi nhận hành vi của cả hai phía sau mỗi ca.',
+  'landing.safety.dispute.title': 'Tranh chấp minh bạch',
   'landing.safety.dispute.desc':
-    'Quy trình rõ ràng và đội hỗ trợ độc lập khi xảy ra mâu thuẫn về ca làm.',
-  'landing.safety.dispute.cta': 'Quy trình tranh chấp',
+    'Có quy trình xử lý rõ ràng khi hai bên chưa thống nhất về ca làm.',
+  'landing.safety.finance.title': 'Tài chính là mô phỏng',
+  'landing.safety.finance.desc':
+    'Đặt cọc, ví và thanh toán đều là sổ cái mô phỏng trong bản demo — chưa có giao dịch thật.',
+
+  // Worker / employer split — two clear choices.
+  'landing.split.worker.title': 'Tôi muốn tìm ca',
+  'landing.split.worker.desc':
+    'Xem ca đang mở, lọc theo lịch của bạn và ứng tuyển ngay.',
+  'landing.split.employer.title': 'Tôi cần tìm người',
+  'landing.split.employer.desc':
+    'Đăng ca cần tuyển và chọn người làm phù hợp cho ca trống.',
+
+  // Final CTA — one worker primary action + an employer text link.
+  'landing.finalCta.title': 'Sẵn sàng nhận ca đầu tiên?',
+  'landing.finalCta.subtitle':
+    'Xem ca đang mở và ứng tuyển ngay — miễn phí, không cần cài ứng dụng.',
+  'landing.finalCta.employerPrompt': 'Bạn cần tuyển người làm?',
 
   // -------------------------------------------------------------------------
   // Auth pages
@@ -1403,7 +1394,7 @@ export const vi: Record<string, string> = {
   'deposit.breakdown.fullWage': 'Tổng tiền lương',
   'deposit.breakdown.trust': 'Độ uy tín',
   'deposit.breakdown.ratio': 'Tỷ lệ đảm bảo thanh toán',
-  'deposit.confirmPaid': 'Xác nhận đã thanh toán',
+  'deposit.confirmPaid': 'Mô phỏng đảm bảo thanh toán',
 
   // -------------------------------------------------------------------------
   // Phase 6 — rejection reason dialog

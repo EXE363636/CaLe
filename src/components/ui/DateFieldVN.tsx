@@ -285,6 +285,7 @@ export const DateFieldVN = forwardRef<HTMLInputElement, DateFieldVNProps>(
             error
               ? 'border-red-400 bg-red-50 focus-visible:ring-red-400'
               : 'border-gray-300 bg-white hover:border-gray-400',
+            'disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500',
             className,
           ].join(' ')}
           {...rest}
