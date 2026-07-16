@@ -134,7 +134,7 @@ const EMPLOYER_GROUP: MenuGroup = {
 };
 
 const SAFETY_GROUP: MenuGroup = {
-  label: 'Cẩm nang',
+  label: 'Hướng dẫn & hỗ trợ',
   activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide', '/handbook'],
   items: [
     {
@@ -814,7 +814,9 @@ function navLinkClasses(active: boolean): string {
     // the token ramp (orange-*/gray-*), so no hex touches here.
     'whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-h-[44px] flex items-center 2xl:px-3',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
-    'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+    active
+      ? 'bg-orange-50 text-orange-700'
+      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   ].join(' ');
 }
 

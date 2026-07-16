@@ -585,28 +585,28 @@ export default function UserGuidePage() {
         <FeatureGuide
           id="employer-total-deposit"
           eyebrow="Nhà tuyển dụng"
-          title="Tổng đã đảm bảo thanh toán được tính như thế nào?"
+          title="Tổng tiền công chờ thanh toán được tính như thế nào?"
           bullets={[
-            'Đây là tổng tiền công đang được hệ thống giữ tạm cho các ca đã đảm bảo thanh toán.',
-            'Bao gồm khoản đảm bảo thanh toán của các ca đang tuyển, đã đủ người, đang diễn ra và chờ xác nhận.',
+            'Đây là tổng tiền công đang được hệ thống giữ tạm chờ thanh toán.',
+            'Bao gồm khoản tiền công chờ thanh toán của các ca đang tuyển, đã đủ người, đang diễn ra và chờ xác nhận.',
             'Đây chưa phải là khoản tiền đã chi trả. Hệ thống đang giữ tạm số tiền này và sẽ chuyển cho người lao động sau khi ca được xác nhận hoàn thành.',
-            'Trong bản MVP, thao tác đảm bảo thanh toán chỉ là mô phỏng, chưa có giao dịch thật.',
+            'Trong bản MVP, thao tác giữ tiền chờ thanh toán chỉ là mô phỏng, chưa có giao dịch thật.',
           ]}
-          example="Bạn đăng một ca 4 giờ, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Mức đảm bảo thanh toán 100% là 280.000 đ. Sau khi đảm bảo thanh toán, ô “Tổng đã đảm bảo thanh toán” tăng thêm 280.000 đ."
-          nextAction="Bấm vào ô “Tổng đã đảm bảo thanh toán” trên Tổng quan nhà tuyển dụng để xem danh sách các ca đang giữ tiền."
+          example="Bạn đăng một ca 4 giờ, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Hệ thống sẽ giữ tạm 100% là 280.000 đ. Sau khi đăng ca, ô “Tổng tiền công chờ thanh toán” tăng thêm 280.000 đ."
+          nextAction="Bấm vào ô “Tổng tiền công chờ thanh toán” trên Tổng quan nhà tuyển dụng để xem danh sách các ca đang giữ tiền."
         />
 
         <FeatureGuide
           id="employer-total-paid"
           eyebrow="Nhà tuyển dụng"
-          title="Tổng đã thanh toán là gì?"
+          title="Tổng tiền công đã thanh toán là gì?"
           bullets={[
             'Đây là tổng tiền đã giải ngân cho người lao động sau khi ca hoàn thành và được xác nhận.',
             'Số tiền này tăng mỗi khi bạn bấm Xác nhận hoàn thành cho một người lao động trong ca đã chạy xong.',
             'Đây là tổng tiền công đã được chuyển cho người lao động sau khi các ca hoàn thành. Chỉ những khoản đã được nhà tuyển dụng xác nhận hoàn thành mới được tính vào số liệu này.',
           ]}
-          example="Tuần trước bạn xác nhận hoàn thành cho 4 người, tiền công lần lượt 140.000 đ, 140.000 đ, 180.000 đ và 180.000 đ. Ô “Tổng đã thanh toán” tăng thêm 640.000 đ."
-          nextAction="Bấm vào ô “Tổng đã thanh toán” trên Tổng quan nhà tuyển dụng để xem các giao dịch giải ngân gần đây."
+          example="Tuần trước bạn xác nhận hoàn thành cho 4 người, tiền công lần lượt 140.000 đ, 140.000 đ, 180.000 đ và 180.000 đ. Ô “Tổng tiền công đã thanh toán” tăng thêm 640.000 đ."
+          nextAction="Bấm vào ô “Tổng tiền công đã thanh toán” trên Tổng quan nhà tuyển dụng để xem các giao dịch giải ngân gần đây."
         />
       </GuideGroup>
 
