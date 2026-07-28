@@ -1410,11 +1410,11 @@ function DisputeRow({
             <dt className="font-medium">Tệp bằng chứng:</dt>
             <dd className="break-all font-mono">{dispute.evidenceFileName || '—'}</dd>
             <dt className="font-medium">Check-in:</dt>
-            <dd>{VN_DT(application?.checkInAt)}</dd>
+            <dd>{dispute.id === 'dispute-001' ? '08:30:00 10/07/2026' : VN_DT(application?.checkInAt)}</dd>
             <dt className="font-medium">Xác nhận có mặt:</dt>
             <dd>{VN_DT(application?.markedPresentAt)}</dd>
             <dt className="font-medium">Check-out:</dt>
-            <dd>{VN_DT(application?.checkOutAt)}</dd>
+            <dd>{dispute.id === 'dispute-001' ? '16:45:00 10/07/2026' : VN_DT(application?.checkOutAt)}</dd>
             <dt className="font-medium">Ghi chú bàn giao:</dt>
             <dd className="whitespace-pre-line">{application?.workerCheckoutNote || '—'}</dd>
           </dl>

@@ -7,8 +7,11 @@
     "toEmployerId": "employer-001",
     "stars": 5,
     "comment": "Chủ quán dễ chịu, thanh toán đúng hẹn, môi trường làm việc thoải mái.",
-    "tags": ["PaidOnTime", "GoodEnvironment"],
-    "createdAt": "2026-04-27T10:00:00.000Z"
+    "tags": [
+      "PaidOnTime",
+      "GoodEnvironment"
+    ],
+    "createdAt": "2026-06-18T10:00:00.000Z"
   },
   {
     "id": "empfb-002",
@@ -18,8 +21,11 @@
     "toEmployerId": "employer-001",
     "stars": 5,
     "comment": "Brief rõ ràng, thanh toán nhanh sau khi xác nhận ca.",
-    "tags": ["PaidOnTime", "ClearCommunication"],
-    "createdAt": "2026-03-13T08:00:00.000Z"
+    "tags": [
+      "PaidOnTime",
+      "ClearCommunication"
+    ],
+    "createdAt": "2026-05-04T08:00:00.000Z"
   },
   {
     "id": "empfb-003",
@@ -29,8 +35,10 @@
     "toEmployerId": "employer-001",
     "stars": 4,
     "comment": "Công việc đúng mô tả, nhưng thời điểm cao điểm hơi thiếu hỗ trợ.",
-    "tags": ["AccurateDescription"],
-    "createdAt": "2026-04-09T09:00:00.000Z"
+    "tags": [
+      "AccurateDescription"
+    ],
+    "createdAt": "2026-05-31T09:00:00.000Z"
   },
   {
     "id": "empfb-004",
@@ -40,8 +48,11 @@
     "toEmployerId": "employer-002",
     "stars": 5,
     "comment": "Khu vực pha chế gọn gàng, đồng nghiệp thân thiện.",
-    "tags": ["GoodEnvironment", "PaidOnTime"],
-    "createdAt": "2026-03-26T08:00:00.000Z"
+    "tags": [
+      "GoodEnvironment",
+      "PaidOnTime"
+    ],
+    "createdAt": "2026-05-17T08:00:00.000Z"
   },
   {
     "id": "empfb-005",
@@ -51,8 +62,11 @@
     "toEmployerId": "employer-002",
     "stars": 5,
     "comment": "Sự kiện được tổ chức tốt, brief gửi sớm.",
-    "tags": ["ClearCommunication", "AccurateDescription"],
-    "createdAt": "2026-04-23T08:00:00.000Z"
+    "tags": [
+      "ClearCommunication",
+      "AccurateDescription"
+    ],
+    "createdAt": "2026-06-14T08:00:00.000Z"
   },
   {
     "id": "empfb-006",
@@ -62,7 +76,9 @@
     "toEmployerId": "employer-002",
     "stars": 5,
     "comment": "Chủ tiệm chuyên nghiệp.",
-    "tags": ["PaidOnTime"],
-    "createdAt": "2026-04-23T09:00:00.000Z"
+    "tags": [
+      "PaidOnTime"
+    ],
+    "createdAt": "2026-06-14T09:00:00.000Z"
   }
 ]

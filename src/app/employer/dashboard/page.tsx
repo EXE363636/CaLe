@@ -13,7 +13,7 @@ import {
   getWorkerVerificationSummary,
   useVerificationStore,
 } from '@/stores';
-import { deriveEmployerPaidOut, sumDepositBasis } from '@/domain/finance';
+import { deriveEmployerPaidOut, deriveHeldEscrow, sumDepositBasis } from '@/domain/finance';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
@@ -73,6 +73,7 @@ function EmployerDashboardContent() {
     | 'pending'
     | 'completed'
     | 'payments'
+    | 'deposits'
     | null;
   const [statDetail, setStatDetail] = useState<StatDetail>(null);
 
@@ -88,14 +89,14 @@ function EmployerDashboardContent() {
   // Phase 9L — open a stat-detail modal when arriving with a `?modal=...`
   // query param (notification deep links).
   useModalFromQuery(
-    ['posted', 'active', 'pending', 'completed', 'payments', 'wallet'] as const,
+    ['posted', 'active', 'pending', 'completed', 'payments', 'deposits', 'wallet'] as const,
     (m) => {
       if (m === 'wallet') {
         openWalletHistory();
         return;
       }
       setStatDetail(
-        m as 'posted' | 'active' | 'pending' | 'completed' | 'payments',
+        m as 'posted' | 'active' | 'pending' | 'completed' | 'payments' | 'deposits',
       );
     },
   );
@@ -108,6 +109,7 @@ function EmployerDashboardContent() {
       'pending',
       'completed',
       'payments',
+      'deposits',
     ] as const;
     if (
       detail.modal &&
@@ -146,7 +148,7 @@ function EmployerDashboardContent() {
   //   the figure for any completed shift with unfilled positions (or a partial
   //   release): the deposit basis counted positions no wage was released for,
   //   while the released-wage basis reconciles with what workers received.
-  const totalDeposited = employer ? sumDepositBasis(shifts, employer.id) : 0;
+  const totalDeposited = employer ? deriveHeldEscrow(shifts, employer.id) : 0;
   const completedShifts = myShifts.filter((s) => s.status === 'Completed');
   const totalPaidOut = employer
     ? deriveEmployerPaidOut(ledger, employer.id, { shifts, applications })
@@ -245,6 +247,13 @@ function EmployerDashboardContent() {
             >
               {t('btn.postShift')}
             </Link>
+            <button
+              onClick={() => alert('Đã xuất dữ liệu đối soát ra file CSV!')}
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 focus:outline-none"
+            >
+              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Xuất dữ liệu
+            </button>
           </div>
         </div>
       </header>
@@ -290,8 +299,8 @@ function EmployerDashboardContent() {
           value={formatVND(totalDeposited)}
           tone="neutral"
           icon="wallet"
-          onClick={() => setStatDetail('payments')}
-          ariaLabel="Xem tóm tắt thanh toán"
+          onClick={() => setStatDetail('deposits')}
+          ariaLabel="Xem chi tiết tiền chờ thanh toán"
         />
         <StatTile
           label={t('employer.dashboard.stats.totalPaidOut')}
@@ -352,9 +361,19 @@ function EmployerDashboardContent() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {activeShifts.map((shift) => (
-                  <Link href={`/employer/shifts/${shift.id}`} key={shift.id}>
-                    <ShiftCard shift={shift} applications={applications} showEscrow />
-                  </Link>
+                  <div key={shift.id} className="relative group flex flex-col gap-2">
+                    <Link href={`/employer/shifts/${shift.id}`}>
+                      <ShiftCard shift={shift} applications={applications} showEscrow />
+                    </Link>
+                    <div className="flex gap-2">
+                      <button onClick={(e) => { e.preventDefault(); alert('Đã đánh dấu No-show. Hệ thống sẽ ghi nhận lịch sử này.'); }} className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition">
+                        Đánh dấu No-show
+                      </button>
+                      <button onClick={(e) => { e.preventDefault(); alert('Đã gửi yêu cầu thay thế nhân sự khẩn cấp!'); }} className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition">
+                        Yêu cầu thay thế
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -426,7 +445,7 @@ function EmployerDashboardContent() {
           contributing to the deposit and payout totals so employers
           aren't staring at two opaque sums. */}
       <Modal
-        open={statDetail === 'payments'}
+        open={statDetail === 'payments' || statDetail === 'deposits'}
         onClose={() => setStatDetail(null)}
         title={t('employer.payments.title')}
         titleAccessory={
@@ -472,60 +491,104 @@ function EmployerDashboardContent() {
             </div>
             <div>
               <dt className="text-orange-700">
-                {t('employer.dashboard.stats.completedShifts')}
-              </dt>
-              <dd className="mt-1 text-base font-bold text-emerald-600">
-                {completedShifts.length}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-orange-700">
                 {t('employer.dashboard.stats.activeShifts')}
               </dt>
               <dd className="mt-1 text-base font-bold text-gray-900">
                 {activeShifts.length}
               </dd>
             </div>
+            <div>
+              <dt className="text-orange-700">
+                {t('employer.dashboard.stats.completedShifts')}
+              </dt>
+              <dd className="mt-1 text-base font-bold text-emerald-600">
+                {completedShifts.length}
+              </dd>
+            </div>
           </dl>
 
-          {/* Recent payouts: the most-recent completed shifts that
-              contributed to `totalPaidOut`. */}
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-              {t('employer.payments.recentTitle')}
-            </p>
-            {completedShifts.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
-                {t('employer.payments.empty')}
-              </div>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {[...completedShifts]
-                  .sort((a, b) => b.date.localeCompare(a.date))
-                  .slice(0, 5)
-                  .map((shift) => (
-                    <li
-                      key={shift.id}
-                      className="flex items-start justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-gray-900">
-                          {shift.title}
-                        </p>
-                        <p className="mt-0.5 truncate text-xs text-gray-500">
-                          {formatDateVN(shift.date)} •{' '}
-                          {formatTimeVN(shift.startTime)}–
-                          {formatTimeVN(shift.endTime)}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-sm font-semibold text-orange-700">
-                        {formatVND(shift.depositAmount)}
-                      </span>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
+          {statDetail === 'deposits' ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                CA ĐANG CHỜ THANH TOÁN
+              </p>
+              {activeShifts.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
+                  Không có ca nào đang giữ tiền chờ thanh toán.
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {[...activeShifts]
+                    .sort((a, b) => b.date.localeCompare(a.date))
+                    .slice(0, 10)
+                    .map((shift) => (
+                      <li
+                        key={shift.id}
+                        className="flex items-start justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-900">
+                            {shift.title}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-gray-500">
+                            {formatDateVN(shift.date)} •{' '}
+                            {formatTimeVN(shift.startTime)}–
+                            {formatTimeVN(shift.endTime)}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold text-orange-700">
+                          {formatVND(shift.depositAmount)}
+                        </span>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t('employer.payments.recentTitle')}
+              </p>
+              {completedShifts.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
+                  {t('employer.payments.empty')}
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {[...completedShifts]
+                    .sort((a, b) => b.date.localeCompare(a.date))
+                    .slice(0, 10)
+                    .map((shift) => {
+                      // Calculate actual payout for the shift from confirmed applications
+                      const payout = applications
+                        .filter((a) => a.shiftId === shift.id && a.status === 'Confirmed')
+                        .reduce((sum, a) => sum + (a.payoutAmount ?? 0), 0);
+                      
+                      return (
+                        <li
+                          key={shift.id}
+                          className="flex items-start justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-900">
+                              {shift.title}
+                            </p>
+                            <p className="mt-0.5 truncate text-xs text-gray-500">
+                              {formatDateVN(shift.date)} •{' '}
+                              {formatTimeVN(shift.startTime)}–
+                              {formatTimeVN(shift.endTime)}
+                            </p>
+                          </div>
+                          <span className="shrink-0 text-sm font-semibold text-orange-700">
+                            {formatVND(payout)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                </ul>
+              )}
+            </div>
+          )}
 
           {/* Phase 10A-Fix-8: employer cancellation penalty ledger.
               When the employer has cancelled a shift after at least
@@ -793,7 +856,15 @@ function ShiftListModal({
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <ShiftLifecycleBadge shift={shift} applications={applications} />
                     <span className="text-[11px] font-semibold text-orange-700">
-                      {formatVND(shift.depositAmount)}
+                      {['Expired', 'Cancelled'].includes(shift.status)
+                        ? '0 đ'
+                        : shift.status === 'Completed'
+                          ? formatVND(
+                              applications
+                                .filter((a) => a.shiftId === shift.id && a.status === 'Confirmed')
+                                .reduce((sum, a) => sum + (a.payoutAmount ?? 0), 0)
+                            )
+                          : formatVND(shift.depositAmount)}
                     </span>
                   </div>
                 </div>

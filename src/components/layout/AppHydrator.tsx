@@ -39,11 +39,25 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
   const hydratedRef = useRef(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('seed_wiped_v10')) {
+      localStorage.clear();
+      localStorage.setItem('seed_wiped_v10', 'true');
+      window.location.reload();
+      return;
+    }
+
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
     const snapshot = loadAll();
     useUserStore.getState().hydrate(snapshot.users);
+    useVerificationStore
+      .getState()
+      .hydrate(
+        snapshot.workerVerifications,
+        snapshot.employerVerifications,
+        snapshot.employerTypeChangeRequests,
+      );
     useShiftStore.getState().hydrate(snapshot.shifts);
     useApplicationStore.getState().hydrateApplications(snapshot.applications);
     useApplicationStore.getState().hydrateRatings(snapshot.ratings);
@@ -54,13 +68,6 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
     useReviewReportStore.getState().hydrate(snapshot.reviewReports);
     useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
-    useVerificationStore
-      .getState()
-      .hydrate(
-        snapshot.workerVerifications,
-        snapshot.employerVerifications,
-        snapshot.employerTypeChangeRequests,
-      );
     useWalletStore
       .getState()
       .hydrate(snapshot.wallets, snapshot.walletLedger);

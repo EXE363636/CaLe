@@ -6,10 +6,9 @@
     "phone": "+84901000001",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-01-05T08:00:00.000Z",
+    "createdAt": "2026-02-26T08:00:00.000Z",
     "fullName": "Quản trị viên ShiftNow"
   },
-
   {
     "id": "employer-001",
     "role": "employer",
@@ -17,10 +16,10 @@
     "phone": "+84902111001",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-02-10T09:00:00.000Z",
+    "createdAt": "2026-04-03T09:00:00.000Z",
     "companyName": "Quán Phở Hà",
     "businessType": "Nhà hàng / Quán ăn",
-    "description": "Quán phở gia đình tại Quận 1, phục vụ ăn sáng và ăn trưa.",
+    "description": "Quán phở gia đình tại Khu CNC Hòa Lạc, phục vụ ăn sáng và ăn trưa.",
     "logoUrl": "",
     "verifiedBusiness": true,
     "boostCredits": 1,
@@ -33,10 +32,10 @@
     "phone": "+84903222002",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-02-18T10:30:00.000Z",
-    "companyName": "Cafe Cộng Sài Gòn",
+    "createdAt": "2026-04-11T10:30:00.000Z",
+    "companyName": "Cafe Cộng Hòa Lạc",
     "businessType": "Cafe",
-    "description": "Chuỗi cafe phong cách hoài cổ, có 3 chi nhánh tại TP.HCM.",
+    "description": "Chuỗi cafe phong cách hoài cổ, có 3 chi nhánh tại Hòa Lạc.",
     "logoUrl": "",
     "verifiedBusiness": true,
     "boostCredits": 0,
@@ -49,7 +48,7 @@
     "phone": "+84904333003",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-03-02T14:15:00.000Z",
+    "createdAt": "2026-04-23T14:15:00.000Z",
     "companyName": "Sự kiện Vinh Quang",
     "businessType": "Tổ chức sự kiện",
     "description": "Đơn vị tổ chức sự kiện ngắn hạn, hội chợ, khai trương cửa hàng.",
@@ -58,7 +57,6 @@
     "boostCredits": 0,
     "employerType10A": "AgencyEvent"
   },
-
   {
     "id": "worker-001",
     "role": "worker",
@@ -66,16 +64,30 @@
     "phone": "+84905444001",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-02-20T11:00:00.000Z",
+    "createdAt": "2026-04-13T11:00:00.000Z",
     "fullName": "Nguyễn Văn An",
     "avatarUrl": "",
     "bio": "Người lao động linh hoạt, làm thêm theo lịch học và lịch cá nhân.",
-    "skills": ["phục vụ", "thu ngân", "tiếng Anh giao tiếp"],
-    "preferredJobTypes": ["Phục vụ", "Thu ngân"],
-    "preferredLocations": ["Quận 1, TP.HCM", "Quận 3, TP.HCM"],
-    "verifications": ["phone", "id", "student"],
+    "skills": [
+      "phục vụ",
+      "thu ngân",
+      "tiếng Anh giao tiếp"
+    ],
+    "preferredJobTypes": [
+      "Phục vụ",
+      "Thu ngân"
+    ],
+    "preferredLocations": [
+      "Thạch Hòa, Thạch Thất",
+      "Hạ Bằng, Thạch Thất"
+    ],
+    "verifications": [
+      "phone",
+      "id",
+      "student"
+    ],
     "reputationScore": 95,
-    "completedShiftCount": 12,
+    "completedShiftCount": 5,
     "ratingsReceived": [
       {
         "id": "rating-w1-001",
@@ -85,7 +97,7 @@
         "toUserId": "worker-001",
         "stars": 5,
         "feedback": "An làm việc nhanh và lịch sự với khách.",
-        "createdAt": "2026-03-12T22:30:00.000Z"
+        "createdAt": "2026-05-03T22:30:00.000Z"
       },
       {
         "id": "rating-w1-002",
@@ -95,7 +107,7 @@
         "toUserId": "worker-001",
         "stars": 5,
         "feedback": "Pha chế nhanh, sạch sẽ, đáng tin cậy.",
-        "createdAt": "2026-03-25T18:00:00.000Z"
+        "createdAt": "2026-05-16T18:00:00.000Z"
       },
       {
         "id": "rating-w1-003",
@@ -104,8 +116,8 @@
         "fromUserId": "employer-001",
         "toUserId": "worker-001",
         "stars": 4,
-        "feedback": "Tốt, cần chủ động hơn trong giờ cao điểm.",
-        "createdAt": "2026-04-08T14:30:00.000Z"
+        "feedback": "Nhanh nhẹn, nhiệt tình hỗ trợ khách mời trong suốt buổi tiệc.",
+        "createdAt": "2026-05-30T14:30:00.000Z"
       },
       {
         "id": "rating-w1-004",
@@ -115,7 +127,7 @@
         "toUserId": "worker-001",
         "stars": 5,
         "feedback": "Rất hài lòng, sẽ thuê lại.",
-        "createdAt": "2026-04-22T19:00:00.000Z"
+        "createdAt": "2026-06-13T19:00:00.000Z"
       },
       {
         "id": "rating-w1-005",
@@ -125,26 +137,52 @@
         "toUserId": "worker-001",
         "stars": 5,
         "feedback": "Đúng giờ và chuyên nghiệp.",
-        "createdAt": "2026-05-05T22:00:00.000Z"
+        "createdAt": "2026-06-26T22:00:00.000Z"
       }
     ],
     "cancellationHistory": [
       {
         "id": "cancel-w1-001",
         "shiftId": "shift-015",
-        "cancelledAt": "2026-04-02T08:00:00.000Z",
+        "cancelledAt": "2026-05-24T08:00:00.000Z",
         "type": "OnTime",
         "reasonNote": "Trùng lịch học."
       },
       {
         "id": "cancel-w1-002",
         "shiftId": "shift-016",
-        "cancelledAt": "2026-04-18T22:00:00.000Z",
+        "cancelledAt": "2026-06-09T22:00:00.000Z",
         "type": "LateCancel",
         "reasonNote": "Bị ốm đột xuất, đã báo nhà tuyển dụng."
       }
     ],
-    "noShowCount": 0
+    "noShowCount": 0,
+    "skillScores": [
+      {
+        "category": "Phục vụ",
+        "score": 96,
+        "completedCount": 3,
+        "lastRating": 5,
+        "lastUpdatedAt": "2026-06-26T22:00:00.000Z"
+      },
+      {
+        "category": "Pha chế",
+        "score": 100,
+        "completedCount": 2,
+        "lastRating": 5,
+        "lastUpdatedAt": "2026-06-13T19:00:00.000Z"
+      },
+      {
+        "category": "Thu ngân",
+        "score": 0,
+        "completedCount": 0
+      },
+      {
+        "category": "Tiếng Anh giao tiếp",
+        "score": 0,
+        "completedCount": 0
+      }
+    ]
   },
   {
     "id": "worker-002",
@@ -153,16 +191,53 @@
     "phone": "+84905444002",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-02-22T09:30:00.000Z",
+    "createdAt": "2026-04-15T09:30:00.000Z",
     "fullName": "Trần Thị Hà",
     "avatarUrl": "",
     "bio": "Yêu thích pha chế, có kinh nghiệm tại các quán cafe nhỏ.",
-    "skills": ["pha chế", "phục vụ", "dọn dẹp"],
-    "preferredJobTypes": ["Pha chế", "Phục vụ"],
-    "preferredLocations": ["Quận Bình Thạnh, TP.HCM", "Quận Phú Nhuận, TP.HCM"],
-    "verifications": ["phone", "id", "student"],
+    "skills": [
+      "pha chế",
+      "phục vụ",
+      "dọn dẹp"
+    ],
+    "preferredJobTypes": [
+      "Pha chế",
+      "Phục vụ"
+    ],
+    "preferredLocations": [
+      "Đồng Trúc, Thạch Thất",
+      "Tân Xã, Thạch Thất"
+    ],
+    "skillScores": [
+      {
+        "category": "Pha chế",
+        "score": 100,
+        "completedCount": 1,
+        "lastRating": 5,
+        "lastUpdatedAt": "2026-05-26T11:30:00.000Z"
+      },
+      {
+        "category": "Phục vụ",
+        "score": 100,
+        "completedCount": 2,
+        "lastRating": 5,
+        "lastUpdatedAt": "2026-06-17T22:30:00.000Z"
+      },
+      {
+        "category": "Dọn dẹp",
+        "score": 100,
+        "completedCount": 1,
+        "lastRating": 5,
+        "lastUpdatedAt": "2026-06-21T22:30:00.000Z"
+      }
+    ],
+    "verifications": [
+      "phone",
+      "id",
+      "student"
+    ],
     "reputationScore": 100,
-    "completedShiftCount": 18,
+    "completedShiftCount": 4,
     "ratingsReceived": [
       {
         "id": "rating-001",
@@ -172,7 +247,7 @@
         "toUserId": "worker-002",
         "stars": 5,
         "feedback": "Bạn Hà rất chuyên nghiệp, lịch sự với khách. Sẽ thuê lại.",
-        "createdAt": "2026-04-26T22:30:00.000Z"
+        "createdAt": "2026-06-17T22:30:00.000Z"
       },
       {
         "id": "rating-004",
@@ -182,7 +257,7 @@
         "toUserId": "worker-002",
         "stars": 5,
         "feedback": "Rất hài lòng.",
-        "createdAt": "2026-04-15T19:30:00.000Z"
+        "createdAt": "2026-06-06T19:30:00.000Z"
       },
       {
         "id": "rating-w2-001",
@@ -192,7 +267,7 @@
         "toUserId": "worker-002",
         "stars": 5,
         "feedback": "Pha chế chuẩn vị, khách khen nhiều.",
-        "createdAt": "2026-04-04T11:30:00.000Z"
+        "createdAt": "2026-05-26T11:30:00.000Z"
       },
       {
         "id": "rating-w2-002",
@@ -202,7 +277,7 @@
         "toUserId": "worker-002",
         "stars": 5,
         "feedback": "Làm việc đáng tin cậy.",
-        "createdAt": "2026-04-30T22:30:00.000Z"
+        "createdAt": "2026-06-21T22:30:00.000Z"
       }
     ],
     "cancellationHistory": [],
@@ -215,16 +290,27 @@
     "phone": "+84905444003",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-03-05T13:00:00.000Z",
+    "createdAt": "2026-04-26T13:00:00.000Z",
     "fullName": "Lê Hoàng Bình",
     "avatarUrl": "",
     "bio": "Làm việc chăm chỉ, sẵn sàng nhận ca cuối tuần.",
-    "skills": ["bốc xếp", "kho vận"],
-    "preferredJobTypes": ["Kho vận", "Bốc xếp"],
-    "preferredLocations": ["Quận 7, TP.HCM", "Quận Bình Tân, TP.HCM"],
-    "verifications": ["phone"],
+    "skills": [
+      "bốc xếp",
+      "kho vận"
+    ],
+    "preferredJobTypes": [
+      "Kho vận",
+      "Bốc xếp"
+    ],
+    "preferredLocations": [
+      "Tân Xã, Thạch Thất",
+      "Phú Cát, Thạch Thất"
+    ],
+    "verifications": [
+      "phone"
+    ],
     "reputationScore": 80,
-    "completedShiftCount": 5,
+    "completedShiftCount": 1,
     "ratingsReceived": [
       {
         "id": "rating-w3-001",
@@ -234,11 +320,25 @@
         "toUserId": "worker-003",
         "stars": 4,
         "feedback": "Bốc xếp khoẻ, cần cẩn thận hơn với hàng dễ vỡ.",
-        "createdAt": "2026-04-12T17:00:00.000Z"
+        "createdAt": "2026-06-03T17:00:00.000Z"
       }
     ],
     "cancellationHistory": [],
-    "noShowCount": 0
+    "noShowCount": 0,
+    "skillScores": [
+      {
+        "category": "Bốc xếp",
+        "score": 80,
+        "completedCount": 1,
+        "lastRating": 4,
+        "lastUpdatedAt": "2026-06-03T17:00:00.000Z"
+      },
+      {
+        "category": "Kho vận",
+        "score": 0,
+        "completedCount": 0
+      }
+    ]
   },
   {
     "id": "worker-004",
@@ -247,16 +347,28 @@
     "phone": "+84905444004",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-03-12T16:45:00.000Z",
+    "createdAt": "2026-05-03T16:45:00.000Z",
     "fullName": "Phạm Thị Chi",
     "avatarUrl": "",
     "bio": "Yêu thích các công việc sự kiện, năng động và linh hoạt.",
-    "skills": ["MC sự kiện", "phát tờ rơi", "hỗ trợ khách"],
-    "preferredJobTypes": ["Hỗ trợ sự kiện", "Phát tờ rơi"],
-    "preferredLocations": ["Quận Hoàn Kiếm, Hà Nội", "Quận Đống Đa, Hà Nội"],
-    "verifications": ["phone"],
+    "skills": [
+      "MC sự kiện",
+      "phát tờ rơi",
+      "hỗ trợ khách"
+    ],
+    "preferredJobTypes": [
+      "Hỗ trợ sự kiện",
+      "Phát tờ rơi"
+    ],
+    "preferredLocations": [
+      "Thạch Hòa, Thạch Thất",
+      "Bình Yên, Thạch Thất"
+    ],
+    "verifications": [
+      "phone"
+    ],
     "reputationScore": 75,
-    "completedShiftCount": 4,
+    "completedShiftCount": 1,
     "ratingsReceived": [
       {
         "id": "rating-w4-001",
@@ -266,11 +378,30 @@
         "toUserId": "worker-004",
         "stars": 4,
         "feedback": "Năng nổ, biết hỗ trợ khách.",
-        "createdAt": "2026-04-18T19:00:00.000Z"
+        "createdAt": "2026-06-09T19:00:00.000Z"
       }
     ],
     "cancellationHistory": [],
-    "noShowCount": 0
+    "noShowCount": 0,
+    "skillScores": [
+      {
+        "category": "Hỗ trợ khách",
+        "score": 80,
+        "completedCount": 1,
+        "lastRating": 4,
+        "lastUpdatedAt": "2026-06-09T19:00:00.000Z"
+      },
+      {
+        "category": "MC sự kiện",
+        "score": 0,
+        "completedCount": 0
+      },
+      {
+        "category": "Phát tờ rơi",
+        "score": 0,
+        "completedCount": 0
+      }
+    ]
   },
   {
     "id": "worker-005",
@@ -279,16 +410,27 @@
     "phone": "+84905444005",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-01-15T10:00:00.000Z",
+    "createdAt": "2026-03-08T10:00:00.000Z",
     "fullName": "Võ Quang Duy",
     "avatarUrl": "",
     "bio": "Có kinh nghiệm bảo vệ, an ninh cho sự kiện nhỏ.",
-    "skills": ["bảo vệ", "an ninh sự kiện"],
-    "preferredJobTypes": ["Bảo vệ"],
-    "preferredLocations": ["Quận 1, TP.HCM", "Quận 10, TP.HCM"],
-    "verifications": ["phone", "id"],
+    "skills": [
+      "bảo vệ",
+      "an ninh sự kiện"
+    ],
+    "preferredJobTypes": [
+      "Bảo vệ"
+    ],
+    "preferredLocations": [
+      "Thạch Hòa, Thạch Thất",
+      "Cần Kiệm, Thạch Thất"
+    ],
+    "verifications": [
+      "phone",
+      "id"
+    ],
     "reputationScore": 60,
-    "completedShiftCount": 8,
+    "completedShiftCount": 1,
     "ratingsReceived": [
       {
         "id": "rating-002",
@@ -298,19 +440,38 @@
         "toUserId": "worker-005",
         "stars": 4,
         "feedback": "Bạn Duy làm tốt, cần cải thiện thêm tốc độ phục vụ.",
-        "createdAt": "2026-04-26T22:30:00.000Z"
+        "createdAt": "2026-06-17T22:30:00.000Z"
       }
     ],
     "cancellationHistory": [
       {
         "id": "cancel-001",
         "shiftId": "shift-009",
-        "cancelledAt": "2026-04-10T20:00:00.000Z",
+        "cancelledAt": "2026-06-01T20:00:00.000Z",
         "type": "LateCancel",
         "reasonNote": "Có việc gia đình đột xuất."
       }
     ],
-    "noShowCount": 1
+    "noShowCount": 1,
+    "skillScores": [
+      {
+        "category": "Phục vụ",
+        "score": 80,
+        "completedCount": 1,
+        "lastRating": 4,
+        "lastUpdatedAt": "2026-06-17T22:30:00.000Z"
+      },
+      {
+        "category": "Bảo vệ",
+        "score": 0,
+        "completedCount": 0
+      },
+      {
+        "category": "An ninh sự kiện",
+        "score": 0,
+        "completedCount": 0
+      }
+    ]
   },
   {
     "id": "worker-006",
@@ -319,26 +480,42 @@
     "phone": "+84905444006",
     "passwordHash": "mock-hash:demo",
     "suspended": false,
-    "createdAt": "2026-02-01T08:30:00.000Z",
+    "createdAt": "2026-03-25T08:30:00.000Z",
     "fullName": "Đặng Hoàng Em",
     "avatarUrl": "",
     "bio": "Đang tìm việc ngắn hạn.",
-    "skills": ["phục vụ"],
-    "preferredJobTypes": ["Phục vụ", "Phát tờ rơi"],
-    "preferredLocations": ["Quận Gò Vấp, TP.HCM"],
-    "verifications": ["phone"],
+    "skills": [
+      "phục vụ"
+    ],
+    "preferredJobTypes": [
+      "Phục vụ",
+      "Phát tờ rơi"
+    ],
+    "preferredLocations": [
+      "Phùng Xá, Thạch Thất"
+    ],
+    "verifications": [
+      "phone"
+    ],
     "reputationScore": 35,
-    "completedShiftCount": 2,
+    "completedShiftCount": 0,
     "ratingsReceived": [],
     "cancellationHistory": [
       {
         "id": "cancel-002",
         "shiftId": "shift-009",
-        "cancelledAt": "2026-03-22T18:00:00.000Z",
+        "cancelledAt": "2026-05-13T18:00:00.000Z",
         "type": "LateCancel",
         "reasonNote": "Bị ốm."
       }
     ],
-    "noShowCount": 2
+    "noShowCount": 2,
+    "skillScores": [
+      {
+        "category": "Phục vụ",
+        "score": 0,
+        "completedCount": 0
+      }
+    ]
   }
 ]

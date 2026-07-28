@@ -25,8 +25,8 @@ export default async function HandbookPage({
   if (featured.length === 0) {
     featured = filteredArticles.slice(0, 4);
   }
-  // Giới hạn 4 bài nổi bật
-  featured = featured.slice(0, 4);
+  // Giới hạn 1 bài nổi bật
+  featured = featured.slice(0, 1);
 
   // Các bài còn lại hiển thị ở lưới
   const featuredIds = new Set(featured.map((a) => a.id));

@@ -282,7 +282,19 @@ function WorkerDashboardContent() {
         .slice(0, 5),
     [myApps],
   );
-  // Phase 6: Confirmed applications that haven't yet received employer
+
+  const recentlyCompleted = useMemo(
+    () =>
+      myApps
+        .filter((a) => a.status === 'Confirmed')
+        .sort((a, b) =>
+          (b.confirmedAt ?? b.checkOutAt ?? '').localeCompare(a.confirmedAt ?? a.checkOutAt ?? ''),
+        )
+        .slice(0, 5),
+    [myApps],
+  );
+
+  // Feedback pending: completed shifts that haven't received employer
   // feedback from this worker. The feedback store is the source of truth
   // for "already submitted" — guards against double-submission.
   const feedbackPending = useMemo(() => {
@@ -792,7 +804,8 @@ function WorkerDashboardContent() {
               (progressive disclosure), collapsed by default. */}
           {recentlyRejected.length +
             recentlyCancelledByEmployer.length +
-            recentlyExpired.length >
+            recentlyExpired.length +
+            recentlyCompleted.length >
             0 && (
             <section>
               <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
@@ -803,7 +816,8 @@ function WorkerDashboardContent() {
                       (
                       {recentlyRejected.length +
                         recentlyCancelledByEmployer.length +
-                        recentlyExpired.length}
+                        recentlyExpired.length +
+                        recentlyCompleted.length}
                       )
                     </span>
                   </span>
@@ -917,6 +931,44 @@ function WorkerDashboardContent() {
                                 <p className="mt-2 text-xs leading-relaxed text-gray-500">
                                   Ca đã bắt đầu trước khi đơn của bạn được duyệt.
                                   Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.
+                                </p>
+                              </Card>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {recentlyCompleted.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                        Ca làm đã hoàn thành
+                      </h3>
+                      <div className="flex flex-col gap-3">
+                        {recentlyCompleted.map((a) => {
+                          const shift = getShift(a.shiftId);
+                          if (!shift) return null;
+                          return (
+                            <Link key={a.id} href={`/shifts/${shift.id}`}>
+                              <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-gray-900">
+                                      {shift.title}
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-gray-500">
+                                      {formatDateVN(shift.date)} •{' '}
+                                      {formatTimeVN(shift.startTime)}–
+                                      {formatTimeVN(shift.endTime)}
+                                    </p>
+                                  </div>
+                                  <Badge tone="success">
+                                    {t('application.status.Confirmed')}
+                                  </Badge>
+                                </div>
+                                <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                                  Ca làm việc đã hoàn thành và tiền công đã được cộng vào ví của bạn.
                                 </p>
                               </Card>
                             </Link>

@@ -52,6 +52,8 @@ interface ShiftCardProps {
    */
   matchLabel?: string;
   fitsAvailability?: boolean;
+  /** True if the shift conflicts with a busy block or another job. */
+  isConflict?: boolean;
   /**
    * CORE-STABILITY-10 — applications + now for the unified lifecycle
    * badge. When the worker has NOT applied (no `workerApplicationStatus`),
@@ -129,6 +131,7 @@ export function ShiftCard({
   workerApplicationStatus,
   matchLabel,
   fitsAvailability = false,
+  isConflict = false,
   applications = [],
   nowIso,
 }: ShiftCardProps) {
@@ -158,6 +161,7 @@ export function ShiftCard({
           : undefined
       }
       className={[
+        'flex flex-col h-full',
         onClick
           ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
           : '',
@@ -173,39 +177,42 @@ export function ShiftCard({
           status) — Checklist K / old bug class 4. */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-gray-900 leading-snug">{shift.title}</h3>
-        {workerApplicationStatus ? (
-          <Badge tone={applicationToneMap[workerApplicationStatus]}>
-            {t(`apply.applied.${workerApplicationStatus}`)}
-          </Badge>
-        ) : (
-          <ShiftLifecycleBadge
-            shift={shift}
-            applications={applications}
-            nowIso={nowIso}
-          />
-        )}
+        <div className="shrink-0">
+          {workerApplicationStatus ? (
+            <Badge tone={applicationToneMap[workerApplicationStatus]}>
+              {t(`apply.applied.${workerApplicationStatus}`)}
+            </Badge>
+          ) : (
+            <ShiftLifecycleBadge
+              shift={shift}
+              applications={applications}
+              nowIso={nowIso}
+            />
+          )}
+        </div>
       </div>
 
       {/* CORE-STABILITY-9 Part 5 — availability-match pills. Only
           rendered when the listing is sorted by "Phù hợp lịch rảnh". */}
-      {matchLabel && (
+      {(matchLabel || isConflict || fitsAvailability) && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span
-            className={[
-              'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
-              matchLabel === t('availability.match.veryGood')
-                ? 'bg-emerald-100 text-emerald-800'
-                : matchLabel === t('availability.match.good')
-                  ? 'bg-sky-100 text-sky-800'
-                  : 'bg-amber-100 text-amber-800',
-            ].join(' ')}
-          >
-            {matchLabel}
-          </span>
-          {fitsAvailability && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+          {/* Conflict Badge: only shown in availability sort when excluded.
+              We hide it if the worker already has this shift approved/active,
+              because the algorithm excludes approved shifts (they conflict with themselves). */}
+          {isConflict && !['Approved', 'CheckedIn', 'CheckedOut'].includes(workerApplicationStatus || '') && (
+            <Badge tone="danger">Trùng lịch bận</Badge>
+          )}
+
+          {/* Availability Match Pill */}
+          {!isConflict && matchLabel && (
+            <Badge tone={matchLabel === t('availability.match.veryGood') ? 'success' : matchLabel === t('availability.match.good') ? 'info' : 'warning'}>
+              {matchLabel}
+            </Badge>
+          )}
+          {!isConflict && fitsAvailability && (
+            <Badge tone="success">
               {t('availability.fitsAvailability')}
-            </span>
+            </Badge>
           )}
         </div>
       )}
@@ -261,12 +268,20 @@ export function ShiftCard({
           chip + a "Xem chi tiết" affordance. The card itself remains
           clickable to /shifts/{id}; this just gives the worker an
           at-a-glance status pin. */}
-      {workerApplicationStatus && (
+      {workerApplicationStatus ? (
         // The status is already the single primary badge in row 1, so this
         // footer is just a "view your application" affordance and no longer
         // repeats the status text.
-        <div className="mt-3 flex items-center justify-end gap-1 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs font-medium text-orange-700">
-          {t('btn.viewApplication')} →
+        <div className="mt-auto pt-3 flex items-center justify-end">
+          <div className="flex items-center gap-1 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs font-medium text-orange-700 w-full sm:w-auto justify-center transition-colors hover:bg-orange-100">
+            {t('btn.viewApplication')}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-auto pt-3 flex items-center justify-end">
+          <div className="flex items-center gap-1 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs font-medium text-orange-700 w-full sm:w-auto justify-center transition-colors hover:bg-orange-100">
+            {t('btn.viewDetail')} →
+          </div>
         </div>
       )}
     </Card>

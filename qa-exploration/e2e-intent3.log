@@ -1,7 +1,0 @@
-﻿
-Running 3 tests using 3 workers
-
-[1A[2K[1/3] [chromium] ΓÇ║ e2e\19-intent-deeplink.spec.ts:37:7 ΓÇ║ Employer same-route intents ΓÇ║ UserMenu "Quß║ún l├╜ ß╗⌐ng vi├¬n" opens the pending modal while already on the dashboard (and again on repeat click)
-[1A[2K[2/3] [chromium] ΓÇ║ e2e\19-intent-deeplink.spec.ts:99:7 ΓÇ║ Worker same-route intents ΓÇ║ UserMenu "─Éiß╗âm uy t├¡n" opens the reputation modal while already on the worker dashboard
-[1A[2K[3/3] [chromium] ΓÇ║ e2e\19-intent-deeplink.spec.ts:124:7 ΓÇ║ Admin same-route intents ΓÇ║ UserMenu "Tranh chß║Ñp" opens the disputes tab while already on the admin dashboard (repeat-safe)
-[1A[2K  3 passed (3.6s)

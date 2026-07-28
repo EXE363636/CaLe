@@ -47,7 +47,7 @@ import verificationsSeed from './seed/verifications.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 19;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {

@@ -87,6 +87,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
         <HelpPopover
           title={t('help.paymentEvidence.title')}
           description={t('help.paymentEvidence.description')}
+          learnMoreHref="/handbook/muc-bang-chung-thanh-toan"
         />
       </div>
 

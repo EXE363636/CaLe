@@ -793,23 +793,15 @@ function EvidenceFieldset({
   // tint inside the white FormSection card. Legend + radio-row grouping
   // unchanged.
   return (
-    <fieldset className="md:col-span-2 rounded-xl bg-orange-50/40 p-4">
-      {/*
-        Per the HTML5 spec, `<legend>` must be a direct child of
-        `<fieldset>` for assistive tech to associate it as the
-        group's accessible name. We keep the legend as the first
-        child and host the `<HelpPopover>` inline inside it; the
-        popover itself renders a `<button>` (phrasing content,
-        valid inside a legend) and portals the modal via
-        `document.body`.
-      */}
-      <legend className="mb-1 inline-flex flex-wrap items-center gap-2 px-1 text-sm font-semibold text-orange-900">
+    <fieldset className="md:col-span-2 rounded-xl bg-orange-50/40 p-4" aria-label={t('shiftForm.evidence.section.title')}>
+      <div className="mb-1 flex items-center gap-2 px-1 text-sm font-semibold text-orange-900">
         <span>{t('shiftForm.evidence.section.title')}</span>
         <HelpPopover
           title={t('help.evidence.title')}
           description={t('help.evidence.description')}
+          learnMoreHref="/handbook/muc-bang-chung-thanh-toan"
         />
-      </legend>
+      </div>
       <p className="mb-3 text-xs text-orange-800/80">
         {t('shiftForm.evidence.section.intro')}
       </p>

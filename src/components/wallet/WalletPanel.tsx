@@ -91,7 +91,7 @@ function entryToneClass(amount: number): string {
 }
 
 function LedgerRow({ entry }: { entry: WalletLedgerEntry }) {
-  const sign = entry.amount > 0 ? '+' : '';
+  const sign = entry.amount > 0 ? '+' : entry.amount < 0 ? '-' : '';
   return (
     <li className="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs">
       <div className="min-w-0 flex-1">

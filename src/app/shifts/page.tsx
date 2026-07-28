@@ -189,9 +189,11 @@ export default function ShiftsPage() {
               {t('shifts.listing.subtitle')}
             </p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-100">
-            {displayShifts.length} {t('shifts.listing.matchSuffix')}
-          </span>
+          {sortMode === 'availability' && (
+            <span className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 ring-1 ring-orange-100">
+              {matchByShift.size} {t('shifts.listing.matchSuffix')}
+            </span>
+          )}
         </div>
       </header>
 
@@ -290,6 +292,7 @@ export default function ShiftsPage() {
                 applications={applications}
                 matchLabel={match?.label}
                 fitsAvailability={match?.fitsAvailability ?? false}
+                isConflict={sortMode === 'availability' && !matchByShift.has(shift.id)}
                 onClick={() => router.push(`/shifts/${shift.id}`)}
               />
             );

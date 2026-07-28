@@ -243,19 +243,27 @@ export function FeaturedJobMockup() {
         )}
 
         {hydrated && upcomingShift && (
-          <div className="border-t border-gray-100 px-4 py-3 sm:px-5">
+          <Link
+            href={`/shifts/${upcomingShift.id}`}
+            className="block border-t border-gray-100 px-4 py-3 sm:px-5 hover:bg-gray-50 transition-colors focus:outline-none focus-visible:bg-gray-50"
+          >
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-xs font-medium text-gray-500">
+              <p className="text-xs font-medium text-gray-500 shrink-0">
                 {t('landing.hero.featured.upcomingLabel')}
               </p>
-              <p className="text-sm font-semibold text-gray-900">
-                {formatTimeVN(upcomingShift.startTime)}–{formatTimeVN(upcomingShift.endTime)}
-              </p>
+              <div className="flex items-baseline justify-end gap-2 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate" title={upcomingShift.title}>
+                  {upcomingShift.title}
+                </p>
+                <p className="text-sm font-semibold text-orange-600 shrink-0">
+                  {formatTimeVN(upcomingShift.startTime)}–{formatTimeVN(upcomingShift.endTime)}
+                </p>
+              </div>
             </div>
             <p className="mt-0.5 text-[11px] text-gray-500">
               {formatDateVN(upcomingShift.date)}
             </p>
-          </div>
+          </Link>
         )}
 
         {/* Board footer — a plain, honest legend that keeps the board

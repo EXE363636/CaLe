@@ -7,13 +7,11 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   { id: 'all', label: 'Tất cả bài viết' },
-  { id: 'hanh-trang-nguoi-moi', label: 'Hành trang người mới' },
-  { id: 'kinh-nghiem-thuc-chien', label: 'Kinh nghiệm thực chiến' },
-  { id: 'luong-thuong-quyen-loi', label: 'Lương thưởng & Quyền lợi' },
-  { id: 'bao-ve-quyen-loi', label: 'Bảo vệ quyền lợi' },
-  { id: 'danh-cho-nha-tuyen-dung', label: 'Dành cho nhà tuyển dụng' },
-  { id: 'tuyen-dung-theo-nganh', label: 'Tuyển dụng theo ngành' },
-  { id: 'kinh-nghiem-quan-ly', label: 'Kinh nghiệm quản lý' },
+  { id: 'bat-dau-lam-ca', label: 'Bắt đầu làm ca' },
+  { id: 'kinh-nghiem-di-lam', label: 'Kinh nghiệm đi làm' },
+  { id: 'luong-quyen-loi', label: 'Lương & quyền lợi' },
+  { id: 'an-toan-nhan-ca', label: 'An toàn khi nhận ca' },
+  { id: 'danh-cho-doanh-nghiep', label: 'Dành cho doanh nghiệp' },
 ];
 
 export function HandbookCategoryMenu({ currentCategory }: { currentCategory: string }) {

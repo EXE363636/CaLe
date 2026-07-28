@@ -26,6 +26,7 @@ interface MutationContext {
   shiftId?: string;
   applicationId?: string;
   note?: string;
+  occurredAt?: string;
 }
 
 export interface WalletStore {
@@ -95,7 +96,7 @@ export interface WalletStore {
       payoutAmount?: number;
       confirmedAt?: string;
     }>;
-    shifts: Array<{ id: string; employerId: string; title: string }>;
+    shifts: Array<{ id: string; employerId: string; title: string; status: string; depositAmount: number }>;
   }): void;
 }
 
@@ -236,7 +237,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     ) {
       const entry: WalletLedgerEntry = {
         id: newPrefixedId('wallet-entry'),
-        occurredAt: ts,
+        occurredAt: ctx.occurredAt ?? ts,
         userId,
         kind,
         amount: delta,
@@ -269,14 +270,58 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
         shiftId: a.shiftId,
         applicationId: a.id,
         note: `Lương ca "${title}" (lịch sử)`,
+        occurredAt: a.confirmedAt || ts,
       });
-      // NOTE: we intentionally do NOT debit the employer for these
-      // historical completions. The deposit left the employer's
-      // account pre-demo (escrow), so debiting now would drive the
-      // wallet negative with no offsetting top-up — confusing for the
-      // demo and contrary to "no negative wallet" (QA-Fix-1 E8). New
-      // runtime deposits / refunds / top-ups are the only employer
-      // wallet movements.
+    }
+
+    // Employer history: Top up and Deposit Held for all non-draft shifts.
+    // Refund the unused portion for Expired/Completed shifts.
+    for (const shift of input.shifts) {
+      if (shift.status === 'Draft') continue;
+      
+      const title = shift.title ?? 'ca làm';
+      // Fallbacks in case shift doesn't have these
+      const depositTime = (shift as any).createdAt || ts;
+      const refundTime = (shift as any).updatedAt || ts;
+      
+      // Subtract 1 second for TopUp so it sorts before the Deposit
+      const topUpTime = new Date(new Date(depositTime).getTime() - 1000).toISOString();
+
+      // 1. Simulate Top-Up so balance doesn't go negative
+      apply(shift.employerId, shift.depositAmount, 'UserTopUp', {
+        note: `Nạp tiền (hệ thống mô phỏng)`,
+        occurredAt: topUpTime,
+      });
+
+      // 2. Simulate Deposit Held
+      apply(shift.employerId, -shift.depositAmount, 'EmployerDepositHeld', {
+        shiftId: shift.id,
+        note: `Đảm bảo thanh toán ca "${title}"`,
+        occurredAt: depositTime,
+      });
+
+      // 3. If the shift is Expired (no workers), simulate full refund
+      if (shift.status === 'Expired' || shift.status === 'Cancelled') {
+        apply(shift.employerId, shift.depositAmount, 'EmployerUnusedRefund', {
+          shiftId: shift.id,
+          note: `Hoàn tiền ca "${title}" (${shift.status === 'Expired' ? 'hết hạn' : 'đã hủy'})`,
+          occurredAt: refundTime,
+        });
+      }
+      
+      // 4. If Completed, refund the UNUSED portion (deposit - actual payout)
+      if (shift.status === 'Completed') {
+        const shiftApps = input.applications.filter(a => a.shiftId === shift.id && a.status === 'Confirmed');
+        const payout = shiftApps.reduce((sum, a) => sum + (a.payoutAmount ?? 0), 0);
+        const unused = shift.depositAmount - payout;
+        if (unused > 0) {
+          apply(shift.employerId, unused, 'EmployerUnusedRefund', {
+            shiftId: shift.id,
+            note: `Hoàn tiền dư ca "${title}"`,
+            occurredAt: refundTime,
+          });
+        }
+      }
     }
 
     if (ledger.length > 0) {
