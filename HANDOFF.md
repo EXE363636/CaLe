@@ -9,11 +9,74 @@
 
 ---
 
+## 0. BACKEND-MIGRATION-1 · Phase 1 (Auth + Profile) — HOÀN TẤT (2026-09-15)
+
+> Cập nhật quan trọng nhất. Phần dưới (§1 trở đi) phần lớn là lịch sử tiền-backend.
+
+**Đã làm + đã push lên `main` (GitHub `EXE363636/CaLe`) — 4 commit:**
+| Commit | Nội dung |
+|---|---|
+| `fc7cd46` | Bước 0 — scaffold Supabase + migration schema/RLS + RLS integration test |
+| `ddc9e95` | Slice 1+2 — `userRepo` + profile writes + `authStore`/session |
+| `cbcd82b` | Slice 3 — `AppHydrator` hybrid + pin E2E local mode |
+| `33a1298` | Corrective — siết 7 guardrail auth/session/hydrate |
+
+**Migration đã push lên `cale-dev`** (3 file trong `supabase/migrations/`): `users`,
+`worker_profiles`, `employer_profiles`, bảng projection `public_profiles`; RLS
+(USING+WITH CHECK); REVOKE UPDATE bảng → GRANT cột; trigger signup ép role
+(worker|employer) + sync `public_profiles`; `admin_set_suspended`; `is_admin()` từ
+**trusted `app_metadata`**; GRANT bảng cho `service_role` (0002); KHÓA
+`employer_type`/`employer_type10a` (0003).
+
+**Kết quả kiểm tra:**
+| Kiểm tra | Kết quả |
+|---|---|
+| unit (`test:run`) | **680 / 683** (3 fail = handbook đỏ cố ý §3.2) |
+| E2E local (`test:e2e`) | **112 / 112** |
+| build | **28 routes** |
+| RLS integration (`test:rls:supabase`, cale-dev) | **20 / 20** |
+| tsc / lint | sạch / 0 error (còn warning cũ) |
+
+**Kiểm thử E2E Supabase UI (đăng ký → đăng nhập → session restore → sửa hồ sơ →
+reload → logout/account-switch): hiện là KIỂM THỬ THỦ CÔNG** (chạy tay qua trình
+duyệt trên `cale-dev`), **CHƯA phải suite tự động**. Cần viết spec Playwright chạy
+trên cale-dev (`test:e2e:supabase`) ở phase sau. Bộ tự động hiện có chỉ là RLS
+integration (không qua UI).
+
+**Cấu hình / môi trường:**
+- `cale-dev` **đang BẬT email confirmation** → đăng ký không auto-login, hiện màn
+  "kiểm tra email" (nhánh này đã xử lý đúng). Integration test tự confirm qua
+  service-role (local-only).
+- Data mode chọn bằng biến tường minh `NEXT_PUBLIC_DATA_MODE=local|supabase`
+  (`.env.local`). Prod bắt buộc `supabase`, thiếu key → throw (không fallback).
+
+**Còn hoãn / nợ kỹ thuật (KHÔNG chặn auth/profile — xử lý ở phase sau):**
+- Field HOÃN chưa migrate (vẫn localStorage đến phase bảng nguồn): reputation,
+  ratings, boostCredits, verifications, verifiedBusiness, walletBalance, skillScores.
+  Ở supabase mode chúng mang **giá trị mặc định** (uy tín 100...) — đúng thiết kế.
+- `public_profiles`-of-others: hoãn Phase 2 (chưa có dữ liệu cross-user thật).
+- **Footer "Dữ liệu demo đang lưu trên trình duyệt" CHƯA đúng theo data mode** —
+  ở supabase mode hồ sơ user đã ở server; cần chỉnh câu chữ theo mode.
+- **Cần nâng bản vá bảo mật Next.js** (`16.2.6`) trước khi public (rà `npm audit`
+  + advisory, nâng patch 16.x, chạy lại safety grid).
+
+**BẢO MẬT — tuyệt đối:** KHÔNG commit `service_role` key hay bất kỳ file env local
+(`.env.local`, `.env.test.local`) vào git. Chúng đã được `.gitignore`; chỉ 3 biến
+`NEXT_PUBLIC_*` được đặt ở `.env.local`/Vercel. Migration dùng Supabase CLI
+đăng nhập/link tương tác (secret không qua chat/commit). Xem
+`docs/SUPABASE_SECURITY_NOTE.md`.
+
+**Bước kế tiếp:** Phase 2 — Shifts + drafts + applications (xem `docs/PHASE_2_PLAN.md`).
+Ví/escrow/rating/reputation/verification vẫn để phase sau.
+
+---
+
 ## 1. Trạng thái tổng quan
 
-- **Giai đoạn:** demo frontend hoàn chỉnh (localStorage, mock). **Chưa có backend.**
-- Vừa hoàn thành **CORE-STABILITY-10** (hợp nhất lifecycle ca làm về một nguồn sự thật, badge nhất quán). Xem lịch sử phase trong `docs/KIRO_HANDOFF_CURRENT_STATE.md`.
-- Bước kế tiếp theo kế hoạch: QA thủ công → BACKEND-MIGRATION-1 (Supabase).
+- **Giai đoạn:** Phase 1 backend (auth + profile) đã lên Supabase (§0). Các domain
+  khác (shifts/applications/ví...) vẫn localStorage/mock — migrate dần theo phase.
+- Trước đó hoàn thành **CORE-STABILITY-10** (hợp nhất lifecycle ca làm về một nguồn sự thật, badge nhất quán). Xem lịch sử phase trong `docs/KIRO_HANDOFF_CURRENT_STATE.md`.
+- Bước kế tiếp theo kế hoạch: **Phase 2 (shifts + applications)**.
 
 ---
 
@@ -156,4 +219,5 @@ Mỗi phase ship **sau interface store hiện tại** để UI tiếp tục ch�
 - Không dùng polling/setTimeout cho lifecycle.
 - Tiền tệ chữ thường `đ`/`đồng` (cấm `VNĐ`/`₫`); gắn nhãn "mô phỏng/prototype" đúng sự thật.
 - Bump `SCHEMA_VERSION` khi đổi shape persistence.
-- Không auto-commit (repo chưa init git); không lộ secret Supabase.
+- Git đã init + có remote `origin` (GitHub). Commit/push chỉ khi được yêu cầu;
+  **không** commit `service_role`/env local; không lộ secret Supabase.
