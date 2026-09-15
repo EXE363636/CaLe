@@ -111,6 +111,7 @@ export function toastFromStoreError(
     INVALID_CREDENTIALS: t('feedback.error.invalidCredentials'),
     SUSPENDED: t('feedback.error.suspended'),
     EMAIL_TAKEN: t('feedback.error.emailTaken'),
+    BACKEND_ERROR: t('feedback.error.backend'),
     INVALID_EMAIL: t('feedback.error.invalidEmail'),
     INVALID_PASSWORD: t('feedback.error.invalidPassword'),
     INVALID_PHONE: t('feedback.error.invalidPhone'),

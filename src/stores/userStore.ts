@@ -9,7 +9,7 @@
 
 import { create } from 'zustand';
 
-import { STORAGE_KEYS, write } from '@/data/persistence';
+import { STORAGE_KEYS, write, loadAll } from '@/data/persistence';
 import {
   getUserRepo,
   WORKER_PATCH_KEYS,
@@ -36,6 +36,18 @@ interface UserStore {
   /** Ghi field HOÃN (localStorage, đồng bộ). Không dành cho hồ sơ chủ-sửa. */
   updateUser(id: string, patch: Partial<User>): void;
   setSuspended(id: string, suspended: boolean): void;
+
+  /**
+   * Ghi đè/chèn 1 user thật (Supabase) vào cache — KHÔNG persist localStorage.
+   * Dùng khi login/hydrate ở chế độ supabase.
+   */
+  overlayUser(user: User): void;
+  /**
+   * Đặt lại cache về đúng seed users (loại mọi user thật Supabase khỏi cache).
+   * Dùng khi logout / account switch ở chế độ supabase để email/phone của user
+   * cũ KHÔNG còn trong bộ nhớ.
+   */
+  resetToSeedUsers(): void;
 
   /** Hydrate the slice from a persisted snapshot. */
   hydrate(users: User[]): void;
@@ -104,6 +116,20 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   setSuspended(id, suspended) {
     get().updateUser(id, { suspended } as Partial<User>);
+  },
+
+  overlayUser(user) {
+    const existing = get().users;
+    const next = existing.some((u) => u.id === user.id)
+      ? existing.map((u) => (u.id === user.id ? user : u))
+      : [...existing, user];
+    set({ users: next });
+  },
+
+  resetToSeedUsers() {
+    // loadAll() trả seed users (client, chế độ supabase: user thật chưa từng
+    // persist localStorage nên đây là seed thuần).
+    set({ users: loadAll().users });
   },
 
   hydrate(users) {

@@ -449,6 +449,8 @@ export const vi: Record<string, string> = {
   'feedback.error.suspended':
     'Tài khoản đã bị tạm khoá. Vui lòng liên hệ quản trị viên.',
   'feedback.error.emailTaken': 'Email này đã được đăng ký.',
+  'feedback.error.backend':
+    'Không kết nối được máy chủ. Vui lòng thử lại sau giây lát.',
   'feedback.error.invalidEmail': 'Email không hợp lệ.',
   'feedback.error.invalidPassword': 'Mật khẩu cần ít nhất 8 ký tự.',
   'feedback.error.invalidPhone': 'Số điện thoại không hợp lệ.',

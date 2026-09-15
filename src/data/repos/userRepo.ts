@@ -248,28 +248,41 @@ class SupabaseUserRepo implements UserRepo {
 
   async loadOwnUser(authUserId: string): Promise<User | null> {
     const client = getSupabaseClient();
-    const { data: urow, error } = await client
+
+    // 1) users row. Phân biệt "không có dòng" (PGRST116 → null) với lỗi query
+    //    thật (throw — KHÔNG nuốt lỗi rồi coi như không tồn tại).
+    const { data: urow, error: uErr } = await client
       .from('users')
       .select('id, role, email, phone, suspended, created_at')
       .eq('id', authUserId)
       .single();
-    if (error || !urow) return null;
+    if (uErr) {
+      if (uErr.code === 'PGRST116') return null; // 0 dòng = user chưa có
+      throw new Error(`loadOwnUser(users): ${uErr.message}`);
+    }
+    if (!urow) return null;
 
+    // 2) profile theo vai trò. Lỗi query HOẶC thiếu dòng (invariant vỡ — trigger
+    //    signup phải tạo) đều THROW; KHÔNG dựng profile rỗng.
     if (urow.role === 'worker') {
-      const { data: p } = await client
+      const { data: p, error: pErr } = await client
         .from('worker_profiles')
         .select('*')
         .eq('user_id', authUserId)
         .single();
-      return mapWorker(urow as Row, (p as Row | null) ?? null);
+      if (pErr) throw new Error(`loadOwnUser(worker_profiles): ${pErr.message}`);
+      if (!p) throw new Error('loadOwnUser(worker_profiles): thiếu hồ sơ');
+      return mapWorker(urow as Row, p as Row);
     }
     if (urow.role === 'employer') {
-      const { data: p } = await client
+      const { data: p, error: pErr } = await client
         .from('employer_profiles')
         .select('*')
         .eq('user_id', authUserId)
         .single();
-      return mapEmployer(urow as Row, (p as Row | null) ?? null);
+      if (pErr) throw new Error(`loadOwnUser(employer_profiles): ${pErr.message}`);
+      if (!p) throw new Error('loadOwnUser(employer_profiles): thiếu hồ sơ');
+      return mapEmployer(urow as Row, p as Row);
     }
     return mapAdmin(urow as Row);
   }

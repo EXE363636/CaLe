@@ -29,9 +29,13 @@ import { useUserStore } from './userStore';
 // Types
 // ---------------------------------------------------------------------------
 
-export type LoginError = 'INVALID_CREDENTIALS' | 'SUSPENDED';
+export type LoginError = 'INVALID_CREDENTIALS' | 'SUSPENDED' | 'BACKEND_ERROR';
 
-export type RegisterError = 'EMAIL_TAKEN' | 'INVALID_ROLE' | 'INVALID_INPUT';
+export type RegisterError =
+  | 'EMAIL_TAKEN'
+  | 'INVALID_ROLE'
+  | 'INVALID_INPUT'
+  | 'BACKEND_ERROR';
 
 /**
  * Kết quả đăng ký. `needsConfirmation` = true khi Supabase bật email confirmation
@@ -66,8 +70,16 @@ interface AuthStore {
   touch(): void;
 
   /**
-   * Đăng ký lắng nghe onAuthStateChange (chỉ chế độ supabase). Trả hàm huỷ.
-   * Wiring vào vòng đời app ở AppHydrator (Slice 3 — hydrate).
+   * Nạp user của session Supabase `uid` vào store (supabase mode). Xử lý account
+   * switch (reset seed nếu đổi user), suspended, thiếu profile. KHÔNG tự signOut —
+   * caller quyết định. Trả trạng thái để caller map lỗi.
+   */
+  syncSessionUser(uid: string): Promise<'ok' | 'suspended' | 'notfound' | 'error'>;
+
+  /**
+   * Lắng nghe onAuthStateChange (chỉ supabase). Xử lý SIGNED_OUT / SIGNED_IN /
+   * TOKEN_REFRESHED / USER_UPDATED + account switch; gọi Supabase được DEFER ra
+   * ngoài callback. Trả hàm huỷ. Wiring ở AppHydrator.
    */
   subscribeAuth(): () => void;
 
@@ -80,12 +92,12 @@ interface AuthStore {
 
 const nowIso = (): string => new Date().toISOString();
 
+/**
+ * Data mode = supabase? KHÔNG bọc try/catch: lỗi cấu hình `getDataMode()` phải
+ * PROPAGATE (production cấu hình sai tuyệt đối không được âm thầm fallback local).
+ */
 function isSupabase(): boolean {
-  try {
-    return getDataMode() === 'supabase';
-  } catch {
-    return false;
-  }
+  return getDataMode() === 'supabase';
 }
 
 /** Persist phiên vào localStorage — CHỈ chế độ local (supabase dùng session riêng). */
@@ -93,15 +105,6 @@ function persistAuth(currentUserId: string | null, lastActivityAt: string | null
   if (isSupabase()) return;
   const payload: PersistedAuthState = { currentUserId, lastActivityAt };
   write(STORAGE_KEYS.auth, payload);
-}
-
-/** Đưa/ghi đè 1 user vào cache userStore mà KHÔNG persist localStorage (supabase). */
-function cacheUser(user: User): void {
-  const existing = useUserStore.getState().users;
-  const merged = existing.some((u) => u.id === user.id)
-    ? existing.map((u) => (u.id === user.id ? user : u))
-    : [...existing, user];
-  useUserStore.setState({ users: merged });
 }
 
 function isWorkerInput(input: RegisterInput): boolean {
@@ -164,15 +167,16 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (error || !data.user) {
         return { ok: false, error: 'INVALID_CREDENTIALS' };
       }
-      const user = await getUserRepo().loadOwnUser(data.user.id);
-      if (!user) return { ok: false, error: 'INVALID_CREDENTIALS' };
-      if (user.suspended) {
+      // Sign-in OK nhưng nạp profile có thể lỗi → phân biệt rõ, signOut, báo lỗi.
+      const status = await get().syncSessionUser(data.user.id);
+      if (status !== 'ok') {
         await client.auth.signOut();
-        return { ok: false, error: 'SUSPENDED' };
+        if (status === 'suspended') return { ok: false, error: 'SUSPENDED' };
+        if (status === 'notfound') return { ok: false, error: 'INVALID_CREDENTIALS' };
+        return { ok: false, error: 'BACKEND_ERROR' };
       }
-      cacheUser(user);
-      const ts = nowIso();
-      set({ currentUserId: user.id, lastActivityAt: ts });
+      const user = get().currentUser();
+      if (!user) return { ok: false, error: 'BACKEND_ERROR' };
       return { ok: true, value: user };
     }
 
@@ -230,11 +234,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (!data.session || !data.user) {
         return { ok: true, value: { user: null, needsConfirmation: true } };
       }
-      const user = await getUserRepo().loadOwnUser(data.user.id);
-      if (!user) return { ok: false, error: 'INVALID_INPUT' };
-      cacheUser(user);
-      const ts = nowIso();
-      set({ currentUserId: user.id, lastActivityAt: ts });
+      const status = await get().syncSessionUser(data.user.id);
+      if (status !== 'ok') {
+        await client.auth.signOut();
+        return { ok: false, error: 'BACKEND_ERROR' };
+      }
+      const user = get().currentUser();
+      if (!user) return { ok: false, error: 'BACKEND_ERROR' };
       return { ok: true, value: { user, needsConfirmation: false } };
     }
 
@@ -300,9 +306,34 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       } catch {
         /* vẫn xoá state cục bộ dù signOut lỗi */
       }
+      // Guardrail 4: loại mọi private user Supabase khỏi cache, khôi phục seed —
+      // email/phone của user cũ KHÔNG được còn trong bộ nhớ.
+      useUserStore.getState().resetToSeedUsers();
     }
     set({ currentUserId: null, lastActivityAt: null });
     persistAuth(null, null);
+  },
+
+  async syncSessionUser(uid) {
+    // Account switch: đổi user → xoá private user cũ, khôi phục seed TRƯỚC.
+    const current = get().currentUserId;
+    if (current && current !== uid) {
+      useUserStore.getState().resetToSeedUsers();
+    }
+    let user: User | null;
+    try {
+      user = await getUserRepo().loadOwnUser(uid);
+    } catch {
+      return 'error';
+    }
+    if (!user) return 'notfound';
+    if (user.suspended) {
+      useUserStore.getState().resetToSeedUsers();
+      return 'suspended';
+    }
+    useUserStore.getState().overlayUser(user);
+    set({ currentUserId: user.id, lastActivityAt: nowIso() });
+    return 'ok';
   },
 
   touch() {
@@ -316,10 +347,32 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (!isSupabase()) return () => {};
     const sub = onAuthChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
+        // Xoá private user cũ + khôi phục seed (guardrail 4).
+        useUserStore.getState().resetToSeedUsers();
         set({ currentUserId: null, lastActivityAt: null });
+        return;
       }
-      // SIGNED_IN / TOKEN_REFRESHED: session do supabase-js giữ; currentUserId
-      // đã được set ở login, hoặc AppHydrator khôi phục (Slice 3).
+      if (
+        event === 'SIGNED_IN' ||
+        event === 'TOKEN_REFRESHED' ||
+        event === 'USER_UPDATED'
+      ) {
+        const uid = session.user.id;
+        // DEFER gọi Supabase ra NGOÀI callback onAuthStateChange (tránh deadlock
+        // supabase-js). Xử lý cả account switch (syncSessionUser tự reset seed).
+        setTimeout(() => {
+          void (async () => {
+            const status = await get().syncSessionUser(uid);
+            if (status !== 'ok') {
+              try {
+                await getSupabaseClient().auth.signOut();
+              } catch {
+                /* ignore */
+              }
+            }
+          })();
+        }, 0);
+      }
     });
     return () => sub.unsubscribe();
   },

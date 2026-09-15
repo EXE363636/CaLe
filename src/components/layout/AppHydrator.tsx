@@ -2,25 +2,22 @@
 
 /**
  * AppHydrator — one-shot client component nạp trạng thái ban đầu vào mọi Zustand
- * store khi mount (đặt 1 lần ở app/layout.tsx). Không render UI riêng.
+ * store khi mount (đặt 1 lần ở app/layout.tsx).
  *
- * BACKEND-MIGRATION-1 · Phase 1 · Slice 3 — hybrid boot:
- *   - MỌI slice (kể cả users seed) vẫn nạp từ localStorage `loadAll()` để seed
- *     shifts/applications tham chiếu id user seed KHÔNG vỡ (shifts/apps migrate ở
- *     Phase 2).
- *   - Chế độ supabase: khôi phục session thật (`getSession` → `loadOwnUser`) rồi
- *     OVERLAY user thật vào cache + set currentUserId; đăng ký `onAuthChange`
- *     (subscribeAuth). User thật là authoritative (sửa hồ sơ ghi/nạp Supabase);
- *     `public_profiles` của user khác HOÃN sang Phase 2 (chưa có dữ liệu cross-user
- *     thật để hiển thị).
- *   - Chế độ local: giữ nguyên hành vi cũ (hydrate auth từ snapshot + validate).
+ * BACKEND-MIGRATION-1 · Phase 1 · hybrid boot + guardrails:
+ *   - MỌI slice (kể cả users seed) nạp từ localStorage `loadAll()` để seed
+ *     shifts/applications không vỡ (migrate ở Phase 2).
+ *   - Chế độ supabase: khôi phục session (`getSession` → `syncSessionUser`) +
+ *     `subscribeAuth`. `public_profiles`-of-others hoãn Phase 2.
+ *   - Lỗi cấu hình data mode: KHÔNG fallback local — hiện lỗi chặn (guardrail 1/5).
+ *   - Lỗi khôi phục session: hiện banner lỗi + nút Thử lại (guardrail 5), KHÔNG
+ *     âm thầm render như bình thường.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { loadAll } from '@/data/persistence';
 import { getDataMode, getSupabaseClient } from '@/data/supabaseClient';
-import { getUserRepo } from '@/data/repos/userRepo';
 import {
   useApplicationStore,
   useAuthStore,
@@ -40,103 +37,139 @@ interface AppHydratorProps {
   children: ReactNode;
 }
 
-function isSupabaseMode(): boolean {
-  try {
-    return getDataMode() === 'supabase';
-  } catch {
-    return false;
-  }
+type BootError = null | 'config' | 'session';
+
+function BootErrorBar({
+  kind,
+  onRetry,
+}: {
+  kind: Exclude<BootError, null>;
+  onRetry?: () => void;
+}): ReactNode {
+  const msg =
+    kind === 'config'
+      ? 'Cấu hình máy chủ chưa đúng (data mode). Vui lòng liên hệ quản trị viên.'
+      : 'Không khôi phục được phiên đăng nhập từ máy chủ.';
+  return (
+    <div
+      role="alert"
+      className="flex flex-wrap items-center justify-center gap-3 bg-red-600 px-4 py-2 text-center text-sm font-medium text-white"
+    >
+      <span>{msg}</span>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-md bg-white/20 px-3 py-1 font-semibold hover:bg-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          Thử lại
+        </button>
+      )}
+    </div>
+  );
 }
 
 export function AppHydrator({ children }: AppHydratorProps): ReactNode {
   const hydratedRef = useRef(false);
+  const unsubRef = useRef<() => void>(() => {});
+  const [bootError, setBootError] = useState<BootError>(null);
+
+  // Khôi phục auth theo data mode. Tách riêng để nút "Thử lại" gọi lại được.
+  const restoreAuth = useCallback(async () => {
+    setBootError(null);
+    unsubRef.current();
+    unsubRef.current = () => {};
+
+    // getDataMode() có thể throw khi prod cấu hình sai — KHÔNG fallback local.
+    let mode: 'local' | 'supabase';
+    try {
+      mode = getDataMode();
+    } catch {
+      setBootError('config');
+      useHydrationStore.getState().setHydrated(true);
+      return;
+    }
+
+    if (mode === 'supabase') {
+      try {
+        const client = getSupabaseClient();
+        const {
+          data: { session },
+        } = await client.auth.getSession();
+        if (session?.user) {
+          const status = await useAuthStore.getState().syncSessionUser(session.user.id);
+          if (status === 'error') {
+            setBootError('session');
+          } else if (status === 'suspended' || status === 'notfound') {
+            await client.auth.signOut();
+          }
+        }
+        unsubRef.current = useAuthStore.getState().subscribeAuth();
+      } catch {
+        setBootError('session');
+      }
+    } else {
+      // Local: hydrate auth + validate (giữ nguyên hành vi cũ).
+      const snap = loadAll();
+      useAuthStore.getState().hydrate(snap.auth);
+      const auth = useAuthStore.getState();
+      if (auth.currentUserId) {
+        const user = useUserStore.getState().findById(auth.currentUserId);
+        if (!user || user.suspended) {
+          void auth.logout();
+        }
+      }
+    }
+
+    useHydrationStore.getState().setHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
-    let unsubscribeAuth: () => void = () => {};
+    // Nạp mọi slice từ localStorage seed (mode-independent).
+    const snapshot = loadAll();
+    useUserStore.getState().hydrate(snapshot.users);
+    useVerificationStore
+      .getState()
+      .hydrate(
+        snapshot.workerVerifications,
+        snapshot.employerVerifications,
+        snapshot.employerTypeChangeRequests,
+      );
+    useShiftStore.getState().hydrate(snapshot.shifts);
+    useApplicationStore.getState().hydrateApplications(snapshot.applications);
+    useApplicationStore.getState().hydrateRatings(snapshot.ratings);
+    useApplicationStore.getState().hydrateDisputes(snapshot.disputes);
+    useNotificationStore.getState().hydrate(snapshot.notifications);
+    useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
+    useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
+    useReviewReportStore.getState().hydrate(snapshot.reviewReports);
+    useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
+    useWalletStore.getState().hydrate(snapshot.wallets, snapshot.walletLedger);
+    useWalletStore.getState().backfillFromHistory({
+      applications: snapshot.applications,
+      shifts: snapshot.shifts,
+    });
+    useApplicationStore.getState().runLifecycleSync();
 
-    void (async () => {
-      // --- Nạp mọi slice từ localStorage seed (gồm users seed) ---------------
-      const snapshot = loadAll();
-      useUserStore.getState().hydrate(snapshot.users);
-      useVerificationStore
-        .getState()
-        .hydrate(
-          snapshot.workerVerifications,
-          snapshot.employerVerifications,
-          snapshot.employerTypeChangeRequests,
-        );
-      useShiftStore.getState().hydrate(snapshot.shifts);
-      useApplicationStore.getState().hydrateApplications(snapshot.applications);
-      useApplicationStore.getState().hydrateRatings(snapshot.ratings);
-      useApplicationStore.getState().hydrateDisputes(snapshot.disputes);
-      useNotificationStore.getState().hydrate(snapshot.notifications);
-      useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
-      useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
-      useReviewReportStore.getState().hydrate(snapshot.reviewReports);
-      useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
-      useWalletStore.getState().hydrate(snapshot.wallets, snapshot.walletLedger);
-      useWalletStore.getState().backfillFromHistory({
-        applications: snapshot.applications,
-        shifts: snapshot.shifts,
-      });
+    void restoreAuth();
 
-      // Idempotent orchestrator — phản ánh transition theo đồng hồ khi app đóng.
-      useApplicationStore.getState().runLifecycleSync();
+    return () => unsubRef.current();
+  }, [restoreAuth]);
 
-      if (isSupabaseMode()) {
-        // --- Khôi phục session Supabase + overlay user thật ------------------
-        try {
-          const client = getSupabaseClient();
-          const {
-            data: { session },
-          } = await client.auth.getSession();
+  // Lỗi cấu hình = chặn hẳn (không render app ở trạng thái sai).
+  if (bootError === 'config') {
+    return <BootErrorBar kind="config" />;
+  }
 
-          if (session?.user) {
-            const user = await getUserRepo().loadOwnUser(session.user.id);
-            if (user && !user.suspended) {
-              // Overlay user thật vào cache (không persist localStorage).
-              const existing = useUserStore.getState().users;
-              const merged = existing.some((u) => u.id === user.id)
-                ? existing.map((u) => (u.id === user.id ? user : u))
-                : [...existing, user];
-              useUserStore.setState({ users: merged });
-              useAuthStore.setState({
-                currentUserId: user.id,
-                lastActivityAt: new Date().toISOString(),
-              });
-            } else if (user?.suspended) {
-              await client.auth.signOut();
-            }
-          }
-
-          // Đồng bộ đăng xuất/refresh đa tab.
-          unsubscribeAuth = useAuthStore.getState().subscribeAuth();
-        } catch (err) {
-          // Lỗi mạng/policy khi khôi phục session → app vẫn render (seed);
-          // người dùng có thể đăng nhập lại. Không chặn boot.
-          console.warn('[AppHydrator] khôi phục session Supabase thất bại', err);
-        }
-      } else {
-        // --- Local mode: hydrate auth + validate (giữ nguyên hành vi cũ) -----
-        useAuthStore.getState().hydrate(snapshot.auth);
-        const auth = useAuthStore.getState();
-        if (auth.currentUserId) {
-          const user = useUserStore.getState().findById(auth.currentUserId);
-          if (!user || user.suspended) {
-            void auth.logout();
-          }
-        }
-      }
-
-      // Báo hydration xong để trang chi tiết an toàn quyết định notFound().
-      useHydrationStore.getState().setHydrated(true);
-    })();
-
-    return () => unsubscribeAuth();
-  }, []);
-
-  return children;
+  return (
+    <>
+      {bootError === 'session' && (
+        <BootErrorBar kind="session" onRetry={() => void restoreAuth()} />
+      )}
+      {children}
+    </>
+  );
 }
