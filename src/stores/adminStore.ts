@@ -415,7 +415,7 @@ export const useAdminStore = create<AdminStore>(() => ({
           shiftFinal.id,
           'AdminResolvedDispute',
           outcome === 'ResolvedReleased'
-            ? `Quản trị viên giải quyết: thanh toán cho người làm.`
+            ? `Quản trị viên giải quyết: thanh toán cho người lao động.`
             : `Quản trị viên giải quyết: hoàn cọc cho nhà tuyển dụng.`,
         );
         appendTimelineToShift(
@@ -490,7 +490,7 @@ export const useAdminStore = create<AdminStore>(() => ({
       appendTimelineToShift(
         shift.id,
         'AdminRequestedEvidence',
-        `Quản trị viên yêu cầu ${target === 'both' ? 'cả hai bên' : target === 'worker' ? 'người làm' : 'nhà tuyển dụng'} bổ sung bằng chứng — ${trimmedNote.slice(0, 120)}`,
+        `Quản trị viên yêu cầu ${target === 'both' ? 'cả hai bên' : target === 'worker' ? 'người lao động' : 'nhà tuyển dụng'} bổ sung bằng chứng — ${trimmedNote.slice(0, 120)}`,
       );
     }
 

@@ -202,7 +202,7 @@ test.describe('Part 4: employer deposit blocked on insufficient balance', () => 
 
     // Deposit confirm card appears after a valid create.
     const depositBtn = page.getByRole('button', {
-      name: 'Xác nhận đã thanh toán',
+      name: 'Mô phỏng đảm bảo thanh toán',
     });
     await expect(depositBtn).toBeVisible();
 
@@ -257,7 +257,7 @@ test.describe('Part 4: employer deposit blocked on insufficient balance', () => 
     });
     await page.getByRole('button', { name: 'Đăng ca cần tuyển' }).click();
     const depositBtn = page.getByRole('button', {
-      name: 'Xác nhận đã thanh toán',
+      name: 'Mô phỏng đảm bảo thanh toán',
     });
     await expect(depositBtn).toBeVisible();
     await depositBtn.click();

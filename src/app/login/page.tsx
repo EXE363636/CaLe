@@ -96,7 +96,7 @@ export default function LoginPage() {
                 <span className="transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true">▾</span>
               </summary>
               <div className="mt-2 flex flex-col gap-1">
-                <p>Người làm: <span className="font-mono">an.nguyen@gmail.com</span> / <span className="font-mono">demo</span></p>
+                <p>Người lao động: <span className="font-mono">an.nguyen@gmail.com</span> / <span className="font-mono">demo</span></p>
                 <p>Nhà tuyển dụng: <span className="font-mono">lien@quanphoha.vn</span> / <span className="font-mono">demo</span></p>
                 <p>Admin: <span className="font-mono">admin@cale.vn</span> / <span className="font-mono">demo</span></p>
               </div>

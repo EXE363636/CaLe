@@ -14,7 +14,7 @@
  *   - Notification fan-out fires per affected worker.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import {
   AFFECTED_APPLICATION_STATUSES,
@@ -325,6 +325,18 @@ describe('shiftStore.cancel — Phase 10A-Fix-7 store orchestration', () => {
   }
 
   beforeEach(resetAll);
+
+  // Freeze the clock at NOW_ISO so `cancel(...)` evaluates the future-dated
+  // fixtures against the same fixed "now" they were built around, instead of
+  // the drifting wall clock (which would trip TOO_LATE_STARTED first).
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(NOW_ISO));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('rejects empty / whitespace-only reasons with REASON_REQUIRED', () => {
     const shift = makeShift();

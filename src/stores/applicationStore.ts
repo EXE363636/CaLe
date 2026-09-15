@@ -736,7 +736,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     if (!shift) return { ok: false, error: 'SHIFT_NOT_FOUND' };
 
     const worker = asWorker(useUserStore.getState().findById(app.workerId));
-    const workerName = worker?.fullName ?? 'Người làm';
+    const workerName = worker?.fullName ?? 'Người lao động';
 
     // Phase 3: quota gate. Block before any state change so a quota miss
     // does not produce a partial cancellation. The same gate applies to
@@ -779,7 +779,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       useNotificationStore.getState().push({
         userId: shift.employerId,
         kind: 'CancellationRequested',
-        title: 'Người làm yêu cầu huỷ ca',
+        title: 'Người lao động yêu cầu huỷ ca',
         body:
           `${workerName} yêu cầu huỷ đơn ứng tuyển ca "${shift.title}" ` +
           `(ca bắt đầu trong vòng 3 giờ, cần bạn duyệt). Lý do: ${trimmedReason}`,
@@ -849,7 +849,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       useNotificationStore.getState().push({
         userId: shift.employerId,
         kind: isLate ? 'LateCancel' : 'WorkerCancelled',
-        title: isLate ? 'Người làm huỷ muộn' : 'Người làm đã huỷ',
+        title: isLate ? 'Người lao động huỷ muộn' : 'Người lao động đã huỷ',
         body:
           `${workerName} đã huỷ đơn ứng tuyển ca "${shift.title}".` +
           (isLate ? ' (Trong vòng 24h trước giờ bắt đầu.)' : '') +
@@ -911,11 +911,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // worker has self-checked-in.
     if (shift) {
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       useNotificationStore.getState().push({
         userId: shift.employerId,
         kind: 'WorkerCheckedIn',
-        title: 'Người làm đã check-in',
+        title: 'Người lao động đã check-in',
         body: `${workerName} đã check-in cho ca "${shift.title}".`,
         link: `/employer/shifts/${shift.id}`,
       });
@@ -1010,7 +1010,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Phase 10C-Stab-1 Batch 4B — timeline emission.
     {
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       appendTimelineToShift(
         shift.id,
         'EmployerMarkedPresent',
@@ -1097,11 +1097,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       // worker checked out, with the 12-hour confirm-or-dispute
       // reminder.
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       useNotificationStore.getState().push({
         userId: shift.employerId,
         kind: 'WorkerCheckedOut',
-        title: 'Người làm đã check-out',
+        title: 'Người lao động đã check-out',
         body: `${workerName} đã check-out cho ca "${shift.title}". Vui lòng xác nhận hoặc khiếu nại trong 12 giờ.`,
         link: `/employer/shifts/${shift.id}`,
       });
@@ -1184,7 +1184,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Phase 10C-Stab-1 Batch 4B — timeline emission.
     {
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       appendTimelineToShift(
         shift.id,
         'EmployerApprovedApplicant',
@@ -1486,7 +1486,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Phase 10C-Stab-1 Batch 4B — timeline emission.
     {
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       appendTimelineToShift(
         shift.id,
         'WageReleased',
@@ -1719,7 +1719,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     useNotificationStore.getState().push({
       userId: shift.employerId,
       kind: 'DisputeFiled',
-      title: 'Người làm đang khiếu nại ca làm',
+      title: 'Người lao động đang khiếu nại ca làm',
       body: `Khiếu nại về ca "${shift.title}". Tiền công đang được giữ lại cho đến khi quản trị viên xử lý.`,
       link: `/employer/shifts/${shift.id}`,
     });
@@ -1737,7 +1737,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     appendTimelineToShift(
       shift.id,
       'WorkerOpenedDispute',
-      `Người làm mở khiếu nại — ${trimmedReason.slice(0, 120)}`,
+      `Người lao động mở khiếu nại — ${trimmedReason.slice(0, 120)}`,
     );
 
     return { ok: true, value: dispute };
@@ -1843,7 +1843,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           ? 'WorkerRespondedToDispute'
           : 'EmployerRespondedToDispute',
         side === 'worker'
-          ? `Người làm phản hồi khiếu nại — ${trimmedReason.slice(0, 120)}`
+          ? `Người lao động phản hồi khiếu nại — ${trimmedReason.slice(0, 120)}`
           : `Nhà tuyển dụng phản hồi khiếu nại — ${trimmedReason.slice(0, 120)}`,
       );
     }
@@ -1892,8 +1892,8 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     useNotificationStore.getState().push({
       userId: shift.employerId,
       kind: 'NoShow',
-      title: 'Người làm vắng mặt',
-      body: `Một người làm không tới ca "${shift.title}". Bạn được tặng 1 lượt boost.`,
+      title: 'Người lao động vắng mặt',
+      body: `Một người lao động không tới ca "${shift.title}". Bạn được tặng 1 lượt boost.`,
       link: `/employer/shifts/${shift.id}`,
     });
     useNotificationStore.getState().push({
@@ -1909,7 +1909,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Phase 10C-Stab-1 Batch 4B — timeline emission.
     {
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       appendTimelineToShift(
         shift.id,
         'EmployerMarkedAbsent',
@@ -2006,7 +2006,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     // Timeline entry with the reason.
     {
       const worker = asWorker(useUserStore.getState().findById(app.workerId));
-      const workerName = worker?.fullName ?? 'Người làm';
+      const workerName = worker?.fullName ?? 'Người lao động';
       appendTimelineToShift(
         shift.id,
         'EmployerMarkedPresent',
@@ -2350,7 +2350,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           userId: shift.employerId,
           kind: 'ShiftStarted',
           title: 'Ca làm đã bắt đầu',
-          body: `Ca làm "${shift.title}" đã bắt đầu. Hãy kiểm tra người làm đã có mặt.`,
+          body: `Ca làm "${shift.title}" đã bắt đầu. Hãy kiểm tra người lao động đã có mặt.`,
           link: `/employer/shifts/${shift.id}`,
           dedupeKey: `ShiftStarted:emp:${a.id}`,
         });
@@ -2379,7 +2379,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           userId: shift.employerId,
           kind: 'ShiftEnded',
           title: 'Ca làm đã kết thúc',
-          body: `Ca "${shift.title}" đã kết thúc. Hãy xác nhận sau khi người làm check-out.`,
+          body: `Ca "${shift.title}" đã kết thúc. Hãy xác nhận sau khi người lao động check-out.`,
           link: `/employer/shifts/${shift.id}`,
           dedupeKey: `ShiftEnded:emp:${a.id}`,
         });
@@ -2635,7 +2635,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
             body:
               `Ca "${shift.title}" đã được hệ thống tự động xác nhận sau 12 giờ ` +
               `(không có khiếu nại). Tiền cọc ${payout.toLocaleString('vi-VN')}đ ` +
-              `đã được giải ngân cho người làm.`,
+              `đã được giải ngân cho người lao động.`,
             link: `/employer/shifts/${shift.id}`,
             dedupeKey: `AutoReleaseSettled:employer:${a.id}`,
           });

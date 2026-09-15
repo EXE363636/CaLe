@@ -370,7 +370,7 @@ export default function UserGuidePage() {
       <section>
         <p className="text-justify leading-relaxed text-gray-700">
           CaLẻ / Now là nền tảng kết nối ca làm ngắn hạn tại Việt Nam.
-          Người muốn tìm việc theo ca như sinh viên, người làm tự do hoặc người cần kiếm thêm thu nhập có thể tìm ca phù hợp với lịch cá nhân; nhà tuyển dụng đảm bảo thanh
+          Người muốn tìm việc theo ca như sinh viên, người lao động tự do hoặc người cần kiếm thêm thu nhập có thể tìm ca phù hợp với lịch cá nhân; nhà tuyển dụng đảm bảo thanh
           toán trước khi đăng ca, giúp người lao động yên tâm về thanh toán.
         </p>
         <p className="mt-3 text-justify leading-relaxed text-gray-700">

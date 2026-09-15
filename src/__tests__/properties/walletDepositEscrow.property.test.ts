@@ -39,8 +39,14 @@
  *        untouched. A valid amount appends `-amount` (`'UserWithdrawal'`).
  *   - `backfillFromHistory(input)`          → idempotent: a NO-OP once any
  *        ledger entry exists. Credits each `Confirmed` application's worker
- *        payout (`'WorkerWageReleased'`, `> 0`); intentionally does NOT debit
- *        the employer, so backfilled balances are never negative.
+ *        payout (`'WorkerWageReleased'`, `> 0`) AND mirrors the employer
+ *        deposit lifecycle per non-Draft shift: a simulated `'UserTopUp'`
+ *        (`+depositAmount`) paired with `'EmployerDepositHeld'`
+ *        (`-depositAmount`), plus an `'EmployerUnusedRefund'` for the unused
+ *        portion of a Completed shift (and the full amount for
+ *        Expired/Cancelled). The top-up offsets the hold so backfilled
+ *        balances are never negative. Requires `status` + `depositAmount` on
+ *        each shift in the input (omitting them yields NaN amounts).
  *
  * Invariants asserted over random mutation sequences:
  *   - balance is NEVER negative;
@@ -286,6 +292,11 @@ function backfillInput(eco: Economy) {
       id: s.id,
       employerId: s.employerId,
       title: s.title,
+      // `backfillFromHistory` reads both of these per shift (it skips
+      // Draft shifts and credits the employer's `depositAmount`); dropping
+      // them left `depositAmount` undefined → NaN balance.
+      status: s.status,
+      depositAmount: s.depositAmount,
     })),
   };
 }
@@ -299,16 +310,32 @@ describe('Property 14 (Preservation) · Part A: backfillFromHistory (Req 3.6)', 
 
         const { wallets, ledger } = useWalletStore.getState();
 
-        // No negative balances.
+        // No negative balances — the store simulates an employer top-up
+        // alongside every deposit-held so no wallet ever dips below zero.
         for (const w of wallets) {
           expect(w.balance).toBeGreaterThanOrEqual(0);
         }
 
-        // Every backfilled entry is a positive worker-wage credit (no employer
-        // debit — the store deliberately skips it so wallets never go negative).
+        // Every backfilled entry carries a finite, non-zero amount of a known
+        // kind. (The finite check guards the `depositAmount`/`status`-missing
+        // regression that produced NaN ledger amounts.)
+        const KNOWN_KINDS = new Set([
+          'WorkerWageReleased',
+          'UserTopUp',
+          'EmployerDepositHeld',
+          'EmployerUnusedRefund',
+        ]);
         for (const l of ledger) {
-          expect(l.kind).toBe('WorkerWageReleased');
-          expect(l.amount).toBeGreaterThan(0);
+          expect(Number.isFinite(l.amount)).toBe(true);
+          expect(l.amount).not.toBe(0);
+          expect(KNOWN_KINDS.has(l.kind)).toBe(true);
+        }
+
+        // Worker wage credits are always positive; employer deposit-held rows
+        // are always negative (top-up/refund rows are positive).
+        for (const l of ledger) {
+          if (l.kind === 'WorkerWageReleased') expect(l.amount).toBeGreaterThan(0);
+          if (l.kind === 'EmployerDepositHeld') expect(l.amount).toBeLessThan(0);
         }
 
         // Per user: balance == sum of that user's ledger entries.
@@ -319,21 +346,28 @@ describe('Property 14 (Preservation) · Part A: backfillFromHistory (Req 3.6)', 
           expect(w.balance).toBe(sum);
         }
 
-        // Expected balances = per-worker sum of confirmed payouts (> 0).
-        const expected = new Map<string, number>();
+        // Expected worker balances = per-worker sum of confirmed payouts (> 0).
+        const expectedWorkers = new Map<string, number>();
         for (const a of eco.applications) {
           if (a.status !== 'Confirmed') continue;
           const payout = a.payoutAmount ?? 0;
           if (payout <= 0) continue;
-          expected.set(a.workerId, (expected.get(a.workerId) ?? 0) + payout);
+          expectedWorkers.set(
+            a.workerId,
+            (expectedWorkers.get(a.workerId) ?? 0) + payout,
+          );
         }
-        for (const [userId, amt] of expected) {
+        for (const [userId, amt] of expectedWorkers) {
           expect(useWalletStore.getState().getBalance(userId)).toBe(amt);
         }
-        // Only credited workers get a wallet — no phantom (e.g. employer) rows.
-        expect(new Set(wallets.map((w) => w.userId))).toEqual(
-          new Set(expected.keys()),
-        );
+
+        // Wallets = the credited workers PLUS every employer that owns a
+        // non-Draft shift (the store now mirrors the employer deposit ledger).
+        const expectedUserIds = new Set(expectedWorkers.keys());
+        for (const s of eco.shifts) {
+          if (s.status !== 'Draft') expectedUserIds.add(s.employerId);
+        }
+        expect(new Set(wallets.map((w) => w.userId))).toEqual(expectedUserIds);
       }),
       { numRuns: 60 },
     );

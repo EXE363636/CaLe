@@ -62,10 +62,10 @@ test.describe('Flow 4: check-in + employer mark-present + mismatch', () => {
 
     // CORE-STABILITY-9 Part 1 — employer sees EMPLOYER-perspective copy
     // (never worker-perspective). Worker self-checked-in mid-shift →
-    // state WorkerCheckedInInProgress → "Người làm đã check-in. Vui
+    // state WorkerCheckedInInProgress → "Người lao động đã check-in. Vui
     // lòng xác nhận có mặt nếu đúng."
     await expect(
-      page.getByText(/Người làm đã check-in\. Vui lòng xác nhận có mặt/),
+      page.getByText(/Người lao động đã check-in\. Vui lòng xác nhận có mặt/),
     ).toBeVisible();
   });
 
@@ -105,7 +105,7 @@ test.describe('Flow 4: check-in + employer mark-present + mismatch', () => {
     // After confirming, the state moves to BothConfirmedPresent so the
     // "Vui lòng xác nhận có mặt" prompt clears.
     await expect(
-      page.getByText(/Người làm đã check-in\. Vui lòng xác nhận có mặt/),
+      page.getByText(/Người lao động đã check-in\. Vui lòng xác nhận có mặt/),
     ).toHaveCount(0);
   });
 });

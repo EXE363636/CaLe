@@ -75,6 +75,10 @@ const PINNED_ESCROW_LABELS: Record<EscrowStatus, string> = {
 const ESCROW_STATUSES = Object.keys(PINNED_ESCROW_LABELS) as EscrowStatus[];
 
 const PAYMENTS_HREF = '/employer/payments';
+// The Footer's employer info links were consolidated onto the user-guide;
+// the "payments" entry now deep-links to that guide's payments anchor while
+// the live `/employer/payments` route stays reachable from the NavBar.
+const FOOTER_PAYMENTS_HREF = '/user-guide#employer-payments';
 
 afterEach(() => {
   cleanup();
@@ -127,10 +131,13 @@ describe('Property 15 (Preservation): /employer/payments route still resolves', 
     expect(item).toBeTruthy();
   });
 
-  it('the Footer still links to /employer/payments (href preserved)', () => {
-    // Assert only the HREF — the label text is what the wording fix changes.
+  it('the Footer keeps a payments entry (now the user-guide payments anchor)', () => {
+    // The footer's employer links were consolidated onto the user guide, so
+    // the payments entry deep-links there rather than to the live route (which
+    // stays reachable from the NavBar, asserted above). Assert only the HREF —
+    // the label text is what the wording fix changes.
     const { container } = render(<Footer />);
-    const link = container.querySelector(`a[href="${PAYMENTS_HREF}"]`);
+    const link = container.querySelector(`a[href="${FOOTER_PAYMENTS_HREF}"]`);
     expect(link).not.toBeNull();
   });
 });

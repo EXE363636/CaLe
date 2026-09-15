@@ -160,11 +160,12 @@ test.describe('HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no over
       expect(m.logoNavGap, `logo↔nav gap @${width}`).toBeGreaterThanOrEqual(GAP_MIN);
       expect(m.navRightGap, `nav↔right gap @${width}`).toBeGreaterThanOrEqual(GAP_MIN);
 
-      // All 6 employer links present with the SHORTENED desktop labels.
-      // checkpoint-readiness-phase-1 (Task 1.3): "Hỗ trợ" was
-      // intentionally removed from the NavBar (moved to footer), so the
-      // employer desktop nav now has 6 links instead of 7.
-      expect(m.visibleNavLinks, `nav links @${width}`).toBe(6);
+      // All 7 employer links present with the SHORTENED desktop labels.
+      // "Hỗ trợ" was moved to the footer (7→6), then "Cẩm nang làm việc"
+      // (handbook) was added to the top nav (6→7). Per NavBar's own note
+      // the 7-item employer nav is designed to fit one row at >= 1280px
+      // without a hamburger.
+      expect(m.visibleNavLinks, `nav links @${width}`).toBe(7);
       for (const label of ['Đăng ca', 'Lịch tuyển', 'Ca công khai', 'Hồ sơ']) {
         expect(
           m.navLinkTexts,

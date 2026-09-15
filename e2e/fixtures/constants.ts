@@ -8,7 +8,7 @@
  */
 
 /** Must match `SCHEMA_VERSION` in src/data/persistence.ts. */
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 19;
 
 /** Must match `STORAGE_KEYS` in src/data/persistence.ts. */
 export const STORAGE_KEYS = {

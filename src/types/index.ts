@@ -929,9 +929,9 @@ export interface Application {
    * Used to detect mismatch states:
    *
    *   - worker `checkInAt` set + employer `markedPresentAt` unset
-   *     → "Người làm đã check-in nhưng nhà tuyển dụng chưa xác nhận"
+   *     → "Người lao động đã check-in nhưng nhà tuyển dụng chưa xác nhận"
    *   - employer `markedPresentAt` set + worker `checkInAt` unset
-   *     → "Nhà tuyển dụng đã xác nhận nhưng người làm chưa check-in"
+   *     → "Nhà tuyển dụng đã xác nhận nhưng người lao động chưa check-in"
    *
    * Application status flips to `'CheckedIn'` when EITHER side
    * confirms (so escrow can flip and the shift can roll forward).

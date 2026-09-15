@@ -17,7 +17,7 @@ export default function DisputesPage() {
       <InfoSection title="Khi nào nên mở tranh chấp">
         <InfoList
           items={[
-            'Người làm vắng mặt không báo trước.',
+            'Người lao động vắng mặt không báo trước.',
             'Nhà tuyển dụng yêu cầu công việc khác xa so với mô tả ca.',
             'Mâu thuẫn về giờ làm thực tế hoặc số lượng vị trí được bố trí.',
             'Có dấu hiệu hành vi không phù hợp giữa các bên.',
@@ -38,7 +38,7 @@ export default function DisputesPage() {
             'Quản trị viên CaLẻ nhận yêu cầu và liên hệ cả hai bên trong vòng 24–48 giờ.',
             'Cả hai bên có quyền cung cấp giải trình và bằng chứng.',
             'Quản trị viên đối chiếu với lịch sử ca, điểm uy tín và đánh giá liên quan.',
-            'Quyết định cuối cùng có thể là giải ngân khoản đảm bảo thanh toán cho người làm, hoàn khoản đảm bảo thanh toán cho nhà tuyển dụng, hoặc giải pháp khác phù hợp.',
+            'Quyết định cuối cùng có thể là giải ngân khoản đảm bảo thanh toán cho người lao động, hoàn khoản đảm bảo thanh toán cho nhà tuyển dụng, hoặc giải pháp khác phù hợp.',
           ]}
         />
       </InfoSection>

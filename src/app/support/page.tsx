@@ -20,7 +20,7 @@ export default function SupportPage() {
         >
           support@caledo.vn
         </a>
-        . Trong tiêu đề, vui lòng ghi rõ vai trò (người làm hoặc nhà
+        . Trong tiêu đề, vui lòng ghi rõ vai trò (người lao động hoặc nhà
         tuyển dụng) và mã ca làm liên quan (nếu có) để chúng tôi xử lý
         nhanh hơn.
       </InfoSection>

@@ -31,7 +31,7 @@ export default function EmployerPaymentsPage() {
       <InfoSection title="Khi nào tiền được giải ngân">
         <InfoList
           items={[
-            'Khi bạn xác nhận hoàn thành ca, hệ thống chuyển khoản tiền ca được giữ thành tiền công cho người làm.',
+            'Khi bạn xác nhận hoàn thành ca, hệ thống chuyển khoản tiền ca được giữ thành tiền công cho người lao động.',
             'Khi bạn huỷ ca đúng quy định (trước 6 giờ và chưa có ứng viên), tiền được hoàn về ví ký quỹ.',
             'Khi xảy ra tranh chấp, quản trị viên quyết định giải ngân hoặc hoàn khoản tiền ca được giữ dựa trên bằng chứng.',
           ]}

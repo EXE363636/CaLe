@@ -735,7 +735,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                           >
                             <p className="text-[10px] font-semibold uppercase tracking-wide text-red-700">
                               {r.side === 'worker'
-                                ? 'Người làm'
+                                ? 'Người lao động'
                                 : 'Nhà tuyển dụng'}
                               {' · '}
                               {new Intl.DateTimeFormat('vi-VN', {

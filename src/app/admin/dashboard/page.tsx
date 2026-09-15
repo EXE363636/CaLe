@@ -1401,7 +1401,7 @@ function DisputeRow({
             </dd>
             <dt className="font-medium">Địa điểm:</dt>
             <dd>{shift?.location ?? '—'}</dd>
-            <dt className="font-medium">Người làm:</dt>
+            <dt className="font-medium">Người lao động:</dt>
             <dd>{workerName}</dd>
             <dt className="font-medium">Nhà tuyển dụng:</dt>
             <dd>{employerName}</dd>
@@ -1479,7 +1479,7 @@ function DisputeRow({
                   variant={outcome === 'ResolvedReleased' ? 'primary' : 'secondary'}
                   onClick={() => setOutcome('ResolvedReleased')}
                 >
-                  Thanh toán cho người làm
+                  Thanh toán cho người lao động
                 </Button>
                 <Button
                   size="sm"

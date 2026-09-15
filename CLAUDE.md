@@ -21,8 +21,8 @@ phải nói đúng như thế.
 **CaLẻ / Now** trong tài liệu nội bộ/kỹ thuật.
 
 ### Ba vai trò
-- **Worker (người làm):** tìm ca, ứng tuyển, check-in/out, ví, điểm uy tín + kỹ năng. Copy xưng "bạn".
-- **Employer (nhà tuyển dụng):** đăng ca, đặt cọc (mô phỏng), duyệt ứng viên, xác nhận có mặt/hoàn thành, khiếu nại. Copy dùng "người làm".
+- **Worker (người lao động):** tìm ca, ứng tuyển, check-in/out, ví, điểm uy tín + kỹ năng. Copy xưng "bạn".
+- **Employer (nhà tuyển dụng):** đăng ca, đặt cọc (mô phỏng), duyệt ứng viên, xác nhận có mặt/hoàn thành, khiếu nại. Copy dùng "người lao động".
 - **Admin (quản trị viên):** xác minh giấy tờ, xử lý tranh chấp, override trạng thái, điều chỉnh uy tín. Copy trung lập.
 
 ---
@@ -113,7 +113,7 @@ npx tsc --noEmit     # type-check
 6. **Không polling / setTimeout / setInterval cho lifecycle** — chỉ đồng bộ khi mount qua `useLifecycleSync` (gọi `applicationStore.runLifecycleSync()`) + `AppHydrator`. Mọi sub-step phải **idempotent** (dựa vào audit marker như `shiftStartedNotifiedAt`, notification `dedupeKey`).
 7. **Ví / escrow KHÔNG được ở client trong production** — đây là lý do chính của backend migration.
 8. **Thông báo phải deeplink đúng ngữ cảnh** qua `resolveNotificationTarget` (`src/lib/notificationTarget.ts`).
-9. **Copy theo vai trò:** worker "bạn"; employer "người làm"; admin trung lập. Không trang employer nào được hiện "Nhà tuyển dụng đã xác nhận bạn…".
+9. **Copy theo vai trò:** worker "bạn"; employer nói về worker là "người lao động" (thuật ngữ chuẩn toàn app, i18n dùng nhất quán); admin trung lập. Không trang employer nào được hiện "Nhà tuyển dụng đã xác nhận bạn…" — tức không xưng hô với employer bằng giọng của worker.
 
 ### Trung thực về mô phỏng (bắt buộc phản ánh trong UI)
 - Cọc/ví/escrow/hoàn tiền → gọi là **"mô phỏng" / "sổ cái mô phỏng"**.

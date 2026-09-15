@@ -96,7 +96,15 @@ export interface WalletStore {
       payoutAmount?: number;
       confirmedAt?: string;
     }>;
-    shifts: Array<{ id: string; employerId: string; title: string; status: string; depositAmount: number }>;
+    shifts: Array<{
+      id: string;
+      employerId: string;
+      title: string;
+      status: string;
+      depositAmount: number;
+      createdAt?: string;
+      updatedAt?: string;
+    }>;
   }): void;
 }
 
@@ -281,8 +289,8 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       
       const title = shift.title ?? 'ca làm';
       // Fallbacks in case shift doesn't have these
-      const depositTime = (shift as any).createdAt || ts;
-      const refundTime = (shift as any).updatedAt || ts;
+      const depositTime = shift.createdAt || ts;
+      const refundTime = shift.updatedAt || ts;
       
       // Subtract 1 second for TopUp so it sorts before the Deposit
       const topUpTime = new Date(new Date(depositTime).getTime() - 1000).toISOString();

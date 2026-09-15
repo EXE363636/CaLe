@@ -9,7 +9,7 @@ export default function WorkerCancellationPolicyPage() {
     <InfoPage
       eyebrow="Dành cho người lao động"
       title="Quy định huỷ ca"
-      intro="CaLẻ cho phép bạn huỷ ca khi cần thiết, nhưng có quy định để bảo vệ nhà tuyển dụng và những người làm khác. Hãy đọc kỹ trước khi ứng tuyển."
+      intro="CaLẻ cho phép bạn huỷ ca khi cần thiết, nhưng có quy định để bảo vệ nhà tuyển dụng và những người lao động khác. Hãy đọc kỹ trước khi ứng tuyển."
     >
       <InfoSection title="Các nhóm huỷ ca">
         <InfoList

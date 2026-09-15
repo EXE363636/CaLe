@@ -24,42 +24,54 @@
 | `npm run build` | ✅ **Sạch, đúng 28 route** |
 | `npx tsc --noEmit` (code sản phẩm `src/`) | ✅ Sạch |
 | `npx tsc --noEmit` (file test) | ⚠️ Có lỗi type ở 2 file property test (generator thiếu field) |
-| `npx vitest run` (unit) | ⚠️ **655 pass / 20 fail** (6 file) |
+| `npx tsc --noEmit` (toàn bộ, gồm test) | ✅ Sạch (đã sửa generator thiếu field) |
+| `npx vitest run` (unit) | ✅ **672 pass / 3 fail** — 3 fail còn lại là test đỏ CỐ Ý (§3.2, đã quyết hoãn) |
+| `npx playwright test` (E2E) | ✅ **112 pass / 0 fail** — đã sửa 3 nợ fixture/selector E2E có sẵn (xem QA report §E2E) |
 
-> Lưu ý: tài liệu cũ ghi "544 pass" đã lỗi thời — số test đã tăng lên 675.
+> Lưu ý: tài liệu cũ ghi "544 pass" đã lỗi thời — số test là 675.
+>
+> **Cập nhật xanh-hoá test (2026-09-15):** đã xử lý 17/20 fail (§3.1, §3.3, §3.4,
+> §3.5) — chỉ đụng file test + baseline, KHÔNG đụng code sản phẩm. Type-check
+> toàn bộ đã sạch. Xem trạng thái từng mục trong §3.
 
 ---
 
 ## 3. Các lỗi/vấn đề đã phát hiện (đã truy nguyên gốc rễ)
 
 **Kết luận chính: KHÔNG có bug sản phẩm Critical/High chặn backend.** Build sạch,
-type-check code sản phẩm sạch. 20 test fail được phân loại như sau:
+type-check code sản phẩm sạch. 20 test fail được phân loại như sau (✅ = đã sửa
+xong ngày 2026-09-15, chỉ đụng test):
 
-### 3.1 — Test giòn theo thời gian (12 fail) — KHÔNG phải bug sản phẩm
+### 3.1 — ✅ ĐÃ SỬA — Test giòn theo thời gian (12 fail) — KHÔNG phải bug sản phẩm
+> **Cách đã làm:** freeze đồng hồ bằng `vi.useFakeTimers()` +
+> `vi.setSystemTime(new Date(NOW_ISO))` trong `beforeEach` (afterEach dùng
+> `vi.useRealTimers()`) ở `phase10aFix8.test.ts` (toàn file) và
+> `phase10aFix7.test.ts` (scoped trong describe store orchestration). Không đụng
+> code sản phẩm.
 - **File:** `src/__tests__/phase10aFix8.test.ts` (10/10), `phase10aFix7.test.ts` (2/13).
 - **Gốc rễ:** test tạo ca quanh mốc cứng `NOW_ISO = 2026-06-01`, nhưng gọi `useShiftStore.getState().cancel(shiftId, reason)` **không truyền tham số đồng hồ thứ 3**. Nên `cancel` dùng `nowIso()` = hôm nay thật (2026-09-15). Ca (giữa 2026) đã quá giờ bắt đầu → `cancel` trả `TOO_LATE_STARTED` và thoát **trước khi** chạy logic bảo vệ worker (`applyEmployerCancellationSideEffects`). Vì vậy `protections` = undefined, reputation không +2, quota không hoàn.
 - **Bằng chứng code sản phẩm ĐÚNG:** `shiftStore.cancel(shiftId, reason, when?)` (khoảng dòng 536) có gate `if (nowMs >= startMs) return TOO_LATE_STARTED`. Logic bảo vệ nằm ở `applyEmployerCancellationSideEffects` (~dòng 760) và chỉ chạy khi không bị gate chặn.
 - **Cách sửa (chỉ đụng test):** truyền `NOW_ISO` vào lời gọi `cancel(shift.id, reason, NOW_ISO)`, hoặc freeze clock bằng `vi.setSystemTime(new Date(NOW_ISO))` trong `beforeEach`. **Không sửa code sản phẩm.**
 
-### 3.2 — Test "đỏ" cố ý cho spec chưa làm (3 fail) — không phải lỗi
+### 3.2 — ⏸️ HOÃN (quyết định 2026-09-15) — Test "đỏ" cố ý cho spec chưa làm (3 fail) — không phải lỗi
 - **File:** `src/__tests__/handbookContent.test.tsx` (3/3).
 - **Bản chất:** đây là exploration/bug-condition test được viết ĐỂ FAIL trên code hiện tại, mã hoá hành vi mong muốn của spec `visual-a11y-polish-round-2` (chưa triển khai): đổi nhãn menu "Bắt đầu nhanh" → "Cẩm nang", thêm nội dung cẩm nang thực hành cho cả worker + employer (`src/i18n/vi.ts` khoá `nav.label.userGuide`, trang `src/app/user-guide/page.tsx`).
 - **Hành động:** hoặc triển khai spec đó, hoặc để nguyên (đây là việc pending, không phải regression).
 
-### 3.3 — Generator test thiếu field (2 fail) — rủi ro thực tế thấp
-- **File:** `src/__tests__/properties/walletDepositEscrow.property.test.ts` (2/17).
-- **Gốc rễ:** generator fast-check tạo object shift **thiếu `depositAmount` / `status`** (chính là lỗi `tsc` ở file test). `walletStore.backfillFromHistory` làm số học với `undefined` → `balance: NaN`.
-- **Đánh giá:** dữ liệu thật luôn có `depositAmount` (mọi shift tạo qua UI đều set). Nên đây là lỗi generator, không phải bug dữ liệu thật. **Cải thiện đề xuất:** sửa generator cho đủ field; cân nhắc thêm guard phòng thủ trong `backfillFromHistory` (coalesce `depositAmount ?? 0`).
+### 3.3 — ✅ ĐÃ SỬA — Input test `backfillFromHistory` thiếu field (2 fail + lỗi tsc)
+- **File:** `walletDepositEscrow.property.test.ts` (2/17) + lỗi tsc ở `derivedMoney.property.test.ts`.
+- **Gốc rễ thực tế (khác chẩn đoán cũ):** không phải `arbEconomy` — mà helper `backfillInput`/`seedWalletFromHistory` trong test map shift **chỉ `{id, employerId, title}`**, bỏ `status` + `depositAmount` mà store yêu cầu. `backfillFromHistory` đọc `shift.depositAmount` undefined → `NaN`. Đồng thời store đã tiến hoá để **mô phỏng cả vòng đời cọc của employer** (`UserTopUp` + `EmployerDepositHeld` + `EmployerUnusedRefund`), nên baseline preservation cũ (chỉ `WorkerWageReleased`) đã lỗi thời.
+- **Cách đã làm:** thêm `status` + `depositAmount` vào input map ở cả 2 file; cập nhật assertion + docstring của `walletDepositEscrow` cho khớp hành vi employer hiện tại; thêm guard `Number.isFinite` chống tái phát NaN. Không đụng code sản phẩm.
 
-### 3.4 — CẦN QUYẾT ĐỊNH: copy employer "Người làm" vs "Người lao động" (2 fail)
+### 3.4 — ✅ ĐÃ QUYẾT + SỬA — copy employer "người lao động" (2 fail)
 - **File:** `src/__tests__/properties/attendanceStatePreservation.property.test.ts` (2/6).
-- **Chi tiết:** test kỳ vọng copy employer = "**Người làm** đã check-in..." / "...chờ **người làm** check-out.", nhưng i18n hiện trả "**Người lao động**".
-- **Vì sao cần người quyết:** quy ước copy theo vai trò (CLAUDE.md §5 nguyên tắc #9, và `docs/KIRO_HANDOFF_CURRENT_STATE.md`) nói **màn employer dùng "người làm"**. Nếu quy ước còn hiệu lực → đây là **regression copy thật** (sửa `src/i18n/vi.ts` các khoá `attendance.copy.employer.*` về "người làm"). Nếu đã cố ý đổi sang "người lao động" → cập nhật lại baseline test.
+- **Quyết định (chủ dự án, 2026-09-15):** chuẩn hoá **"người lao động"**. Cơ sở: i18n dùng "người lao động" **102 lần**, "người làm" **0 lần** — toàn app đã thống nhất; test baseline + câu chữ CLAUDE.md là phần lỗi thời.
+- **Cách đã làm:** cập nhật `EMPLOYER_COPY_BASELINE` (4 khoá `attendance.copy.employer.*`) sang "người lao động"; cập nhật câu chữ CLAUDE.md §1 (vai trò) + §5 #9 cho khớp. Không đổi i18n.
 
-### 3.5 — Preservation: footer link `/employer/payments` (1 fail) — nhẹ
+### 3.5 — ✅ ĐÃ SỬA — Preservation: footer link `/employer/payments` (1 fail)
 - **File:** `src/__tests__/escrowStatusStringsPreservation.test.tsx` (1/18).
-- **Chi tiết:** invariant "Footer giữ href `/employer/payments`" bị lệch — Footer hiện chỉ nhắc `/employer/payments` trong comment, không còn link thực. Route `/employer/payments` vẫn resolve (có trong 28 route build).
-- **Hành động:** rà lại `src/components/layout/Footer.tsx` — khôi phục link nếu invariant còn đúng, hoặc cập nhật test nếu link đã cố ý bỏ.
+- **Gốc rễ:** Footer đã được tái cấu trúc có chủ đích — link employer "Giữ tiền ca làm" giờ trỏ `/user-guide#employer-payments` (anchor user-guide), không còn `/employer/payments`. Route `/employer/payments` **vẫn resolve và vẫn được NavBar link** (test NavBar vẫn pass) → không phải orphan.
+- **Cách đã làm:** cập nhật test Footer để assert href mới `/user-guide#employer-payments` (giữ regression guard có ý nghĩa). Không đụng Footer.
 
 ---
 
@@ -73,11 +85,13 @@ type-check code sản phẩm sạch. 20 test fail được phân loại như sau
 
 ---
 
-## 5. Việc "vệ sinh" nên dọn trước backend (không khẩn cấp)
+## 5. Việc "vệ sinh" — ✅ ĐÃ DỌN (2026-09-15)
 
-1. **`src/app/layout.tsx` (~dòng 66):** đang nhúng `<Script src="http://localhost:8400/live.js">` — script "impeccable-live" (design tooling trong `.kiro/skills/impeccable`). **Phải bỏ** trước khi deploy thật (nằm giữa comment `impeccable-live-start`/`end`).
-2. **`src/components/layout/AppHydrator.tsx` (~dòng 42):** hack tự `localStorage.clear()` + reload một lần theo cờ `seed_wiped_v10`. Hack di trú dữ liệu cũ — cân nhắc bỏ khi migrate.
-3. **`src/app/employer/dashboard/page.tsx.bak`:** file backup bỏ quên — nên xoá.
+1. ✅ **`src/app/layout.tsx`:** đã bỏ `<Script src="http://localhost:8400/live.js">` (impeccable-live) + import `Script` không dùng.
+2. ✅ **`src/components/layout/AppHydrator.tsx`:** đã bỏ hack `localStorage.clear()` + reload theo cờ `seed_wiped_v10`. An toàn vì `loadAll()` (`persistence.ts`) đã tự reseed khi lệch `SCHEMA_VERSION` — hack này thừa và còn ép reload thêm 1 lần với browser mới.
+3. ✅ **`src/app/employer/dashboard/page.tsx.bak`:** đã xoá (backup cũ, không import ở đâu; `page.tsx` thật vẫn nguyên).
+
+**Kiểm chứng sau dọn:** `tsc --noEmit` sạch, `npm run build` sạch **đúng 28 route** (`/employer/payments` vẫn còn), test vẫn 672/675 (3 fail là §3.2 hoãn). Lưu ý: `npm run lint` vẫn còn 2 lỗi `no-explicit-any` **có sẵn từ trước** ở `walletStore.ts:284-285` (`(shift as any).createdAt/updatedAt` trong `backfillFromHistory`) — không thuộc đợt dọn này.
 
 ---
 
@@ -123,21 +137,16 @@ Mỗi phase ship **sau interface store hiện tại** để UI tiếp tục ch�
 - **Phân quyền không được dựa frontend.** User sửa được localStorage (kể cả role/ví) qua devtools. Server phải là nguồn sự thật về quyền (worker chỉ đụng application của mình, employer chỉ ca của mình, admin chỉ endpoint admin).
 - **Lifecycle không được phụ thuộc trình duyệt mở.** Start/end + auto-release 12h phải chạy trên server schedule, không chỉ khi ai đó load trang.
 - **Bí mật Supabase:** KHÔNG lộ `service_role` key ra frontend/log/chat. Chỉ dùng env var. Đọc `docs/SUPABASE_SECURITY_NOTE.md` trước khi cấu hình.
-- **Bộ test đang đỏ** → chưa có lưới an toàn "test xanh" để migrate. Nên xanh hoá test trước (mục 8).
+- ~~**Bộ test đang đỏ** → chưa có lưới an toàn "test xanh" để migrate.~~ ✅ Đã xanh hoá (672/675, 3 fail còn lại là §3.2 đỏ cố ý đã hoãn); type-check sạch. Lưới an toàn đã sẵn sàng cho migration.
 
 ---
 
 ## 8. Bước tiếp theo nên làm (theo thứ tự đề xuất)
 
-1. **Xanh hoá bộ test trước tiên** (để có lưới an toàn cho migration):
-   - Sửa 12 test giòn thời gian (§3.1) — truyền clock vào `cancel(...)`, hoặc freeze `vi.setSystemTime`. Chỉ đụng test.
-   - Quyết định §3.4 (copy "người làm" vs "người lao động") và sửa i18n **hoặc** baseline test cho khớp.
-   - Rà §3.5 (footer link) — khôi phục link hoặc cập nhật test.
-   - Sửa generator §3.3 cho đủ field; cân nhắc guard trong `backfillFromHistory`.
-   - Quyết định §3.2 (spec handbook `visual-a11y-polish-round-2`): làm hoặc hoãn.
-2. **Dọn vệ sinh** (§5): bỏ script `live.js`, cân nhắc hack `seed_wiped_v10`, xoá file `.bak`.
-3. **QA thủ công** theo `docs/CURRENT_TODO.md` mục 1 (lifecycle nhất quán, copy theo vai trò, màu badge trên giao diện thật).
-4. **BACKEND-MIGRATION-1** — chỉ bắt đầu sau khi test xanh + QA xong + được chấp thuận rõ ràng. Bắt đầu Phase 1 (users/auth/RLS), **không migrate ví/escrow trước**.
+1. ✅ **ĐÃ XONG — Xanh hoá bộ test** (2026-09-15): §3.1, §3.3, §3.4, §3.5 đã sửa (chỉ đụng test/baseline/CLAUDE.md, không đụng code sản phẩm); type-check sạch. §3.2 đã quyết **hoãn** (3 test đỏ cố ý, là feature content chưa làm — không phải regression).
+2. ✅ **ĐÃ XONG — Dọn vệ sinh** (§5): đã bỏ script `live.js` + import thừa, bỏ hack `seed_wiped_v10`, xoá file `.bak`. Build sạch 28 route.
+3. ✅ **ĐÃ XONG — QA thủ công** (2026-09-15) theo `docs/CURRENT_TODO.md` mục 1. Chạy trên giao diện thật 3 vai, tạo ca mới kiểm trọn vòng đời. **Không lỗi Critical/High.** Kết quả: `docs/QA_MANUAL_RESULTS_2026-09-15.md`. Phát hiện Low (nhất quán copy "người làm"→"người lao động") đã **quét chuẩn hoá xong** trên 22 file `src/` + đồng bộ 3 E2E spec; tsc sạch, unit 672/675, build 28 route.
+4. **BACKEND-MIGRATION-1** — điều kiện tiền đề (test xanh + QA xong) đã đủ; **chỉ còn chờ chấp thuận rõ ràng**. Bắt đầu Phase 1 (users/auth/RLS), **không migrate ví/escrow trước**. ← **bước kế tiếp**
 
 ---
 

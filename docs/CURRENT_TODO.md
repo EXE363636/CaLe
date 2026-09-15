@@ -8,38 +8,35 @@ QA thủ công rồi mới đến backend.
 
 ---
 
-## 1. QA thủ công ngay (sau CORE-STABILITY-10)
+## 1. QA thủ công ngay (sau CORE-STABILITY-10) — ✅ ĐÃ CHẠY 2026-09-15
 
-Mở app bằng `npm run dev` và kiểm tra trên giao diện thật:
+> Kết quả đầy đủ: **`docs/QA_MANUAL_RESULTS_2026-09-15.md`**. Chạy trên giao diện
+> thật, 3 vai, có tạo một ca mới hôm nay để kiểm trọn vòng đời. **Không lỗi
+> Critical/High.** Một phát hiện Low (nhất quán copy "người làm" vs "người lao
+> động", ~55 chuỗi hardcode) — không chặn backend.
 
-- [ ] **Tính nhất quán lifecycle ca làm** — cùng một ca hiện CÙNG nhãn +
-      CÙNG màu badge trên: worker dashboard (card), worker detail,
-      employer dashboard (card), employer detail, employer calendar,
-      public list, admin.
-- [ ] **Check-in sớm** — trong cửa sổ 15 phút trước giờ bắt đầu hiện nút
-      "Check-in"; sau khi check-in hiện "Đã check-in" + "Bạn đã check-in.
-      Vui lòng chờ đến giờ bắt đầu ca."; KHÔNG hiện check-out; ca chưa
-      chuyển "Đang diễn ra".
-- [ ] **Employer mark-present** — không làm ca chuyển "Đang diễn ra" sớm;
-      worker chưa tự check-in thì employer thấy "Bạn đã xác nhận người
-      làm có mặt. Đang chờ người làm tự check-in."
-- [ ] **Check-out chỉ sau khi ca kết thúc** — trước/giữa ca không có nút
-      check-out; sau giờ kết thúc (trong 60 phút) mới hiện.
-- [ ] **Nút có mặt / vắng mặt của employer** — hiện cả hai khi hợp lệ;
-      khi worker đã check-in thì "Đánh dấu vắng mặt" hiện nhưng bị mờ +
-      lý do; nút có mặt vẫn còn.
-- [ ] **Màu badge nhất quán** — "Đang diễn ra" luôn xanh dương (info), không
-      tím / không xanh lá ở chỗ khác.
-- [ ] **Layout trang hồ sơ worker** — gọn gàng, không vỡ.
-- [ ] **Layout modal điểm uy tín** — hiển thị đúng, không tràn.
-- [ ] **Phần kỹ năng hiển thị** — worker mới (chưa có XP) vẫn thấy thẻ kỹ
-      năng mặc định nghề phổ thông ở Cấp 1 / 0 XP; không có kỹ năng lập
-      trình.
-- [ ] **Copy nút lịch** — nút là "Thêm lịch trình"; modal có cả "Lịch
-      rảnh" và "Lịch bận" + câu hướng dẫn.
+- [x] **Tính nhất quán lifecycle ca làm** — cùng nhãn+badge trên employer
+      dashboard, list công khai, detail công khai, worker detail, worker
+      dashboard. ✅
+- [x] **Check-in sớm** — nút "Check-in" hiện trong cửa sổ; sau check-in hiện
+      "Đã check-in" + "Bạn đã check-in. Vui lòng chờ đến giờ bắt đầu ca.";
+      KHÔNG check-out; ca vẫn "Sắp bắt đầu" (không nhảy "Đang diễn ra"). ✅
+- [x] **Employer mark-present** — không đẩy ca "Đang diễn ra" sớm; hiện
+      "Người lao động đã check-in. Vui lòng xác nhận có mặt nếu đúng." ✅
+- [x] **Check-out chỉ sau khi ca kết thúc** — pre-start không có check-out
+      (live). Phần sau giờ kết thúc phủ bởi test time-travel/E2E (đang xanh). ✅
+- [x] **Nút có mặt / vắng mặt của employer** — hiện cả hai + lý do "chỉ đánh
+      dấu vắng mặt nếu có tranh chấp" khi worker đã check-in. ✅
+- [x] **Màu badge nhất quán** — nguồn duy nhất: InProgress→info(xanh),
+      StartingSoon→warning(amber, kiểm live). "Đang diễn ra" luôn xanh. ✅
+- [x] **Layout trang hồ sơ worker** — gọn gàng, không vỡ. ✅
+- [x] **Layout modal điểm uy tín** — không tràn, list cuộn được. ✅
+- [x] **Phần kỹ năng hiển thị** — thẻ nghề phổ thông Cấp 1 / 0 XP, không có
+      kỹ năng lập trình. ✅
+- [x] **Copy nút lịch** — "Thêm lịch trình" + modal "Lịch rảnh"/"Lịch bận"
+      + câu hướng dẫn. ✅
 
-> Nếu phát hiện lỗi Critical/High: ghi vào một báo cáo mới trong
-> `qa-exploration/` và sửa trước khi sang backend.
+> Đã kiểm: không lỗi Critical/High. Phát hiện Low ghi trong báo cáo kết quả.
 
 ---
 

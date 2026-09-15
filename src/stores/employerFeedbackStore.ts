@@ -144,11 +144,11 @@ export const useEmployerFeedbackStore = create<EmployerFeedbackStore>((set, get)
     const worker = useUserStore.getState().findById(input.fromUserId);
     const shift = useShiftStore.getState().getById(input.shiftId);
     const workerName =
-      worker && worker.role === 'worker' ? worker.fullName : 'Người làm';
+      worker && worker.role === 'worker' ? worker.fullName : 'Người lao động';
     useNotificationStore.getState().push({
       userId: input.toEmployerId,
       kind: 'WorkerRatedEmployer',
-      title: 'Người làm đã đánh giá bạn',
+      title: 'Người lao động đã đánh giá bạn',
       body: shift
         ? `${workerName} đã gửi đánh giá ${input.stars}/5 sao cho ca "${shift.title}".`
         : `${workerName} đã gửi đánh giá ${input.stars}/5 sao.`,

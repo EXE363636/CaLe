@@ -9,7 +9,7 @@ export default function WorkerReputationGuidePage() {
     <InfoPage
       eyebrow="Dành cho người lao động"
       title="Hồ sơ & điểm uy tín"
-      intro="Điểm uy tín giúp nhà tuyển dụng nhanh chóng nhận biết bạn là người làm đáng tin. Mọi người đều bắt đầu với 100 điểm và có thể giữ vững/tăng lên qua hành vi thực tế."
+      intro="Điểm uy tín giúp nhà tuyển dụng nhanh chóng nhận biết bạn là người lao động đáng tin. Mọi người đều bắt đầu với 100 điểm và có thể giữ vững/tăng lên qua hành vi thực tế."
       ctas={[
         { label: 'Tìm ca làm', href: '/shifts' },
       ]}

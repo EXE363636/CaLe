@@ -47,7 +47,7 @@ test.describe('Flow 12: timeline logs with seconds and no duplicates', () => {
     const timelineHeading = page.getByText('Lịch sử ca làm');
     await expect(timelineHeading).toBeVisible();
 
-    const approvedEntry = page.getByText('Nhà tuyển dụng đã duyệt người làm');
+    const approvedEntry = page.getByText('Nhà tuyển dụng đã duyệt người lao động');
     await expect(approvedEntry.first()).toBeVisible();
 
     // Read the persisted timeline and assert exactly one approve entry
@@ -92,7 +92,7 @@ test.describe('Flow 12: timeline logs with seconds and no duplicates', () => {
 
     // And the rendered entry still appears exactly once.
     await expect(
-      page.getByText('Nhà tuyển dụng đã duyệt người làm'),
+      page.getByText('Nhà tuyển dụng đã duyệt người lao động'),
     ).toHaveCount(1);
 
     void timeline;

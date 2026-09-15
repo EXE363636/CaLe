@@ -39,13 +39,6 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
   const hydratedRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !localStorage.getItem('seed_wiped_v10')) {
-      localStorage.clear();
-      localStorage.setItem('seed_wiped_v10', 'true');
-      window.location.reload();
-      return;
-    }
-
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 

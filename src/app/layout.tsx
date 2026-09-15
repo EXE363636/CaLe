@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppHydrator } from "@/components/layout/AppHydrator";
@@ -16,7 +15,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "CaLẻ / Now",
   description:
-    "Nền tảng kết nối nhà tuyển dụng và người làm cho các ca làm ngắn hạn tại Việt Nam.",
+    "Nền tảng kết nối nhà tuyển dụng và người lao động cho các ca làm ngắn hạn tại Việt Nam.",
 };
 
 export default function RootLayout({
@@ -62,10 +61,7 @@ export default function RootLayout({
           <Footer />
           <ToastHost />
         </AppHydrator>
-      {/* impeccable-live-start */}
-<Script src="http://localhost:8400/live.js" strategy="afterInteractive" />
-{/* impeccable-live-end */}
-</body>
+      </body>
     </html>
   );
 }

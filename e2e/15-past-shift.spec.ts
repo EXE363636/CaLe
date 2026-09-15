@@ -108,7 +108,7 @@ test.describe('Phase 1: past-shift posting is blocked', () => {
     await expect(page.getByText(PAST_ERROR)).toHaveCount(0);
     // Deposit confirm card appears after a valid create.
     await expect(
-      page.getByRole('button', { name: 'Xác nhận đã thanh toán' }),
+      page.getByRole('button', { name: 'Mô phỏng đảm bảo thanh toán' }),
     ).toBeVisible();
   });
 });

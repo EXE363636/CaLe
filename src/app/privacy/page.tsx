@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <InfoSection title="Thông tin chúng tôi thu thập">
         <InfoList
           items={[
-            'Thông tin tài khoản: tên, email, số điện thoại, vai trò (người làm hoặc nhà tuyển dụng).',
+            'Thông tin tài khoản: tên, email, số điện thoại, vai trò (người lao động hoặc nhà tuyển dụng).',
             'Thông tin xác minh tuỳ chọn: CMND/CCCD, thẻ sinh viên, đăng ký kinh doanh — chỉ khi bạn chủ động cung cấp.',
             'Hoạt động trong ứng dụng: ca đã ứng tuyển, ca đã đăng, đánh giá đã nhận, lịch sử huỷ.',
             'Thông tin kỹ thuật: dữ liệu lưu cục bộ trong trình duyệt, không gửi lên máy chủ ngoài.',
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
       <InfoSection title="Cách chúng tôi sử dụng thông tin">
         Thông tin được dùng để vận hành dịch vụ — cho phép ứng tuyển,
-        duyệt người làm, tính điểm uy tín, gửi thông báo trong ứng dụng.
+        duyệt người lao động, tính điểm uy tín, gửi thông báo trong ứng dụng.
         Chúng tôi không bán thông tin cá nhân cho bên thứ ba.
       </InfoSection>
 

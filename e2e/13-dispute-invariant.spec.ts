@@ -101,7 +101,7 @@ test.describe('H2: admin resolves dispute, stale state clears', () => {
 
     // Resolve: release to worker.
     await page.getByRole('button', { name: 'Giải quyết tranh chấp' }).first().click();
-    await page.getByRole('button', { name: 'Thanh toán cho người làm' }).click();
+    await page.getByRole('button', { name: 'Thanh toán cho người lao động' }).click();
     await page.getByLabel(/Ghi chú/).first().fill('Người làm đã hoàn thành đầy đủ.');
     await page.getByRole('button', { name: 'Xác nhận' }).first().click();
     await page.waitForLoadState('networkidle');

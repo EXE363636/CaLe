@@ -269,7 +269,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
   function handleReportIssue(appId: string) {
     // Phase 10C — open the structured dispute dialog instead of the
-    // pre-Phase-9 instant "Người làm không hoàn thành đúng yêu cầu"
+    // pre-Phase-9 instant "Người lao động không hoàn thành đúng yêu cầu"
     // shortcut. The dialog gathers category + reason + evidence and
     // forwards them to `applicationStore.reportIssue(payload)`.
     setDisputeError(null);
@@ -967,7 +967,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                                   >
                                     <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
                                       {r.side === 'worker'
-                                        ? 'Người làm'
+                                        ? 'Người lao động'
                                         : 'Nhà tuyển dụng'}
                                       {' · '}
                                       {new Intl.DateTimeFormat('vi-VN', {
@@ -1047,7 +1047,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 setRejectingAppId(null);
                 setRejectError(null);
               }}
-              workerName={targetWorker?.fullName ?? 'Người làm'}
+              workerName={targetWorker?.fullName ?? 'Người lao động'}
               shiftTitle={shift.title}
               onConfirm={handleConfirmReject}
               loading={actionLoading === rejectingAppId}

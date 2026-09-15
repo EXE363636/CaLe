@@ -389,7 +389,7 @@ function EmployerDashboardContent() {
                 {pendingApps.slice(0, 5).map((a) => {
                   const shift = shifts.find((s) => s.id === a.shiftId);
                   const w = users.find((u) => u.id === a.workerId);
-                  const wName = w?.role === 'worker' ? w.fullName : 'Người làm';
+                  const wName = w?.role === 'worker' ? w.fullName : 'Người lao động';
                   return (
                     <Card key={a.id}>
                       <div className="flex items-center justify-between gap-2">
@@ -710,7 +710,7 @@ function EmployerDashboardContent() {
                 const shift = shifts.find((s) => s.id === a.shiftId);
                 const w = users.find((u) => u.id === a.workerId);
                 const worker = w?.role === 'worker' ? w : null;
-                const wName = worker?.fullName ?? 'Người làm';
+                const wName = worker?.fullName ?? 'Người lao động';
                 // Cluster 2 · BUG 3 (Req 2.3): read the applicant's reputation
                 // through the single shared source so this badge matches the
                 // worker's own dashboard / trust chip. Same clamped value.

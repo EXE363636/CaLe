@@ -17,7 +17,7 @@
  *   - Pending-only applicants receive no protection record.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
@@ -134,6 +134,21 @@ function resetStores() {
   useUserStore.setState({ users: [] });
   useNotificationStore.setState({ notifications: [] });
 }
+
+// Freeze the clock at NOW_ISO so `cancel(...)` (which falls back to the real
+// `nowIso()` when no clock is passed) evaluates the shift lifecycle relative to
+// the same fixed "now" the shifts are built around. Without this, the tests
+// break as wall-clock time drifts past the mid-2026 fixtures and `cancel`
+// short-circuits with TOO_LATE_STARTED before the worker-protection side
+// effects run.
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(NOW_ISO));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 // ---------------------------------------------------------------------------
 // Worker reputation/protection history

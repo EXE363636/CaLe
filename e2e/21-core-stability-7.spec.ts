@@ -102,7 +102,7 @@ test.describe('Part 2: insufficient-deposit draft modal', () => {
     await page.getByRole('button', { name: 'Đăng ca cần tuyển' }).click();
 
     const depositBtn = page.getByRole('button', {
-      name: 'Xác nhận đã thanh toán',
+      name: 'Mô phỏng đảm bảo thanh toán',
     });
     await expect(depositBtn).toBeVisible();
     await depositBtn.click();
@@ -135,7 +135,7 @@ test.describe('Part 2: insufficient-deposit draft modal', () => {
     // The deposit-confirm card is still mounted — confirm again, this
     // time it succeeds (no insufficient-balance error).
     const depositBtn2 = page.getByRole('button', {
-      name: 'Xác nhận đã thanh toán',
+      name: 'Mô phỏng đảm bảo thanh toán',
     });
     await expect(depositBtn2).toBeVisible();
     await depositBtn2.click();

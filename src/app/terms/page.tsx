@@ -10,7 +10,7 @@ export default function TermsPage() {
       intro="Bằng việc tạo tài khoản hoặc sử dụng dịch vụ CaLẻ / Now, bạn đồng ý với các điều khoản dưới đây. Tài liệu áp dụng cho phiên bản dùng thử của sản phẩm."
     >
       <InfoSection title="1. Phạm vi dịch vụ">
-        CaLẻ là nền tảng kết nối nhà tuyển dụng cần người làm ngắn hạn với
+        CaLẻ là nền tảng kết nối nhà tuyển dụng cần người lao động ngắn hạn với
         người lao động linh hoạt. Chúng tôi không phải là người sử dụng
         lao động trực tiếp; quan hệ lao động được hai bên trao đổi tự
         nguyện thông qua nền tảng.

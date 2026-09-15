@@ -9,22 +9,22 @@ export default function EmployerReviewsPage() {
     <InfoPage
       eyebrow="Dành cho nhà tuyển dụng"
       title="Đánh giá sau ca"
-      intro="Đánh giá hai chiều giúp xây dựng cộng đồng tin cậy. Sau mỗi ca hoàn thành, bạn nên dành 1–2 phút để chấm điểm và viết một câu nhận xét cho người làm."
+      intro="Đánh giá hai chiều giúp xây dựng cộng đồng tin cậy. Sau mỗi ca hoàn thành, bạn nên dành 1–2 phút để chấm điểm và viết một câu nhận xét cho người lao động."
       ctas={[
         { label: 'Mở dashboard nhà tuyển dụng', href: '/employer/dashboard' },
       ]}
     >
       <InfoSection title="Khi nào cần đánh giá">
-        Sau khi người làm check-out, ứng dụng nhắc bạn xác nhận hoàn
+        Sau khi người lao động check-out, ứng dụng nhắc bạn xác nhận hoàn
         thành ca. Tại bước đó, bạn có thể chấm 1–5 sao và viết nhận
         xét ngắn. Đánh giá là bắt buộc để khoản đảm bảo thanh toán được
-        giải ngân thành tiền công cho người làm.
+        giải ngân thành tiền công cho người lao động.
       </InfoSection>
 
       <InfoSection title="Tiêu chí gợi ý">
         <InfoList
           items={[
-            'Đúng giờ: người làm có check-in trong cửa sổ ±15 phút quanh giờ bắt đầu không?',
+            'Đúng giờ: người lao động có check-in trong cửa sổ ±15 phút quanh giờ bắt đầu không?',
             'Thái độ: lịch sự, hợp tác với khách và đồng nghiệp?',
             'Chất lượng công việc: có hoàn thành đúng yêu cầu trong mô tả ca?',
             'Giao tiếp: trả lời tin nhắn kịp thời, báo trước nếu có vấn đề?',
@@ -34,8 +34,8 @@ export default function EmployerReviewsPage() {
 
       <InfoSection title="Đánh giá xây dựng">
         Hãy viết nhận xét cụ thể. &quot;Bạn pha chế nhanh, gọn quầy&quot; hữu ích
-        hơn &quot;Tốt&quot;. Người làm sau này sẽ tham khảo nhận xét của bạn để
-        biết quán cần gì, và người làm hiện tại sẽ biết phần nào cần
+        hơn &quot;Tốt&quot;. Người lao động sau này sẽ tham khảo nhận xét của bạn để
+        biết quán cần gì, và người lao động hiện tại sẽ biết phần nào cần
         cải thiện.
       </InfoSection>
 

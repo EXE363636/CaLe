@@ -142,14 +142,14 @@ function mkApp(over: Partial<Application> = {}): Application {
 
 const EMPLOYER_COPY_BASELINE: Record<AttendanceState, string | undefined> = {
   ApprovedNotStarted: undefined,
-  WorkerCheckedInEarly: 'Người làm đã check-in. Vui lòng xác nhận có mặt nếu đúng.',
-  WorkerCheckedInInProgress: 'Người làm đã check-in. Vui lòng xác nhận có mặt nếu đúng.',
+  WorkerCheckedInEarly: 'Người lao động đã check-in. Vui lòng xác nhận có mặt nếu đúng.',
+  WorkerCheckedInInProgress: 'Người lao động đã check-in. Vui lòng xác nhận có mặt nếu đúng.',
   EmployerMarkedPresentOnly:
-    'Bạn đã xác nhận người làm có mặt. Đang chờ người làm tự check-in để ghi nhận thời điểm bắt đầu.',
+    'Bạn đã xác nhận người lao động có mặt. Đang chờ người lao động tự check-in để ghi nhận thời điểm bắt đầu.',
   BothConfirmedPresent:
-    'Hai bên đã xác nhận có mặt. Đợi đến hết ca để người làm check-out.', // OUT OF SCOPE
+    'Hai bên đã xác nhận có mặt. Đợi đến hết ca để người lao động check-out.', // OUT OF SCOPE
   NoShow: undefined,
-  AwaitingCheckout: 'Ca đã kết thúc. Đang chờ người làm check-out.',
+  AwaitingCheckout: 'Ca đã kết thúc. Đang chờ người lao động check-out.',
   CheckedOut: undefined, // never produced by deriveAttendanceState
   AwaitingEmployerConfirmation: undefined,
   Disputed: undefined,

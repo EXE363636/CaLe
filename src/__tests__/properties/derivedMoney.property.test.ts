@@ -124,6 +124,11 @@ function seedWalletFromHistory(eco: Economy): void {
       id: s.id,
       employerId: s.employerId,
       title: s.title,
+      // `backfillFromHistory` reads both per shift (skips Draft, credits the
+      // employer's `depositAmount`); omitting them left `depositAmount`
+      // undefined → NaN employer ledger amounts.
+      status: s.status,
+      depositAmount: s.depositAmount,
     })),
   });
 }

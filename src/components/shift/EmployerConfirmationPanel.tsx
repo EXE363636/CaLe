@@ -122,7 +122,7 @@ export function EmployerConfirmationPanel({
               aggregate count. The tick state is derived from
               `checkoutChecklist[index]`; rows the worker didn't
               submit (e.g. legacy data) render as
-              "Người làm chưa gửi checklist này". */}
+              "Người lao động chưa gửi checklist này". */}
           {totalRows > 0 && (
             <ul className="mt-2 flex flex-col gap-1 text-xs">
               {checklistTemplate.map((label, idx) => {

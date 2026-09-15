@@ -50,7 +50,7 @@ export function RatingForm({ onSubmit, loading = false, className = '' }: Rating
         onChange={(e) => setFeedback(e.target.value)}
         maxLength={500}
         rows={3}
-        placeholder="Nhận xét về người làm..."
+        placeholder="Nhận xét về người lao động..."
       />
 
       <Button

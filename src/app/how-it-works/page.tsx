@@ -21,7 +21,7 @@ export default function HowItWorksPage() {
 
       <InfoStep n={2} title="Người lao động ứng tuyển">
         Người lao động duyệt danh sách ca, kiểm tra thông tin nhà tuyển
-        dụng, đánh giá từ người làm trước, và ứng tuyển nếu phù hợp với
+        dụng, đánh giá từ người lao động trước, và ứng tuyển nếu phù hợp với
         lịch cá nhân. Hệ thống tự động kiểm tra trùng lịch để hạn chế cam
         kết kép.
       </InfoStep>
