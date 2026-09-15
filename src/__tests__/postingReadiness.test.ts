@@ -256,9 +256,9 @@ function resetStores() {
 }
 
 describe('authStore.register — Phase 10A-Fix-3 employer type gate', () => {
-  it('rejects employer registrations missing employerType10A as INVALID_INPUT', () => {
+  it('rejects employer registrations missing employerType10A as INVALID_INPUT', async () => {
     resetStores();
-    const r = useAuthStore.getState().register({
+    const r = await useAuthStore.getState().register({
       role: 'employer',
       email: 'no-type@example.com',
       phone: '0901234567',
@@ -273,9 +273,9 @@ describe('authStore.register — Phase 10A-Fix-3 employer type gate', () => {
     }
   });
 
-  it('accepts employer registrations with a canonical 4-shape type', () => {
+  it('accepts employer registrations with a canonical 4-shape type', async () => {
     resetStores();
-    const r = useAuthStore.getState().register({
+    const r = await useAuthStore.getState().register({
       role: 'employer',
       email: 'with-type@example.com',
       phone: '0901234567',
@@ -286,16 +286,18 @@ describe('authStore.register — Phase 10A-Fix-3 employer type gate', () => {
     });
     expect(r.ok).toBe(true);
     if (r.ok) {
-      expect(r.value.role).toBe('employer');
-      if (r.value.role === 'employer') {
-        expect(r.value.employerType10A).toBe('Company');
+      // Slice 2: register value là RegisterSuccess { user, needsConfirmation }.
+      const created = r.value.user;
+      expect(created?.role).toBe('employer');
+      if (created && created.role === 'employer') {
+        expect(created.employerType10A).toBe('Company');
       }
     }
   });
 
-  it('rejects employer registrations with a stray non-canonical employerType10A string', () => {
+  it('rejects employer registrations with a stray non-canonical employerType10A string', async () => {
     resetStores();
-    const r = useAuthStore.getState().register({
+    const r = await useAuthStore.getState().register({
       role: 'employer',
       email: 'bad-type@example.com',
       phone: '0901234567',

@@ -53,7 +53,7 @@ export default function LoginPage() {
     setLoading(true);
     setErrors({});
 
-    const result = login(email.trim().toLowerCase(), password);
+    const result = await login(email.trim().toLowerCase(), password);
     setLoading(false);
 
     if (!result.ok) {

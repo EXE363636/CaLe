@@ -49,9 +49,9 @@ describe('authStore.login (Phase 9P)', () => {
     useAuthStore.setState({ currentUserId: null, lastActivityAt: null });
   });
 
-  it('accepts the correct password for an active user', () => {
+  it('accepts the correct password for an active user', async () => {
     useUserStore.setState({ users: [seedWorker()] });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       'secret-pass',
     );
@@ -59,18 +59,18 @@ describe('authStore.login (Phase 9P)', () => {
     if (result.ok) expect(result.value.id).toBe('worker-test-001');
   });
 
-  it('accepts the email regardless of case + whitespace', () => {
+  it('accepts the email regardless of case + whitespace', async () => {
     useUserStore.setState({ users: [seedWorker()] });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       '  TEST.WORKER@EXAMPLE.VN  ',
       'secret-pass',
     );
     expect(result.ok).toBe(true);
   });
 
-  it('rejects a wrong password with INVALID_CREDENTIALS', () => {
+  it('rejects a wrong password with INVALID_CREDENTIALS', async () => {
     useUserStore.setState({ users: [seedWorker()] });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       'wrong-password',
     );
@@ -78,11 +78,11 @@ describe('authStore.login (Phase 9P)', () => {
     if (!result.ok) expect(result.error).toBe('INVALID_CREDENTIALS');
   });
 
-  it('rejects a typo of "demo" for a non-demo account', () => {
+  it('rejects a typo of "demo" for a non-demo account', async () => {
     // Phase 9P regression guard — the previous bug accepted any `demo`
     // string as a universal password for every seed account.
     useUserStore.setState({ users: [seedWorker()] });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       'demo',
     );
@@ -90,20 +90,20 @@ describe('authStore.login (Phase 9P)', () => {
     if (!result.ok) expect(result.error).toBe('INVALID_CREDENTIALS');
   });
 
-  it('accepts "demo" only for accounts whose passwordHash is mock-hash:demo', () => {
+  it('accepts "demo" only for accounts whose passwordHash is mock-hash:demo', async () => {
     useUserStore.setState({
       users: [seedWorker({ passwordHash: 'mock-hash:demo' })],
     });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       'demo',
     );
     expect(result.ok).toBe(true);
   });
 
-  it('rejects an unknown email with INVALID_CREDENTIALS (no enumeration)', () => {
+  it('rejects an unknown email with INVALID_CREDENTIALS (no enumeration)', async () => {
     useUserStore.setState({ users: [seedWorker()] });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'nobody@example.vn',
       'secret-pass',
     );
@@ -111,9 +111,9 @@ describe('authStore.login (Phase 9P)', () => {
     if (!result.ok) expect(result.error).toBe('INVALID_CREDENTIALS');
   });
 
-  it('rejects an empty password with INVALID_CREDENTIALS (no auto-login)', () => {
+  it('rejects an empty password with INVALID_CREDENTIALS (no auto-login)', async () => {
     useUserStore.setState({ users: [seedWorker()] });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       '',
     );
@@ -121,11 +121,11 @@ describe('authStore.login (Phase 9P)', () => {
     if (!result.ok) expect(result.error).toBe('INVALID_CREDENTIALS');
   });
 
-  it('returns SUSPENDED when credentials match but account is suspended', () => {
+  it('returns SUSPENDED when credentials match but account is suspended', async () => {
     useUserStore.setState({
       users: [seedWorker({ suspended: true })],
     });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       'secret-pass',
     );
@@ -133,14 +133,14 @@ describe('authStore.login (Phase 9P)', () => {
     if (!result.ok) expect(result.error).toBe('SUSPENDED');
   });
 
-  it('returns INVALID_CREDENTIALS (not SUSPENDED) when a suspended account uses the wrong password', () => {
+  it('returns INVALID_CREDENTIALS (not SUSPENDED) when a suspended account uses the wrong password', async () => {
     // Phase 9P — never leak suspension state to a caller who can't
     // authenticate. They get the same generic error a non-existent
     // account would.
     useUserStore.setState({
       users: [seedWorker({ suspended: true })],
     });
-    const result = useAuthStore.getState().login(
+    const result = await useAuthStore.getState().login(
       'test.worker@example.vn',
       'wrong-password',
     );
@@ -155,8 +155,8 @@ describe('authStore.register (Phase 9P)', () => {
     useAuthStore.setState({ currentUserId: null, lastActivityAt: null });
   });
 
-  it('creates a worker that can subsequently log in with the chosen password', () => {
-    const reg = useAuthStore.getState().register({
+  it('creates a worker that can subsequently log in with the chosen password', async () => {
+    const reg = await useAuthStore.getState().register({
       role: 'worker',
       email: 'new.worker@example.vn',
       phone: '+84909000001',
@@ -166,15 +166,15 @@ describe('authStore.register (Phase 9P)', () => {
     expect(reg.ok).toBe(true);
 
     // Logout the auto-login session so we exercise the login path.
-    useAuthStore.getState().logout();
+    await useAuthStore.getState().logout();
 
-    const ok = useAuthStore.getState().login(
+    const ok = await useAuthStore.getState().login(
       'new.worker@example.vn',
       'pickedByUser',
     );
     expect(ok.ok).toBe(true);
 
-    const wrong = useAuthStore.getState().login(
+    const wrong = await useAuthStore.getState().login(
       'new.worker@example.vn',
       'wrongPickedByUser',
     );
@@ -182,8 +182,8 @@ describe('authStore.register (Phase 9P)', () => {
     if (!wrong.ok) expect(wrong.error).toBe('INVALID_CREDENTIALS');
   });
 
-  it('rejects passwords shorter than 8 characters with INVALID_INPUT', () => {
-    const reg = useAuthStore.getState().register({
+  it('rejects passwords shorter than 8 characters with INVALID_INPUT', async () => {
+    const reg = await useAuthStore.getState().register({
       role: 'worker',
       email: 'short.pass@example.vn',
       phone: '+84909000002',
@@ -194,9 +194,9 @@ describe('authStore.register (Phase 9P)', () => {
     if (!reg.ok) expect(reg.error).toBe('INVALID_INPUT');
   });
 
-  it('rejects an already-taken email with EMAIL_TAKEN', () => {
+  it('rejects an already-taken email with EMAIL_TAKEN', async () => {
     useUserStore.setState({ users: [seedWorker({ email: 'taken@example.vn' })] });
-    const reg = useAuthStore.getState().register({
+    const reg = await useAuthStore.getState().register({
       role: 'worker',
       email: 'taken@example.vn',
       phone: '+84909000003',

@@ -1,18 +1,14 @@
 /**
- * Authentication store for the CaLẻ / ShiftNow MVP.
+ * Authentication store (BACKEND-MIGRATION-1 · Phase 1, Slice 2).
  *
- * Mock authentication only — passwords are not hashed and the "session"
- * lives in localStorage via `data/persistence.ts`. Real password hashing,
- * CSRF, and HTTPS enforcement are documented as deferred (Req 30, Open
- * Questions in design.md).
+ * Hai chế độ theo `getDataMode()`:
+ *   - local: mock auth như trước (mật khẩu `mock-hash:` trong localStorage) —
+ *     dùng cho Vitest / Playwright localStorage. Hành vi giữ NGUYÊN.
+ *   - supabase: auth THẬT qua Supabase Auth (mật khẩu hash phía Supabase); session
+ *     do supabase-js quản lý; `onAuthChange` đồng bộ đăng xuất đa tab.
  *
- * Exposes:
- *  - `currentUser`        — the logged-in `User`, or `null`
- *  - `login(email, pw)`   — looks up the user, blocks if suspended
- *  - `register(input)`    — creates a Worker / Employer (Admin signup is
- *                           disallowed; admins are seeded only)
- *  - `logout()`           — clears the session
- *  - `touch()`            — bumps `lastActivityAt` for idle-timeout (Req 30.2)
+ * `login`/`register`/`logout` là ASYNC (đã duyệt). `register` trả `RegisterSuccess`
+ * để hỗ trợ email confirmation BẬT (không auto-login → `needsConfirmation`).
  */
 
 import { create } from 'zustand';
@@ -22,6 +18,8 @@ import {
   write,
   type AuthState as PersistedAuthState,
 } from '@/data/persistence';
+import { getDataMode, getSupabaseClient, onAuthChange } from '@/data/supabaseClient';
+import { getUserRepo } from '@/data/repos/userRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type { Result, Role, User, Worker, Employer } from '@/types';
 
@@ -31,38 +29,28 @@ import { useUserStore } from './userStore';
 // Types
 // ---------------------------------------------------------------------------
 
-export type LoginError =
-  | 'INVALID_CREDENTIALS'
-  | 'SUSPENDED';
+export type LoginError = 'INVALID_CREDENTIALS' | 'SUSPENDED';
 
-export type RegisterError =
-  | 'EMAIL_TAKEN'
-  | 'INVALID_ROLE'
-  | 'INVALID_INPUT';
+export type RegisterError = 'EMAIL_TAKEN' | 'INVALID_ROLE' | 'INVALID_INPUT';
 
 /**
- * Subset of fields collected at registration. The store backfills sensible
- * defaults (initial reputation, empty arrays, etc.) before persisting.
+ * Kết quả đăng ký. `needsConfirmation` = true khi Supabase bật email confirmation
+ * và signUp KHÔNG trả session (không auto-login) — UI hiện màn "kiểm tra email".
  */
+export interface RegisterSuccess {
+  user: User | null;
+  needsConfirmation: boolean;
+}
+
 export interface RegisterInput {
   role: 'worker' | 'employer';
   email: string;
   phone: string;
   password: string;
-  /** Required for `role === 'worker'`. */
   fullName?: string;
-  /** Required for `role === 'employer'`. */
   companyName?: string;
-  /** Required for `role === 'employer'`. */
   businessType?: string;
-  /** Phase 6: defaults to `'individual'` when omitted. */
   employerType?: 'individual' | 'business';
-  /**
-   * Phase 10A-Fix-3: canonical 4-value account shape selected at
-   * registration. Required when `role === 'employer'`. The auth store
-   * persists this onto `Employer.employerType10A` so the new posting
-   * guard never has to fall back to the first-set picker.
-   */
   employerType10A?: 'Individual' | 'HouseholdBusiness' | 'Company' | 'AgencyEvent';
 }
 
@@ -70,15 +58,19 @@ interface AuthStore {
   currentUserId: string | null;
   lastActivityAt: string | null;
 
-  /** Computed accessor — convenience over `currentUserId`. */
   currentUser: () => User | null;
 
-  login(email: string, password: string): Result<User, LoginError>;
-  register(input: RegisterInput): Result<User, RegisterError>;
-  logout(): void;
+  login(email: string, password: string): Promise<Result<User, LoginError>>;
+  register(input: RegisterInput): Promise<Result<RegisterSuccess, RegisterError>>;
+  logout(): Promise<void>;
   touch(): void;
 
-  /** Hydrate the slice from a persisted snapshot. Called by `<AppHydrator>`. */
+  /**
+   * Đăng ký lắng nghe onAuthStateChange (chỉ chế độ supabase). Trả hàm huỷ.
+   * Wiring vào vòng đời app ở AppHydrator (Slice 3 — hydrate).
+   */
+  subscribeAuth(): () => void;
+
   hydrate(state: PersistedAuthState): void;
 }
 
@@ -86,12 +78,30 @@ interface AuthStore {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Current ISO 8601 timestamp. */
 const nowIso = (): string => new Date().toISOString();
 
+function isSupabase(): boolean {
+  try {
+    return getDataMode() === 'supabase';
+  } catch {
+    return false;
+  }
+}
+
+/** Persist phiên vào localStorage — CHỈ chế độ local (supabase dùng session riêng). */
 function persistAuth(currentUserId: string | null, lastActivityAt: string | null): void {
+  if (isSupabase()) return;
   const payload: PersistedAuthState = { currentUserId, lastActivityAt };
   write(STORAGE_KEYS.auth, payload);
+}
+
+/** Đưa/ghi đè 1 user vào cache userStore mà KHÔNG persist localStorage (supabase). */
+function cacheUser(user: User): void {
+  const existing = useUserStore.getState().users;
+  const merged = existing.some((u) => u.id === user.id)
+    ? existing.map((u) => (u.id === user.id ? user : u))
+    : [...existing, user];
+  useUserStore.setState({ users: merged });
 }
 
 function isWorkerInput(input: RegisterInput): boolean {
@@ -105,16 +115,28 @@ function isEmployerInput(input: RegisterInput): boolean {
     input.companyName.trim() !== '' &&
     typeof input.businessType === 'string' &&
     input.businessType.trim() !== '' &&
-    // Phase 10A-Fix-3: employer type is now mandatory at registration.
-    // The four canonical shapes drive the verification queue and the
-    // posting-guard rules; allowing an employer to slip through without
-    // a type would re-introduce the inconsistent state Phase 10A-Fix-2
-    // closed.
     (input.employerType10A === 'Individual' ||
       input.employerType10A === 'HouseholdBusiness' ||
       input.employerType10A === 'Company' ||
       input.employerType10A === 'AgencyEvent')
   );
+}
+
+/** Validate input đăng ký (dùng chung cả 2 chế độ). Trả lỗi hoặc null. */
+function validateRegister(input: RegisterInput): RegisterError | null {
+  if (input.role !== 'worker' && input.role !== 'employer') return 'INVALID_ROLE';
+  const trimmedEmail = (input.email ?? '').trim().toLowerCase();
+  if (
+    trimmedEmail === '' ||
+    typeof input.phone !== 'string' ||
+    typeof input.password !== 'string' ||
+    input.password.length < 8
+  ) {
+    return 'INVALID_INPUT';
+  }
+  if (input.role === 'worker' && !isWorkerInput(input)) return 'INVALID_INPUT';
+  if (input.role === 'employer' && !isEmployerInput(input)) return 'INVALID_INPUT';
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -131,49 +153,43 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     return useUserStore.getState().findById(id) ?? null;
   },
 
-  login(email, password) {
-    // Phase 9P — auth correctness fix.
-    //
-    // Previous code returned a generic INVALID_CREDENTIALS only when the
-    // email didn't match a user, but treated `mock-hash:demo` as a
-    // universal password — so any random password was accepted for any
-    // seed account. That was a real auth bug, not just a demo shortcut.
-    //
-    // New rule:
-    //   1. Empty / non-string password → INVALID_CREDENTIALS.
-    //   2. Email must resolve to a user — but we don't reveal that to the
-    //      caller (always return INVALID_CREDENTIALS, never a "no such
-    //      account" error) so attackers can't enumerate registered
-    //      emails.
-    //   3. Password must match the stored `mock-hash:<password>` exactly.
-    //   4. Only after credentials match do we surface SUSPENDED. A
-    //      suspended account with a wrong password still returns
-    //      INVALID_CREDENTIALS so the suspension state isn't leaked.
-    //
-    // Demo accounts keep `passwordHash: "mock-hash:demo"` in seed data;
-    // typing `demo` still works for them but nothing else does.
+  async login(email, password) {
+    if (isSupabase()) {
+      const client = getSupabaseClient();
+      const trimmedEmail = (email ?? '').trim().toLowerCase();
+      const { data, error } = await client.auth.signInWithPassword({
+        email: trimmedEmail,
+        password: typeof password === 'string' ? password : '',
+      });
+      if (error || !data.user) {
+        return { ok: false, error: 'INVALID_CREDENTIALS' };
+      }
+      const user = await getUserRepo().loadOwnUser(data.user.id);
+      if (!user) return { ok: false, error: 'INVALID_CREDENTIALS' };
+      if (user.suspended) {
+        await client.auth.signOut();
+        return { ok: false, error: 'SUSPENDED' };
+      }
+      cacheUser(user);
+      const ts = nowIso();
+      set({ currentUserId: user.id, lastActivityAt: ts });
+      return { ok: true, value: user };
+    }
+
+    // --- local mode (giữ nguyên hành vi Phase 9P) ---------------------------
     if (typeof password !== 'string' || password.length === 0) {
       return { ok: false, error: 'INVALID_CREDENTIALS' };
     }
-
     const trimmedEmail = (email ?? '').trim().toLowerCase();
-    if (trimmedEmail === '') {
-      return { ok: false, error: 'INVALID_CREDENTIALS' };
-    }
+    if (trimmedEmail === '') return { ok: false, error: 'INVALID_CREDENTIALS' };
 
     const user = useUserStore.getState().findByEmail(trimmedEmail);
-    if (!user) {
+    if (!user) return { ok: false, error: 'INVALID_CREDENTIALS' };
+
+    if (user.passwordHash !== `mock-hash:${password}`) {
       return { ok: false, error: 'INVALID_CREDENTIALS' };
     }
-
-    const expected = `mock-hash:${password}`;
-    if (user.passwordHash !== expected) {
-      return { ok: false, error: 'INVALID_CREDENTIALS' };
-    }
-
-    if (user.suspended) {
-      return { ok: false, error: 'SUSPENDED' };
-    }
+    if (user.suspended) return { ok: false, error: 'SUSPENDED' };
 
     const ts = nowIso();
     set({ currentUserId: user.id, lastActivityAt: ts });
@@ -181,28 +197,48 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     return { ok: true, value: user };
   },
 
-  register(input) {
-    if (input.role !== 'worker' && input.role !== 'employer') {
-      return { ok: false, error: 'INVALID_ROLE' };
+  async register(input) {
+    const invalid = validateRegister(input);
+    if (invalid) return { ok: false, error: invalid };
+    const trimmedEmail = input.email.trim().toLowerCase();
+
+    if (isSupabase()) {
+      const client = getSupabaseClient();
+      const { data, error } = await client.auth.signUp({
+        email: trimmedEmail,
+        password: input.password,
+        options: {
+          data: {
+            role: input.role,
+            phone: input.phone,
+            full_name: input.fullName,
+            company_name: input.companyName,
+            business_type: input.businessType,
+            employer_type: input.employerType,
+            employer_type10a: input.employerType10A,
+          },
+        },
+      });
+      if (error) {
+        const msg = error.message.toLowerCase();
+        if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
+          return { ok: false, error: 'EMAIL_TAKEN' };
+        }
+        return { ok: false, error: 'INVALID_INPUT' };
+      }
+      // Email confirmation BẬT → không có session → không auto-login.
+      if (!data.session || !data.user) {
+        return { ok: true, value: { user: null, needsConfirmation: true } };
+      }
+      const user = await getUserRepo().loadOwnUser(data.user.id);
+      if (!user) return { ok: false, error: 'INVALID_INPUT' };
+      cacheUser(user);
+      const ts = nowIso();
+      set({ currentUserId: user.id, lastActivityAt: ts });
+      return { ok: true, value: { user, needsConfirmation: false } };
     }
 
-    const trimmedEmail = (input.email ?? '').trim().toLowerCase();
-    if (
-      trimmedEmail === '' ||
-      typeof input.phone !== 'string' ||
-      typeof input.password !== 'string' ||
-      input.password.length < 8
-    ) {
-      return { ok: false, error: 'INVALID_INPUT' };
-    }
-
-    if (input.role === 'worker' && !isWorkerInput(input)) {
-      return { ok: false, error: 'INVALID_INPUT' };
-    }
-    if (input.role === 'employer' && !isEmployerInput(input)) {
-      return { ok: false, error: 'INVALID_INPUT' };
-    }
-
+    // --- local mode (giữ nguyên hành vi) -----------------------------------
     const userStore = useUserStore.getState();
     if (userStore.findByEmail(trimmedEmail)) {
       return { ok: false, error: 'EMAIL_TAKEN' };
@@ -210,7 +246,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     const created = nowIso();
     const passwordHash = `mock-hash:${input.password}`;
-
     let newUser: User;
     if (input.role === 'worker') {
       const worker: Worker = {
@@ -246,26 +281,26 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         businessType: input.businessType!.trim(),
         verifiedBusiness: false,
         boostCredits: 0,
-        // Phase 6: default to individual / freelance — matches the
-        // register form's default selection.
         employerType: input.employerType ?? 'individual',
-        // Phase 10A-Fix-3: canonical 4-shape stored at registration so
-        // the posting guard never sees a missing type for new accounts.
-        // `isEmployerInput` already validated this is one of the four
-        // canonical values.
         employerType10A: input.employerType10A,
       };
       newUser = employer;
     }
 
     userStore.addUser(newUser);
-
     set({ currentUserId: newUser.id, lastActivityAt: created });
     persistAuth(newUser.id, created);
-    return { ok: true, value: newUser };
+    return { ok: true, value: { user: newUser, needsConfirmation: false } };
   },
 
-  logout() {
+  async logout() {
+    if (isSupabase()) {
+      try {
+        await getSupabaseClient().auth.signOut();
+      } catch {
+        /* vẫn xoá state cục bộ dù signOut lỗi */
+      }
+    }
     set({ currentUserId: null, lastActivityAt: null });
     persistAuth(null, null);
   },
@@ -275,6 +310,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const ts = nowIso();
     set({ lastActivityAt: ts });
     persistAuth(get().currentUserId, ts);
+  },
+
+  subscribeAuth() {
+    if (!isSupabase()) return () => {};
+    const sub = onAuthChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        set({ currentUserId: null, lastActivityAt: null });
+      }
+      // SIGNED_IN / TOKEN_REFRESHED: session do supabase-js giữ; currentUserId
+      // đã được set ở login, hoặc AppHydrator khôi phục (Slice 3).
+    });
+    return () => sub.unsubscribe();
   },
 
   hydrate(state) {
@@ -292,12 +339,6 @@ export function useCurrentRole(): Role | null {
   return user?.role ?? null;
 }
 
-/**
- * Resolves the currently authenticated user. Returns `null` when nobody is
- * signed in *or* when the persisted `currentUserId` no longer matches a real
- * user (stale localStorage). Components should prefer this over reading
- * `currentUserId` directly when deciding whether to show logged-in chrome.
- */
 export function useCurrentUser(): User | null {
   const id = useAuthStore((s) => s.currentUserId);
   return useUserStore((s) => (id ? (s.findById(id) ?? null) : null));

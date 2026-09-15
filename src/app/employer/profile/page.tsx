@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asEmployer } from '@/stores/userStore';
+import type { ProfilePatch } from '@/data/repos/userRepo';
 import { useShiftStore } from '@/stores/shiftStore';
 import {
   useVerificationStore,
@@ -38,16 +39,23 @@ export default function EmployerProfilePage() {
 function EmployerProfileContent() {
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
-  const updateUser = useUserStore((s) => s.updateUser);
+  const updateProfile = useUserStore((s) => s.updateProfile);
 
   const employer = asEmployer(users.find((u) => u.id === currentUserId));
   const [editing, setEditing] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   if (!employer) return null;
 
-  function handleSave(patch: Record<string, unknown>) {
-    updateUser(employer!.id, patch);
+  async function handleSave(patch: Record<string, unknown>) {
+    setSaving(true);
+    const res = await updateProfile(employer!.id, patch as ProfilePatch);
+    setSaving(false);
+    if (!res.ok) {
+      showError('Không lưu được thay đổi. Vui lòng thử lại.');
+      return;
+    }
     setEditing(false);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 2500);
@@ -92,7 +100,7 @@ function EmployerProfileContent() {
           </dl>
         </Card>
       ) : (
-        <EditForm employer={employer} onCancel={() => setEditing(false)} onSave={handleSave} />
+        <EditForm employer={employer} onCancel={() => setEditing(false)} onSave={handleSave} saving={saving} />
       )}
 
       {/* Phase 10A — employer verification card. Lists submitted
@@ -101,7 +109,7 @@ function EmployerProfileContent() {
       <EmployerVerificationCard employer={employer} />
 
       {/* CORE-STABILITY-8 Part 5 — understaffed policy setting. */}
-      <UnderstaffedPolicyCard employer={employer} onSave={handleSave} />
+      <UnderstaffedPolicyCard employer={employer} onSave={handleSave} saving={saving} />
 
       {/* Phase 9I — worker feedback panel: show what people who've worked
           for this business have said. Same component used inside the
@@ -123,10 +131,12 @@ function EditForm({
   employer,
   onCancel,
   onSave,
+  saving = false,
 }: {
   employer: NonNullable<ReturnType<typeof asEmployer>>;
   onCancel: () => void;
   onSave: (patch: Record<string, unknown>) => void;
+  saving?: boolean;
 }) {
   const [companyName, setCompanyName] = useState(employer.companyName);
   const [businessType, setBusinessType] = useState(employer.businessType);
@@ -156,9 +166,10 @@ function EditForm({
           rows={3}
         />
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onCancel}>{t('btn.cancel')}</Button>
+          <Button variant="ghost" onClick={onCancel} disabled={saving}>{t('btn.cancel')}</Button>
           <Button
             variant="primary"
+            loading={saving}
             onClick={() =>
               onSave({
                 companyName: companyName.trim(),
@@ -191,9 +202,11 @@ function Field({ label, value }: { label: string; value: string }) {
 function UnderstaffedPolicyCard({
   employer,
   onSave,
+  saving = false,
 }: {
   employer: NonNullable<ReturnType<typeof asEmployer>>;
   onSave: (patch: Record<string, unknown>) => void;
+  saving?: boolean;
 }) {
   const current = employer.understaffedPolicy ?? 'RunWithApproved';
   const [choice, setChoice] = useState(current);
@@ -255,6 +268,7 @@ function UnderstaffedPolicyCard({
           size="sm"
           variant="primary"
           className="mt-3"
+          loading={saving}
           onClick={() => onSave({ understaffedPolicy: choice })}
         >
           {t('btn.save')}
@@ -314,6 +328,8 @@ function EmployerVerificationCard({
   );
   const typeChangeRequests = useVerificationStore((s) => s.typeChangeRequests);
   const users = useUserStore((s) => s.users);
+  // employerType10A là dữ liệu KHÓA — first-set/type-change đi đường deferred
+  // localStorage ở Phase 1 (KHÔNG qua Supabase updateProfile). Xem PHASE_1_PLAN v4.
   const updateUser = useUserStore((s) => s.updateUser);
   const pushNotification = useNotificationStore((s) => s.push);
   // Phase 10A-Fix-2: if the employer has already posted shifts, treat

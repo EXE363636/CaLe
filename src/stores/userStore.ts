@@ -10,8 +10,14 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import {
+  getUserRepo,
+  WORKER_PATCH_KEYS,
+  EMPLOYER_PATCH_KEYS,
+  type ProfilePatch,
+} from '@/data/repos/userRepo';
 import { MAX_SCORE, MIN_SCORE } from '@/domain/reputation';
-import type { User, Worker, Employer } from '@/types';
+import type { Result, User, Worker, Employer } from '@/types';
 
 interface UserStore {
   users: User[];
@@ -20,6 +26,14 @@ interface UserStore {
   findByEmail(email: string): User | undefined;
 
   addUser(user: User): void;
+  /**
+   * Ghi các trường HỒ SƠ CHỦ-SỬA qua repo (server-first: backend ghi xong mới
+   * đổi cache; lỗi → cache không đổi). Dùng cho các form sửa hồ sơ.
+   * KHÁC `updateUser` (đồng bộ, localStorage) vốn dành cho các field HOÃN
+   * (reputation/boost/verifications) — xem docs/PHASE_1_PLAN.md v4 mục 3/7.
+   */
+  updateProfile(id: string, patch: ProfilePatch): Promise<Result<void, string>>;
+  /** Ghi field HOÃN (localStorage, đồng bộ). Không dành cho hồ sơ chủ-sửa. */
   updateUser(id: string, patch: Partial<User>): void;
   setSuspended(id: string, suspended: boolean): void;
 
@@ -47,6 +61,37 @@ export const useUserStore = create<UserStore>((set, get) => ({
     const next = [...get().users, user];
     set({ users: next });
     persist(next);
+  },
+
+  async updateProfile(id, patch) {
+    const user = get().findById(id);
+    if (!user) return { ok: false, error: 'NOT_FOUND' };
+
+    // Validate khóa theo vai trò — patch sai vai trò/khóa cấm bị từ chối, KHÔNG
+    // âm thầm bỏ qua rồi vẫn cập nhật cache (điều kiện 4).
+    const allowed: ReadonlyArray<string> =
+      user.role === 'worker'
+        ? (WORKER_PATCH_KEYS as ReadonlyArray<string>)
+        : user.role === 'employer'
+          ? (EMPLOYER_PATCH_KEYS as ReadonlyArray<string>)
+          : [];
+    const invalid = Object.keys(patch).filter((k) => !allowed.includes(k));
+    if (invalid.length > 0) {
+      return { ok: false, error: `INVALID_FIELD:${invalid.join(',')}` };
+    }
+
+    try {
+      // Server-first: repo ghi backend trước (Supabase xác nhận đúng 1 dòng);
+      // lỗi/0 dòng → throw → không đổi cache.
+      await getUserRepo().updateProfile(user, patch);
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'WRITE_FAILED' };
+    }
+    const next = get().users.map((u) =>
+      u.id === id ? ({ ...u, ...patch } as User) : u,
+    );
+    set({ users: next });
+    return { ok: true, value: undefined };
   },
 
   updateUser(id, patch) {

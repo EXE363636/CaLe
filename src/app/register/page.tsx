@@ -126,7 +126,7 @@ function RegisterForm() {
     setLoading(true);
     setErrors({});
 
-    const result = register({
+    const result = await register({
       role: values.role,
       email: values.email.trim().toLowerCase(),
       phone: values.phone.trim(),
@@ -153,6 +153,19 @@ function RegisterForm() {
     }
 
     clearToastsByScope('auth');
+
+    // Supabase bật email confirmation → không auto-login: điều hướng sang đăng
+    // nhập kèm hướng dẫn xác nhận email (không có session để vào dashboard).
+    if (result.value.needsConfirmation) {
+      showSuccess(
+        'Đã tạo tài khoản. Vui lòng kiểm tra email để xác nhận, sau đó đăng nhập.',
+        undefined,
+        { scope: 'auth' },
+      );
+      router.push('/login');
+      return;
+    }
+
     showSuccess(
       t('feedback.auth.register.success'),
       t('feedback.auth.register.success.desc'),

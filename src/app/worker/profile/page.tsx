@@ -27,7 +27,7 @@ import { averageRating } from '@/domain/rating';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { formatDateVN } from '@/lib/format';
-import { showSuccess } from '@/lib/toast';
+import { showSuccess, showError } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import type {
   VerificationFlag,
@@ -48,6 +48,8 @@ function WorkerProfileContent() {
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const updateUser = useUserStore((s) => s.updateUser);
+  const updateProfile = useUserStore((s) => s.updateProfile);
+  const [saving, setSaving] = useState(false);
 
   const worker = asWorker(users.find((u) => u.id === currentUserId));
   const [editing, setEditing] = useState(false);
@@ -100,8 +102,15 @@ function WorkerProfileContent() {
             editing={editing}
             onEdit={() => setEditing(true)}
             onCancel={() => setEditing(false)}
-            onSave={(patch) => {
-              updateUser(worker.id, patch);
+            saving={saving}
+            onSave={async (patch) => {
+              setSaving(true);
+              const res = await updateProfile(worker.id, patch);
+              setSaving(false);
+              if (!res.ok) {
+                showError('Không lưu được thay đổi. Vui lòng thử lại.');
+                return;
+              }
               setEditing(false);
               setSavedFlash(true);
               setTimeout(() => setSavedFlash(false), 2500);
@@ -205,12 +214,14 @@ function BasicInfoCard({
   onEdit,
   onCancel,
   onSave,
+  saving = false,
 }: {
   worker: Worker;
   editing: boolean;
   onEdit: () => void;
   onCancel: () => void;
   onSave: (patch: Partial<Worker>) => void;
+  saving?: boolean;
 }) {
   const [bio, setBio] = useState(worker.bio ?? '');
   const [skillsText, setSkillsText] = useState(worker.skills.join(', '));
@@ -292,10 +303,10 @@ function BasicInfoCard({
           placeholder="Quận 1, Quận 3"
         />
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" onClick={onCancel} disabled={saving}>
             {t('btn.cancel')}
           </Button>
-          <Button variant="primary" onClick={handleSave}>
+          <Button variant="primary" onClick={handleSave} loading={saving}>
             {t('btn.save')}
           </Button>
         </div>
