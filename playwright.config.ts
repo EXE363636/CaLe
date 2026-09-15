@@ -56,5 +56,10 @@ export default defineConfig({
     timeout: 120_000,
     stdout: 'pipe',
     stderr: 'pipe',
+    // Bộ E2E này dùng seed + session localStorage nên PHẢI chạy ở data mode
+    // `local`. Pin ở đây để dev server của Playwright không đọc nhầm
+    // NEXT_PUBLIC_DATA_MODE=supabase từ .env.local (Next ưu tiên process.env hơn
+    // .env.local). E2E Supabase thật là bộ riêng (test:e2e:supabase).
+    env: { NEXT_PUBLIC_DATA_MODE: 'local' },
   },
 });
