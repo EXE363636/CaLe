@@ -71,6 +71,53 @@ export interface UserRepo {
    * nguồn — theo quyết định plan). Trả null nếu không tìm thấy.
    */
   loadOwnUser(authUserId: string): Promise<User | null>;
+
+  /**
+   * Nạp hồ sơ CÔNG KHAI (an toàn) của nhiều user (Phase 2) — để worker thấy tên
+   * NTD trên listing/chi tiết ca. Chỉ field công khai (không email/phone/riêng tư);
+   * field hoãn = mặc định. Local mode trả [] (users lấy từ seed).
+   */
+  loadPublicProfiles(userIds: string[]): Promise<User[]>;
+}
+
+/** Row public_profiles → User (partial, chỉ field công khai). */
+function mapPublicProfile(p: Row): User {
+  const base = {
+    id: s(p.user_id),
+    email: '',
+    phone: '',
+    passwordHash: '',
+    suspended: false,
+    createdAt: '',
+  };
+  if (p.role === 'employer') {
+    return {
+      ...base,
+      role: 'employer',
+      companyName: s(p.display_name),
+      businessType: s(p.business_type),
+      description: sOpt(p.bio),
+      logoUrl: sOpt(p.avatar_url),
+      verifiedBusiness: false,
+      boostCredits: 0,
+    } as Employer;
+  }
+  return {
+    ...base,
+    role: 'worker',
+    fullName: s(p.display_name),
+    avatarUrl: sOpt(p.avatar_url),
+    bio: sOpt(p.bio),
+    skills: arr(p.skills),
+    preferredJobTypes: arr(p.preferred_job_types),
+    preferredLocations: [],
+    verifications: [],
+    reputationScore: 100,
+    completedShiftCount: 0,
+    ratingsReceived: [],
+    cancellationHistory: [],
+    noShowCount: 0,
+  } as Worker;
 }
 
 // --- Mapper DB row → User (field hoãn = mặc định Phase 1) -------------------
@@ -156,6 +203,10 @@ class LocalStorageUserRepo implements UserRepo {
   async loadOwnUser(authUserId: string): Promise<User | null> {
     const users = read<User[]>(STORAGE_KEYS.users, []);
     return users.find((u) => u.id === authUserId) ?? null;
+  }
+
+  async loadPublicProfiles(): Promise<User[]> {
+    return []; // local mode: users lấy từ seed, không cần.
   }
 }
 
@@ -285,6 +336,22 @@ class SupabaseUserRepo implements UserRepo {
       return mapEmployer(urow as Row, p as Row);
     }
     return mapAdmin(urow as Row);
+  }
+
+  async loadPublicProfiles(userIds: string[]): Promise<User[]> {
+    if (userIds.length === 0) return [];
+    const { data, error } = await getSupabaseClient()
+      .from('public_profiles')
+      .select('*')
+      .in('user_id', [...new Set(userIds)]);
+    if (error) throw new Error(`loadPublicProfiles: ${error.message}`);
+    return (data ?? []).flatMap((r) => {
+      try {
+        return [mapPublicProfile(r as Row)];
+      } catch {
+        return [];
+      }
+    });
   }
 }
 

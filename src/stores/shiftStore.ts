@@ -14,6 +14,8 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import { getDataMode } from '@/data/supabaseClient';
+import { getShiftRepo } from '@/data/repos/shiftRepo';
 import { calculateDeposit, hoursBetween } from '@/domain/deposit';
 import {
   depositForTrust,
@@ -107,6 +109,7 @@ export type ShiftEditablePatch = Partial<
     | 'startTime'
     | 'endTime'
     | 'positionsTotal'
+    | 'customJobTypeName'
   >
 >;
 
@@ -221,6 +224,26 @@ interface ShiftStore {
    * can short-circuit re-renders when nothing moved.
    */
   syncLifecycle(nowIso?: string): { changedIds: string[]; syncedAt: string };
+
+  // -------------------------------------------------------------------------
+  // Phase 2 — wrapper ASYNC (supabase mode: repo RPC + refetch cache, KHÔNG
+  // optimistic; local mode: gọi method sync cũ, hành vi/test không đổi). UI dùng
+  // các wrapper này; sync methods ở trên giữ nguyên cho local + test cũ.
+  // -------------------------------------------------------------------------
+  /** Publish ca (supabase: publish_shift; local: create + simulateDeposit). Trả shiftId. */
+  publishAsync(
+    input: NewShiftInput,
+    clientRequestId: string,
+    repostedFromShiftId?: string,
+  ): Promise<Result<string, string>>;
+  editAsync(shiftId: string, patch: ShiftEditablePatch): Promise<Result<void, string>>;
+  cancelAsync(shiftId: string, reason: string): Promise<Result<void, string>>;
+  /** Supabase: nạp lại 1 ca vào cache (getShiftDetail). No-op ở local. */
+  refetchOne(shiftId: string): Promise<void>;
+  /** Supabase: nạp lại ca của employer vào cache. No-op ở local. */
+  refetchEmployer(employerId: string): Promise<void>;
+  /** Supabase: nạp lại danh sách ca công khai vào cache. No-op ở local. */
+  refetchPublic(): Promise<void>;
 
   /** Hydrate the slice from a persisted snapshot. */
   hydrate(shifts: Shift[]): void;
@@ -685,6 +708,78 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       persist(result.shifts);
     }
     return { changedIds: result.changedIds, syncedAt: at };
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 2 — async wrappers + refetch (supabase mode). KHÔNG optimistic.
+  // -------------------------------------------------------------------------
+  async publishAsync(input, clientRequestId, repostedFromShiftId) {
+    if (getDataMode() === 'supabase') {
+      try {
+        const id = await getShiftRepo().publish(input, clientRequestId, repostedFromShiftId);
+        await get().refetchOne(id);
+        return { ok: true, value: id };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'PUBLISH_FAILED' };
+      }
+    }
+    // local: giữ nguyên flow create → simulateDeposit.
+    const shift = get().create(input);
+    const dep = get().simulateDeposit(shift.id);
+    return dep.ok ? { ok: true, value: shift.id } : { ok: false, error: dep.error };
+  },
+
+  async editAsync(shiftId, patch) {
+    if (getDataMode() === 'supabase') {
+      try {
+        await getShiftRepo().edit(shiftId, patch);
+        await get().refetchOne(shiftId);
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'EDIT_FAILED' };
+      }
+    }
+    const r = get().edit(shiftId, patch);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async cancelAsync(shiftId, reason) {
+    if (getDataMode() === 'supabase') {
+      try {
+        await getShiftRepo().cancel(shiftId, reason);
+        await get().refetchOne(shiftId);
+        // cancel đổi trạng thái đơn → nạp lại đơn của ca.
+        await useApplicationStore.getState().refetchForShift(shiftId);
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'CANCEL_FAILED' };
+      }
+    }
+    const r = get().cancel(shiftId, reason);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async refetchOne(shiftId) {
+    if (getDataMode() !== 'supabase') return;
+    const shift = await getShiftRepo().getShiftDetail(shiftId);
+    const rest = get().shifts.filter((s) => s.id !== shiftId);
+    set({ shifts: shift ? [...rest, shift] : rest });
+  },
+
+  async refetchEmployer(employerId) {
+    if (getDataMode() !== 'supabase') return;
+    const rows = await getShiftRepo().getEmployerShifts(employerId);
+    const others = get().shifts.filter((s) => s.employerId !== employerId);
+    set({ shifts: [...others, ...rows] });
+  },
+
+  async refetchPublic() {
+    if (getDataMode() !== 'supabase') return;
+    const rows = await getShiftRepo().listPublicShifts();
+    const ids = new Set(rows.map((r) => r.id));
+    // Giữ ca đã có bản chi tiết (owner) không thuộc listing công khai; upsert phần công khai.
+    const kept = get().shifts.filter((s) => !ids.has(s.id));
+    set({ shifts: [...kept, ...rows] });
   },
 
   hydrate(shifts) {

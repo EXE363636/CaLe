@@ -9,6 +9,70 @@
 
 ---
 
+## 00. BACKEND-MIGRATION-1 · Phase 2 (Shifts + Applications) — ĐANG DỞ (checkpoint)
+
+> Checkpoint bàn giao. **Slices 1–3 xong (data layer + hydration), UI CHƯA wire.**
+> Branch: `wip/phase2-slices-1-3`. Đọc `docs/PHASE_2_PLAN.md` (v2.1) để hiểu scope.
+
+**Backend Phase 2 (đã push `main` + apply cale-dev):**
+- Migration + behavioral test đã ở commit **`7015a23`** (đã push `main`), migration
+  `supabase/migrations/20260915000004_phase2_shifts_applications.sql` **đã apply lên
+  `cale-dev`** (`supabase db push` thành công).
+- Behavioral test `npm run test:rls:phase2` (`scripts/phase2-rls-integration.mjs`) đạt
+  **78/78** trên cale-dev, cleanup 7 user test thành công.
+
+**Slices 1–3 (checkpoint này, branch `wip/phase2-slices-1-3`):**
+- **Slice 1 — repos:** `src/data/repos/shiftRepo.ts`, `src/data/repos/applicationRepo.ts`
+  (mapper row snake→domain camel, reads + gọi RPC). `getShiftDetail` đọc `public_shifts`
+  TRƯỚC (anon xem được ca công khai), rồi mới RPC cho owner/worker-có-đơn/admin.
+  Map an toàn (row lỗi không crash cả list); map `timeline`; `custom_job_type_name`.
+- **Slice 2 — async wrappers + refetch (KHÔNG optimistic):**
+  - `shiftStore`: `publishAsync`, `editAsync`, `cancelAsync`, `refetchOne`,
+    `refetchEmployer`, `refetchPublic`.
+  - `applicationStore`: `applyAsync`, `withdrawAsync`, `approveAsync`, `rejectAsync`,
+    `approveCancellationRequestAsync`, `rejectCancellationRequestAsync`,
+    `refetchForWorker`, `refetchForShift`, `refetchForShifts`.
+  - Mỗi wrapper: **supabase mode** → repo (RPC) + chờ server + refetch cache; **local
+    mode** → gọi method SYNC cũ (hành vi/test không đổi). Giữ error code cho UI.
+- **Slice 3 — AppHydrator supabase:** nạp `public_shifts` + ca/đơn theo vai (employer:
+  `refetchEmployer` + `refetchForShifts`; worker: `refetchForWorker`) thay seed
+  localStorage cho 2 slice này; overlay `public_profiles` của employer vào `userStore`
+  (tên NTD cho worker) qua `userRepo.loadPublicProfiles` (giải nốt public-profiles-of-
+  others hoãn từ Phase 1).
+
+**File đã đổi trong checkpoint:** `src/data/repos/shiftRepo.ts` (mới),
+`src/data/repos/applicationRepo.ts` (mới), `src/data/repos/userRepo.ts` (+loadPublicProfiles),
+`src/stores/shiftStore.ts` (+wrappers/refetch), `src/stores/applicationStore.ts`
+(+wrappers/refetch), `src/components/layout/AppHydrator.tsx` (nạp shifts/apps/public_profiles).
+
+**Kết quả local (checkpoint):** `tsc` **0**, `build` **28 routes**, `lint` **0 error**,
+unit **680/683** (3 known fail handbook §3.2), E2E **112/112**.
+
+**⚠ QUAN TRỌNG — luồng người dùng CHƯA hoàn thành:** supabase mode đã có data layer +
+hydration, **NHƯNG UI vẫn gọi các method SYNC cũ** (create/simulateDeposit/apply/approve/
+reject/cancel/edit/withdraw), CHƯA gọi các wrapper `*Async`. Vì vậy ở supabase mode luồng
+Employer–Worker **chưa chạy end-to-end** — đó là việc của Slice 4 (UI).
+
+**Thứ tự tiếp tục (core-first) — làm đúng thứ tự:**
+- **A.** Wire Employer tạo ca → `shiftStore.publishAsync` (supabase INSERT thẳng
+  Published, không Draft): `src/app/employer/shifts/new/page.tsx`.
+- **B.** Wire Worker xem ca + `applicationStore.applyAsync`: `src/app/shifts/[id]/page.tsx`
+  (+ listing `src/app/shifts/page.tsx`).
+- **C.** Wire Employer xem đơn + `approveAsync`/`rejectAsync`:
+  `src/app/employer/shifts/[id]/page.tsx`.
+- **D.** Wire Worker thấy trạng thái mới sau refetch: `src/app/worker/dashboard/page.tsx`.
+- **E.** Test THỦ CÔNG hai browser: publish → apply → approve.
+- **F.** Sau khi luồng lõi chạy → wire `editAsync`/`cancelAsync`/`withdrawAsync`/
+  `approve|rejectCancellationRequestAsync`.
+- **G.** Thêm refetch-on-focus (`visibilitychange`/route change) + loading chống double-click.
+- **H.** Viết E2E Supabase 2 browser (`test:e2e:supabase`), chạy full grid, rồi merge
+  branch vào `main`.
+
+Ràng buộc: **KHÔNG** làm payment/location/Cẩm nang/pricing/W6–W8 trong giai đoạn này.
+Không optimistic update ca/đơn. Giữ baseline local xanh sau mỗi bước.
+
+---
+
 ## 0. BACKEND-MIGRATION-1 · Phase 1 (Auth + Profile) — HOÀN TẤT (2026-09-15)
 
 > Cập nhật quan trọng nhất. Phần dưới (§1 trở đi) phần lớn là lịch sử tiền-backend.

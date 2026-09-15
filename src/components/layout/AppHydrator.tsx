@@ -18,6 +18,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { loadAll } from '@/data/persistence';
 import { getDataMode, getSupabaseClient } from '@/data/supabaseClient';
+import { getUserRepo } from '@/data/repos/userRepo';
 import {
   useApplicationStore,
   useAuthStore,
@@ -104,6 +105,25 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
             await client.auth.signOut();
           }
         }
+
+        // Phase 2 — nạp shifts/applications từ Supabase (thay seed localStorage cho
+        // 2 slice này). Ca công khai cho mọi người; ca/đơn theo vai cho user đăng nhập.
+        const cur = useAuthStore.getState().currentUser();
+        useShiftStore.setState({ shifts: [] });
+        useApplicationStore.setState({ applications: [] });
+        await useShiftStore.getState().refetchPublic();
+        if (cur?.role === 'employer') {
+          await useShiftStore.getState().refetchEmployer(cur.id);
+          const ids = useShiftStore.getState().byEmployer(cur.id).map((s) => s.id);
+          await useApplicationStore.getState().refetchForShifts(ids);
+        } else if (cur?.role === 'worker') {
+          await useApplicationStore.getState().refetchForWorker(cur.id);
+        }
+        // Overlay public_profiles của employer (tên NTD cho worker); KHÔNG đè user hiện tại.
+        const empIds = useShiftStore.getState().shifts.map((s) => s.employerId).filter((id) => id !== cur?.id);
+        const profs = await getUserRepo().loadPublicProfiles(empIds);
+        for (const p of profs) useUserStore.getState().overlayUser(p);
+
         unsubRef.current = useAuthStore.getState().subscribeAuth();
       } catch {
         setBootError('session');

@@ -17,6 +17,8 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import { getDataMode } from '@/data/supabaseClient';
+import { getApplicationRepo } from '@/data/repos/applicationRepo';
 import {
   canCancelByQuota,
   quotaUsage,
@@ -492,6 +494,24 @@ interface ApplicationStore {
   autoReleaseEligibleApplications(nowIso?: string): {
     releasedIds: string[];
   };
+
+  // -------------------------------------------------------------------------
+  // Phase 2 — wrapper ASYNC (supabase: repo RPC + refetch, KHÔNG optimistic;
+  // local: gọi method sync cũ, hành vi/test không đổi). UI dùng các wrapper này.
+  // -------------------------------------------------------------------------
+  applyAsync(shiftId: string, workerId: string): Promise<Result<Application, string>>;
+  /** Trả trạng thái mới (CancelledByWorker | CancellationRequested). */
+  withdrawAsync(applicationId: string, reason: string): Promise<Result<string, string>>;
+  approveAsync(applicationId: string): Promise<Result<void, string>>;
+  rejectAsync(applicationId: string, reason: string): Promise<Result<void, string>>;
+  approveCancellationRequestAsync(applicationId: string): Promise<Result<void, string>>;
+  rejectCancellationRequestAsync(applicationId: string): Promise<Result<void, string>>;
+  /** Supabase: nạp lại đơn của worker vào cache. No-op ở local. */
+  refetchForWorker(workerId: string): Promise<void>;
+  /** Supabase: nạp lại đơn của 1 ca vào cache. No-op ở local. */
+  refetchForShift(shiftId: string): Promise<void>;
+  /** Supabase: nạp lại đơn của nhiều ca (employer). No-op ở local. */
+  refetchForShifts(shiftIds: string[]): Promise<void>;
 
   // Hydration
   hydrateApplications(applications: Application[]): void;
@@ -2661,6 +2681,132 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   // -------------------------------------------------------------------------
   // Hydration
   // -------------------------------------------------------------------------
+
+  // -------------------------------------------------------------------------
+  // Phase 2 — async wrappers + refetch (supabase mode). KHÔNG optimistic.
+  // -------------------------------------------------------------------------
+  async applyAsync(shiftId, workerId) {
+    if (getDataMode() === 'supabase') {
+      try {
+        const id = await getApplicationRepo().apply(shiftId);
+        await get().refetchForWorker(workerId);
+        const app = get().applications.find((a) => a.id === id);
+        return app
+          ? { ok: true, value: app }
+          : { ok: false, error: 'REFETCH_FAILED' };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'APPLY_FAILED' };
+      }
+    }
+    const r = get().apply(shiftId, workerId);
+    return r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error };
+  },
+
+  async withdrawAsync(applicationId, reason) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        const status = await getApplicationRepo().withdraw(applicationId, reason);
+        if (app) {
+          await get().refetchForWorker(app.workerId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: status };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'WITHDRAW_FAILED' };
+      }
+    }
+    const r = get().cancelByWorker(applicationId, reason);
+    return r.ok ? { ok: true, value: r.value.application.status } : { ok: false, error: r.error };
+  },
+
+  async approveAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().approve(applicationId);
+        if (app) {
+          await get().refetchForShift(app.shiftId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'APPROVE_FAILED' };
+      }
+    }
+    const r = get().approve(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async rejectAsync(applicationId, reason) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().reject(applicationId, reason);
+        if (app) await get().refetchForShift(app.shiftId);
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'REJECT_FAILED' };
+      }
+    }
+    const r = get().reject(applicationId, reason);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async approveCancellationRequestAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().approveCancellationRequest(applicationId);
+        if (app) {
+          await get().refetchForShift(app.shiftId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'ACTION_FAILED' };
+      }
+    }
+    const r = get().approveCancellationRequest(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async rejectCancellationRequestAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().rejectCancellationRequest(applicationId);
+        if (app) await get().refetchForShift(app.shiftId);
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'ACTION_FAILED' };
+      }
+    }
+    const r = get().rejectCancellationRequest(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async refetchForWorker(workerId) {
+    if (getDataMode() !== 'supabase') return;
+    const rows = await getApplicationRepo().getForWorker(workerId);
+    const others = get().applications.filter((a) => a.workerId !== workerId);
+    set({ applications: [...others, ...rows] });
+  },
+
+  async refetchForShift(shiftId) {
+    if (getDataMode() !== 'supabase') return;
+    const rows = await getApplicationRepo().getForShift(shiftId);
+    const others = get().applications.filter((a) => a.shiftId !== shiftId);
+    set({ applications: [...others, ...rows] });
+  },
+
+  async refetchForShifts(shiftIds) {
+    if (getDataMode() !== 'supabase' || shiftIds.length === 0) return;
+    const rows = await getApplicationRepo().getForShiftIds(shiftIds);
+    const idset = new Set(shiftIds);
+    const others = get().applications.filter((a) => !idset.has(a.shiftId));
+    set({ applications: [...others, ...rows] });
+  },
 
   hydrateApplications(applications) {
     set({ applications });
