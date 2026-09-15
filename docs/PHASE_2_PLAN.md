@@ -216,6 +216,11 @@ Phase 2 CHƯA có bảng nguồn verification/reputation/wallet ⇒ RPC **chỉ*
   migrate (phase sau).
 - **UI KHÔNG được tuyên bố** các điều kiện đó "đã được backend đảm bảo".
 - **Publish/cọc phải ghi rõ CHƯA có thanh toán thật** (mô phỏng).
+- **Admin ở Phase 2 = CHỈ ĐỌC** (RLS select + `get_shift_detail` nhánh admin). **KHÔNG
+  admin bypass** ở mutation RPC (edit/cancel/approve/reject) → không mơ hồ
+  `cancelled_by` (luôn `employer`). Admin mutation/override để phase sau.
+- **Suspended worker KHÔNG được `withdraw`** (enforce `require_active_worker`); không
+  có ngoại lệ ở Phase 2.
 
 **Danh sách RPC (SECURITY DEFINER, hardened):**
 - **`publish_shift(payload jsonb, client_request_id text, reposted_from_shift_id

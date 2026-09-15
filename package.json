@@ -15,6 +15,7 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:ci": "playwright test --reporter=github,html",
     "test:rls:supabase": "node scripts/phase1-rls-integration.mjs",
+    "test:rls:phase2": "node scripts/phase2-rls-integration.mjs",
     "test:db": "supabase test db"
   },
   "dependencies": {
