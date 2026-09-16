@@ -175,6 +175,15 @@ function isBrowser(): boolean {
 }
 
 /**
+ * Supabase mode? Đọc trực tiếp process.env (build-safe, không throw, không import
+ * vòng sang supabaseClient). Ở chế độ này KHÔNG ghi dữ liệu nghiệp vụ/auth vào
+ * localStorage — nguồn sự thật là máy chủ.
+ */
+function isSupabaseMode(): boolean {
+  return process.env.NEXT_PUBLIC_DATA_MODE === 'supabase';
+}
+
+/**
  * Read a JSON value from localStorage, returning `fallback` on:
  *  - server-side rendering,
  *  - a missing key,
@@ -200,10 +209,61 @@ export function read<T>(key: string, fallback: T): T {
  */
 export function write<T>(key: string, value: T): void {
   if (!isBrowser()) return;
+  // Supabase/production: dữ liệu nghiệp vụ + auth KHÔNG lưu localStorage (server là
+  // nguồn sự thật; session do Supabase quản lý ở key `sb-*` riêng). Mọi STORAGE_KEYS
+  // đều thuộc namespace `cale.*` nghiệp vụ nên chặn toàn bộ write ở đây là an toàn.
+  if (isSupabaseMode()) return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch (err) {
     console.warn(`[persistence] failed to write ${key}`, err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Legacy/seed cleanup (task tổng vệ sinh · mục 3)
+// ---------------------------------------------------------------------------
+
+/** Bump khi cần dọn lại; cleanup chạy lại đúng một lần cho mỗi version. */
+export const LEGACY_CLEANUP_VERSION = 1;
+const CLEANUP_MARKER_KEY = 'cale.cleanupVersion';
+
+/**
+ * Allowlist RÕ RÀNG các key nghiệp vụ/seed của CaLẻ được phép xoá. Chỉ gồm
+ * namespace `cale.*` của app này — KHÔNG đụng:
+ *   - Supabase auth/session (`sb-*`),
+ *   - theme/locale/tùy chọn giao diện,
+ *   - dữ liệu của website khác.
+ */
+const CLEANUP_ALLOWLIST: ReadonlyArray<string> = Object.values(STORAGE_KEYS);
+
+/**
+ * Xoá dữ liệu nghiệp vụ/seed cũ trong localStorage một cách AN TOÀN.
+ * - KHÔNG dùng localStorage.clear().
+ * - Chỉ xoá đúng các key trong allowlist.
+ * - Idempotent + có version marker riêng (chạy lại không lỗi, không đăng xuất
+ *   người dùng Supabase vì không đụng key `sb-*`).
+ * Gọi khi boot ở chế độ supabase.
+ */
+export function cleanupLegacyBusinessData(): void {
+  if (!isBrowser()) return;
+  try {
+    if (
+      window.localStorage.getItem(CLEANUP_MARKER_KEY) ===
+      String(LEGACY_CLEANUP_VERSION)
+    ) {
+      return; // đã dọn cho version này
+    }
+    for (const key of CLEANUP_ALLOWLIST) {
+      try {
+        window.localStorage.removeItem(key);
+      } catch {
+        /* bỏ qua từng key lỗi */
+      }
+    }
+    window.localStorage.setItem(CLEANUP_MARKER_KEY, String(LEGACY_CLEANUP_VERSION));
+  } catch {
+    /* private mode / access denied — bỏ qua, không throw */
   }
 }
 

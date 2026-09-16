@@ -9,6 +9,46 @@
 
 ---
 
+## 000. Tổng vệ sinh trước public + Runtime Capability model (2026-09-16)
+
+**Nguồn sự thật capability:** [`src/data/capabilities.ts`](src/data/capabilities.ts).
+`capabilities()` / `hasCapability(key)` trả về map theo data mode. UI/hydrator đọc
+map này để render/ẩn/để-rỗng — KHÔNG mỗi trang tự đoán. Khi thêm backend mới cho
+một tính năng, chỉ cần bật cờ ở đây.
+
+| Capability | supabase (prod) | local (demo) | Ghi chú |
+|---|---|---|---|
+| authProfiles, shifts, applications, adminUsers | ✅ | ✅ | đã nối Supabase thật |
+| payments, wallet | ❌ | ✅ | chưa có backend thanh toán |
+| disputes, verifications, ratings, notifications, boost, schedule | ❌ | ✅ | chưa migrate |
+
+**Hydration (AppHydrator):**
+- supabase: KHÔNG hydrate seed. Chạy `cleanupLegacyBusinessData()` rồi khởi tạo
+  RỖNG mọi deferred slice; users/shifts/applications nạp từ server (`restoreAuth` +
+  `refetchPhase2Supabase`).
+- local: giữ nguyên hydrate seed + `runLifecycleSync` (baseline test cũ).
+
+**localStorage ở supabase:** `write()` trong [`persistence.ts`](src/data/persistence.ts)
+no-op cho mọi key `cale.*` → không ghi dữ liệu nghiệp vụ/auth. Session do Supabase
+quản lý ở key `sb-*` riêng. `cleanupLegacyBusinessData()` xoá đúng allowlist
+(`Object.values(STORAGE_KEYS)`), có version marker `cale.cleanupVersion`, KHÔNG đụng
+`sb-*`/theme/locale → reload vẫn giữ đăng nhập. **Không dùng `localStorage.clear()`.**
+
+**Đã ẩn ở supabase (UI):** hộp demo login + seed creds, snapshot dev tools, ví/nạp/rút/
+cọc/escrow CTA, tiền cọc/đã chi trả (stat), badge/tab tranh chấp + xác minh (admin),
+điểm uy tín/đánh giá/kỹ năng-XP (worker dashboard + profile + landing hero), chuông
+thông báo + cột notifications, nút mô phỏng No-show/Yêu cầu thay thế/Xuất-CSV (employer),
+badge xác minh trên navbar/mobile. Admin analytics + user list refetch từ Supabase thật.
+
+**Shift draft:** vẫn local-only (component state cho form). Đồng bộ draft đa thiết bị →
+phase sau. Reputation/rating, ví/thanh toán, tranh chấp, xác minh, boost, thông báo:
+local-only, để pha sau khi có bảng Supabase + RPC.
+
+**Test:** [`src/__tests__/supabaseCleanupCapabilities.test.ts`](src/__tests__/supabaseCleanupCapabilities.test.ts)
++ [`src/__tests__/productionCleanupSupabase.test.tsx`](src/__tests__/productionCleanupSupabase.test.tsx).
+
+---
+
 ## 00. BACKEND-MIGRATION-1 · Phase 2 (Shifts + Applications) — ĐANG DỞ (checkpoint)
 
 > Checkpoint bàn giao. **Slices 1–3 xong (data layer + hydration), UI CHƯA wire.**

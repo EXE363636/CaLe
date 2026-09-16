@@ -24,6 +24,7 @@ import {
 } from '@/components/ui';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { averageRating } from '@/domain/rating';
+import { hasCapability } from '@/data/capabilities';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { formatDateVN } from '@/lib/format';
@@ -72,13 +73,16 @@ function WorkerProfileContent() {
             <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{worker.fullName}</h1>
             <p className="truncate text-sm text-gray-500">{worker.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                ⭐ {worker.reputationScore}/100 uy tín
-              </span>
+              {/* Điểm uy tín chưa có backend ở supabase → ẩn (không hiện 100 giả). */}
+              {hasCapability('ratings') && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                  ⭐ {worker.reputationScore}/100 uy tín
+                </span>
+              )}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                 ✓ {worker.completedShiftCount} ca hoàn thành
               </span>
-              {worker.verifications.includes('phone') && (
+              {hasCapability('verifications') && worker.verifications.includes('phone') && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
                   📱 Đã xác minh SĐT
                 </span>
@@ -117,11 +121,13 @@ function WorkerProfileContent() {
             }}
           />
 
-          {/* Ratings history */}
-          <Card>
-            <h2 className="mb-3 font-semibold text-gray-900">Đánh giá đã nhận</h2>
-            <RatingsHistory worker={worker} />
-          </Card>
+          {/* Ratings history — chưa có backend đánh giá ở supabase → ẩn. */}
+          {hasCapability('ratings') && (
+            <Card>
+              <h2 className="mb-3 font-semibold text-gray-900">Đánh giá đã nhận</h2>
+              <RatingsHistory worker={worker} />
+            </Card>
+          )}
 
           {/* Phase 6: reputation rules — surfaced on the profile so the
               worker understands how to recover their score. VISUAL POLISH:
@@ -131,17 +137,19 @@ function WorkerProfileContent() {
               won over the className, so the warm callout was rendering flat
               white; the tone prop restores the intended on-palette warm
               tint and matches the dashboard's reputation hint. */}
-          <Card tone="warm">
-            <p className="font-semibold text-orange-800">
-              {t('worker.dashboard.reputationHint.title')}
-            </p>
-            <p className="mt-1 text-sm text-orange-700">
-              {t('worker.dashboard.reputationHint.gain')}
-            </p>
-            <p className="mt-1 text-sm text-orange-700">
-              {t('worker.dashboard.reputationHint.lose')}
-            </p>
-          </Card>
+          {hasCapability('ratings') && (
+            <Card tone="warm">
+              <p className="font-semibold text-orange-800">
+                {t('worker.dashboard.reputationHint.title')}
+              </p>
+              <p className="mt-1 text-sm text-orange-700">
+                {t('worker.dashboard.reputationHint.gain')}
+              </p>
+              <p className="mt-1 text-sm text-orange-700">
+                {t('worker.dashboard.reputationHint.lose')}
+              </p>
+            </Card>
+          )}
         </div>
 
         {/* Right: stats + verifications */}
@@ -151,16 +159,19 @@ function WorkerProfileContent() {
               upload toggles was removed; phone verification is now a
               row inside this canonical card so the worker sees ONE
               source of truth, not two competing upload paths. */}
-          <WorkerIdentityVerificationCard
-            worker={worker}
-            onTogglePhone={(flag) => {
-              const has = worker.verifications.includes(flag);
-              const next = has
-                ? worker.verifications.filter((v) => v !== flag)
-                : [...worker.verifications, flag];
-              updateUser(worker.id, { verifications: next });
-            }}
-          />
+          {/* Xác minh giấy tờ hiện là mô phỏng, chưa migrate → ẩn ở supabase. */}
+          {hasCapability('verifications') && (
+            <WorkerIdentityVerificationCard
+              worker={worker}
+              onTogglePhone={(flag) => {
+                const has = worker.verifications.includes(flag);
+                const next = has
+                  ? worker.verifications.filter((v) => v !== flag)
+                  : [...worker.verifications, flag];
+                updateUser(worker.id, { verifications: next });
+              }}
+            />
+          )}
 
           <Card>
             <h2 className="mb-3 font-semibold text-gray-900">Thống kê</h2>
@@ -183,23 +194,26 @@ function WorkerProfileContent() {
           UI-REFRESH Batch 2 — moved out of the narrow sidebar into a
           full-width responsive GRID below the two columns so the bars
           breathe on desktop instead of stacking in a tall single column. */}
-      <section className="mt-6">
-        <Card>
-          <SectionHeader
-            as="h2"
-            title={t('skill.section.title')}
-            subtitle={t('skill.section.intro')}
-          />
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {buildSkillDisplayList(worker.skillScores).map((entry) => (
-              <SkillProgressBar key={entry.category} entry={entry} />
-            ))}
-          </ul>
-          <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
-            {t('skill.section.footnote')}
-          </p>
-        </Card>
-      </section>
+      {/* Tiến trình kỹ năng (XP/cấp độ) chưa có backend ở supabase → ẩn. */}
+      {hasCapability('ratings') && (
+        <section className="mt-6">
+          <Card>
+            <SectionHeader
+              as="h2"
+              title={t('skill.section.title')}
+              subtitle={t('skill.section.intro')}
+            />
+            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {buildSkillDisplayList(worker.skillScores).map((entry) => (
+                <SkillProgressBar key={entry.category} entry={entry} />
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
+              {t('skill.section.footnote')}
+            </p>
+          </Card>
+        </section>
+      )}
     </PageShell>
   );
 }

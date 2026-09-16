@@ -10,6 +10,7 @@ import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
+import { hasCapability } from '@/data/capabilities';
 import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
@@ -409,11 +410,13 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         <span className="min-w-0 break-words">{shift.location}</span>
       </div>
 
-      {/* Payment status */}
-      <div className="mt-4 flex items-center gap-2">
-        <span className="text-sm text-gray-500">{t('shifts.detail.depositStatus')}:</span>
-        <EscrowStatusBadge status={shift.escrowStatus} />
-      </div>
+      {/* Payment status — cọc/ký quỹ chưa có backend ở supabase → ẩn (mục 4/5). */}
+      {hasCapability('wallet') && (
+        <div className="mt-4 flex items-center gap-2">
+          <span className="text-sm text-gray-500">{t('shifts.detail.depositStatus')}:</span>
+          <EscrowStatusBadge status={shift.escrowStatus} />
+        </div>
+      )}
 
       {/* Description */}
       {shift.description && (

@@ -16,8 +16,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { loadAll } from '@/data/persistence';
-import { getDataMode, getSupabaseClient } from '@/data/supabaseClient';
+import { loadAll, cleanupLegacyBusinessData } from '@/data/persistence';
+import { getDataMode, getSupabaseClient, isSupabaseEnv } from '@/data/supabaseClient';
 import { getUserRepo } from '@/data/repos/userRepo';
 import {
   useApplicationStore,
@@ -159,31 +159,52 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
 
-    // Nạp mọi slice từ localStorage seed (mode-independent).
-    const snapshot = loadAll();
-    useUserStore.getState().hydrate(snapshot.users);
-    useVerificationStore
-      .getState()
-      .hydrate(
-        snapshot.workerVerifications,
-        snapshot.employerVerifications,
-        snapshot.employerTypeChangeRequests,
-      );
-    useShiftStore.getState().hydrate(snapshot.shifts);
-    useApplicationStore.getState().hydrateApplications(snapshot.applications);
-    useApplicationStore.getState().hydrateRatings(snapshot.ratings);
-    useApplicationStore.getState().hydrateDisputes(snapshot.disputes);
-    useNotificationStore.getState().hydrate(snapshot.notifications);
-    useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
-    useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
-    useReviewReportStore.getState().hydrate(snapshot.reviewReports);
-    useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
-    useWalletStore.getState().hydrate(snapshot.wallets, snapshot.walletLedger);
-    useWalletStore.getState().backfillFromHistory({
-      applications: snapshot.applications,
-      shifts: snapshot.shifts,
-    });
-    useApplicationStore.getState().runLifecycleSync();
+    if (isSupabaseEnv()) {
+      // Supabase/production: KHÔNG hydrate seed. Dọn dữ liệu nghiệp vụ/seed cũ
+      // trong localStorage (an toàn, allowlist, không đụng session `sb-*`), rồi
+      // khởi tạo RỖNG mọi slice CHƯA có backend thật (mục 2). users/shifts/
+      // applications sẽ được restoreAuth() nạp từ server theo scope.
+      cleanupLegacyBusinessData();
+      useUserStore.getState().hydrate([]);
+      useVerificationStore.getState().hydrate([], [], []);
+      useShiftStore.getState().hydrate([]);
+      useApplicationStore.getState().hydrateApplications([]);
+      useApplicationStore.getState().hydrateRatings([]);
+      useApplicationStore.getState().hydrateDisputes([]);
+      useNotificationStore.getState().hydrate([]);
+      useScheduleStore.getState().hydrate([]);
+      useEmployerFeedbackStore.getState().hydrate([]);
+      useReviewReportStore.getState().hydrate([]);
+      useShiftDraftStore.getState().hydrate([]);
+      useWalletStore.getState().hydrate([], []);
+      // Không backfill ví, không runLifecycleSync trên seed (không có seed).
+    } else {
+      // Local/demo: hydrate mọi slice từ localStorage seed (giữ nguyên baseline).
+      const snapshot = loadAll();
+      useUserStore.getState().hydrate(snapshot.users);
+      useVerificationStore
+        .getState()
+        .hydrate(
+          snapshot.workerVerifications,
+          snapshot.employerVerifications,
+          snapshot.employerTypeChangeRequests,
+        );
+      useShiftStore.getState().hydrate(snapshot.shifts);
+      useApplicationStore.getState().hydrateApplications(snapshot.applications);
+      useApplicationStore.getState().hydrateRatings(snapshot.ratings);
+      useApplicationStore.getState().hydrateDisputes(snapshot.disputes);
+      useNotificationStore.getState().hydrate(snapshot.notifications);
+      useScheduleStore.getState().hydrate(snapshot.scheduleBlocks);
+      useEmployerFeedbackStore.getState().hydrate(snapshot.employerFeedback);
+      useReviewReportStore.getState().hydrate(snapshot.reviewReports);
+      useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
+      useWalletStore.getState().hydrate(snapshot.wallets, snapshot.walletLedger);
+      useWalletStore.getState().backfillFromHistory({
+        applications: snapshot.applications,
+        shifts: snapshot.shifts,
+      });
+      useApplicationStore.getState().runLifecycleSync();
+    }
 
     void restoreAuth();
 

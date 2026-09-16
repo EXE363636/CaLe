@@ -18,6 +18,7 @@ import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { hasCapability } from '@/data/capabilities';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { deriveAttendanceState, attendanceCopyKey } from '@/domain/attendanceState';
 import { suggestShiftsForWorker } from '@/domain/availabilityMatch';
@@ -670,8 +671,8 @@ function WorkerDashboardContent() {
         </div>
       </header>
 
-      {/* Restriction banner */}
-      {restricted && (
+      {/* Restriction banner — phụ thuộc điểm uy tín (chưa có backend ở supabase). */}
+      {hasCapability('ratings') && restricted && (
         <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {t('worker.dashboard.restricted')}
         </div>
@@ -681,37 +682,45 @@ function WorkerDashboardContent() {
           the actionable work area (order-2) so the worker sees "Ca sắp
           tới" first; on desktop they return to the top strip. */}
       <section className="order-2 mb-8 mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:order-none lg:mt-0">
-        <StatTile
-          label={t('worker.dashboard.stats.reputationScore')}
-          value={String(reputationScore)}
-          suffix="/ 100"
-          tone={
-            reputationScore >= 80
-              ? 'good'
-              : reputationScore >= 50
-                ? 'warn'
-                : 'bad'
-          }
-          icon="star"
-          onClick={() => setStatDetail('reputation')}
-          ariaLabel="Xem chi tiết điểm uy tín"
-        />
+        {/* Điểm uy tín: chưa có backend đánh giá thật → ẩn ở supabase để không
+            hiện con số mặc định (100) như dữ liệu thật (mục 5). */}
+        {hasCapability('ratings') && (
+          <StatTile
+            label={t('worker.dashboard.stats.reputationScore')}
+            value={String(reputationScore)}
+            suffix="/ 100"
+            tone={
+              reputationScore >= 80
+                ? 'good'
+                : reputationScore >= 50
+                  ? 'warn'
+                  : 'bad'
+            }
+            icon="star"
+            onClick={() => setStatDetail('reputation')}
+            ariaLabel="Xem chi tiết điểm uy tín"
+          />
+        )}
         <StatTile
           label={t('worker.dashboard.stats.completedShifts')}
-          value={String(worker.completedShiftCount)}
+          /* Supabase: đếm từ đơn đã xác nhận thật; local: giữ số hồ sơ seed. */
+          value={String(isSupabaseEnv() ? completedShifts.length : worker.completedShiftCount)}
           tone="neutral"
           icon="check"
           onClick={() => setStatDetail('completed')}
           ariaLabel="Xem chi tiết ca đã hoàn thành"
         />
-        <StatTile
-          label={t('worker.dashboard.stats.totalEarnings')}
-          value={formatVND(totalEarnings)}
-          tone="brand"
-          icon="wallet"
-          onClick={() => setStatDetail('income')}
-          ariaLabel="Xem chi tiết thu nhập"
-        />
+        {/* Thu nhập/ví: chưa có backend thanh toán → ẩn ở supabase. */}
+        {hasCapability('wallet') && (
+          <StatTile
+            label={t('worker.dashboard.stats.totalEarnings')}
+            value={formatVND(totalEarnings)}
+            tone="brand"
+            icon="wallet"
+            onClick={() => setStatDetail('income')}
+            ariaLabel="Xem chi tiết thu nhập"
+          />
+        )}
         <StatTile
           label={t('worker.dashboard.cancelQuota')}
           value={
@@ -1012,8 +1021,9 @@ function WorkerDashboardContent() {
             </section>
           )}
 
-          {/* Phase 6: confirmed shifts awaiting worker → employer feedback. */}
-          {feedbackPending.length > 0 && (
+          {/* Phase 6: confirmed shifts awaiting worker → employer feedback.
+              Đánh giá chưa có backend ở supabase → ẩn. */}
+          {hasCapability('ratings') && feedbackPending.length > 0 && (
             <section>
               <h2 className="mb-3 text-lg font-semibold text-gray-900">
                 {t('worker.dashboard.feedbackPending')}
@@ -1144,7 +1154,9 @@ function WorkerDashboardContent() {
           {/* Distill — the skill summary + reputation tips motivate but
               aren't the worker's immediate job, so they're demoted into
               one collapsed disclosure. The dashboard leads with shifts +
-              actions; growth/coaching stays one tap away. */}
+              actions; growth/coaching stays one tap away.
+              Kỹ năng/điểm uy tín chưa có backend ở supabase → ẩn cả khối. */}
+          {hasCapability('ratings') && (
           <section>
             <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
               <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
@@ -1209,9 +1221,11 @@ function WorkerDashboardContent() {
               </div>
             </details>
           </section>
+          )}
         </div>
 
-        {/* Side column: notifications */}
+        {/* Side column: notifications — chưa có backend ở supabase → ẩn. */}
+        {hasCapability('notifications') && (
         <aside>
           <Card className="p-0">
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
@@ -1241,6 +1255,7 @@ function WorkerDashboardContent() {
             </ul>
           </Card>
         </aside>
+        )}
       </div>
 
       {/* Cancel confirmation dialog */}
@@ -1295,7 +1310,7 @@ function WorkerDashboardContent() {
           there's no history yet we show an explicit MVP note instead of
           inventing fake events. */}
       <Modal
-        open={statDetail === 'reputation'}
+        open={statDetail === 'reputation' && hasCapability('ratings')}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.reputationScore')}
         className="max-w-4xl"
@@ -1634,7 +1649,7 @@ function WorkerDashboardContent() {
 
       {/* Phase 9G — income detail modal */}
       <Modal
-        open={statDetail === 'income'}
+        open={statDetail === 'income' && hasCapability('wallet')}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.totalEarnings')}
         titleAccessory={

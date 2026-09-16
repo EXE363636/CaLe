@@ -47,6 +47,7 @@ import {
 } from '@/domain/taskBadges';
 import { TaskBadge } from '@/components/ui';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { hasCapability } from '@/data/capabilities';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
@@ -533,7 +534,7 @@ export function NavBar() {
             end of its grid track (`xl:justify-self-end`), cancelling
             the `< xl` flex `ml-auto`. */}
         <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 xl:ml-0 xl:justify-self-end">
-          {isLoggedIn && <NotificationBell />}
+          {isLoggedIn && hasCapability('notifications') && <NotificationBell />}
 
           {role === null && (
             <div className="hidden items-center gap-1 xl:flex">
@@ -653,7 +654,8 @@ function WorkerNav({
   // since unread notifications belong to the bell, not a nav link.
   const workerDocs = useVerificationStore((s) => s.workerDocuments);
   const profileCount = useMemo(
-    () => workerProfileTaskCount(workerId, workerDocs),
+    // Xác minh chưa có backend ở supabase → không hiện badge giả.
+    () => (hasCapability('verifications') ? workerProfileTaskCount(workerId, workerDocs) : 0),
     [workerId, workerDocs],
   );
   return (
@@ -781,11 +783,9 @@ function AdminNav({ pathname }: { pathname: string }) {
   );
   const verificationCount = useMemo(
     () =>
-      adminVerificationTaskCount(
-        workerDocs,
-        employerDocs,
-        typeChangeRequests,
-      ),
+      hasCapability('verifications')
+        ? adminVerificationTaskCount(workerDocs, employerDocs, typeChangeRequests)
+        : 0,
     [workerDocs, employerDocs, typeChangeRequests],
   );
   return (

@@ -26,6 +26,7 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { exportSnapshot, importSnapshot } from '@/data/persistence';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { hasCapability } from '@/data/capabilities';
 import { t } from '@/i18n/vi';
 import type { Application, Dispute, EscrowStatus, Shift, User } from '@/types';
 
@@ -42,6 +43,26 @@ export default function AdminDashboardPage() {
 function AdminDashboardContent() {
   useLifecycleSync();
   const [tab, setTab] = useState<Tab>('analytics');
+
+  // Task tổng vệ sinh · mục 7 — ở supabase chỉ giữ tab có dữ liệu server thật.
+  // Tranh chấp/xác minh chưa migrate → ẩn tab + badge hoàn toàn.
+  const showDisputes = hasCapability('disputes');
+  const showVerifications = hasCapability('verifications');
+
+  // Supabase: nạp user thật ở cấp dashboard để analytics đếm đúng (không seed).
+  const refreshUsersAsync = useAdminStore((s) => s.refreshUsersAsync);
+  useEffect(() => {
+    if (!isSupabaseEnv()) return;
+    void refreshUsersAsync();
+  }, [refreshUsersAsync]);
+
+  // Nếu deeplink trỏ tới tab đã ẩn (supabase) thì lùi về analytics.
+  useEffect(() => {
+    if ((tab === 'disputes' && !showDisputes) || (tab === 'verifications' && !showVerifications)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- fallback khi tab bị ẩn ở supabase mode
+      setTab('analytics');
+    }
+  }, [tab, showDisputes, showVerifications]);
 
   // Phase 10A-Fix-4 — verification queue task count for the tab badge.
   const adminWorkerDocs = useVerificationStore((s) => s.workerDocuments);
@@ -234,30 +255,34 @@ function AdminDashboardContent() {
         <TabButton active={tab === 'shifts'} onClick={() => setTab('shifts')}>
           {t('admin.dashboard.tabs.shifts')}
         </TabButton>
-        <TabButton
-          active={tab === 'disputes'}
-          onClick={() => setTab('disputes')}
-          badgeCount={disputeTaskCount}
-          badgeAriaLabel={
-            disputeTaskCount > 0
-              ? `${disputeTaskCount} tranh chấp cần xử lý`
-              : undefined
-          }
-        >
-          {t('admin.dashboard.tabs.disputes')}
-        </TabButton>
-        <TabButton
-          active={tab === 'verifications'}
-          onClick={() => setTab('verifications')}
-          badgeCount={verificationTaskCount}
-          badgeAriaLabel={
-            verificationTaskCount > 0
-              ? `${verificationTaskCount} mục chờ xác minh`
-              : undefined
-          }
-        >
-          {t('admin.dashboard.tabs.verifications')}
-        </TabButton>
+        {showDisputes && (
+          <TabButton
+            active={tab === 'disputes'}
+            onClick={() => setTab('disputes')}
+            badgeCount={disputeTaskCount}
+            badgeAriaLabel={
+              disputeTaskCount > 0
+                ? `${disputeTaskCount} tranh chấp cần xử lý`
+                : undefined
+            }
+          >
+            {t('admin.dashboard.tabs.disputes')}
+          </TabButton>
+        )}
+        {showVerifications && (
+          <TabButton
+            active={tab === 'verifications'}
+            onClick={() => setTab('verifications')}
+            badgeCount={verificationTaskCount}
+            badgeAriaLabel={
+              verificationTaskCount > 0
+                ? `${verificationTaskCount} mục chờ xác minh`
+                : undefined
+            }
+          >
+            {t('admin.dashboard.tabs.verifications')}
+          </TabButton>
+        )}
       </div>
 
       {tab === 'analytics' && (
@@ -269,8 +294,8 @@ function AdminDashboardContent() {
       )}
       {tab === 'users' && <UsersPanel initialFilter={usersInitialFilter} />}
       {tab === 'shifts' && <ShiftsPanel initialFilter={shiftsInitialFilter} />}
-      {tab === 'disputes' && <DisputesPanel />}
-      {tab === 'verifications' && <VerificationsPanel />}
+      {tab === 'disputes' && showDisputes && <DisputesPanel />}
+      {tab === 'verifications' && showVerifications && <VerificationsPanel />}
 
       {/* Admin-only snapshot dev utility — CHỈ local/demo mode. Ở supabase/
           production ẩn hoàn toàn (công cụ mock/localStorage của developer, B2). */}
@@ -372,19 +397,24 @@ function AnalyticsPanel({
         onClick={() => onJumpToShifts('completed')}
         ariaLabel="Lọc ca đã hoàn thành"
       />
-      <StatCard
-        label="Thanh toán đang tranh chấp"
-        value={String(disputedPayments)}
-        highlight
-        onClick={() => onJumpToShifts('disputed')}
-        ariaLabel="Lọc ca có thanh toán tranh chấp"
-      />
-      <StatCard
-        label={t('admin.analytics.activeDisputes')}
-        value={String(openDisputes)}
-        onClick={onJumpToDisputes}
-        ariaLabel="Mở tab Tranh chấp"
-      />
+      {/* Thanh toán/tranh chấp: chỉ hiện khi có backend thật (ẩn ở supabase). */}
+      {hasCapability('payments') && (
+        <StatCard
+          label="Thanh toán đang tranh chấp"
+          value={String(disputedPayments)}
+          highlight
+          onClick={() => onJumpToShifts('disputed')}
+          ariaLabel="Lọc ca có thanh toán tranh chấp"
+        />
+      )}
+      {hasCapability('disputes') && (
+        <StatCard
+          label={t('admin.analytics.activeDisputes')}
+          value={String(openDisputes)}
+          onClick={onJumpToDisputes}
+          ariaLabel="Mở tab Tranh chấp"
+        />
+      )}
     </div>
   );
 }

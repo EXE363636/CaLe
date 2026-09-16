@@ -36,6 +36,7 @@ import { useApplicationStore } from '@/stores/applicationStore';
 import { useCurrentUser } from '@/stores/authStore';
 import { getWorkerReputation } from '@/stores/userStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
+import { hasCapability } from '@/data/capabilities';
 import { selectAvailableShiftsForRecruiting, effectiveFilledCount } from '@/domain/shiftAvailability';
 import { formatDateVN, formatTimeVN, formatVND } from '@/lib/format';
 import { t } from '@/i18n/vi';
@@ -148,8 +149,9 @@ export function FeaturedJobMockup() {
   // single shared reader so it matches every other reputation surface
   // (dashboard StatTile, UserMenu chip, employer badges). `null` ⇒ no tile,
   // which is the correct result for a logged-out visitor or an employer.
+  // Điểm uy tín chưa có backend ở supabase → không hiện số mặc định (mục 5).
   const reputationScore =
-    currentUser && currentUser.role === 'worker'
+    currentUser && currentUser.role === 'worker' && hasCapability('ratings')
       ? getWorkerReputation(currentUser.id)
       : null;
 

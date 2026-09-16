@@ -20,6 +20,7 @@ import { ShiftCard } from '@/components/shift/ShiftCard';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { hasCapability } from '@/data/capabilities';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
@@ -249,13 +250,17 @@ function EmployerDashboardContent() {
             >
               {t('btn.postShift')}
             </Link>
-            <button
-              onClick={() => alert('Đã xuất dữ liệu đối soát ra file CSV!')}
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 focus:outline-none"
-            >
-              <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              Xuất dữ liệu
-            </button>
+            {/* "Xuất dữ liệu" hiện chỉ là mô phỏng (alert CSV), chưa có backend
+                đối soát → ẩn ở supabase/production (mục 4). */}
+            {!isSupabaseEnv() && (
+              <button
+                onClick={() => alert('Đã xuất dữ liệu đối soát ra file CSV!')}
+                className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 focus:outline-none"
+              >
+                <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Xuất dữ liệu
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -296,22 +301,27 @@ function EmployerDashboardContent() {
           onClick={() => setStatDetail('completed')}
           ariaLabel="Xem chi tiết ca đã hoàn thành"
         />
-        <StatTile
-          label={t('employer.dashboard.stats.totalDeposited')}
-          value={formatVND(totalDeposited)}
-          tone="neutral"
-          icon="wallet"
-          onClick={() => setStatDetail('deposits')}
-          ariaLabel="Xem chi tiết tiền chờ thanh toán"
-        />
-        <StatTile
-          label={t('employer.dashboard.stats.totalPaidOut')}
-          value={formatVND(totalPaidOut)}
-          tone="brand"
-          icon="wallet"
-          onClick={() => setStatDetail('payments')}
-          ariaLabel="Xem tóm tắt thanh toán"
-        />
+        {/* Tiền cọc/đã chi trả: chưa có backend thanh toán → ẩn ở supabase (mục 5). */}
+        {hasCapability('wallet') && (
+          <StatTile
+            label={t('employer.dashboard.stats.totalDeposited')}
+            value={formatVND(totalDeposited)}
+            tone="neutral"
+            icon="wallet"
+            onClick={() => setStatDetail('deposits')}
+            ariaLabel="Xem chi tiết tiền chờ thanh toán"
+          />
+        )}
+        {hasCapability('wallet') && (
+          <StatTile
+            label={t('employer.dashboard.stats.totalPaidOut')}
+            value={formatVND(totalPaidOut)}
+            tone="brand"
+            icon="wallet"
+            onClick={() => setStatDetail('payments')}
+            ariaLabel="Xem tóm tắt thanh toán"
+          />
+        )}
       </section>
 
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
@@ -369,16 +379,20 @@ function EmployerDashboardContent() {
                 {activeShifts.map((shift) => (
                   <div key={shift.id} className="relative group flex flex-col gap-2">
                     <Link href={`/employer/shifts/${shift.id}`}>
-                      <ShiftCard shift={shift} applications={applications} showEscrow />
+                      <ShiftCard shift={shift} applications={applications} showEscrow={hasCapability('wallet')} />
                     </Link>
-                    <div className="flex gap-2">
-                      <button onClick={(e) => { e.preventDefault(); alert('Đã đánh dấu No-show. Hệ thống sẽ ghi nhận lịch sử này.'); }} className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition">
-                        Đánh dấu No-show
-                      </button>
-                      <button onClick={(e) => { e.preventDefault(); alert('Đã gửi yêu cầu thay thế nhân sự khẩn cấp!'); }} className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition">
-                        Yêu cầu thay thế
-                      </button>
-                    </div>
+                    {/* Các nút No-show/thay thế hiện chỉ là mô phỏng (alert), chưa
+                        có backend → ẩn ở supabase/production (mục 4). */}
+                    {!isSupabaseEnv() && (
+                      <div className="flex gap-2">
+                        <button onClick={(e) => { e.preventDefault(); alert('Đã đánh dấu No-show. Hệ thống sẽ ghi nhận lịch sử này.'); }} className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition">
+                          Đánh dấu No-show
+                        </button>
+                        <button onClick={(e) => { e.preventDefault(); alert('Đã gửi yêu cầu thay thế nhân sự khẩn cấp!'); }} className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition">
+                          Yêu cầu thay thế
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -415,7 +429,8 @@ function EmployerDashboardContent() {
           )}
         </div>
 
-        {/* Side: notifications */}
+        {/* Side: notifications — chưa có backend ở supabase → ẩn. */}
+        {hasCapability('notifications') && (
         <aside>
           <Card className="p-0">
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
@@ -445,13 +460,14 @@ function EmployerDashboardContent() {
             </ul>
           </Card>
         </aside>
+        )}
       </div>
 
       {/* Phase 9H — payments summary modal. Lists the actual shifts
           contributing to the deposit and payout totals so employers
           aren't staring at two opaque sums. */}
       <Modal
-        open={statDetail === 'payments' || statDetail === 'deposits'}
+        open={(statDetail === 'payments' || statDetail === 'deposits') && hasCapability('wallet')}
         onClose={() => setStatDetail(null)}
         title={t('employer.payments.title')}
         titleAccessory={
