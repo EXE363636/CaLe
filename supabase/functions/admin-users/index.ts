@@ -177,6 +177,9 @@ async function handleCreate(admin: any, body: any): Promise<Response> {
 async function handleDelete(admin: any, body: any, callerId: string): Promise<Response> {
   const userId = String(body?.userId ?? '');
   if (!userId) return fail('INVALID_INPUT', 400);
+  // Tự xoá phải bị chặn TRƯỚC khi kiểm role đích: admin tự xoá luôn nhận
+  // CANNOT_DELETE_SELF (không phải CANNOT_DELETE_ADMIN) để thông báo đúng ngữ cảnh.
+  // KHÔNG đổi thứ tự hai kiểm tra này.
   if (userId === callerId) return fail('CANNOT_DELETE_SELF', 400);
 
   const { data: target, error: tErr } = await admin

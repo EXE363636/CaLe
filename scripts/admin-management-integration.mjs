@@ -187,9 +187,18 @@ async function main() {
     await admin.from('shifts').delete().eq('id', shift.id);
   }
   {
-    // Admin không tự xoá mình.
+    // Admin không tự xoá mình → phải trả CANNOT_DELETE_SELF (kiểm self TRƯỚC role).
     const r = await callFn(adminClient, { action: 'delete', userId: adminId });
-    ok(!r.ok && r.error === 'CANNOT_DELETE_SELF', 'admin KHÔNG tự xoá tài khoản mình');
+    // In an toàn: chỉ status + mã lỗi, KHÔNG in JWT/key/thân request.
+    console.log(`    ↳ self-delete: status=${r.status} error=${r.error ?? '(none)'} ok=${r.ok}`);
+    ok(!r.ok && r.error === 'CANNOT_DELETE_SELF', 'admin KHÔNG tự xoá tài khoản mình (CANNOT_DELETE_SELF)');
+    // Regression: dù yêu cầu bị từ chối, tài khoản admin PHẢI còn nguyên ở Auth + public.users.
+    const { data: stillRow } = await admin.from('users').select('id, role').eq('id', adminId).maybeSingle();
+    const { data: stillAuth } = await admin.auth.admin.getUserById(adminId);
+    ok(
+      !!stillRow && stillRow.role === 'admin' && !!stillAuth?.user,
+      'admin vẫn tồn tại ở Auth + public.users sau yêu cầu tự xoá',
+    );
   }
   {
     // Không xoá được admin khác.
