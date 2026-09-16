@@ -12,6 +12,7 @@ import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
 import { Badge, Button, EmptyState, Modal, Textarea } from '@/components/ui';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
+import { hasCapability } from '@/data/capabilities';
 import { EmployerConfirmationPanel } from '@/components/shift/EmployerConfirmationPanel';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
 import { WorkerProfileModal } from '@/components/user/WorkerProfileModal';
@@ -481,7 +482,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               identical label + colour to every other surface. Escrow
               is a distinct money concept and stays separate. */}
           <ShiftLifecycleBadge shift={shift} applications={applications} />
-          <EscrowStatusBadge status={shift.escrowStatus} />
+          {/* Escrow/cọc chưa có backend ở supabase → ẩn badge tiền (mục 4/5). */}
+          {hasCapability('wallet') && <EscrowStatusBadge status={shift.escrowStatus} />}
         </div>
       </div>
 
