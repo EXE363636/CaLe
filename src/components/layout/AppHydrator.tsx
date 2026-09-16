@@ -70,6 +70,29 @@ function BootErrorBar({
   );
 }
 
+/**
+ * Phase 2 — refetch shifts/applications + public profiles theo scope user hiện tại
+ * (supabase mode). Dùng lúc boot và refetch-on-focus (đồng bộ 2 máy không cần reload).
+ * Refetch thay theo scope (public/employer/worker) nên không cần xoá trước → không nháy.
+ */
+async function refetchPhase2Supabase(): Promise<void> {
+  const cur = useAuthStore.getState().currentUser();
+  await useShiftStore.getState().refetchPublic();
+  if (cur?.role === 'employer') {
+    await useShiftStore.getState().refetchEmployer(cur.id);
+    const ids = useShiftStore.getState().byEmployer(cur.id).map((s) => s.id);
+    await useApplicationStore.getState().refetchForShifts(ids);
+  } else if (cur?.role === 'worker') {
+    await useApplicationStore.getState().refetchForWorker(cur.id);
+  }
+  const empIds = useShiftStore
+    .getState()
+    .shifts.map((s) => s.employerId)
+    .filter((id) => id !== cur?.id);
+  const profs = await getUserRepo().loadPublicProfiles(empIds);
+  for (const p of profs) useUserStore.getState().overlayUser(p);
+}
+
 export function AppHydrator({ children }: AppHydratorProps): ReactNode {
   const hydratedRef = useRef(false);
   const unsubRef = useRef<() => void>(() => {});
@@ -107,22 +130,10 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
         }
 
         // Phase 2 — nạp shifts/applications từ Supabase (thay seed localStorage cho
-        // 2 slice này). Ca công khai cho mọi người; ca/đơn theo vai cho user đăng nhập.
-        const cur = useAuthStore.getState().currentUser();
+        // 2 slice này). Xoá seed trước ở lần boot rồi refetch theo scope.
         useShiftStore.setState({ shifts: [] });
         useApplicationStore.setState({ applications: [] });
-        await useShiftStore.getState().refetchPublic();
-        if (cur?.role === 'employer') {
-          await useShiftStore.getState().refetchEmployer(cur.id);
-          const ids = useShiftStore.getState().byEmployer(cur.id).map((s) => s.id);
-          await useApplicationStore.getState().refetchForShifts(ids);
-        } else if (cur?.role === 'worker') {
-          await useApplicationStore.getState().refetchForWorker(cur.id);
-        }
-        // Overlay public_profiles của employer (tên NTD cho worker); KHÔNG đè user hiện tại.
-        const empIds = useShiftStore.getState().shifts.map((s) => s.employerId).filter((id) => id !== cur?.id);
-        const profs = await getUserRepo().loadPublicProfiles(empIds);
-        for (const p of profs) useUserStore.getState().overlayUser(p);
+        await refetchPhase2Supabase();
 
         unsubRef.current = useAuthStore.getState().subscribeAuth();
       } catch {
@@ -178,6 +189,32 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
 
     return () => unsubRef.current();
   }, [restoreAuth]);
+
+  // Phase 2 · G — refetch-on-focus: khi tab được focus lại (supabase mode), nạp lại
+  // shifts/đơn theo scope để hai máy thấy cùng trạng thái mà không cần reload thủ công.
+  useEffect(() => {
+    let mode: 'local' | 'supabase';
+    try {
+      mode = getDataMode();
+    } catch {
+      return;
+    }
+    if (mode !== 'supabase') return;
+    let running = false;
+    const onFocus = () => {
+      if (document.visibilityState !== 'visible' || running) return;
+      running = true;
+      void refetchPhase2Supabase().finally(() => {
+        running = false;
+      });
+    };
+    document.addEventListener('visibilitychange', onFocus);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onFocus);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
 
   // Lỗi cấu hình = chặn hẳn (không render app ở trạng thái sai).
   if (bootError === 'config') {

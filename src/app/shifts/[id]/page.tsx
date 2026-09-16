@@ -32,7 +32,8 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
-import type { Shift } from '@/types';
+import type { Shift, VerificationFlag } from '@/types';
+import { getDataMode } from '@/data/supabaseClient';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -76,6 +77,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const applications = useApplicationStore((s) => s.applications);
   const applyAsync = useApplicationStore((s) => s.applyAsync);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
+  const withdrawAsync = useApplicationStore((s) => s.withdrawAsync);
   // Cluster 1 (Property 2, Req 2.4) — reuse the SAME check-in/check-out
   // actions the worker dashboard uses so a check-in notification deep-link
   // lands on a surface where the worker can act in place.
@@ -208,10 +210,32 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     );
   }
 
-  function handleConfirmCancel(reason: string) {
-    if (!myApp) return;
+  async function handleConfirmCancel(reason: string) {
+    if (!myApp || loading) return;
     setLoading(true);
     setApplyError(null);
+
+    if (getDataMode() === 'supabase') {
+      const res = await withdrawAsync(myApp.id, reason);
+      setLoading(false);
+      if (!res.ok) {
+        const message = toastFromStoreError(res.error);
+        setApplyError(message);
+        showError(message);
+        return;
+      }
+      if (res.value === 'CancellationRequested') {
+        showInfo(
+          t('feedback.cancelRequest.success'),
+          t('feedback.cancelRequest.success.desc'),
+        );
+      } else {
+        showSuccess(t('feedback.cancel.success'));
+      }
+      setCancelDialogOpen(false);
+      return;
+    }
+
     const result = cancelByWorker(myApp.id, reason);
     setLoading(false);
     if (!result.ok) {
@@ -495,7 +519,14 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             shiftId={shift.id}
             workerId={worker.id}
             applicationStatus={myApp?.status ?? null}
-            workerVerifications={worker.verifications}
+            workerVerifications={
+              // PHASE_2_PLAN §4.4: supabase mode — verification chưa migrate và KHÔNG
+              // phải security gate (RPC apply không enforce). Nới gate client để worker
+              // ứng tuyển được. Local mode giữ nguyên. Không migrate verification ở Phase 2.
+              getDataMode() === 'supabase'
+                ? (['phone', 'id', 'student'] as VerificationFlag[])
+                : worker.verifications
+            }
             workerReputationScore={worker.reputationScore}
             shiftStatus={shift.status}
             onApply={handleApply}

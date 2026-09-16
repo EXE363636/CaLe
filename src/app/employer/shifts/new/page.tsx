@@ -277,12 +277,11 @@ function NewShiftContent() {
 
   function handleSubmit(values: ShiftFormValues) {
     if (!currentUserId) return;
-    // Phase 10A-Fix-3 — defence in depth. The form already validates
-    // the workplace-image label when required; this re-checks the
-    // full readiness rule set so a stale form state can't bypass the
-    // gate (e.g. employer types in a filename then deletes it before
-    // submitting).
-    if (!readiness || !readiness.ready) {
+    // Phase 10A-Fix-3 — readiness (verification) gate. Local mode giữ nguyên.
+    // Phase 2 · PHASE_2_PLAN §4.4: ở SUPABASE mode, verification chưa migrate và
+    // KHÔNG phải security gate (RPC không enforce theo verification) → NỚI gate
+    // client để luồng lõi publish chạy được. Không migrate verification ở Phase 2.
+    if (getDataMode() !== 'supabase' && (!readiness || !readiness.ready)) {
       showError(
         t('posting.readiness.intro'),
         readiness?.blockers[0],

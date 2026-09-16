@@ -65,32 +65,42 @@ Employer–Worker **chưa chạy end-to-end** — đó là việc của Slice 4 
   ca công khai từ `public_shifts` + **tên NTD từ `public_profiles`** (hydration Slice 3
   chạy đúng trong UI thật).
 
-**🚧 BLOCKER cần quyết trước khi luồng lõi chạy END-TO-END qua UI:**
-Ở supabase mode, **gate VERIFICATION phía client CHẶN cả publish lẫn apply**:
-- Employer mới (chưa migrate verification) → trang tạo ca hiện "Bạn cần hoàn tất xác
-  minh nhà tuyển dụng trước khi đăng ca" → `handleSubmit` (readiness gate) chặn.
-- Worker mới → shift detail hiện "Bạn cần xác minh số điện thoại trước khi ứng tuyển"
-  → nút Ứng tuyển bị chặn.
-Verification chưa migrate (deferred) nên user Supabase thật KHÔNG có dữ liệu xác minh
-→ gate chặn. `docs/PHASE_2_PLAN.md §4.4`: verification **KHÔNG** phải security gate ở
-supabase mode và UI không được tuyên bố backend đảm bảo. → **Cần quyết:** (1) nới gate
-verification ở supabase mode (bỏ chặn client, để RPC quyết — hợp §4.4), hay (2) migrate
-verification. RPC apply/approve/publish KHÔNG chặn theo verification (đã proven 78/78) —
-chỉ UI client chặn. (Chủ dự án dặn "không làm verification" nên chưa tự nới; cần chỉ đạo.)
+**✅ BLOCKER verification ĐÃ GIẢI (2026-09-16, quyết định chủ dự án):** nới gate
+verification **CHỈ ở supabase mode** theo `PHASE_2_PLAN §4.4` (verification không phải
+security gate; RPC không enforce — 78/78). Local mode giữ nguyên. KHÔNG migrate verification.
+- Employer publish: `src/app/employer/shifts/new/page.tsx` `handleSubmit` bỏ readiness
+  gate khi `getDataMode()==='supabase'`.
+- Worker apply: `src/app/shifts/[id]/page.tsx` truyền `workerVerifications=['phone','id','student']`
+  ở supabase mode để `ApplicationActions` không chặn.
+- **Verify render thật cale-dev:** trang tạo ca hiện form (không còn block); worker thấy
+  `/shifts` + tên NTD. (Interactive click bị chặn bởi preview pane ẩn/không paint trong
+  phiên agent — cần cửa sổ hiện để click; RPC layer đã proven 78/78.)
 
-**Còn lại (sau khi giải blocker verification):**
-- **D/E.** Chạy end-to-end 2 vai qua UI (publish→apply→approve→worker thấy) — hiện bị
-  gate verification chặn nên chưa demo trọn được; refetch/hydration đã chứng minh worker
-  thấy dữ liệu Supabase.
-- **F.** Wire `editAsync`/`cancelAsync`/`withdrawAsync`/`approve|rejectCancellationRequestAsync`
-  (call-site: employer shift detail edit/cancel + cancellation-request; worker withdraw ở
-  `src/app/worker/dashboard/page.tsx` / shift detail).
-- **G.** refetch-on-focus (`visibilitychange`/route change) để 2 máy đồng bộ không cần reload.
-- **H.** E2E Supabase 2 browser (`test:e2e:supabase`), full grid, rồi (nếu còn branch) merge.
+**✅ F (edit/cancel/withdraw/cancellation) — ĐÃ WIRE:**
+- Employer: `handleCancelShift`→`cancelAsync` (supabase branch), `handleApproveCancellation`
+  →`approveCancellationRequestAsync`, `handleRejectCancellation`→`rejectCancellationRequestAsync`
+  (`src/app/employer/shifts/[id]/page.tsx`).
+- Worker withdraw: `handleCancelConfirm`→`withdrawAsync` ở `worker/dashboard/page.tsx` +
+  `shifts/[id]/page.tsx` (branch supabase, trạng thái mới CancellationRequested/CancelledByWorker).
+- **`editAsync` CHƯA wire** — trang employer detail không có call-site edit đơn giản (edit
+  shift qua flow khác). **Đẩy sang W6** (ưu tiên publish→apply→approve trước, đúng chỉ đạo).
 
-Ràng buộc: **KHÔNG** làm payment/location/Cẩm nang/pricing/W6–W8. Không optimistic
-update ca/đơn. Giữ baseline local xanh sau mỗi bước. Migration đã apply → chỉ tạo
-corrective mới. Không commit env/secret.
+**✅ G (refetch-on-focus) — ĐÃ THÊM:** `AppHydrator` có listener `visibilitychange`/`focus`
+→ `refetchPhase2Supabase()` (supabase mode) để 2 máy đồng bộ không cần reload; loading +
+chống double-click ở các nút đã thêm (guard `if (loading/actionLoading) return`).
+
+**Local grid sau A–G:** tsc 0, build 28, lint 0, unit 680/683, E2E 112/112.
+
+**Còn lại (H + W6):**
+- **H.** E2E Supabase 2 browser tự động (`test:e2e:supabase`) — CHƯA viết; cần chạy trên
+  cale-dev (service_role chỉ ở Node setup/cleanup). Manual 2-browser verify publish→apply→
+  approve→worker thấy: **code sẵn sàng**, chỉ cần cửa sổ preview hiện để click (phiên agent
+  bị pane ẩn chặn interactive).
+- **W6.** Wire `editAsync` (sửa ca) + các thao tác phụ còn lại.
+
+Ràng buộc: **KHÔNG** làm payment/GPS/OTP/rating/Boost/pricing/location/Cẩm nang, không
+chỉnh UI ngoài phạm vi. Không optimistic update. Giữ baseline local xanh. Migration đã
+apply → chỉ corrective mới. Không commit env/secret.
 
 ---
 

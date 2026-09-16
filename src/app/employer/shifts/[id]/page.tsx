@@ -6,6 +6,7 @@ import { notFound, useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
+import { getDataMode } from '@/data/supabaseClient';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
@@ -102,13 +103,14 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   );
   const disputes = useApplicationStore((s) => s.disputes);
   const confirmCompletion = useApplicationStore((s) => s.confirmCompletion);
-  const approveCancellationRequest = useApplicationStore(
-    (s) => s.approveCancellationRequest,
+  const approveCancellationRequestAsync = useApplicationStore(
+    (s) => s.approveCancellationRequestAsync,
   );
-  const rejectCancellationRequest = useApplicationStore(
-    (s) => s.rejectCancellationRequest,
+  const rejectCancellationRequestAsync = useApplicationStore(
+    (s) => s.rejectCancellationRequestAsync,
   );
   const cancelShift = useShiftStore((s) => s.cancel);
+  const cancelShiftAsync = useShiftStore((s) => s.cancelAsync);
   const repostFromShift = useShiftStore((s) => s.repostFromShift);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -312,9 +314,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     showError(message);
   }
 
-  function handleApproveCancellation(appId: string) {
+  async function handleApproveCancellation(appId: string) {
+    if (actionLoading) return;
     setActionLoading(appId);
-    const result = approveCancellationRequest(appId);
+    const result = await approveCancellationRequestAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('feedback.applicant.cancellationApproved.success'));
@@ -323,9 +326,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     }
   }
 
-  function handleRejectCancellation(appId: string) {
+  async function handleRejectCancellation(appId: string) {
+    if (actionLoading) return;
     setActionLoading(appId);
-    const result = rejectCancellationRequest(appId);
+    const result = await rejectCancellationRequestAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('feedback.applicant.cancellationRejected.success'));
@@ -356,7 +360,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     router.push(`/employer/shifts/new?from=${result.value.id}`);
   }
 
-  function handleCancelShift() {
+  async function handleCancelShift() {
     if (cancelLoading) return;
     setCancelLoading(true);
     setCancelError(null);
@@ -365,6 +369,27 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     if (trimmed === '') {
       setCancelError('Vui lòng nhập lý do hủy.');
       setCancelLoading(false);
+      return;
+    }
+
+    // Supabase: hủy qua RPC (không có thông tin penalty client — Phase 3 mới có tiền).
+    if (getDataMode() === 'supabase') {
+      const res = await cancelShiftAsync(shift.id, trimmed);
+      if (!res.ok) {
+        const message = toastFromStoreError(res.error);
+        setCancelError(message);
+        showError(message);
+        setCancelLoading(false);
+        return;
+      }
+      setCancelLoading(false);
+      setCancelOpen(false);
+      setCancelReason('');
+      showSuccess(
+        t('feedback.shift.cancel.success'),
+        t('feedback.shift.cancel.success.desc'),
+      );
+      router.push('/employer/dashboard');
       return;
     }
 

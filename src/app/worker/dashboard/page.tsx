@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asWorker, getWorkerReputation } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
+import { getDataMode } from '@/data/supabaseClient';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWalletStore } from '@/stores/walletStore';
@@ -53,6 +54,7 @@ function WorkerDashboardContent() {
   const checkIn = useApplicationStore((s) => s.checkIn);
   const checkOut = useApplicationStore((s) => s.checkOut);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
+  const withdrawAsync = useApplicationStore((s) => s.withdrawAsync);
   const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
   const submitFeedback = useEmployerFeedbackStore((s) => s.submit);
   const allNotifications = useNotificationStore((s) => s.notifications);
@@ -521,9 +523,31 @@ function WorkerDashboardContent() {
     setCancelTarget(app);
   }
 
-  function handleCancelConfirm(reason: string) {
-    if (!cancelTarget) return;
+  async function handleCancelConfirm(reason: string) {
+    if (!cancelTarget || actionLoading) return;
     setActionLoading(cancelTarget.id);
+
+    // Supabase: rút qua RPC withdraw; trạng thái mới = 'CancellationRequested' (cần
+    // employer duyệt) hoặc 'CancelledByWorker'.
+    if (getDataMode() === 'supabase') {
+      const res = await withdrawAsync(cancelTarget.id, reason);
+      setActionLoading(null);
+      if (res.ok) {
+        if (res.value === 'CancellationRequested') {
+          showInfo(
+            t('feedback.cancelRequest.success'),
+            t('feedback.cancelRequest.success.desc'),
+          );
+        } else {
+          showSuccess(t('feedback.cancel.success'));
+        }
+        setCancelTarget(null);
+        return;
+      }
+      showError(toastFromStoreError(res.error));
+      return;
+    }
+
     const result = cancelByWorker(cancelTarget.id, reason);
     setActionLoading(null);
     if (result.ok) {
