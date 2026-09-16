@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
-import { useShiftStore } from '@/stores/shiftStore';
+import { useShiftStore, type NewShiftInput } from '@/stores/shiftStore';
+import { getDataMode } from '@/data/supabaseClient';
+import { hoursBetween } from '@/domain/deposit';
+import { newPrefixedId } from '@/lib/ids';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
@@ -48,6 +51,7 @@ function NewShiftContent() {
   const shifts = useShiftStore((s) => s.shifts);
   const createShift = useShiftStore((s) => s.create);
   const simulateDeposit = useShiftStore((s) => s.simulateDeposit);
+  const publishAsync = useShiftStore((s) => s.publishAsync);
   const discardDraftShift = useShiftStore((s) => s.discardDraftShift);
   const topUp = useWalletStore((s) => s.topUp);
   const walletBalance = useWalletStore((s) =>
@@ -112,6 +116,12 @@ function NewShiftContent() {
   const [createdShiftId, setCreatedShiftId] = useState<string | null>(null);
   const [depositAmount, setDepositAmount] = useState(0);
   const [deposited, setDeposited] = useState(false);
+  // Phase 2 supabase mode: giữ payload chờ + client_request_id (idempotent), publish
+  // (INSERT thẳng Published) ở bước "cọc mô phỏng". KHÔNG tạo row Draft trên server.
+  const [pendingInput, setPendingInput] = useState<NewShiftInput | null>(null);
+  const [pendingReqId, setPendingReqId] = useState<string>('');
+  const [depositLoading, setDepositLoading] = useState(false);
+  const SB_PENDING = '__pending_supabase__';
   // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
   // employer arrived via ?draft= or saved one this session). When set,
   // "Lưu nháp" updates it instead of creating a new draft.
@@ -292,6 +302,22 @@ function NewShiftContent() {
       showError(t('shift.create.error.CONTACT_PHONE_REQUIRED'));
       return;
     }
+    if (getDataMode() === 'supabase') {
+      // Supabase: KHÔNG tạo row Draft; giữ payload chờ, cọc mô phỏng = publish.
+      const input: NewShiftInput = { ...values, employerId: currentUserId };
+      const dep = Math.round(
+        values.hourlyWage * hoursBetween(values.startTime, values.endTime) * values.positionsTotal,
+      );
+      setPendingInput(input);
+      setPendingReqId(newPrefixedId('req'));
+      setCreatedShiftId(SB_PENDING);
+      setDepositAmount(dep);
+      showSuccess(
+        t('feedback.shift.create.success'),
+        t('feedback.shift.create.success.desc'),
+      );
+      return;
+    }
     const shift = createShift({ ...values, employerId: currentUserId });
     setCreatedShiftId(shift.id);
     setDepositAmount(shift.depositAmount);
@@ -346,8 +372,25 @@ function NewShiftContent() {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function handleDeposit() {
+  async function handleDeposit() {
     if (!createdShiftId) return;
+
+    // Supabase: cọc mô phỏng = publish_shift (INSERT thẳng Published, idempotent).
+    if (createdShiftId === SB_PENDING) {
+      if (!pendingInput || depositLoading) return;
+      setDepositLoading(true);
+      const res = await publishAsync(pendingInput, pendingReqId);
+      setDepositLoading(false);
+      if (!res.ok) {
+        showError('Không đăng được ca. ' + res.error);
+        return;
+      }
+      setDeposited(true);
+      showSuccess(t('feedback.shift.deposit.success'));
+      setTimeout(() => router.push(`/employer/shifts/${res.value}`), 1200);
+      return;
+    }
+
     const result = simulateDeposit(createdShiftId);
     if (!result.ok) {
       // CORE-STABILITY-7 Part 2 — insufficient balance keeps the Draft
@@ -594,6 +637,7 @@ function NewShiftContent() {
           trust={trust}
           ratio={ratio}
           onConfirm={handleDeposit}
+          loading={depositLoading}
         />
       )}
 
@@ -954,11 +998,13 @@ function DepositConfirmCard({
   trust,
   ratio,
   onConfirm,
+  loading = false,
 }: {
   depositAmount: number;
   trust: 'low' | 'medium' | 'high';
   ratio: number;
   onConfirm: () => void;
+  loading?: boolean;
 }) {
   // Reverse-calculate the full-wage figure so the breakdown line shows
   // both the gross amount and the discounted deposit. Avoids re-passing
@@ -1005,7 +1051,7 @@ function DepositConfirmCard({
         />
       </dl>
 
-      <Button variant="primary" size="lg" onClick={onConfirm} className="mt-4 w-full">
+      <Button variant="primary" size="lg" onClick={onConfirm} loading={loading} disabled={loading} className="mt-4 w-full">
         {t('deposit.confirmPaid')}
       </Button>
       {/* Honesty — this is a simulated deposit in the demo; make it

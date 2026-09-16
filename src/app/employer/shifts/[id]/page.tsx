@@ -87,8 +87,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const router = useRouter();
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
-  const approve = useApplicationStore((s) => s.approve);
-  const reject = useApplicationStore((s) => s.reject);
+  const approveAsync = useApplicationStore((s) => s.approveAsync);
+  const rejectAsync = useApplicationStore((s) => s.rejectAsync);
   const markNoShow = useApplicationStore((s) => s.markNoShow);
   const markPresentByEmployer = useApplicationStore(
     (s) => s.markPresentByEmployer,
@@ -167,9 +167,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   // mapping in `src/domain/skillScore.ts` flow through automatically.
   const riskLevel = jobCategoryRiskLevel(shift.jobType);
 
-  function handleApprove(appId: string) {
+  async function handleApprove(appId: string) {
+    if (actionLoading) return;
     setActionLoading(appId);
-    const result = approve(appId);
+    const result = await approveAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('feedback.applicant.approve.success'));
@@ -185,10 +186,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     setRejectingAppId(appId);
   }
 
-  function handleConfirmReject(reason: string) {
-    if (!rejectingAppId) return;
+  async function handleConfirmReject(reason: string) {
+    if (!rejectingAppId || actionLoading) return;
     setActionLoading(rejectingAppId);
-    const result = reject(rejectingAppId, reason);
+    const result = await rejectAsync(rejectingAppId, reason);
     setActionLoading(null);
     if (!result.ok) {
       const message =

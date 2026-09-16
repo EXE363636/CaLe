@@ -53,23 +53,44 @@ hydration, **NHƯNG UI vẫn gọi các method SYNC cũ** (create/simulateDeposi
 reject/cancel/edit/withdraw), CHƯA gọi các wrapper `*Async`. Vì vậy ở supabase mode luồng
 Employer–Worker **chưa chạy end-to-end** — đó là việc của Slice 4 (UI).
 
-**Thứ tự tiếp tục (core-first) — làm đúng thứ tự:**
-- **A.** Wire Employer tạo ca → `shiftStore.publishAsync` (supabase INSERT thẳng
-  Published, không Draft): `src/app/employer/shifts/new/page.tsx`.
-- **B.** Wire Worker xem ca + `applicationStore.applyAsync`: `src/app/shifts/[id]/page.tsx`
-  (+ listing `src/app/shifts/page.tsx`).
-- **C.** Wire Employer xem đơn + `approveAsync`/`rejectAsync`:
-  `src/app/employer/shifts/[id]/page.tsx`.
-- **D.** Wire Worker thấy trạng thái mới sau refetch: `src/app/worker/dashboard/page.tsx`.
-- **E.** Test THỦ CÔNG hai browser: publish → apply → approve.
-- **F.** Sau khi luồng lõi chạy → wire `editAsync`/`cancelAsync`/`withdrawAsync`/
-  `approve|rejectCancellationRequestAsync`.
-- **G.** Thêm refetch-on-focus (`visibilitychange`/route change) + loading chống double-click.
-- **H.** Viết E2E Supabase 2 browser (`test:e2e:supabase`), chạy full grid, rồi merge
-  branch vào `main`.
+**Slice 4 tiến độ (2026-09-16, đã commit lên `main`):**
+- ✅ **A** `src/app/employer/shifts/new/page.tsx` → `publishAsync` (supabase: giữ payload
+  chờ + `client_request_id` idempotent, "cọc mô phỏng" = `publish_shift` INSERT thẳng
+  Published; local giữ create+simulateDeposit). Nút cọc có loading chống double-click.
+- ✅ **B** `src/app/shifts/[id]/page.tsx` → `handleApply` = `await applyAsync`.
+- ✅ **C** `src/app/employer/shifts/[id]/page.tsx` → `handleApprove`=`approveAsync`,
+  `handleConfirmReject`=`rejectAsync` (dùng `actionLoading` chống double-click).
+- Local grid sau A–C: tsc 0, build 28, lint 0, unit 680/683, E2E 112/112.
+- ✅ **Đã verify UI thật trên cale-dev:** worker Supabase đăng nhập → `/shifts` hiển thị
+  ca công khai từ `public_shifts` + **tên NTD từ `public_profiles`** (hydration Slice 3
+  chạy đúng trong UI thật).
 
-Ràng buộc: **KHÔNG** làm payment/location/Cẩm nang/pricing/W6–W8 trong giai đoạn này.
-Không optimistic update ca/đơn. Giữ baseline local xanh sau mỗi bước.
+**🚧 BLOCKER cần quyết trước khi luồng lõi chạy END-TO-END qua UI:**
+Ở supabase mode, **gate VERIFICATION phía client CHẶN cả publish lẫn apply**:
+- Employer mới (chưa migrate verification) → trang tạo ca hiện "Bạn cần hoàn tất xác
+  minh nhà tuyển dụng trước khi đăng ca" → `handleSubmit` (readiness gate) chặn.
+- Worker mới → shift detail hiện "Bạn cần xác minh số điện thoại trước khi ứng tuyển"
+  → nút Ứng tuyển bị chặn.
+Verification chưa migrate (deferred) nên user Supabase thật KHÔNG có dữ liệu xác minh
+→ gate chặn. `docs/PHASE_2_PLAN.md §4.4`: verification **KHÔNG** phải security gate ở
+supabase mode và UI không được tuyên bố backend đảm bảo. → **Cần quyết:** (1) nới gate
+verification ở supabase mode (bỏ chặn client, để RPC quyết — hợp §4.4), hay (2) migrate
+verification. RPC apply/approve/publish KHÔNG chặn theo verification (đã proven 78/78) —
+chỉ UI client chặn. (Chủ dự án dặn "không làm verification" nên chưa tự nới; cần chỉ đạo.)
+
+**Còn lại (sau khi giải blocker verification):**
+- **D/E.** Chạy end-to-end 2 vai qua UI (publish→apply→approve→worker thấy) — hiện bị
+  gate verification chặn nên chưa demo trọn được; refetch/hydration đã chứng minh worker
+  thấy dữ liệu Supabase.
+- **F.** Wire `editAsync`/`cancelAsync`/`withdrawAsync`/`approve|rejectCancellationRequestAsync`
+  (call-site: employer shift detail edit/cancel + cancellation-request; worker withdraw ở
+  `src/app/worker/dashboard/page.tsx` / shift detail).
+- **G.** refetch-on-focus (`visibilitychange`/route change) để 2 máy đồng bộ không cần reload.
+- **H.** E2E Supabase 2 browser (`test:e2e:supabase`), full grid, rồi (nếu còn branch) merge.
+
+Ràng buộc: **KHÔNG** làm payment/location/Cẩm nang/pricing/W6–W8. Không optimistic
+update ca/đơn. Giữ baseline local xanh sau mỗi bước. Migration đã apply → chỉ tạo
+corrective mới. Không commit env/secret.
 
 ---
 

@@ -74,7 +74,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const users = useUserStore((s) => s.users);
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const applications = useApplicationStore((s) => s.applications);
-  const apply = useApplicationStore((s) => s.apply);
+  const applyAsync = useApplicationStore((s) => s.applyAsync);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
   // Cluster 1 (Property 2, Req 2.4) — reuse the SAME check-in/check-out
   // actions the worker dashboard uses so a check-in notification deep-link
@@ -159,11 +159,11 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     );
   }, [worker, cancelDialogOpen]);
 
-  function handleApply() {
-    if (!worker) return;
+  async function handleApply() {
+    if (!worker || loading) return;
     setLoading(true);
     setApplyError(null);
-    const result = apply(shift.id, worker.id);
+    const result = await applyAsync(shift.id, worker.id);
     setLoading(false);
     if (!result.ok) {
       // Phase 10C-Stab-1 Batch 2 F — when the apply was blocked by
