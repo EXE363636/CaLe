@@ -1,0 +1,110 @@
+# Core Pilot — Hướng dẫn test tay 2 tài khoản + Checklist deploy Vercel
+
+**Ngày:** 2026-09-16 · Mốc code freeze **20/9**. Bám `main@ae93ad8` (Phase 2 Slice 4 A–G).
+Không thêm chức năng mới. Không payment/GPS/OTP/rating/Boost/editAsync.
+
+---
+
+## PHẦN A — Test tay 2 tài khoản thật (cale-dev)
+
+### A0. Chuẩn bị
+- `.env.local` (mode supabase, lấy ở Dashboard `cale-dev` → Settings → API):
+  ```
+  NEXT_PUBLIC_DATA_MODE=supabase
+  NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+  ```
+- Chạy `npm run dev` (port 3000).
+- **Hai phiên đăng nhập song song:** session Supabase lưu theo origin/profile trình duyệt →
+  dùng **2 profile trình duyệt khác nhau** (hoặc 1 cửa sổ thường + 1 ẩn danh) để employer và
+  worker đăng nhập cùng lúc. (Một tab thường không giữ được 2 phiên.)
+- **Tài khoản:** `cale-dev` đang **BẬT email confirmation**. Cách nhanh nhất: nhờ quản trị tạo
+  sẵn 2 tài khoản đã confirm trong Supabase Dashboard (Auth → Users → Add user, tick *Auto
+  confirm*, set user metadata `role`), hoặc đăng ký qua UI rồi bấm link xác nhận trong email.
+  - Employer metadata: `{role:'employer', company_name, business_type, employer_type:'business', employer_type10a:'Company'}`
+  - Worker metadata: `{role:'worker', full_name, phone}`
+
+### A1. Luồng lõi (mục tiêu Core Pilot)
+1. **Employer (profile 1):** đăng nhập → **Đăng ca tuyển** (`/employer/shifts/new`) → điền:
+   Tên ca; Loại công việc; Địa điểm; **Ngày làm = sau HÔM NAY hơn 24 giờ** (vd +3 ngày); Giờ
+   bắt đầu/kết thúc (end > start, cùng ngày); Lương/giờ; Số lượng; **Ảnh địa điểm** (điền tên
+   file mô phỏng, vd `mat-tien.jpg`); Người phụ trách + SĐT (SĐT hợp lệ VN). → **Đăng ca /
+   cọc mô phỏng** → xác nhận **"Đảm bảo thanh toán (mô phỏng)"** → ca được đăng.
+   - ✔ Kỳ vọng: chuyển sang trang chi tiết ca; ca ở trạng thái **Đã đăng**.
+   - Lưu ý: ở supabase mode gate xác minh nhà tuyển dụng đã được **nới** (verification chưa
+     migrate, không phải security gate — RPC không chặn). Không cần xác minh để đăng.
+2. **Worker (profile 2):** đăng nhập → **Tìm ca làm** (`/shifts`) → thấy ca vừa đăng + **tên
+   NTD** → mở chi tiết → **Ứng tuyển**.
+   - ✔ Kỳ vọng: nút Ứng tuyển hoạt động (gate xác minh SĐT đã nới ở supabase mode); trạng thái
+     đơn = **Chờ duyệt**.
+3. **Employer (profile 1):** mở chi tiết ca (`/employer/shifts/[id]`) → thấy ứng viên → **Duyệt**
+   (hoặc **Từ chối** kèm lý do).
+   - ✔ Kỳ vọng: đơn → **Đã duyệt**; `Còn X/Y vị trí` giảm 1.
+4. **Worker (profile 2):** **focus lại** tab worker (hoặc mở lại `/worker/dashboard`) → trạng
+   thái đơn hiện **Đã duyệt** — **KHÔNG cần reload thủ công** nhờ refetch-on-focus.
+   - ✔ Kỳ vọng chính của Core Pilot: 2 máy thấy cùng trạng thái sau khi focus.
+
+### A2. Luồng phụ (nếu còn thời gian)
+- **Worker rút đơn:** dashboard/chi tiết → Huỷ đơn + lý do → nếu >3h trước giờ bắt đầu = huỷ
+  luôn (CancelledByWorker); nếu ≤3h = tạo **Yêu cầu huỷ** (chờ employer duyệt).
+- **Employer duyệt/ từ chối yêu cầu huỷ** → worker focus lại thấy cập nhật.
+- **Employer huỷ ca:** chi tiết ca → Huỷ ca + lý do (chặn nếu trong 6h & còn ứng viên active,
+  hoặc đã qua giờ bắt đầu) → đơn của ca chuyển terminal; ca gỡ khỏi listing công khai.
+
+### A3. Nếu phát hiện lỗi CHẶN luồng → báo ngay (chỉ sửa lỗi chặn, không thêm chức năng)
+Ghi rõ: bước nào, thông báo lỗi, và data mode. RPC layer đã test 78/78 (`npm run test:rls:phase2`)
+nên lỗi thường nằm ở wiring UI/refetch.
+
+---
+
+## PHẦN B — Checklist deploy Vercel (code freeze 20/9)
+
+### B1. Code (đã kiểm — ✅)
+- `npm run build` (production, supabase env) → **0 lỗi, 28 routes**. `getDataMode()` LAZY nên
+  build không throw.
+- **Không secret phía client:** chỉ 3 biến `NEXT_PUBLIC_*` (DATA_MODE, SUPABASE_URL,
+  SUPABASE_ANON_KEY). `service_role` chỉ ở `scripts/*.mjs` (Node test, đọc `.env.test.local`).
+- `.env*` gitignored; chỉ `.env.example` (rỗng giá trị) được commit.
+- ☐ (khuyến nghị) Nâng bản vá `next@16.2.6` → patch 16.x mới nhất trước khi public (rà `npm audit`).
+
+### B2. Biến môi trường Vercel (Project → Settings → Environment Variables, scope **Production**)
+- `NEXT_PUBLIC_DATA_MODE=supabase`
+- `NEXT_PUBLIC_SUPABASE_URL=<URL cale-prod>`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key cale-prod>`
+- **TUYỆT ĐỐI KHÔNG** đặt `service_role` / database password trên Vercel.
+- (Preview/Development env có thể trỏ `cale-dev` để test staging.)
+
+### B3. Supabase `cale-prod` (⚠ hiện MỚI chỉ có migration ở cale-dev)
+- ☐ **Push migration Phase 1+2 lên `cale-prod`**: `supabase link --project-ref <cale-prod>` →
+  `supabase db push` (4 migration: `20260915000001..0004`). Bắt buộc trước khi deploy — nếu
+  không app prod sẽ không có bảng.
+- ☐ Auth → **URL Configuration**: `Site URL` = `https://<domain-prod>`; thêm domain vào
+  **Redirect URLs** (để link xác nhận email trỏ đúng về prod).
+- ☐ Auth → Email confirmation: **BẬT** ở prod (khuyến nghị). RLS đã bật sẵn qua migration.
+- ☐ Seed: **cale-prod để RỖNG** (không seed demo). Employer thật đăng ca thật.
+- ☐ Tạo tài khoản **admin** thủ công (dashboard) + set `app_metadata.role=admin` (không qua signup).
+
+### B4. Domain / HTTPS
+- ☐ Vercel → Domains: thêm custom domain; trỏ DNS theo hướng dẫn Vercel (A/CNAME).
+- ☐ HTTPS: Vercel tự cấp SSL (Let's Encrypt) — chỉ cần domain verified. Ép HTTPS mặc định.
+- ☐ Sau khi có domain: cập nhật lại `Site URL`/`Redirect URLs` ở Supabase (B3) cho khớp domain.
+
+### B5. Analytics (tuỳ chọn, ngoài phạm vi Core Pilot)
+- ☐ (nếu cần) Bật **Vercel Analytics / Speed Insights** trong Project Settings — không cần code.
+- Không thêm analytics bên thứ ba trong giai đoạn freeze.
+
+### B6. Kiểm thử sau deploy (smoke prod)
+- ☐ Mở domain prod → landing render, không lỗi console.
+- ☐ Đăng ký/đăng nhập thật (email confirm về đúng domain).
+- ☐ Chạy lại luồng A1 trên prod với 2 tài khoản thật.
+- ☐ Kiểm không có biến `service_role`/secret nào lộ ra client (DevTools → Network/Source).
+
+---
+
+## Trạng thái hiện tại (tham chiếu)
+- `main@ae93ad8`: Phase 1 (auth/profile) + Phase 2 backend (migration cale-dev, RLS 78/78) +
+  Slice 4 A–G (publish/apply/approve/reject/cancel/withdraw/cancellation + refetch-on-focus,
+  gate verification nới ở supabase mode).
+- Local grid: tsc 0, build 28, lint 0, unit 680/683 (3 known handbook), E2E local 112/112.
+- Còn lại: `editAsync` (W6), E2E Supabase 2-browser tự động (H), và click-through 2 máy trên
+  cửa sổ hiện (phần A này). Xem `HANDOFF.md §00`.
