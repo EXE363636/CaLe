@@ -93,6 +93,23 @@ nên lỗi thường nằm ở wiring UI/refetch.
 - ☐ (nếu cần) Bật **Vercel Analytics / Speed Insights** trong Project Settings — không cần code.
 - Không thêm analytics bên thứ ba trong giai đoạn freeze.
 
+### B3b. Tài khoản admin (bootstrap qua CLI — KHÔNG sửa DB tay)
+Tạo/đảm bảo MỘT admin cố định để quản trị qua Admin Dashboard. Chạy **local** (Node,
+service_role chỉ ở máy bạn — không commit, không gửi chat):
+```bash
+npm run admin:bootstrap
+```
+- Script hỏi **email** + **mật khẩu admin** (mật khẩu nhập ẩn), hoặc đọc từ biến local
+  `ADMIN_EMAIL` / `ADMIN_PASSWORD` (không commit). Đọc `SUPABASE_SERVICE_ROLE_KEY` từ
+  `.env.local` / `.env.test.local` (đã gitignore).
+- **Idempotent:** chưa có → tạo + confirm email + set quyền; đã có → không tạo trùng,
+  chỉ đảm bảo `public.users.role='admin'` **và** trusted `app_metadata.role='admin'`.
+- Tài khoản **persistent** — không nằm trong cleanup của integration test.
+- Đăng nhập bằng email/mật khẩu đó → `/admin/dashboard`. Signup công khai KHÔNG chọn được
+  admin (trigger chặn role admin; form đăng ký chỉ worker/employer).
+- **Prod:** chạy với `.env.local` trỏ **`cale-prod`** để tạo admin trên prod (sau khi
+  `db push` migration lên cale-prod ở B3).
+
 ### B6. Kiểm thử sau deploy (smoke prod)
 - ☐ Mở domain prod → landing render, không lỗi console.
 - ☐ Đăng ký/đăng nhập thật (email confirm về đúng domain).

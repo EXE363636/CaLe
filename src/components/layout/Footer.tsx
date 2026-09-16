@@ -143,14 +143,22 @@ export function Footer() {
           </p>
         </div>
 
-        {/* CORE-STABILITY-9 Part 6 — honest backend-status note. This
-            MVP has NO backend: all data lives in the browser's
-            localStorage. Surfaced site-wide so users understand the
-            demo's persistence model and don't expect server sync. */}
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">
-          Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu.
-          Trong MVP/demo không có giao dịch thật.
-        </p>
+        {/* Honest backend-status note — theo data mode (build-time inlined).
+            - supabase: tài khoản/ca/đơn đã ở máy chủ (thật); CHỈ cọc/giữ tiền còn
+              mô phỏng (Phase 3 mới có thanh toán thật).
+            - local (demo/prototype): dữ liệu ở localStorage.
+            Dùng process.env trực tiếp (không getDataMode()) để build không throw. */}
+        {process.env.NEXT_PUBLIC_DATA_MODE === 'supabase' ? (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">
+            Tài khoản và ca làm được lưu trên máy chủ. Việc giữ tiền cọc hiện vẫn là
+            mô phỏng — chưa có giao dịch thanh toán thật.
+          </p>
+        ) : (
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">
+            Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu.
+            Trong MVP/demo không có giao dịch thật.
+          </p>
+        )}
       </div>
     </footer>
   );
