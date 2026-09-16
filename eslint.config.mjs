@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Supabase Edge Functions chạy trên Deno (global Deno, import từ URL) —
+    // không thuộc đồ thị Next/Node nên bỏ qua ESLint của app.
+    "supabase/functions/**",
   ]),
 ]);
 

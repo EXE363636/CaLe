@@ -139,7 +139,7 @@ export function Footer() {
         <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-gray-100 pt-6 text-xs text-gray-500 sm:flex-row sm:items-center">
           <p>© 2026 CaLedo Tech. All rights reserved.</p>
           <p className="text-xs text-gray-400">
-            Made with care by CaLeDo Tech ❤️
+            Made with care by CaLeDo Tech ❤️ Made for her
           </p>
         </div>
 
@@ -149,9 +149,9 @@ export function Footer() {
             - local (demo/prototype): dữ liệu ở localStorage.
             Dùng process.env trực tiếp (không getDataMode()) để build không throw. */}
         {process.env.NEXT_PUBLIC_DATA_MODE === 'supabase' ? (
-          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">
-            Tài khoản và ca làm được lưu trên máy chủ. Việc giữ tiền cọc hiện vẫn là
-            mô phỏng — chưa có giao dịch thanh toán thật.
+          <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-[11px] leading-relaxed text-gray-600 ring-1 ring-gray-100">
+            Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống.
+            CaLẻ hiện chưa hỗ trợ thu, giữ hoặc chuyển tiền giữa hai bên.
           </p>
         ) : (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">

@@ -10,6 +10,7 @@ import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
 import { isValidEmail, isRequired } from '@/lib/validate';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 const DASHBOARD: Record<string, string> = {
   worker: '/worker/dashboard',
@@ -87,9 +88,9 @@ export default function LoginPage() {
               <p className="mt-1 text-sm text-gray-600">{t('auth.login.subtitle')}</p>
             </div>
 
-            {/* Demo hint — neutral surface so the sole orange anchor on the
-                screen stays the primary CTA (The One Orange Rule); borderless
-                to avoid a card-in-card look inside the auth card. */}
+            {/* Demo hint — CHỈ hiện ở local/demo mode. Ở supabase/production tuyệt đối
+                không lộ email seed / mật khẩu `demo` (B1). */}
+            {!isSupabaseEnv() && (
             <details className="group mb-5 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
               <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between font-semibold text-gray-700 marker:hidden">
                 <span>Tài khoản demo</span>
@@ -101,6 +102,7 @@ export default function LoginPage() {
                 <p>Admin: <span className="font-mono">admin@cale.vn</span> / <span className="font-mono">demo</span></p>
               </div>
             </details>
+            )}
 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
               <Input

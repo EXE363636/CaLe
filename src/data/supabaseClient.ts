@@ -65,6 +65,15 @@ export function isSupabaseMode(): boolean {
   return getDataMode() === 'supabase';
 }
 
+/**
+ * Build-safe: đọc THẲNG `NEXT_PUBLIC_DATA_MODE` (không throw như getDataMode) — dùng
+ * cho điều kiện RENDER (chạy cả lúc `next build`) để ẩn công cụ dev/demo/mock ở
+ * chế độ supabase/production. KHÔNG dùng cho quyết định bảo mật.
+ */
+export function isSupabaseEnv(): boolean {
+  return process.env.NEXT_PUBLIC_DATA_MODE === 'supabase';
+}
+
 // ---------------------------------------------------------------------------
 // Lazy singleton — chỉ khởi tạo khi thực sự ở chế độ supabase.
 // ---------------------------------------------------------------------------

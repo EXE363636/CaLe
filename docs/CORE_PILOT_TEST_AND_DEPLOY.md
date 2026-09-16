@@ -110,6 +110,40 @@ npm run admin:bootstrap
 - **Prod:** chạy với `.env.local` trỏ **`cale-prod`** để tạo admin trên prod (sau khi
   `db push` migration lên cale-prod ở B3).
 
+### B3c. Edge Function `admin-users` (quản lý tài khoản trong Admin Dashboard)
+
+Admin Dashboard (chế độ supabase) có thể **tạo / khoá / mở khoá / xoá vĩnh viễn** tài
+khoản Worker/Employer. Mọi thao tác đặc quyền chạy trong Edge Function `admin-users`
+(Deno) — **service_role chỉ ở server, không bao giờ ra trình duyệt/Vercel**.
+
+**Deploy (bước tương tác, chạy local với Supabase CLI đã login + link project):**
+```bash
+supabase functions deploy admin-users
+```
+- Không cần set secret thủ công: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` được
+  Supabase **tự inject** vào runtime của Edge Function.
+- Deploy riêng cho từng project: chạy khi đang link `cale-dev` (để test), rồi link
+  `cale-prod` và deploy lại trước khi mở prod.
+- Hàm tự xác thực JWT người gọi và **chỉ chấp nhận** khi trusted
+  `app_metadata.role==='admin'`; anon/non-admin → 401/403.
+
+**Kiểm thử hành vi (sau deploy, chạy local, cần `.env.test.local` có service_role):**
+```bash
+npm run test:admin
+```
+- Bao phủ: anon/non-admin bị chặn tạo/xoá; admin tạo Worker/Employer thật; email trùng →
+  `EMAIL_EXISTS`; không tạo được role admin từ API; xoá tài khoản sạch (biến mất khỏi Auth
+  + DB); tài khoản có ca/đơn → `USER_HAS_HISTORY`; admin không tự xoá; không xoá admin khác;
+  khoá/mở khoá. Test tự dọn user tạm (không đụng admin bootstrap cố định).
+
+**Dùng trong Admin Dashboard → tab "Người dùng" (chế độ supabase):**
+- **Tạo tài khoản:** chọn vai trò (Worker/Employer — KHÔNG có admin), nhập email + tên
+  hiển thị + mật khẩu tạm (≥8 ký tự). Danh sách tự tải lại sau khi tạo.
+- **Khoá / Mở khoá:** giữ nguyên tài khoản + lịch sử, chỉ chặn hoạt động mới.
+- **Xoá vĩnh viễn:** chỉ tài khoản **chưa có ca/đơn**. Modal cảnh báo yêu cầu **gõ lại
+  đúng email** để xác nhận (không hoàn tác). Tài khoản có lịch sử → hệ thống báo dùng
+  "Khoá tài khoản" thay vì xoá (tránh cascade xoá lây dữ liệu bên khác).
+
 ### B6. Kiểm thử sau deploy (smoke prod)
 - ☐ Mở domain prod → landing render, không lỗi console.
 - ☐ Đăng ký/đăng nhập thật (email confirm về đúng domain).

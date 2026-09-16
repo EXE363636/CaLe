@@ -16,6 +16,8 @@ import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDia
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
+import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { canCheckIn, canCheckOut } from '@/domain/timeGates';
 import { deriveAttendanceState, attendanceCopyKey } from '@/domain/attendanceState';
 import { suggestShiftsForWorker } from '@/domain/availabilityMatch';
@@ -734,11 +736,15 @@ function WorkerDashboardContent() {
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
           this follows the work area + stats (order-3); desktop unchanged. */}
       <section className="order-3 mb-8 lg:order-none">
-        <WalletPanel
-          userId={worker.id}
-          role="worker"
-          openLedgerSignal={walletLedgerSignal}
-        />
+        {isSupabaseEnv() ? (
+          <NoPaymentNotice />
+        ) : (
+          <WalletPanel
+            userId={worker.id}
+            role="worker"
+            openLedgerSignal={walletLedgerSignal}
+          />
+        )}
       </section>
 
       {/* Mobile-first ordering — the work area (upcoming + actions) leads

@@ -1,10 +1,38 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 export const metadata = {
-  title: 'Giữ tiền ca làm (mô phỏng) — CaLẻ / Now',
+  title: 'Thanh toán — CaLẻ / Now',
 };
 
 export default function EmployerPaymentsPage() {
+  // Supabase/production: CaLẻ chưa thu/giữ tiền → nội dung trung thực, không mô tả
+  // ví ký quỹ / giải ngân mô phỏng (B4). Giữ phần quy định huỷ ca (thật, server enforce).
+  if (isSupabaseEnv()) {
+    return (
+      <InfoPage
+        eyebrow="Dành cho nhà tuyển dụng"
+        title="Thanh toán"
+        intro="CaLẻ hiện chưa thu, giữ hoặc chuyển tiền giữa hai bên. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán trực tiếp."
+        ctas={[
+          { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
+          { label: 'Quản lý ứng viên', href: '/employer/dashboard', variant: 'secondary' },
+        ]}
+      >
+        <InfoSection title="Quy định huỷ ca cho nhà tuyển dụng">
+          <InfoList
+            items={[
+              'Trước 6 giờ: được huỷ.',
+              'Trong vòng 6 giờ trước giờ bắt đầu và đã có ứng viên chờ duyệt/đã duyệt: chặn huỷ để bảo vệ người lao động.',
+              'Trong vòng 6 giờ và chưa có ứng viên nào: vẫn được huỷ.',
+              'Sau giờ bắt đầu: không được huỷ.',
+            ]}
+          />
+        </InfoSection>
+      </InfoPage>
+    );
+  }
+
   return (
     <InfoPage
       eyebrow="Dành cho nhà tuyển dụng"

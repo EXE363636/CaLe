@@ -46,6 +46,7 @@ import {
   workerProfileTaskCount,
 } from '@/domain/taskBadges';
 import { TaskBadge } from '@/components/ui';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
@@ -245,6 +246,20 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
     },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// B4 — supabase/production: CaLẻ chưa thu/giữ tiền, nên ẩn mục điều hướng
+// "Giữ tiền ca làm (mô phỏng)" khỏi dropdown nhà tuyển dụng. Local/demo giữ
+// nguyên để phục vụ test. Lọc ở lúc render nên các const nhóm + NAV_GROUPS
+// (dùng cho test) không đổi.
+// ---------------------------------------------------------------------------
+function hidePaymentsInSupabase(group: MenuGroup): MenuGroup {
+  if (!isSupabaseEnv()) return group;
+  return {
+    ...group,
+    items: group.items.filter((it) => it.href !== '/employer/payments'),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Active-state helper
@@ -601,7 +616,7 @@ function PublicNav({
       />
       <Dropdown
         id="employer"
-        group={EMPLOYER_GROUP_PUBLIC}
+        group={hidePaymentsInSupabase(EMPLOYER_GROUP_PUBLIC)}
         pathname={pathname}
         isOpen={activeDropdown === 'employer'}
         registerContainer={registerContainer}

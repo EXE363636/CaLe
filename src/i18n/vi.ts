@@ -530,6 +530,54 @@ export const vi: Record<string, string> = {
   'admin.error.CANNOT_SUSPEND_LAST_ADMIN':
     'Không thể tạm khoá quản trị viên đang hoạt động cuối cùng.',
   'admin.user.currentAccount': 'Tài khoản hiện tại',
+  // -------------------------------------------------------------------------
+  // Admin Account Management (task C/D) — tạo / khoá / xoá tài khoản thật.
+  // CHỈ hiển thị ở chế độ supabase. Mọi thao tác chạy qua Edge Function.
+  // -------------------------------------------------------------------------
+  'admin.accounts.create.title': 'Tạo tài khoản mới',
+  'admin.accounts.create.intro':
+    'Tạo tài khoản Người lao động hoặc Nhà tuyển dụng. Tài khoản quản trị viên chỉ tạo được bằng công cụ bootstrap, không tạo từ đây.',
+  'admin.accounts.create.email': 'Email đăng nhập',
+  'admin.accounts.create.displayName.worker': 'Họ và tên',
+  'admin.accounts.create.displayName.employer': 'Tên doanh nghiệp',
+  'admin.accounts.create.role': 'Vai trò',
+  'admin.accounts.create.role.worker': 'Người lao động',
+  'admin.accounts.create.role.employer': 'Nhà tuyển dụng',
+  'admin.accounts.create.password': 'Mật khẩu tạm thời',
+  'admin.accounts.create.password.hint': 'Tối thiểu 8 ký tự. Nhắc người dùng đổi lại sau khi đăng nhập.',
+  'admin.accounts.create.submit': 'Tạo tài khoản',
+  'admin.accounts.create.submitting': 'Đang tạo…',
+  'admin.accounts.delete.button': 'Xoá vĩnh viễn',
+  'admin.accounts.delete.modal.title': 'Xoá vĩnh viễn tài khoản',
+  'admin.accounts.delete.modal.warning':
+    'Hành động này KHÔNG THỂ hoàn tác. Tài khoản sẽ bị xoá khỏi hệ thống đăng nhập và cơ sở dữ liệu. Chỉ áp dụng cho tài khoản chưa có ca làm hoặc đơn ứng tuyển nào.',
+  'admin.accounts.delete.modal.retype': 'Nhập lại email để xác nhận',
+  'admin.accounts.delete.modal.retypePlaceholder': 'Nhập chính xác email tài khoản',
+  'admin.accounts.delete.modal.confirm': 'Tôi hiểu, xoá vĩnh viễn',
+  'admin.accounts.delete.modal.deleting': 'Đang xoá…',
+  'admin.accounts.refresh': 'Tải lại danh sách',
+  // Feedback
+  'admin.accounts.feedback.created': 'Đã tạo tài khoản mới.',
+  'admin.accounts.feedback.deleted': 'Đã xoá vĩnh viễn tài khoản.',
+  'admin.accounts.feedback.suspended': 'Đã khoá tài khoản.',
+  'admin.accounts.feedback.reactivated': 'Đã mở khoá tài khoản.',
+  // Mã lỗi từ Edge Function → thông báo tiếng Việt.
+  'admin.accounts.error.EMAIL_EXISTS': 'Email này đã được sử dụng cho một tài khoản khác.',
+  'admin.accounts.error.INVALID_EMAIL': 'Email không hợp lệ.',
+  'admin.accounts.error.WEAK_PASSWORD': 'Mật khẩu cần tối thiểu 8 ký tự.',
+  'admin.accounts.error.MISSING_DISPLAY_NAME': 'Vui lòng nhập tên hiển thị.',
+  'admin.accounts.error.INVALID_ROLE': 'Chỉ tạo được Người lao động hoặc Nhà tuyển dụng.',
+  'admin.accounts.error.USER_HAS_HISTORY':
+    'Tài khoản đã có ca làm hoặc đơn ứng tuyển nên không thể xoá. Hãy dùng "Khoá tài khoản" để ngăn hoạt động mới mà vẫn giữ lịch sử.',
+  'admin.accounts.error.CANNOT_DELETE_ADMIN': 'Không thể xoá tài khoản quản trị viên.',
+  'admin.accounts.error.CANNOT_DELETE_SELF': 'Bạn không thể tự xoá tài khoản đang đăng nhập.',
+  'admin.accounts.error.CANNOT_SUSPEND_ADMIN': 'Không thể khoá tài khoản quản trị viên.',
+  'admin.accounts.error.CANNOT_SUSPEND_SELF': 'Bạn không thể khoá chính tài khoản đang đăng nhập.',
+  'admin.accounts.error.NOT_FOUND': 'Không tìm thấy tài khoản.',
+  'admin.accounts.error.FORBIDDEN': 'Bạn không có quyền thực hiện thao tác này.',
+  'admin.accounts.error.UNAUTHENTICATED': 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+  'admin.accounts.error.RETYPE_MISMATCH': 'Email nhập lại chưa khớp.',
+  'admin.accounts.error.UNKNOWN': 'Có lỗi xảy ra. Vui lòng thử lại.',
   'admin.user.sortBy.reputation': 'Sắp xếp theo điểm uy tín ↓',
   'admin.user.sortField': 'Sắp xếp theo',
   'admin.user.sortField.name': 'Tên',
@@ -717,6 +765,9 @@ export const vi: Record<string, string> = {
   // Honest microcopy rendered directly under the hero CTAs.
   'landing.hero.trustHint':
     'Miễn phí dùng thử · Đây là bản demo · Các bước thanh toán đều là mô phỏng.',
+  // Supabase/production (Beta): tài khoản/ca/đơn là thật; CaLẻ chưa thu/giữ tiền.
+  'landing.hero.trustHint.supabase':
+    'Miễn phí dùng thử · Giai đoạn thử nghiệm giới hạn (Beta) · CaLẻ chưa thu hoặc giữ tiền.',
 
   // Live shift board (FeaturedJobMockup). Presentation-only labels for the
   // dispatch board. repLabel is locked (see HONESTY RULE note above).
@@ -750,6 +801,8 @@ export const vi: Record<string, string> = {
     'Điểm uy tín được cập nhật sau mỗi ca đã hoàn thành.',
   'landing.trust.simNote':
     'Các bước giữ tiền và thanh toán hiện là mô phỏng trong prototype.',
+  'landing.trust.simNote.supabase':
+    'CaLẻ hiện chưa hỗ trợ thu, giữ hoặc chuyển tiền giữa hai bên. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán.',
 
   // How it works - merged worker lane + employer lane, three steps each.
   'landing.howItWorks.title': 'Cách hoạt động',
@@ -771,6 +824,8 @@ export const vi: Record<string, string> = {
   'landing.safety.title': 'An toàn và minh bạch theo từng ca',
   'landing.safety.lead':
     'Những cơ chế giúp hai bên yên tâm - và phần tài chính hiện chỉ là mô phỏng.',
+  'landing.safety.lead.supabase':
+    'Những cơ chế giúp hai bên yên tâm khi thống nhất và theo dõi từng ca làm.',
   'landing.safety.confirm.title': 'Xác nhận hai chiều',
   'landing.safety.confirm.desc':
     'Người lao động và nhà tuyển dụng cùng xác nhận trạng thái từng ca.',
@@ -783,6 +838,10 @@ export const vi: Record<string, string> = {
   'landing.safety.finance.title': 'Đảm bảo thanh toán',
   'landing.safety.finance.desc':
     'Đặt cọc, ví và thanh toán đều là sổ cái mô phỏng trong bản demo - chưa có giao dịch thật.',
+  // Supabase/production: không có ví/ký quỹ; nói đúng bản chất tự thống nhất.
+  'landing.safety.finance.title.supabase': 'Tự thống nhất thanh toán',
+  'landing.safety.finance.desc.supabase':
+    'CaLẻ chưa thu hoặc giữ tiền. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán trực tiếp.',
 
   // Worker / employer split - two clear choices.
   'landing.split.worker.title': 'Tôi muốn tìm ca',
@@ -820,12 +879,18 @@ export const vi: Record<string, string> = {
     'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người lao động linh hoạt.',
   'auth.side.benefit1': 'Thanh toán minh bạch',
   'auth.side.benefit1.desc': 'Nhà tuyển dụng thanh toán trước, tiền chỉ giải ngân khi hoàn thành.',
+  // Supabase/production: CaLẻ chưa thu/giữ tiền → mô tả trung thực.
+  'auth.side.benefit1.supabase': 'Rõ ca – rõ tiền',
+  'auth.side.benefit1.desc.supabase':
+    'Mỗi ca ghi rõ giờ làm và tiền công. CaLẻ chưa thu hoặc giữ tiền; hai bên tự thống nhất cách thanh toán.',
   'auth.side.benefit2': 'Không phí ẩn',
   'auth.side.benefit2.desc': 'Người lao động không phải trả trước. Đăng ký miễn phí.',
   'auth.side.benefit3': 'Điểm uy tín hai chiều',
   'auth.side.benefit3.desc': 'Đánh giá hai chiều giúp xây dựng cộng đồng tin cậy.',
   'auth.side.disclaimer':
     'Phiên bản MVP - toàn bộ thanh toán & xác minh đều giả lập, không có giao dịch thật.',
+  'auth.side.disclaimer.supabase':
+    'Giai đoạn thử nghiệm giới hạn (Beta). Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. CaLẻ hiện chưa hỗ trợ thu, giữ hoặc chuyển tiền giữa hai bên.',
 
   // -------------------------------------------------------------------------
   // Worker dashboard

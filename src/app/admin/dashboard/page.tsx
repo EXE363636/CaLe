@@ -13,7 +13,7 @@ import { useVerificationStore } from '@/stores';
 import { useReviewReportStore } from '@/stores/reviewReportStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { adminVerificationTaskCount, adminDisputeTaskCount } from '@/domain/taskBadges';
-import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge } from '@/components/ui';
+import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge, Modal, Select } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
@@ -25,6 +25,7 @@ import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { exportSnapshot, importSnapshot } from '@/data/persistence';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { t } from '@/i18n/vi';
 import type { Application, Dispute, EscrowStatus, Shift, User } from '@/types';
 
@@ -271,10 +272,9 @@ function AdminDashboardContent() {
       {tab === 'disputes' && <DisputesPanel />}
       {tab === 'verifications' && <VerificationsPanel />}
 
-      {/* Phase 10C-Stab-1 Batch 2 — admin-only snapshot dev utility.
-          Mounted inline on `/admin/dashboard` so it does not add a
-          new route. */}
-      <SnapshotDevUtility />
+      {/* Admin-only snapshot dev utility — CHỈ local/demo mode. Ở supabase/
+          production ẩn hoàn toàn (công cụ mock/localStorage của developer, B2). */}
+      {!isSupabaseEnv() && <SnapshotDevUtility />}
     </div>
   );
 }
@@ -453,6 +453,16 @@ function StatCard({
 // Users tab
 // ---------------------------------------------------------------------------
 
+/**
+ * Ánh xạ MÃ lỗi từ Edge Function `admin-users` → thông báo tiếng Việt.
+ * Mã lạ → thông báo chung UNKNOWN (không rò chi tiết kỹ thuật ra UI).
+ */
+function accountErrorMessage(code: string): string {
+  const key = `admin.accounts.error.${code}`;
+  const msg = t(key);
+  return msg === key ? t('admin.accounts.error.UNKNOWN') : msg;
+}
+
 function UsersPanel({
   initialFilter = 'all',
 }: {
@@ -461,7 +471,14 @@ function UsersPanel({
   const users = useUserStore((s) => s.users);
   const suspend = useAdminStore((s) => s.suspend);
   const reactivate = useAdminStore((s) => s.reactivate);
+  const setSuspendedAsync = useAdminStore((s) => s.setSuspendedAsync);
+  const deleteUserAsync = useAdminStore((s) => s.deleteUserAsync);
+  const refreshUsersAsync = useAdminStore((s) => s.refreshUsersAsync);
   const currentAdminId = useAuthStore((s) => s.currentUserId);
+
+  // Admin Account Management (task C/D) — CHỈ chế độ supabase mới hiện form tạo
+  // tài khoản + nút xoá vĩnh viễn, và mới thao tác trên user THẬT (Edge Function).
+  const supabase = isSupabaseEnv();
 
   const [filter, setFilter] = useState<'all' | 'worker' | 'employer' | 'admin'>(
     initialFilter,
@@ -469,6 +486,29 @@ function UsersPanel({
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  // Xoá vĩnh viễn — user đang chờ xác nhận trong Danger Modal.
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Supabase: nạp danh sách user THẬT khi mở tab (thay cho seed demo).
+  useEffect(() => {
+    if (!supabase) return;
+    let alive = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional loading flag for the on-mount admin user fetch (supabase mode)
+    setLoadingUsers(true);
+    void refreshUsersAsync().then((r) => {
+      if (!alive) return;
+      if (!r.ok) {
+        const message = accountErrorMessage(r.error);
+        setActionError(message);
+        showError(message);
+      }
+      setLoadingUsers(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [supabase, refreshUsersAsync]);
 
   // Phase 9F — explicit sort field + direction. `joinedAt` falls back to
   // `id` because the user record has no createdAt; the id ordering is
@@ -523,9 +563,22 @@ function UsersPanel({
     [users, profileUserId],
   );
 
-  // Helpers that surface error messages on failure
-  function handleSuspend(userId: string) {
+  // Helpers that surface error messages on failure. Supabase mode routes the
+  // suspend/unsuspend through the Edge Function (real DB); local mode keeps the
+  // synchronous store path untouched.
+  async function handleSuspend(userId: string) {
     setActionError(null);
+    if (supabase) {
+      const result = await setSuspendedAsync(userId, true);
+      if (!result.ok) {
+        const message = accountErrorMessage(result.error);
+        setActionError(message);
+        showError(message);
+      } else {
+        showSuccess(t('admin.accounts.feedback.suspended'));
+      }
+      return;
+    }
     const result = suspend(userId);
     if (!result.ok) {
       const message = toastFromStoreError(result.error);
@@ -535,8 +588,19 @@ function UsersPanel({
       showSuccess(t('feedback.admin.suspend.success'));
     }
   }
-  function handleReactivate(userId: string) {
+  async function handleReactivate(userId: string) {
     setActionError(null);
+    if (supabase) {
+      const result = await setSuspendedAsync(userId, false);
+      if (!result.ok) {
+        const message = accountErrorMessage(result.error);
+        setActionError(message);
+        showError(message);
+      } else {
+        showSuccess(t('admin.accounts.feedback.reactivated'));
+      }
+      return;
+    }
     const result = reactivate(userId);
     if (!result.ok) {
       const message = toastFromStoreError(result.error);
@@ -545,6 +609,20 @@ function UsersPanel({
     } else {
       showSuccess(t('feedback.admin.reactivate.success'));
     }
+  }
+
+  // Xoá vĩnh viễn (supabase). Trả về Result để Danger Modal xử lý loading/lỗi.
+  async function handleConfirmDelete(userId: string): Promise<boolean> {
+    setActionError(null);
+    const result = await deleteUserAsync(userId);
+    if (!result.ok) {
+      const message = accountErrorMessage(result.error);
+      setActionError(message);
+      showError(message);
+      return false;
+    }
+    showSuccess(t('admin.accounts.feedback.deleted'));
+    return true;
   }
 
   // Count of currently active admins — used to disable the suspend button
@@ -556,8 +634,17 @@ function UsersPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Role filter */}
-      <div className="flex flex-wrap gap-2">
+      {/* Admin Account Management (task C/D) — form tạo tài khoản CHỈ ở supabase. */}
+      {supabase && (
+        <CreateAccountForm
+          onCreated={() => {
+            /* refetch đã chạy trong createUserAsync; không cần thêm */
+          }}
+        />
+      )}
+
+      {/* Role filter + (supabase) nút tải lại danh sách thật */}
+      <div className="flex flex-wrap items-center gap-2">
         {(['all', 'worker', 'employer', 'admin'] as const).map((r) => (
           <Button
             key={r}
@@ -568,6 +655,23 @@ function UsersPanel({
             {r === 'all' ? 'Tất cả' : t(`role.${r}`)}
           </Button>
         ))}
+        {supabase && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto border border-gray-300 bg-white"
+            loading={loadingUsers}
+            onClick={() => {
+              setLoadingUsers(true);
+              void refreshUsersAsync().then((r) => {
+                if (!r.ok) showError(accountErrorMessage(r.error));
+                setLoadingUsers(false);
+              });
+            }}
+          >
+            {t('admin.accounts.refresh')}
+          </Button>
+        )}
       </div>
 
       {/* Action error toast */}
@@ -632,6 +736,13 @@ function UsersPanel({
             onSuspend={() => handleSuspend(user.id)}
             onReactivate={() => handleReactivate(user.id)}
             onOpenProfile={() => setProfileUserId(user.id)}
+            /* Xoá vĩnh viễn: chỉ supabase, chỉ worker/employer, không phải chính mình. */
+            canDelete={
+              supabase &&
+              user.role !== 'admin' &&
+              user.id !== currentAdminId
+            }
+            onDelete={() => setDeleteTarget(user)}
           />
         ))}
       </ul>
@@ -643,7 +754,196 @@ function UsersPanel({
         user={profileUser}
         isSelf={profileUser?.id === currentAdminId}
       />
+
+      {/* Danger Modal — xoá vĩnh viễn (supabase). */}
+      <DeleteAccountModal
+        user={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Admin Account Management (task C/D) — create form + danger delete modal.
+// Cả hai CHỈ mount ở chế độ supabase (UsersPanel gate bằng isSupabaseEnv()).
+// ---------------------------------------------------------------------------
+
+function displayNameOf(user: User): string {
+  return user.role === 'worker'
+    ? user.fullName
+    : user.role === 'employer'
+      ? user.companyName
+      : user.email;
+}
+
+function CreateAccountForm({ onCreated }: { onCreated: () => void }) {
+  const createUserAsync = useAdminStore((s) => s.createUserAsync);
+  const [role, setRole] = useState<'worker' | 'employer'>('worker');
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canSubmit =
+    email.trim() !== '' &&
+    displayName.trim() !== '' &&
+    password.length >= 8 &&
+    !submitting;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return; // chặn double-click / submit thiếu field
+    setSubmitting(true);
+    setError(null);
+    const result = await createUserAsync({
+      email: email.trim().toLowerCase(),
+      displayName: displayName.trim(),
+      password,
+      role,
+    });
+    setSubmitting(false);
+    if (!result.ok) {
+      const message = accountErrorMessage(result.error);
+      setError(message);
+      showError(message);
+      return;
+    }
+    showSuccess(t('admin.accounts.feedback.created'));
+    setEmail('');
+    setDisplayName('');
+    setPassword('');
+    onCreated();
+  }
+
+  return (
+    <Card>
+      <h3 className="text-base font-semibold text-gray-900">
+        {t('admin.accounts.create.title')}
+      </h3>
+      <p className="mt-1 text-sm text-gray-500">
+        {t('admin.accounts.create.intro')}
+      </p>
+      <form className="mt-4 flex flex-col gap-3" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Select
+            label={t('admin.accounts.create.role')}
+            value={role}
+            onChange={(e) => setRole(e.target.value as 'worker' | 'employer')}
+            options={[
+              { value: 'worker', label: t('admin.accounts.create.role.worker') },
+              { value: 'employer', label: t('admin.accounts.create.role.employer') },
+            ]}
+          />
+          <Input
+            label={
+              role === 'worker'
+                ? t('admin.accounts.create.displayName.worker')
+                : t('admin.accounts.create.displayName.employer')
+            }
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+          />
+          <Input
+            label={t('admin.accounts.create.email')}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label={t('admin.accounts.create.password')}
+            type="password"
+            hint={t('admin.accounts.create.password.hint')}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {error && (
+          <p role="alert" className="text-sm text-red-600">
+            {error}
+          </p>
+        )}
+        <div className="flex justify-end">
+          <Button type="submit" variant="primary" loading={submitting} disabled={!canSubmit}>
+            {submitting
+              ? t('admin.accounts.create.submitting')
+              : t('admin.accounts.create.submit')}
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function DeleteAccountModal({
+  user,
+  onClose,
+  onConfirm,
+}: {
+  user: User | null;
+  onClose: () => void;
+  onConfirm: (userId: string) => Promise<boolean>;
+}) {
+  const [retype, setRetype] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Reset state khi mở modal cho user khác.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional reset of retype/deleting when the delete target changes
+    setRetype('');
+    setDeleting(false);
+  }, [user?.id]);
+
+  if (!user) return null;
+  const emailMatches = retype.trim().toLowerCase() === user.email.toLowerCase();
+
+  async function handleConfirm() {
+    if (!user || !emailMatches || deleting) return; // anti-double-click
+    setDeleting(true);
+    const ok = await onConfirm(user.id);
+    setDeleting(false);
+    if (ok) onClose();
+  }
+
+  return (
+    <Modal open={user !== null} onClose={onClose} title={t('admin.accounts.delete.modal.title')}>
+      <div className="flex flex-col gap-3">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {t('admin.accounts.delete.modal.warning')}
+        </div>
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold">{displayNameOf(user)}</span>{' '}
+          <span className="text-gray-500">({user.email})</span>
+        </p>
+        <Input
+          label={t('admin.accounts.delete.modal.retype')}
+          placeholder={t('admin.accounts.delete.modal.retypePlaceholder')}
+          value={retype}
+          onChange={(e) => setRetype(e.target.value)}
+          autoComplete="off"
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={deleting}>
+            {t('btn.cancel')}
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleConfirm}
+            loading={deleting}
+            disabled={!emailMatches || deleting}
+          >
+            {deleting
+              ? t('admin.accounts.delete.modal.deleting')
+              : t('admin.accounts.delete.modal.confirm')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -657,6 +957,8 @@ function UserRow({
   onSuspend,
   onReactivate,
   onOpenProfile,
+  canDelete = false,
+  onDelete,
 }: {
   user: User;
   isSelf: boolean;
@@ -667,6 +969,9 @@ function UserRow({
   onSuspend: () => void;
   onReactivate: () => void;
   onOpenProfile: () => void;
+  /** Task D — chỉ supabase, worker/employer, không phải chính mình. */
+  canDelete?: boolean;
+  onDelete?: () => void;
 }) {
   const adjustReputation = useAdminStore((s) => s.adjustReputation);
   // Worker-only row state. For non-workers `currentScore` is always 0; the
@@ -781,6 +1086,12 @@ function UserRow({
                 {t('btn.suspend')}
               </Button>
             )
+          )}
+          {/* Task D — xoá vĩnh viễn (supabase). Ẩn với admin/chính mình. */}
+          {canDelete && onDelete && (
+            <Button size="sm" variant="ghost" className="text-red-600" onClick={onDelete}>
+              {t('admin.accounts.delete.button')}
+            </Button>
           )}
         </div>
       </div>

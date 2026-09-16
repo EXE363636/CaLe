@@ -16,6 +16,7 @@
     "test:e2e:ci": "playwright test --reporter=github,html",
     "test:rls:supabase": "node scripts/phase1-rls-integration.mjs",
     "test:rls:phase2": "node scripts/phase2-rls-integration.mjs",
+    "test:admin": "node scripts/admin-management-integration.mjs",
     "admin:bootstrap": "node scripts/admin-bootstrap.mjs",
     "test:db": "supabase test db"
   },

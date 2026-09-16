@@ -16,6 +16,11 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import {
+  adminUserRepo,
+  AdminApiError,
+  type AdminCreateInput,
+} from '@/data/repos/adminUserRepo';
 import { MAX_SCORE, MIN_SCORE } from '@/domain/reputation';
 import { appendShiftTimelineEntry } from '@/domain/shiftTimeline';
 import { formatVND } from '@/lib/format';
@@ -94,6 +99,21 @@ interface AdminStore {
     target: 'worker' | 'employer' | 'both',
     note: string,
   ): Result<Dispute, AdminError>;
+
+  // -------------------------------------------------------------------------
+  // Admin Account Management (task C/D) — CHỈ chế độ supabase. Mọi thao tác
+  // đặc quyền chạy trong Edge Function `admin-users` (service_role server-side),
+  // trình duyệt chỉ gửi JWT admin. Error trả về là MÃ máy đọc được để UI dịch.
+  // Local/demo KHÔNG dùng các hàm này (component gate bằng isSupabaseEnv()).
+  // -------------------------------------------------------------------------
+  /** Nạp lại toàn bộ user thật từ Supabase vào userStore (admin xem/quản lý). */
+  refreshUsersAsync(): Promise<Result<true, string>>;
+  /** Tạo tài khoản Worker/Employer thật. Không cho tạo admin. */
+  createUserAsync(input: AdminCreateInput): Promise<Result<{ id: string }, string>>;
+  /** Xoá vĩnh viễn Worker/Employer KHÔNG có lịch sử (server kiểm tra). */
+  deleteUserAsync(userId: string): Promise<Result<true, string>>;
+  /** Khoá/mở khoá tài khoản thật (giữ lịch sử). */
+  setSuspendedAsync(userId: string, suspended: boolean): Promise<Result<true, string>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -496,4 +516,55 @@ export const useAdminStore = create<AdminStore>(() => ({
 
     return { ok: true, value: updated };
   },
+
+  // -------------------------------------------------------------------------
+  // Admin Account Management (task C/D) — supabase-only async operations.
+  // -------------------------------------------------------------------------
+  async refreshUsersAsync() {
+    try {
+      const users = await adminUserRepo.listUsers();
+      useUserStore.getState().hydrate(users);
+      return { ok: true, value: true };
+    } catch (err) {
+      return { ok: false, error: adminErrCode(err) };
+    }
+  },
+
+  async createUserAsync(input) {
+    try {
+      const user = await adminUserRepo.createUser(input);
+      // Refetch để danh sách phản ánh tài khoản mới (không dựng cache thủ công).
+      await useAdminStore.getState().refreshUsersAsync();
+      return { ok: true, value: { id: user.id } };
+    } catch (err) {
+      return { ok: false, error: adminErrCode(err) };
+    }
+  },
+
+  async deleteUserAsync(userId) {
+    try {
+      await adminUserRepo.deleteUser(userId);
+      await useAdminStore.getState().refreshUsersAsync();
+      return { ok: true, value: true };
+    } catch (err) {
+      return { ok: false, error: adminErrCode(err) };
+    }
+  },
+
+  async setSuspendedAsync(userId, suspended) {
+    try {
+      await adminUserRepo.setSuspended(userId, suspended);
+      await useAdminStore.getState().refreshUsersAsync();
+      return { ok: true, value: true };
+    } catch (err) {
+      return { ok: false, error: adminErrCode(err) };
+    }
+  },
 }));
+
+/** Trích mã lỗi máy-đọc-được từ AdminApiError; fallback về message/UNKNOWN. */
+function adminErrCode(err: unknown): string {
+  if (err instanceof AdminApiError) return err.code;
+  if (err instanceof Error && err.message) return err.message;
+  return 'UNKNOWN';
+}

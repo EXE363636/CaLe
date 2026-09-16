@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Reveal } from '@/components/ui';
 import { FeaturedJobMockup } from '@/components/landing/FeaturedJobMockup';
 import { t } from '@/i18n/vi';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 // ---------------------------------------------------------------------------
 // Inline icons (no external library). Each icon below maps to a specific,
@@ -85,6 +86,9 @@ function ArrowRightIcon() {
 // ---------------------------------------------------------------------------
 
 export default function LandingPage() {
+  // B4/B6 — supabase/production (Beta): tài khoản/ca/đơn là thật; CaLẻ chưa
+  // thu/giữ tiền. Dùng microcopy trung thực thay cho "bản demo · mô phỏng".
+  const supabase = isSupabaseEnv();
   return (
     <div className="flex min-w-0 flex-col">
 
@@ -140,7 +144,7 @@ export default function LandingPage() {
               className="entrance-up mt-4 text-xs text-gray-500"
               style={{ ['--entrance-delay' as string]: '320ms' } as React.CSSProperties}
             >
-              {t('landing.hero.trustHint')}
+              {supabase ? t('landing.hero.trustHint.supabase') : t('landing.hero.trustHint')}
             </p>
           </div>
 
@@ -172,7 +176,7 @@ export default function LandingPage() {
             ))}
           </ul>
           <p className="mt-5 border-t border-gray-100 pt-4 text-center text-sm text-gray-500">
-            {t('landing.trust.simNote')}
+            {supabase ? t('landing.trust.simNote.supabase') : t('landing.trust.simNote')}
           </p>
         </div>
       </section>
@@ -250,14 +254,18 @@ export default function LandingPage() {
             <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">
               {t('landing.safety.title')}
             </h2>
-            <p className="mt-2 text-sm text-gray-500">{t('landing.safety.lead')}</p>
+            <p className="mt-2 text-sm text-gray-500">{supabase ? t('landing.safety.lead.supabase') : t('landing.safety.lead')}</p>
           </div>
           <ul className="divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white">
             {[
               { icon: <ShieldIcon />, title: t('landing.safety.confirm.title'), desc: t('landing.safety.confirm.desc') },
               { icon: <StarIcon />, title: t('landing.safety.reputation.title'), desc: t('landing.safety.reputation.desc') },
               { icon: <ScalesIcon />, title: t('landing.safety.dispute.title'), desc: t('landing.safety.dispute.desc') },
-              { icon: <WalletIcon />, title: t('landing.safety.finance.title'), desc: t('landing.safety.finance.desc') },
+              {
+                icon: <WalletIcon />,
+                title: supabase ? t('landing.safety.finance.title.supabase') : t('landing.safety.finance.title'),
+                desc: supabase ? t('landing.safety.finance.desc.supabase') : t('landing.safety.finance.desc'),
+              },
             ].map((row) => (
               <li key={row.title} className="flex items-start gap-4 px-4 py-4 sm:px-5">
                 <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-orange-50 ring-1 ring-orange-100">

@@ -18,6 +18,8 @@ import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } f
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
+import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
@@ -316,11 +318,15 @@ function EmployerDashboardContent() {
           this follows the work area + stats (order-3); desktop unchanged. */}
       {currentUserId && (
         <section className="order-3 mb-8 lg:order-none">
-          <WalletPanel
-            userId={currentUserId}
-            role="employer"
-            openLedgerSignal={walletLedgerSignal}
-          />
+          {isSupabaseEnv() ? (
+            <NoPaymentNotice />
+          ) : (
+            <WalletPanel
+              userId={currentUserId}
+              role="employer"
+              openLedgerSignal={walletLedgerSignal}
+            />
+          )}
         </section>
       )}
 

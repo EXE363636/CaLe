@@ -10,16 +10,22 @@
 
 import Link from 'next/link';
 import { t } from '@/i18n/vi';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 interface AuthSidePanelProps {
   mode: 'login' | 'register';
 }
 
 export function AuthSidePanel({ mode }: AuthSidePanelProps) {
+  // B4 — supabase/production: CaLẻ chưa thu/giữ tiền, nên benefit tài chính +
+  // disclaimer phải trung thực thay vì hứa ký quỹ/giải ngân (vốn chỉ có ở demo).
+  const supabase = isSupabaseEnv();
   const items = [
     {
-      title: t('auth.side.benefit1'),
-      desc: t('auth.side.benefit1.desc'),
+      title: supabase ? t('auth.side.benefit1.supabase') : t('auth.side.benefit1'),
+      desc: supabase
+        ? t('auth.side.benefit1.desc.supabase')
+        : t('auth.side.benefit1.desc'),
       icon: (
         <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
@@ -86,7 +92,7 @@ export function AuthSidePanel({ mode }: AuthSidePanelProps) {
           </ul>
 
           <p className="mt-8 text-xs text-orange-100">
-            {t('auth.side.disclaimer')}
+            {supabase ? t('auth.side.disclaimer.supabase') : t('auth.side.disclaimer')}
           </p>
         </div>
       </div>

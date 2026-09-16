@@ -72,6 +72,7 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { showSuccess } from '@/lib/toast';
 import { useToastStore } from '@/stores/toastStore';
 import { t } from '@/i18n/vi';
@@ -332,10 +333,21 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
   const role = currentUser?.role ?? null;
   const isLoggedIn = currentUser !== null;
   const sections = useMemo<DrawerSection[]>(() => {
-    if (role === 'worker') return WORKER_SECTIONS;
-    if (role === 'employer') return EMPLOYER_SECTIONS;
-    if (role === 'admin') return ADMIN_SECTIONS;
-    return PUBLIC_SECTIONS;
+    const base =
+      role === 'worker'
+        ? WORKER_SECTIONS
+        : role === 'employer'
+          ? EMPLOYER_SECTIONS
+          : role === 'admin'
+            ? ADMIN_SECTIONS
+            : PUBLIC_SECTIONS;
+    // B4 — supabase/production: CaLẻ chưa thu/giữ tiền → ẩn link
+    // "Giữ tiền ca làm (mô phỏng)". Local/demo giữ nguyên cho test.
+    if (!isSupabaseEnv()) return base;
+    return base.map((section) => ({
+      ...section,
+      links: section.links.filter((l) => l.href !== '/employer/payments'),
+    }));
   }, [role]);
 
   // Close drawer on route change.
