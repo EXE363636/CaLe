@@ -84,6 +84,22 @@ async function refetchPhase2Supabase(): Promise<void> {
     await useApplicationStore.getState().refetchForShifts(ids);
   } else if (cur?.role === 'worker') {
     await useApplicationStore.getState().refetchForWorker(cur.id);
+    // Nạp các ca worker ĐÃ ứng tuyển nhưng KHÔNG còn trong listing công khai
+    // (đã huỷ / đầy chỗ / hết hạn) — chúng không có trong `public_shifts` nên
+    // thiếu khỏi shiftStore → dashboard + trang chi tiết sẽ 404/không hiển thị
+    // trạng thái. `refetchOne` đọc `get_shift_detail` (RPC cấp quyền cho
+    // worker-có-đơn) và upsert vào store. Chỉ nạp ca còn thiếu (idempotent).
+    const appliedShiftIds = [
+      ...new Set(
+        useApplicationStore.getState().forWorker(cur.id).map((a) => a.shiftId),
+      ),
+    ];
+    const missingShiftIds = appliedShiftIds.filter(
+      (id) => !useShiftStore.getState().getById(id),
+    );
+    for (const id of missingShiftIds) {
+      await useShiftStore.getState().refetchOne(id);
+    }
   }
   const empIds = useShiftStore
     .getState()
