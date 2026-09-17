@@ -507,6 +507,16 @@ interface ApplicationStore {
   rejectAsync(applicationId: string, reason: string): Promise<Result<void, string>>;
   approveCancellationRequestAsync(applicationId: string): Promise<Result<void, string>>;
   rejectCancellationRequestAsync(applicationId: string): Promise<Result<void, string>>;
+  // P0 attendance — wrapper async (supabase: RPC + refetch server; local: sync cũ).
+  /** Worker tự check-in. */
+  checkInAsync(applicationId: string): Promise<Result<void, string>>;
+  /** Employer xác nhận worker có mặt. */
+  markPresentAsync(applicationId: string): Promise<Result<void, string>>;
+  /** Worker check-out (kèm metadata evidence/checklist/note). Local giữ lỗi
+   *  có cấu trúc EVIDENCE_REQUIRED để dialog hiện thông báo chính xác. */
+  checkOutAsync(input: CheckoutInput): Promise<Result<void, string | CheckOutError>>;
+  /** Employer xác nhận hoàn thành ca. */
+  confirmCompletionAsync(applicationId: string): Promise<Result<void, string>>;
   /** Supabase: nạp lại đơn của worker vào cache. No-op ở local. */
   refetchForWorker(workerId: string): Promise<void>;
   /** Supabase: nạp lại đơn của 1 ca vào cache. No-op ở local. */
@@ -2801,6 +2811,89 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       }
     }
     const r = get().rejectCancellationRequest(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  // -------------------------------------------------------------------------
+  // P0 attendance async wrappers. Supabase: RPC (thời gian server) → refetch
+  // đơn + ca từ server → render kết quả server (KHÔNG optimistic). Local: gọi
+  // method sync cũ (không phá test).
+  // -------------------------------------------------------------------------
+  async checkInAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().workerCheckIn(applicationId);
+        if (app) {
+          await get().refetchForWorker(app.workerId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'CHECK_IN_FAILED' };
+      }
+    }
+    const r = get().checkIn(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async markPresentAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().employerMarkPresent(applicationId);
+        if (app) {
+          await get().refetchForShift(app.shiftId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'MARK_PRESENT_FAILED' };
+      }
+    }
+    const r = get().markPresentByEmployer(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async checkOutAsync(input) {
+    const app = get().applications.find((a) => a.id === input.applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().workerCheckOut(input.applicationId, {
+          note: input.note,
+          evidenceFileName: input.evidenceFileName,
+          checklist: input.checklist,
+        });
+        if (app) {
+          await get().refetchForWorker(app.workerId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'CHECK_OUT_FAILED' };
+      }
+    }
+    // Local: trả nguyên lỗi (kể cả cấu trúc EVIDENCE_REQUIRED) để UI dịch chính xác.
+    const r = get().checkOut(input);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async confirmCompletionAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().employerConfirmCompletion(applicationId);
+        if (app) {
+          await get().refetchForShift(app.shiftId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'CONFIRM_FAILED' };
+      }
+    }
+    // Local: ratings vẫn thuộc luồng cũ; mặc định 5 sao (đường này UI local không dùng).
+    const r = get().confirmCompletion(applicationId, { stars: 5 });
     return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
   },
 

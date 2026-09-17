@@ -49,6 +49,7 @@ import {
   type CheckoutPayload,
 } from '@/domain/evidence';
 import { CHECKOUT_CHECKLIST_ITEMS_VI, t } from '@/i18n/vi';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import type { Application, EvidenceRequirement, Shift } from '@/types';
 
 const FILE_NAME_MAX = 255;
@@ -134,8 +135,12 @@ export function CheckoutDialog({
     }
   }, [open, application.id, initialChecklist]);
 
-  const showFileField = FILE_VISIBLE.has(requirement);
-  const fileRequired = FILE_REQUIRED.has(requirement);
+  // Item 5 — production (supabase): upload ảnh thật CHƯA có (chưa có Supabase
+  // Storage) → ẩn trường tên-tệp ảnh giả ở mọi mức, kể cả phần ảnh tùy chọn của
+  // RequiredHandoverChecklist. RequiredPhoto (dữ liệu cũ) KHÔNG ép ảnh giả.
+  const supabase = isSupabaseEnv();
+  const showFileField = FILE_VISIBLE.has(requirement) && !supabase;
+  const fileRequired = FILE_REQUIRED.has(requirement) && !supabase;
   const noteRequired = NOTE_REQUIRED.has(requirement);
   const checklistRequired = CHECKLIST_REQUIRED.has(requirement);
 
@@ -144,7 +149,11 @@ export function CheckoutDialog({
     note,
     evidenceFileName: showFileField ? fileName : undefined,
   };
-  const validation = validateCheckoutPayload(requirement, payload);
+  // Ở supabase, RequiredPhoto không còn ép ảnh (server cũng không) → dùng mức
+  // không-ép-ảnh cho client mirror để không chặn oan check-out.
+  const clientRequirement: EvidenceRequirement =
+    supabase && requirement === 'RequiredPhoto' ? 'None' : requirement;
+  const validation = validateCheckoutPayload(clientRequirement, payload);
   const submitEnabled = validation.ok && !loading;
 
   function handleToggle(index: number, value: boolean) {

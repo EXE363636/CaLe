@@ -34,7 +34,7 @@ import { t } from '@/i18n/vi';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { Shift, VerificationFlag } from '@/types';
-import { getDataMode } from '@/data/supabaseClient';
+import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -82,8 +82,9 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   // Cluster 1 (Property 2, Req 2.4) — reuse the SAME check-in/check-out
   // actions the worker dashboard uses so a check-in notification deep-link
   // lands on a surface where the worker can act in place.
-  const checkIn = useApplicationStore((s) => s.checkIn);
-  const checkOut = useApplicationStore((s) => s.checkOut);
+  // Attendance qua async wrapper (tự dispatch supabase→RPC / local→sync).
+  const checkInAsync = useApplicationStore((s) => s.checkInAsync);
+  const checkOutAsync = useApplicationStore((s) => s.checkOutAsync);
   const workerOpenDispute = useApplicationStore((s) => s.workerOpenDispute);
   // Phase 10C-Stab-1 Batch 2 — dispute tracking. We need the current
   // dispute (if any) to render the right status copy depending on
@@ -264,10 +265,11 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   // Cluster 1 (Property 2, Req 2.4) — check-in / check-out handlers reused
   // verbatim from the worker dashboard so a `ShiftStartingSoon` (or other
   // check-in-window) notification deep-link can be acted on in place.
-  function handleCheckIn() {
-    if (!myApp) return;
+  async function handleCheckIn() {
+    if (!myApp || loading) return; // khóa double-click
     setLoading(true);
-    const result = checkIn(myApp.id);
+    // Wrapper tự dispatch: supabase → RPC + refetch server; local → sync cũ.
+    const result = await checkInAsync(myApp.id);
     setLoading(false);
     if (result.ok) {
       showSuccess(t('feedback.checkIn.success'));
@@ -276,14 +278,16 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     }
   }
 
-  function handleCheckoutSubmit(payload: {
+  async function handleCheckoutSubmit(payload: {
     checklist?: boolean[];
     note?: string;
     evidenceFileName?: string;
   }) {
-    if (!myApp) return;
+    if (!myApp || loading) return; // khóa double-click
     setLoading(true);
-    const result = checkOut({ applicationId: myApp.id, ...payload });
+    const input = { applicationId: myApp.id, ...payload };
+    // Wrapper tự dispatch: supabase → RPC + refetch; local → sync (giữ lỗi cấu trúc).
+    const result = await checkOutAsync(input);
     setLoading(false);
     if (result.ok) {
       showSuccess(
@@ -308,8 +312,10 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   // scoped to the current authenticated worker, so a deep-link can never
   // expose the action to a different user or outside the allowed window.
   const nowIso = new Date().toISOString();
-  const showCheckIn = myApp ? canCheckIn(nowIso, myApp, shift) : false;
-  const showCheckOut = myApp ? canCheckOut(nowIso, myApp, shift) : false;
+  // Gate thống nhất qua capability attendance (production = có RPC thật).
+  const attendanceOn = hasCapability('attendance');
+  const showCheckIn = attendanceOn && myApp ? canCheckIn(nowIso, myApp, shift) : false;
+  const showCheckOut = attendanceOn && myApp ? canCheckOut(nowIso, myApp, shift) : false;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -1020,7 +1026,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ---------------------------------------------------------------------------
 
 function WorkplaceCard({ shift }: { shift: Shift }) {
+  // Ảnh địa điểm là tên-tệp giả (chưa có upload thật). Ở supabase/production
+  // KHÔNG hiển thị (kể cả dữ liệu cũ) để không coi chuỗi filename là ảnh thật.
   const hasImage =
+    !isSupabaseEnv() &&
     typeof shift.workplaceImageLabel === 'string' &&
     shift.workplaceImageLabel.trim().length > 0;
   const hasNotes =

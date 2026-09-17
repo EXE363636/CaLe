@@ -1618,6 +1618,10 @@ export const vi: Record<string, string> = {
   'form.workplaceSection.title': 'Ảnh địa điểm và liên hệ tại nơi làm việc',
   'form.workplaceSection.intro':
     'Ảnh giúp người lao động nhận biết nơi làm việc thật trước khi nhận ca. Trong bản MVP, bạn chỉ cần điền tên file mô phỏng (ví dụ: "mat-tien-quan-pho-ha.jpg").',
+  // Supabase/production: chưa hỗ trợ tải ảnh thật → không hiển thị trường ảnh giả.
+  'form.workplaceSection.title.supabase': 'Liên hệ tại nơi làm việc',
+  'form.workplaceSection.intro.supabase':
+    'Cung cấp thông tin liên hệ tại nơi làm việc để người lao động dễ tìm và trao đổi khi tới ca.',
   'form.workplaceImageLabel': 'Ảnh địa điểm / khu vực làm việc',
   'form.workplaceImageLabel.placeholder': 'mat-tien-quan-pho-ha.jpg',
   'form.workplaceImageLabel.hint':
@@ -1892,6 +1896,20 @@ export const vi: Record<string, string> = {
   // late-arrival correction).
   'attendance.absentDisabled.checkedIn':
     'Người lao động đã check-in. Chỉ đánh dấu vắng mặt nếu có tranh chấp.',
+  // P0 attendance — lỗi từ RPC Supabase (thời gian server).
+  'attendance.error.checkInWindow':
+    'Chưa tới hoặc đã quá giờ check-in. Chỉ check-in được quanh giờ bắt đầu ca.',
+  'attendance.error.markPresentWindow':
+    'Ngoài khoảng thời gian xác nhận có mặt cho ca này.',
+  'attendance.error.checkoutWindow':
+    'Chỉ check-out được sau khi ca kết thúc, trong vòng 60 phút.',
+  'attendance.error.checkoutRequiresCheckin':
+    'Bạn cần tự check-in trước khi check-out.',
+  'attendance.error.shiftNotEnded': 'Ca chưa kết thúc nên chưa thể xác nhận hoàn thành.',
+  'attendance.error.evidenceFilename': 'Tên tệp minh chứng không hợp lệ.',
+  'attendance.error.evidenceInvalid': 'Dữ liệu minh chứng không hợp lệ.',
+  'attendance.error.notOwner': 'Bạn không có quyền thao tác trên đơn/ca này.',
+  'attendance.error.notEmployer': 'Chỉ nhà tuyển dụng sở hữu ca mới thực hiện được thao tác này.',
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',
   'attendance.revert.title': 'Chuyển sang có mặt (đến muộn)',
   'attendance.revert.body':

@@ -3,8 +3,8 @@ import { buildSnapshot, buildShift, buildApplication } from './fixtures/seed';
 import { ACCOUNTS } from './fixtures/constants';
 
 /**
- * Flow 3 — worker check-in window (Phase 10C-Stab-1: open 15 min
- * before start, close 5 min after start).
+ * Flow 3 — worker check-in window (open 15 min before start, close
+ * 15 min after start — đồng bộ UI ↔ RPC worker_check_in).
  *
  * Time is controlled with Playwright's `page.clock` so the test is
  * deterministic and independent of the machine clock. The shift is
@@ -27,7 +27,7 @@ const SHIFT_END = '14:00';
 // ICT wall-clock and line up with the shift's 12:00 start.
 const T_TOO_EARLY = '2027-06-10T11:40:00'; // 20 min before start
 const T_WITHIN = '2027-06-10T11:50:00'; // 10 min before start (window open)
-const T_TOO_LATE = '2027-06-10T12:10:00'; // 10 min after start (window closed)
+const T_TOO_LATE = '2027-06-10T12:20:00'; // 20 min after start (>15 → window closed)
 
 function seedApprovedShift() {
   const shift = buildShift({

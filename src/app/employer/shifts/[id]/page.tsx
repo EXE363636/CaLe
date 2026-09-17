@@ -6,7 +6,7 @@ import { notFound, useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
-import { getDataMode } from '@/data/supabaseClient';
+import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
@@ -92,9 +92,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const approveAsync = useApplicationStore((s) => s.approveAsync);
   const rejectAsync = useApplicationStore((s) => s.rejectAsync);
   const markNoShow = useApplicationStore((s) => s.markNoShow);
-  const markPresentByEmployer = useApplicationStore(
-    (s) => s.markPresentByEmployer,
-  );
+  const markPresentAsync = useApplicationStore((s) => s.markPresentAsync);
+  const confirmCompletionAsync = useApplicationStore((s) => s.confirmCompletionAsync);
   const revertNoShowToPresent = useApplicationStore(
     (s) => s.revertNoShowToPresent,
   );
@@ -225,12 +224,28 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   // applicant as physically present. Always available regardless of
   // `evidenceRequirement` (D.5). The button visibility is gated by
   // `canEmployerMarkPresent` from `domain/timeGates`.
-  function handleMarkPresent(appId: string) {
+  async function handleMarkPresent(appId: string) {
+    if (actionLoading) return; // khóa double-click
     setActionLoading(appId);
-    const result = markPresentByEmployer(appId);
+    // Wrapper tự dispatch: supabase → RPC + refetch server; local → sync cũ.
+    const result = await markPresentAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('lifecycle.toast.markPresent.success'));
+    } else {
+      showError(toastFromStoreError(result.error));
+    }
+  }
+
+  // Supabase: xác nhận hoàn thành trực tiếp qua RPC (không thu rating — ratings
+  // chưa có backend). Local giữ luồng RatingForm → confirmCompletion cũ.
+  async function handleConfirmComplete(appId: string) {
+    if (actionLoading) return; // khóa double-click
+    setActionLoading(appId);
+    const result = await confirmCompletionAsync(appId);
+    setActionLoading(null);
+    if (result.ok) {
+      showSuccess(t('feedback.applicant.confirm.success'));
     } else {
       showError(toastFromStoreError(result.error));
     }
@@ -786,12 +801,17 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               // `evidenceRequirement`); the legacy `shouldMarkNoShow`
               // call is preserved as the fallback inside the helper.
               const canMarkAbsent =
+                // Đánh dấu vắng mặt CHƯA nối backend → ẩn ở supabase/production.
+                !isSupabaseEnv() &&
                 !shiftTerminal &&
                 app.status === 'Approved' &&
                 (canEmployerMarkAbsent(nowIso, app, shift) ||
                   shouldMarkNoShow(nowIso, app, shift));
               const canMarkPresent =
-                !shiftTerminal && canEmployerMarkPresent(nowIso, app, shift);
+                // Gate thống nhất qua capability attendance (production = có RPC thật).
+                hasCapability('attendance') &&
+                !shiftTerminal &&
+                canEmployerMarkPresent(nowIso, app, shift);
               // CORE-STABILITY-7 Part 5.2 — when the worker has already
               // checked in, the "Đánh dấu vắng mặt" action is shown but
               // disabled/dimmed with an explanatory reason (an absence
@@ -816,6 +836,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               // present (late arrival) while the shift hasn't fully
               // closed out (escrow not yet Released).
               const canRevertToPresent =
+                // Chuyển vắng mặt → có mặt CHƯA nối backend → ẩn ở supabase.
+                !isSupabaseEnv() &&
                 app.status === 'NoShow' &&
                 shift.status !== 'Completed' &&
                 shift.escrowStatus !== 'Released';
@@ -856,7 +878,13 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         onMarkAbsent={() => handleMarkNoShow(app.id)}
                         onMarkPresent={() => handleMarkPresent(app.id)}
                         onRevertToPresent={() => handleOpenRevert(app.id)}
-                        onConfirm={() => setRatingForAppId(app.id)}
+                        onConfirm={() =>
+                          // Ratings có backend (local) → mở RatingForm; chưa có
+                          // (supabase) → xác nhận hoàn thành trực tiếp qua RPC.
+                          hasCapability('ratings')
+                            ? setRatingForAppId(app.id)
+                            : handleConfirmComplete(app.id)
+                        }
                         onReport={() => handleReportIssue(app.id)}
                         onApproveCancellation={() => handleApproveCancellation(app.id)}
                         onRejectCancellation={() => handleRejectCancellation(app.id)}

@@ -22,8 +22,12 @@ import type { Application, Shift } from '@/types';
 /** A worker may check in at most this many minutes before the shift starts. */
 export const CHECK_IN_EARLY_MINUTES = 15;
 
-/** A worker may check in at most this many minutes after the shift starts. */
-export const CHECK_IN_LATE_MINUTES = 5;
+/**
+ * A worker may check in at most this many minutes after the shift starts.
+ * Đồng bộ với RPC `worker_check_in` (migration 0006): cửa sổ check-in muộn =
+ * start + 15 phút. Cũng là mốc "quá giờ → no-show" (shouldMarkNoShow).
+ */
+export const CHECK_IN_LATE_MINUTES = 15;
 
 /**
  * Phase 10C-Stab-1 — grace window after the shift's scheduled end during

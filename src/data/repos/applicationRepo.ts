@@ -31,6 +31,17 @@ export function rowToApplication(r: Row): Application {
     expiredAt: sOpt(r.expired_at),
     expiredReason: sOpt(r.expired_reason),
     payoutAmount: nOpt(r.payout_amount),
+    // P0 attendance — map đủ cột để trạng thái chấm công tồn tại sau refetch.
+    checkInAt: sOpt(r.check_in_at),
+    checkOutAt: sOpt(r.check_out_at),
+    confirmedAt: sOpt(r.confirmed_at),
+    markedPresentAt: sOpt(r.marked_present_at),
+    markedPresentByEmployerId: sOpt(r.marked_present_by_employer_id),
+    workerCheckoutNote: sOpt(r.worker_checkout_note),
+    workerEvidenceFileName: sOpt(r.worker_evidence_file_name),
+    checkoutChecklist: Array.isArray(r.checkout_checklist)
+      ? (r.checkout_checklist as boolean[])
+      : undefined,
   };
 }
 
@@ -44,6 +55,14 @@ export interface ApplicationRepo {
   reject(applicationId: string, reason: string): Promise<void>;
   approveCancellationRequest(applicationId: string): Promise<void>;
   rejectCancellationRequest(applicationId: string): Promise<void>;
+  // P0 attendance mutations (SECURITY DEFINER RPC, thời gian server).
+  workerCheckIn(applicationId: string): Promise<void>;
+  employerMarkPresent(applicationId: string): Promise<void>;
+  workerCheckOut(
+    applicationId: string,
+    payload: { note?: string; evidenceFileName?: string; checklist?: boolean[] },
+  ): Promise<void>;
+  employerConfirmCompletion(applicationId: string): Promise<void>;
 }
 
 class SupabaseApplicationRepo implements ApplicationRepo {
@@ -106,6 +125,34 @@ class SupabaseApplicationRepo implements ApplicationRepo {
 
   async rejectCancellationRequest(applicationId: string): Promise<void> {
     const { error } = await getSupabaseClient().rpc('reject_cancellation_request', { p_application_id: applicationId });
+    if (error) throw new Error(error.message);
+  }
+
+  async workerCheckIn(applicationId: string): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('worker_check_in', { p_application_id: applicationId });
+    if (error) throw new Error(error.message);
+  }
+
+  async employerMarkPresent(applicationId: string): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('employer_mark_present', { p_application_id: applicationId });
+    if (error) throw new Error(error.message);
+  }
+
+  async workerCheckOut(
+    applicationId: string,
+    payload: { note?: string; evidenceFileName?: string; checklist?: boolean[] },
+  ): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('worker_check_out', {
+      p_application_id: applicationId,
+      p_note: payload.note ?? null,
+      p_evidence_file_name: payload.evidenceFileName ?? null,
+      p_checklist: payload.checklist ?? null,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  async employerConfirmCompletion(applicationId: string): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('employer_confirm_completion', { p_application_id: applicationId });
     if (error) throw new Error(error.message);
   }
 }

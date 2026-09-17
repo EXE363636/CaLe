@@ -222,9 +222,9 @@ describe('Batch 4 F: isShiftStartingSoon', () => {
 // D — check-in window 15 before / 5 after
 // ---------------------------------------------------------------------------
 
-describe('Batch 4 D: check-in window 15min before / 5min after start', () => {
-  it('CHECK_IN_LATE_MINUTES is 5', () => {
-    expect(CHECK_IN_LATE_MINUTES).toBe(5);
+describe('Batch 4 D: check-in window 15min before / 15min after start', () => {
+  it('CHECK_IN_LATE_MINUTES is 15 (đồng bộ UI ↔ RPC worker_check_in)', () => {
+    expect(CHECK_IN_LATE_MINUTES).toBe(15);
   });
 
   // Use local-time shift coordinates so the date/startTime parse
@@ -252,12 +252,12 @@ describe('Batch 4 D: check-in window 15min before / 5min after start', () => {
     const at = new Date(baseStart.getTime() - 15 * 60_000).toISOString();
     expect(canWorkerCheckIn(at, buildApp(shift.id, 'w1'), shift)).toBe(true);
   });
-  it('12:07 (5 min after, inclusive) → true', () => {
-    const at = new Date(baseStart.getTime() + 5 * 60_000).toISOString();
+  it('+15 min after (inclusive) → true', () => {
+    const at = new Date(baseStart.getTime() + 15 * 60_000).toISOString();
     expect(canWorkerCheckIn(at, buildApp(shift.id, 'w1'), shift)).toBe(true);
   });
-  it('12:08 (6 min after) → false', () => {
-    const at = new Date(baseStart.getTime() + 6 * 60_000).toISOString();
+  it('+16 min after → false', () => {
+    const at = new Date(baseStart.getTime() + 16 * 60_000).toISOString();
     expect(canWorkerCheckIn(at, buildApp(shift.id, 'w1'), shift)).toBe(false);
   });
 });

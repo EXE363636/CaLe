@@ -25,6 +25,9 @@ export interface Capabilities {
   applications: boolean;
   /** Quản trị tài khoản qua Edge Function admin-users. */
   adminUsers: boolean;
+  /** Chấm công: check-in / xác nhận có mặt / check-out / xác nhận hoàn thành
+   *  (RPC Supabase, thời gian server). KHÔNG gồm no-show/vắng mặt (chưa nối). */
+  attendance: boolean;
   /** Thu/giữ/chuyển tiền (payment/escrow/cọc). Chưa có backend. */
   payments: boolean;
   /** Ví + sổ cái ví. Chưa có backend. */
@@ -49,6 +52,7 @@ const SUPABASE_CAPABILITIES: Capabilities = {
   shifts: true,
   applications: true,
   adminUsers: true,
+  attendance: true,
   payments: false,
   wallet: false,
   disputes: false,
@@ -65,6 +69,7 @@ const LOCAL_CAPABILITIES: Capabilities = {
   shifts: true,
   applications: true,
   adminUsers: true,
+  attendance: true,
   payments: true,
   wallet: true,
   disputes: true,

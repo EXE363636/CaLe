@@ -54,8 +54,10 @@ function WorkerDashboardContent() {
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
   const applications = useApplicationStore((s) => s.applications);
-  const checkIn = useApplicationStore((s) => s.checkIn);
-  const checkOut = useApplicationStore((s) => s.checkOut);
+  // Attendance đi qua async wrapper (tự dispatch supabase→RPC / local→sync) nên
+  // trang KHÔNG tự đoán mode; không cần selector sync riêng.
+  const checkInAsync = useApplicationStore((s) => s.checkInAsync);
+  const checkOutAsync = useApplicationStore((s) => s.checkOutAsync);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
   const withdrawAsync = useApplicationStore((s) => s.withdrawAsync);
   const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
@@ -475,9 +477,11 @@ function WorkerDashboardContent() {
   // the same clamped `worker.reputationScore` — no visible change.
   const reputationScore = getWorkerReputation(worker.id);
 
-  function handleCheckIn(appId: string) {
+  async function handleCheckIn(appId: string) {
+    if (actionLoading) return; // khóa double-click
     setActionLoading(appId);
-    const result = checkIn(appId);
+    // Wrapper tự dispatch: supabase → RPC + refetch server; local → sync cũ.
+    const result = await checkInAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('feedback.checkIn.success'));
@@ -494,14 +498,17 @@ function WorkerDashboardContent() {
     setCheckoutTargetId(appId);
   }
 
-  function handleCheckoutSubmit(payload: {
+  async function handleCheckoutSubmit(payload: {
     checklist?: boolean[];
     note?: string;
     evidenceFileName?: string;
   }) {
     if (!checkoutTargetId) return;
+    if (actionLoading) return; // khóa double-click
     setActionLoading(checkoutTargetId);
-    const result = checkOut({ applicationId: checkoutTargetId, ...payload });
+    const input = { applicationId: checkoutTargetId, ...payload };
+    // Wrapper tự dispatch: supabase → RPC + refetch; local → sync (giữ lỗi có cấu trúc).
+    const result = await checkOutAsync(input);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(
@@ -2087,8 +2094,11 @@ function UpcomingShiftCard({
   onCancel: () => void;
 }) {
   const nowIso = new Date().toISOString();
-  const showCheckIn = canCheckIn(nowIso, application, shift);
-  const showCheckOut = canCheckOut(nowIso, application, shift);
+  // Gate thống nhất: CTA chấm công chỉ hiện khi capability attendance bật
+  // (production = có RPC thật). Time gate quyết định thời điểm hiển thị.
+  const attendanceOn = hasCapability('attendance');
+  const showCheckIn = attendanceOn && canCheckIn(nowIso, application, shift);
+  const showCheckOut = attendanceOn && canCheckOut(nowIso, application, shift);
   // CORE-STABILITY-9 Parts 1 & 3 — derive the canonical attendance
   // state and render WORKER-perspective copy (never employer text).
   const attendanceState = deriveAttendanceState(application, shift, nowIso);
