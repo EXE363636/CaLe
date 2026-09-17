@@ -40,21 +40,34 @@
 
 **Grid:** tsc 0, lint 0, unit **702 pass / 3 fail** (đúng 3 handbook đỏ cố ý §3.2).
 
+**P0.4 Admin — ✅ ĐÃ XÁC MINH (2026-09-17, prod `enurvffmliyrivehppaq`):**
+- **Admin cố định:** `admin@cale.io.vn` (uid `077575f0…`) có **cả** `public.users.role='admin'`
+  **và** trusted `app_metadata.role='admin'`, email confirmed. `npm run admin:bootstrap`
+  chạy idempotent (đã tồn tại → chỉ chuẩn hoá role, KHÔNG đổi mật khẩu admin).
+- **`npm run test:admin` = 18/18 PASS trên prod** — bao phủ toàn bộ ma trận P0.4:
+  tạo Worker, tạo Employer, khoá/mở khoá, xoá tài khoản sạch, chặn tự xoá
+  (`CANNOT_DELETE_SELF`), chặn xoá admin, chặn non-admin/anon (401/403),
+  `USER_HAS_HISTORY`, `EMAIL_EXISTS`, `INVALID_ROLE`. Edge Function không đổi.
+- **Không chạy login UI trình duyệt** (tránh tạo tài khoản + nhập mật khẩu đăng nhập);
+  test:admin gọi đúng Edge Function mà Admin Dashboard UI dùng nên phủ tương đương.
+- **Quan sát (a) đã đóng:** admin có `app_metadata.role` đúng → RLS `is_admin()` OK.
+
+**Dọn dữ liệu test prod (2026-09-17):**
+- Mật khẩu rò rỉ `CaleTest2026!` của +w1/+e1 đã **rotate** → đăng nhập bằng mật khẩu cũ
+  bị **REJECTED**.
+- Theo quyết định người dùng: **hard-delete toàn bộ footprint test** — ca
+  "Phục vụ tiệc cưới cuối tuần" (`3e4048d8…`, Cancelled) + 2 đơn ứng tuyển + 2 tài khoản
+  `ngochung69223+w1` / `+e1` (cascade Auth → public.users → profiles). Đã xác minh biến mất
+  hoàn toàn khỏi Auth + DB.
+- **Còn lại trong prod:** 1 admin + **2 worker test chưa rõ nguồn** (`vua***@gmail.com`
+  `b4b6ea06…`, `cus***@gmail.com` `7ea4a530…`) — KHÔNG đụng (không do phiên này tạo,
+  không nằm trong yêu cầu). Người dùng tự quyết xoá qua Admin nếu muốn prod sạch tuyệt đối.
+
 **CÒN LẠI / bàn giao cho người tiếp:**
-- **P0.4 Admin — CHƯA làm.** Backend đủ: `supabase/functions/admin-users` có
-  `create` / `setSuspended` (chặn `CANNOT_SUSPEND_SELF`/`ADMIN`) / `delete`
-  (chặn **`CANNOT_DELETE_SELF`** dòng 183, chặn xoá admin, chỉ xoá user không lịch sử),
-  caller phải admin. **Chặn test: cần tài khoản admin** → chạy `npm run admin:bootstrap`
-  (yêu cầu `SUPABASE_SERVICE_ROLE_KEY` trong `.env.local` — chỉ ở Node, KHÔNG vào chat/commit)
-  hoặc `npm run test:admin` (integration backend). Agent không có service_role.
-- **Merge/deploy:** 2 commit P0.2+P0.3 đang trên branch, chờ review trước khi push `main`.
-- **Quan sát (chưa chặn):** (a) sau signup, `role` KHÔNG ở `app_metadata` của JWT — chỉ ở
-  `user_metadata` + cột `public.users.role` (routing/hồ sơ vẫn đúng; nên xác nhận admin RLS
-  `is_admin()` khi làm P0.4). (b) dashboard worker không liệt kê ca terminal (đã huỷ) —
+- **Merge/deploy:** branch `fix/p0-signup-error-handling` (P0.2+P0.3 + doc P0.4) chờ review
+  → tạo PR vào `main`. Push `main` = auto-deploy `cale.io.vn`. **Đủ an toàn để mở PR.**
+- **Quan sát (chưa chặn):** (b) dashboard worker không liệt kê ca terminal (đã huỷ) —
   lựa chọn hiển thị, không phải bug 404. (c) vài link footer/card <44px tap (WCAG, để P1).
-- **Dữ liệu test trong prod:** 2 tài khoản trên + 1 ca "Phục vụ tiệc cưới cuối tuần"
-  (id `3e4048d8-10c3-4f74-9422-9c49afd61ed3`, đã Cancelled) + đơn ứng tuyển. Xoá qua Admin
-  khi cần (đừng khôi phục seed demo).
 
 ---
 
