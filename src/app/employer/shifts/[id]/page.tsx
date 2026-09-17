@@ -94,9 +94,6 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const markNoShow = useApplicationStore((s) => s.markNoShow);
   const markPresentAsync = useApplicationStore((s) => s.markPresentAsync);
   const confirmCompletionAsync = useApplicationStore((s) => s.confirmCompletionAsync);
-  const markPresentByEmployer = useApplicationStore(
-    (s) => s.markPresentByEmployer,
-  );
   const revertNoShowToPresent = useApplicationStore(
     (s) => s.revertNoShowToPresent,
   );
@@ -230,10 +227,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   async function handleMarkPresent(appId: string) {
     if (actionLoading) return; // khóa double-click
     setActionLoading(appId);
-    // Supabase: RPC (thời gian server) + refetch → tồn tại sau reload. Local: sync.
-    const result = isSupabaseEnv()
-      ? await markPresentAsync(appId)
-      : markPresentByEmployer(appId);
+    // Wrapper tự dispatch: supabase → RPC + refetch server; local → sync cũ.
+    const result = await markPresentAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('lifecycle.toast.markPresent.success'));
@@ -813,7 +808,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 (canEmployerMarkAbsent(nowIso, app, shift) ||
                   shouldMarkNoShow(nowIso, app, shift));
               const canMarkPresent =
-                !shiftTerminal && canEmployerMarkPresent(nowIso, app, shift);
+                // Gate thống nhất qua capability attendance (production = có RPC thật).
+                hasCapability('attendance') &&
+                !shiftTerminal &&
+                canEmployerMarkPresent(nowIso, app, shift);
               // CORE-STABILITY-7 Part 5.2 — when the worker has already
               // checked in, the "Đánh dấu vắng mặt" action is shown but
               // disabled/dimmed with an explanatory reason (an absence
@@ -881,9 +879,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         onMarkPresent={() => handleMarkPresent(app.id)}
                         onRevertToPresent={() => handleOpenRevert(app.id)}
                         onConfirm={() =>
-                          isSupabaseEnv()
-                            ? handleConfirmComplete(app.id)
-                            : setRatingForAppId(app.id)
+                          // Ratings có backend (local) → mở RatingForm; chưa có
+                          // (supabase) → xác nhận hoàn thành trực tiếp qua RPC.
+                          hasCapability('ratings')
+                            ? setRatingForAppId(app.id)
+                            : handleConfirmComplete(app.id)
                         }
                         onReport={() => handleReportIssue(app.id)}
                         onApproveCancellation={() => handleApproveCancellation(app.id)}

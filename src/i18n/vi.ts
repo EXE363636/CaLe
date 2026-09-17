@@ -1618,6 +1618,10 @@ export const vi: Record<string, string> = {
   'form.workplaceSection.title': 'Ảnh địa điểm và liên hệ tại nơi làm việc',
   'form.workplaceSection.intro':
     'Ảnh giúp người lao động nhận biết nơi làm việc thật trước khi nhận ca. Trong bản MVP, bạn chỉ cần điền tên file mô phỏng (ví dụ: "mat-tien-quan-pho-ha.jpg").',
+  // Supabase/production: chưa hỗ trợ tải ảnh thật → không hiển thị trường ảnh giả.
+  'form.workplaceSection.title.supabase': 'Liên hệ tại nơi làm việc',
+  'form.workplaceSection.intro.supabase':
+    'Cung cấp thông tin liên hệ tại nơi làm việc để người lao động dễ tìm và trao đổi khi tới ca.',
   'form.workplaceImageLabel': 'Ảnh địa điểm / khu vực làm việc',
   'form.workplaceImageLabel.placeholder': 'mat-tien-quan-pho-ha.jpg',
   'form.workplaceImageLabel.hint':
@@ -1903,6 +1907,7 @@ export const vi: Record<string, string> = {
     'Bạn cần tự check-in trước khi check-out.',
   'attendance.error.shiftNotEnded': 'Ca chưa kết thúc nên chưa thể xác nhận hoàn thành.',
   'attendance.error.evidenceFilename': 'Tên tệp minh chứng không hợp lệ.',
+  'attendance.error.evidenceInvalid': 'Dữ liệu minh chứng không hợp lệ.',
   'attendance.error.notOwner': 'Bạn không có quyền thao tác trên đơn/ca này.',
   'attendance.error.notEmployer': 'Chỉ nhà tuyển dụng sở hữu ca mới thực hiện được thao tác này.',
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',

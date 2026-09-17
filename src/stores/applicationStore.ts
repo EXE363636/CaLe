@@ -512,8 +512,9 @@ interface ApplicationStore {
   checkInAsync(applicationId: string): Promise<Result<void, string>>;
   /** Employer xác nhận worker có mặt. */
   markPresentAsync(applicationId: string): Promise<Result<void, string>>;
-  /** Worker check-out (kèm metadata evidence/checklist/note). */
-  checkOutAsync(input: CheckoutInput): Promise<Result<void, string>>;
+  /** Worker check-out (kèm metadata evidence/checklist/note). Local giữ lỗi
+   *  có cấu trúc EVIDENCE_REQUIRED để dialog hiện thông báo chính xác. */
+  checkOutAsync(input: CheckoutInput): Promise<Result<void, string | CheckOutError>>;
   /** Employer xác nhận hoàn thành ca. */
   confirmCompletionAsync(applicationId: string): Promise<Result<void, string>>;
   /** Supabase: nạp lại đơn của worker vào cache. No-op ở local. */
@@ -2872,11 +2873,9 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
         return { ok: false, error: e instanceof Error ? e.message : 'CHECK_OUT_FAILED' };
       }
     }
+    // Local: trả nguyên lỗi (kể cả cấu trúc EVIDENCE_REQUIRED) để UI dịch chính xác.
     const r = get().checkOut(input);
-    if (r.ok) return { ok: true, value: undefined };
-    // CheckOutError có thể là { code, reason } (EVIDENCE_REQUIRED) hoặc chuỗi.
-    const err = typeof r.error === 'string' ? r.error : r.error.code;
-    return { ok: false, error: err };
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
   },
 
   async confirmCompletionAsync(applicationId) {

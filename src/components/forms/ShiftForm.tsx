@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN, HelpPopover } from '@/components/ui';
 import { t } from '@/i18n/vi';
 import { formatVND } from '@/lib/format';
@@ -201,6 +202,10 @@ export function ShiftForm({
   onValuesChange,
   onSaveDraft,
 }: ShiftFormProps) {
+  // Item 5 — production (supabase): chưa có upload ảnh thật → ẩn trường ảnh
+  // địa điểm giả và không bắt buộc nó.
+  const supabase = isSupabaseEnv();
+  const effectiveImageRequired = workplaceImageRequired && !supabase;
   const [values, setValues] = useState<ShiftFormValues>(() => {
     const seeded = { ...DEFAULT_VALUES, ...initialValues };
     // Phase 10C — when the form opens with a `jobType` already in
@@ -357,7 +362,7 @@ export function ShiftForm({
     // `workplaceImageRequired={true}` when the employer's resolved type
     // is Individual / AgencyEvent (always) or HouseholdBusiness /
     // Company without an approved profile workplace photo.
-    if (workplaceImageRequired && !isRequired(values.workplaceImageLabel).ok) {
+    if (effectiveImageRequired && !isRequired(values.workplaceImageLabel).ok) {
       errs.workplaceImageLabel = t('error.workplaceImage.required');
     }
 
@@ -629,21 +634,24 @@ export function ShiftForm({
             Heading + fields grouping unchanged. */}
         <div className="md:col-span-2 rounded-xl bg-orange-50/40 p-4">
           <p className="mb-1 text-sm font-semibold text-orange-900">
-            {t('form.workplaceSection.title')}
+            {t(supabase ? 'form.workplaceSection.title.supabase' : 'form.workplaceSection.title')}
           </p>
           <p className="mb-3 text-xs text-orange-800/80">
-            {t('form.workplaceSection.intro')}
+            {t(supabase ? 'form.workplaceSection.intro.supabase' : 'form.workplaceSection.intro')}
           </p>
 
-          <Input
-            label={t('form.workplaceImageLabel')}
-            value={values.workplaceImageLabel}
-            onChange={(e) => set('workplaceImageLabel', e.target.value)}
-            placeholder={t('form.workplaceImageLabel.placeholder')}
-            hint={t('form.workplaceImageLabel.hint')}
-            error={errors.workplaceImageLabel}
-            required={workplaceImageRequired}
-          />
+          {/* Ảnh địa điểm là tên-tệp giả (chưa có upload thật) → ẩn ở supabase. */}
+          {!supabase && (
+            <Input
+              label={t('form.workplaceImageLabel')}
+              value={values.workplaceImageLabel}
+              onChange={(e) => set('workplaceImageLabel', e.target.value)}
+              placeholder={t('form.workplaceImageLabel.placeholder')}
+              hint={t('form.workplaceImageLabel.hint')}
+              error={errors.workplaceImageLabel}
+              required={workplaceImageRequired}
+            />
+          )}
 
           <div className="mt-3">
             <Textarea
@@ -783,6 +791,26 @@ function EvidenceFieldset({
     ? jobCategoryRiskLevel(jobType) === 'High'
     : false;
 
+  // Item 5 — production (supabase) chỉ cho các mức evidence LƯU ĐƯỢC bằng DB
+  // hiện tại: None, ChecklistOnly, RequiredHandoverChecklist (bằng checklist/note).
+  // Ẩn OptionalPhoto/RequiredPhoto (ảnh giả, chưa có Supabase Storage thật).
+  const supabase = isSupabaseEnv();
+  const options: EvidenceRequirement[] = supabase
+    ? EVIDENCE_REQUIREMENT_VALUES.filter(
+        (o) => o === 'None' || o === 'ChecklistOnly' || o === 'RequiredHandoverChecklist',
+      )
+    : [...EVIDENCE_REQUIREMENT_VALUES];
+
+  // Nếu giá trị hiện tại là mức ảnh (đề xuất theo rủi ro hoặc dữ liệu cũ) mà
+  // production không cho → tự chuyển sang mức lưu được gần nhất, không âm thầm
+  // giữ lựa chọn ảnh giả.
+  useEffect(() => {
+    if (!supabase) return;
+    if (!options.includes(value)) {
+      onChange(value === 'RequiredPhoto' ? 'RequiredHandoverChecklist' : 'ChecklistOnly');
+    }
+  }, [supabase, value, options, onChange]);
+
   function isOptionDisabled(option: EvidenceRequirement): boolean {
     if (!isHighRisk) return false;
     return EVIDENCE_RANK[option] < HIGH_RISK_MIN_RANK;
@@ -807,7 +835,7 @@ function EvidenceFieldset({
       </p>
 
       <ul className="flex flex-col gap-2">
-        {EVIDENCE_REQUIREMENT_VALUES.map((option) => {
+        {options.map((option) => {
           const disabled = isOptionDisabled(option);
           const isSuggested = suggestion === option;
           const isSelected = value === option;
