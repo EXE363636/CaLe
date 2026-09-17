@@ -9,6 +9,55 @@
 
 ---
 
+## 0000. Phiên P0 — smoke prod + sửa lỗi luồng thật (2026-09-17)
+
+> Branch: **`fix/p0-signup-error-handling`** (2 commit trên `d3d7409`, **CHƯA push**
+> — push `main` = auto-deploy `cale.io.vn`). Chạy trên Supabase **production**
+> (project `enurvffmliyrivehppaq`), `.env.local` = supabase mode, confirm email TẮT.
+
+**Đã làm & xác minh thật (localhost ↔ Supabase prod):**
+- **P0.1 đăng ký công khai** — Worker `ngochung69223+w1@gmail.com`
+  (uid `be306efe-6db9-497d-82d6-1c675c886ff3`) + Employer `ngochung69223+e1@gmail.com`
+  (uid `a42eab12-a7a0-45b6-a2e7-823c303b8f2e`), mật khẩu `CaleTest2026!`. Đăng ký →
+  **tự đăng nhập** → dashboard đúng vai + hồ sơ (chứng tỏ trigger tạo `public.users`
+  + bảng profile). **Là tài khoản test THẬT trong DB prod.**
+- **P0.2 xử lý lỗi đăng ký** (commit **`98e8510`**) — `register()` supabase không còn
+  nuốt mọi lỗi thành `INVALID_INPUT`. Thêm `mapSignUpError()` (theo `error.code` →
+  `status` → message): EMAIL_TAKEN / INVALID_EMAIL / WEAK_PASSWORD / RATE_LIMITED /
+  BACKEND_ERROR (mặc định lỗi lạ = BACKEND_ERROR, chỉ trả enum, không lộ JWT/key).
+  errorMap + vi.ts + 6 unit test.
+- **P0.3 luồng 2 tài khoản** (commit **`2c4e10a`**) — publish→see→apply→approve→worker
+  thấy "Đã duyệt"→withdraw→cancel đều chạy. **Sửa 2 bug phát hiện trong luồng:**
+  1. Employer chỉ thấy số đếm đơn, KHÔNG có card ứng viên/nút Duyệt-Từ chối
+     (`users.find(workerId)` rỗng). → `refetchForShift/Shifts` overlay
+     `loadPublicProfiles` của worker ứng tuyển vào userStore.
+  2. Worker mở ca đã ứng tuyển nhưng ca rời `public_shifts` (đã huỷ/đầy/hết hạn) →
+     **404**. → sau `refetchForWorker`, nạp ca còn thiếu qua `refetchOne`
+     (RPC `get_shift_detail` cấp quyền worker-có-đơn). Cả 2 chỉ ở client/store,
+     KHÔNG đụng migration/RPC.
+- **P0.5 giao diện mobile (375px)** — landing / đăng ký / dashboard / chi tiết ca /
+  form đăng ca: KHÔNG trang nào tràn ngang, input ≥40px. Đạt.
+
+**Grid:** tsc 0, lint 0, unit **702 pass / 3 fail** (đúng 3 handbook đỏ cố ý §3.2).
+
+**CÒN LẠI / bàn giao cho người tiếp:**
+- **P0.4 Admin — CHƯA làm.** Backend đủ: `supabase/functions/admin-users` có
+  `create` / `setSuspended` (chặn `CANNOT_SUSPEND_SELF`/`ADMIN`) / `delete`
+  (chặn **`CANNOT_DELETE_SELF`** dòng 183, chặn xoá admin, chỉ xoá user không lịch sử),
+  caller phải admin. **Chặn test: cần tài khoản admin** → chạy `npm run admin:bootstrap`
+  (yêu cầu `SUPABASE_SERVICE_ROLE_KEY` trong `.env.local` — chỉ ở Node, KHÔNG vào chat/commit)
+  hoặc `npm run test:admin` (integration backend). Agent không có service_role.
+- **Merge/deploy:** 2 commit P0.2+P0.3 đang trên branch, chờ review trước khi push `main`.
+- **Quan sát (chưa chặn):** (a) sau signup, `role` KHÔNG ở `app_metadata` của JWT — chỉ ở
+  `user_metadata` + cột `public.users.role` (routing/hồ sơ vẫn đúng; nên xác nhận admin RLS
+  `is_admin()` khi làm P0.4). (b) dashboard worker không liệt kê ca terminal (đã huỷ) —
+  lựa chọn hiển thị, không phải bug 404. (c) vài link footer/card <44px tap (WCAG, để P1).
+- **Dữ liệu test trong prod:** 2 tài khoản trên + 1 ca "Phục vụ tiệc cưới cuối tuần"
+  (id `3e4048d8-10c3-4f74-9422-9c49afd61ed3`, đã Cancelled) + đơn ứng tuyển. Xoá qua Admin
+  khi cần (đừng khôi phục seed demo).
+
+---
+
 ## 000. Tổng vệ sinh trước public + Runtime Capability model (2026-09-16)
 
 **Nguồn sự thật capability:** [`src/data/capabilities.ts`](src/data/capabilities.ts).
