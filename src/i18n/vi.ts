@@ -454,6 +454,9 @@ export const vi: Record<string, string> = {
   'feedback.error.invalidEmail': 'Email không hợp lệ.',
   'feedback.error.invalidPassword': 'Mật khẩu cần ít nhất 8 ký tự.',
   'feedback.error.invalidPhone': 'Số điện thoại không hợp lệ.',
+  'feedback.error.rateLimited':
+    'Bạn thử lại quá nhiều lần. Vui lòng đợi ít phút rồi thử lại.',
+  'feedback.error.invalidInput': 'Thông tin đăng ký chưa hợp lệ. Vui lòng kiểm tra lại.',
 
   // Worker action feedback
   'feedback.apply.success': 'Đã ứng tuyển thành công',

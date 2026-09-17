@@ -115,6 +115,11 @@ export function toastFromStoreError(
     INVALID_EMAIL: t('feedback.error.invalidEmail'),
     INVALID_PASSWORD: t('feedback.error.invalidPassword'),
     INVALID_PHONE: t('feedback.error.invalidPhone'),
+    // authStore — register() mapped Supabase signUp errors
+    WEAK_PASSWORD: t('feedback.error.invalidPassword'),
+    RATE_LIMITED: t('feedback.error.rateLimited'),
+    INVALID_INPUT: t('feedback.error.invalidInput'),
+    INVALID_ROLE: t('feedback.error.invalidInput'),
   };
 
   const message = map[code];

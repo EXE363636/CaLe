@@ -35,6 +35,9 @@ export type RegisterError =
   | 'EMAIL_TAKEN'
   | 'INVALID_ROLE'
   | 'INVALID_INPUT'
+  | 'INVALID_EMAIL'
+  | 'WEAK_PASSWORD'
+  | 'RATE_LIMITED'
   | 'BACKEND_ERROR';
 
 /**
@@ -142,6 +145,51 @@ function validateRegister(input: RegisterInput): RegisterError | null {
   return null;
 }
 
+/**
+ * Map lỗi `signUp` của Supabase → `RegisterError` cụ thể để UI báo đúng nguyên
+ * nhân (email trùng / email sai / mật khẩu yếu / vượt giới hạn / backend lỗi),
+ * thay vì nuốt hết thành một mã chung.
+ *
+ * Ưu tiên `error.code` (ổn định), rồi `error.status` (HTTP), cuối cùng mới dò
+ * message (server cũ). Client đã chạy `validateRegister` TRƯỚC khi gọi, nên input
+ * chắc chắn hợp lệ ở phía client → lỗi lạ còn lại là vấn đề backend, KHÔNG phải
+ * `INVALID_INPUT`. Chỉ trả về mã enum — KHÔNG bao giờ để lộ message thô, JWT, key.
+ */
+export function mapSignUpError(error: unknown): RegisterError {
+  const e = (error ?? {}) as { code?: string; status?: number; message?: string };
+  const code = typeof e.code === 'string' ? e.code.toLowerCase() : '';
+  const status = typeof e.status === 'number' ? e.status : undefined;
+  const msg = typeof e.message === 'string' ? e.message.toLowerCase() : '';
+
+  // 1) Mã lỗi ổn định của Supabase auth-js.
+  if (code === 'user_already_exists' || code === 'email_exists') return 'EMAIL_TAKEN';
+  if (
+    code === 'over_email_send_rate_limit' ||
+    code === 'over_request_rate_limit' ||
+    code === 'over_sms_send_rate_limit'
+  ) {
+    return 'RATE_LIMITED';
+  }
+  if (code === 'weak_password') return 'WEAK_PASSWORD';
+  if (code === 'email_address_invalid') return 'INVALID_EMAIL';
+  if (code === 'signup_disabled') return 'BACKEND_ERROR';
+
+  // 2) Theo HTTP status.
+  if (status === 429) return 'RATE_LIMITED';
+  if (status !== undefined && status >= 500) return 'BACKEND_ERROR';
+
+  // 3) Dò message (server cũ / chưa có code).
+  if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
+    return 'EMAIL_TAKEN';
+  }
+  if (msg.includes('rate limit') || msg.includes('too many')) return 'RATE_LIMITED';
+  if (msg.includes('weak') && msg.includes('password')) return 'WEAK_PASSWORD';
+  if (msg.includes('invalid') && msg.includes('email')) return 'INVALID_EMAIL';
+
+  // 4) Mặc định: input đã qua validate client → coi là lỗi backend, không đổ cho input.
+  return 'BACKEND_ERROR';
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -224,11 +272,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         },
       });
       if (error) {
-        const msg = error.message.toLowerCase();
-        if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
-          return { ok: false, error: 'EMAIL_TAKEN' };
-        }
-        return { ok: false, error: 'INVALID_INPUT' };
+        return { ok: false, error: mapSignUpError(error) };
       }
       // Email confirmation BẬT → không có session → không auto-login.
       if (!data.session || !data.user) {
