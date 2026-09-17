@@ -9,6 +9,68 @@
 
 ---
 
+## 0000. Phiên P0 — smoke prod + sửa lỗi luồng thật (2026-09-17)
+
+> Branch: **`fix/p0-signup-error-handling`** (2 commit trên `d3d7409`, **CHƯA push**
+> — push `main` = auto-deploy `cale.io.vn`). Chạy trên Supabase **production**
+> (project `enurvffmliyrivehppaq`), `.env.local` = supabase mode, confirm email TẮT.
+
+**Đã làm & xác minh thật (localhost ↔ Supabase prod):**
+- **P0.1 đăng ký công khai** — Worker `ngochung69223+w1@gmail.com`
+  (uid `be306efe…`) + Employer `ngochung69223+e1@gmail.com`
+  (uid `a42eab12…`), mật khẩu `[đã rotate và vô hiệu]`. Đăng ký →
+  **tự đăng nhập** → dashboard đúng vai + hồ sơ (chứng tỏ trigger tạo `public.users`
+  + bảng profile). **Hai tài khoản test này đã bị XÓA khỏi prod (xem §0000 cleanup).**
+- **P0.2 xử lý lỗi đăng ký** (commit **`98e8510`**) — `register()` supabase không còn
+  nuốt mọi lỗi thành `INVALID_INPUT`. Thêm `mapSignUpError()` (theo `error.code` →
+  `status` → message): EMAIL_TAKEN / INVALID_EMAIL / WEAK_PASSWORD / RATE_LIMITED /
+  BACKEND_ERROR (mặc định lỗi lạ = BACKEND_ERROR, chỉ trả enum, không lộ JWT/key).
+  errorMap + vi.ts + 6 unit test.
+- **P0.3 luồng 2 tài khoản** (commit **`2c4e10a`**) — publish→see→apply→approve→worker
+  thấy "Đã duyệt"→withdraw→cancel đều chạy. **Sửa 2 bug phát hiện trong luồng:**
+  1. Employer chỉ thấy số đếm đơn, KHÔNG có card ứng viên/nút Duyệt-Từ chối
+     (`users.find(workerId)` rỗng). → `refetchForShift/Shifts` overlay
+     `loadPublicProfiles` của worker ứng tuyển vào userStore.
+  2. Worker mở ca đã ứng tuyển nhưng ca rời `public_shifts` (đã huỷ/đầy/hết hạn) →
+     **404**. → sau `refetchForWorker`, nạp ca còn thiếu qua `refetchOne`
+     (RPC `get_shift_detail` cấp quyền worker-có-đơn). Cả 2 chỉ ở client/store,
+     KHÔNG đụng migration/RPC.
+- **P0.5 giao diện mobile (375px)** — landing / đăng ký / dashboard / chi tiết ca /
+  form đăng ca: KHÔNG trang nào tràn ngang, input ≥40px. Đạt.
+
+**Grid:** tsc 0, lint 0, unit **702 pass / 3 fail** (đúng 3 handbook đỏ cố ý §3.2).
+
+**P0.4 Admin — ✅ ĐÃ XÁC MINH (2026-09-17, prod `enurvffmliyrivehppaq`):**
+- **Admin cố định:** `admin@cale.io.vn` (uid `077575f0…`) có **cả** `public.users.role='admin'`
+  **và** trusted `app_metadata.role='admin'`, email confirmed. `npm run admin:bootstrap`
+  chạy idempotent (đã tồn tại → chỉ chuẩn hoá role, KHÔNG đổi mật khẩu admin).
+- **`npm run test:admin` = 18/18 PASS trên prod** — bao phủ toàn bộ ma trận P0.4:
+  tạo Worker, tạo Employer, khoá/mở khoá, xoá tài khoản sạch, chặn tự xoá
+  (`CANNOT_DELETE_SELF`), chặn xoá admin, chặn non-admin/anon (401/403),
+  `USER_HAS_HISTORY`, `EMAIL_EXISTS`, `INVALID_ROLE`. Edge Function không đổi.
+- **Không chạy login UI trình duyệt** (tránh tạo tài khoản + nhập mật khẩu đăng nhập);
+  test:admin gọi đúng Edge Function mà Admin Dashboard UI dùng nên phủ tương đương.
+- **Quan sát (a) đã đóng:** admin có `app_metadata.role` đúng → RLS `is_admin()` OK.
+
+**Dọn dữ liệu test prod (2026-09-17):**
+- Mật khẩu rò rỉ của +w1/+e1 (`[đã rotate và vô hiệu]`) đã **rotate** → đăng nhập bằng
+  mật khẩu cũ bị **REJECTED**.
+- Theo quyết định người dùng: **hard-delete toàn bộ footprint test** — ca
+  "Phục vụ tiệc cưới cuối tuần" (`3e4048d8…`, Cancelled) + 2 đơn ứng tuyển + 2 tài khoản
+  `ngochung69223+w1` / `+e1` (cascade Auth → public.users → profiles). Đã xác minh biến mất
+  hoàn toàn khỏi Auth + DB.
+- **Còn lại trong prod:** 1 admin + **2 worker test chưa rõ nguồn** (`vua***@gmail.com`
+  `b4b6ea06…`, `cus***@gmail.com` `7ea4a530…`) — KHÔNG đụng (không do phiên này tạo,
+  không nằm trong yêu cầu). Người dùng tự quyết xoá qua Admin nếu muốn prod sạch tuyệt đối.
+
+**CÒN LẠI / bàn giao cho người tiếp:**
+- **Merge/deploy:** branch `fix/p0-signup-error-handling` (P0.2+P0.3 + doc P0.4) chờ review
+  → tạo PR vào `main`. Push `main` = auto-deploy `cale.io.vn`. **Đủ an toàn để mở PR.**
+- **Quan sát (chưa chặn):** (b) dashboard worker không liệt kê ca terminal (đã huỷ) —
+  lựa chọn hiển thị, không phải bug 404. (c) vài link footer/card <44px tap (WCAG, để P1).
+
+---
+
 ## 000. Tổng vệ sinh trước public + Runtime Capability model (2026-09-16)
 
 **Nguồn sự thật capability:** [`src/data/capabilities.ts`](src/data/capabilities.ts).

@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, mapSignUpError } from '@/stores/authStore';
 import { useUserStore } from '@/stores/userStore';
 import type { Worker } from '@/types';
 
@@ -205,5 +205,59 @@ describe('authStore.register (Phase 9P)', () => {
     });
     expect(reg.ok).toBe(false);
     if (!reg.ok) expect(reg.error).toBe('EMAIL_TAKEN');
+  });
+});
+
+/**
+ * P0.2 — mapSignUpError không nuốt mọi lỗi Supabase thành một mã chung; phân
+ * biệt email trùng / email sai / mật khẩu yếu / vượt giới hạn / backend lỗi, và
+ * KHÔNG bao giờ trả về message thô/JWT/key (chỉ enum).
+ */
+describe('mapSignUpError (P0.2 signup error mapping)', () => {
+  it('maps user_already_exists / email_exists → EMAIL_TAKEN', () => {
+    expect(mapSignUpError({ code: 'user_already_exists' })).toBe('EMAIL_TAKEN');
+    expect(mapSignUpError({ code: 'email_exists' })).toBe('EMAIL_TAKEN');
+  });
+
+  it('maps rate-limit codes and HTTP 429 → RATE_LIMITED', () => {
+    expect(mapSignUpError({ code: 'over_email_send_rate_limit' })).toBe('RATE_LIMITED');
+    expect(mapSignUpError({ code: 'over_request_rate_limit' })).toBe('RATE_LIMITED');
+    expect(mapSignUpError({ status: 429, message: 'Too Many Requests' })).toBe('RATE_LIMITED');
+  });
+
+  it('maps weak_password → WEAK_PASSWORD', () => {
+    expect(mapSignUpError({ code: 'weak_password' })).toBe('WEAK_PASSWORD');
+  });
+
+  it('maps email_address_invalid → INVALID_EMAIL', () => {
+    expect(mapSignUpError({ code: 'email_address_invalid' })).toBe('INVALID_EMAIL');
+  });
+
+  it('maps 5xx / signup_disabled / unknown → BACKEND_ERROR (not INVALID_INPUT)', () => {
+    expect(mapSignUpError({ status: 500, message: 'Internal Server Error' })).toBe('BACKEND_ERROR');
+    expect(mapSignUpError({ code: 'signup_disabled' })).toBe('BACKEND_ERROR');
+    expect(mapSignUpError({ code: 'unexpected_failure', message: 'boom' })).toBe('BACKEND_ERROR');
+    expect(mapSignUpError({})).toBe('BACKEND_ERROR');
+    expect(mapSignUpError(null)).toBe('BACKEND_ERROR');
+  });
+
+  it('falls back to message substrings when code is absent (older server)', () => {
+    expect(mapSignUpError({ message: 'User already registered' })).toBe('EMAIL_TAKEN');
+    expect(mapSignUpError({ message: 'email rate limit exceeded' })).toBe('RATE_LIMITED');
+    expect(mapSignUpError({ message: 'Invalid email address' })).toBe('INVALID_EMAIL');
+  });
+
+  it('never returns a raw message / secret — only a known enum code', () => {
+    const codes = new Set([
+      'EMAIL_TAKEN',
+      'INVALID_ROLE',
+      'INVALID_INPUT',
+      'INVALID_EMAIL',
+      'WEAK_PASSWORD',
+      'RATE_LIMITED',
+      'BACKEND_ERROR',
+    ]);
+    const leaky = { message: 'eyJhbGciOiJIUzI1NiJ9.secret.jwt', code: 'unexpected_failure' };
+    expect(codes.has(mapSignUpError(leaky))).toBe(true);
   });
 });

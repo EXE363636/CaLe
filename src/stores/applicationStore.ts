@@ -19,6 +19,7 @@ import { create } from 'zustand';
 import { STORAGE_KEYS, write } from '@/data/persistence';
 import { getDataMode } from '@/data/supabaseClient';
 import { getApplicationRepo } from '@/data/repos/applicationRepo';
+import { getUserRepo } from '@/data/repos/userRepo';
 import {
   canCancelByQuota,
   quotaUsage,
@@ -527,6 +528,23 @@ const nowIso = (): string => new Date().toISOString();
 
 function persistApplications(applications: Application[]): void {
   write(STORAGE_KEYS.applications, applications);
+}
+
+/**
+ * Supabase — sau khi nạp đơn của employer cho 1+ ca, overlay hồ sơ CÔNG KHAI của
+ * các worker ứng tuyển vào `userStore`. Không có bước này, trang chi tiết ca của
+ * employer render `users.find(u => u.id === app.workerId)` = undefined → card ứng
+ * viên `return null` → employer thấy số đếm đơn nhưng KHÔNG có card/nút duyệt/từ
+ * chối. Chỉ nạp worker còn thiếu trong cache (idempotent, tránh gọi thừa).
+ */
+async function overlayApplicantProfiles(rows: Application[]): Promise<void> {
+  const userStore = useUserStore.getState();
+  const missing = [...new Set(rows.map((a) => a.workerId))].filter(
+    (id) => !userStore.findById(id),
+  );
+  if (missing.length === 0) return;
+  const profiles = await getUserRepo().loadPublicProfiles(missing);
+  for (const p of profiles) useUserStore.getState().overlayUser(p);
 }
 
 function persistRatings(ratings: Rating[]): void {
@@ -2798,6 +2816,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     const rows = await getApplicationRepo().getForShift(shiftId);
     const others = get().applications.filter((a) => a.shiftId !== shiftId);
     set({ applications: [...others, ...rows] });
+    await overlayApplicantProfiles(rows);
   },
 
   async refetchForShifts(shiftIds) {
@@ -2806,6 +2825,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
     const idset = new Set(shiftIds);
     const others = get().applications.filter((a) => !idset.has(a.shiftId));
     set({ applications: [...others, ...rows] });
+    await overlayApplicantProfiles(rows);
   },
 
   hydrateApplications(applications) {
