@@ -17,10 +17,10 @@
 
 **Đã làm & xác minh thật (localhost ↔ Supabase prod):**
 - **P0.1 đăng ký công khai** — Worker `ngochung69223+w1@gmail.com`
-  (uid `be306efe-6db9-497d-82d6-1c675c886ff3`) + Employer `ngochung69223+e1@gmail.com`
-  (uid `a42eab12-a7a0-45b6-a2e7-823c303b8f2e`), mật khẩu `CaleTest2026!`. Đăng ký →
+  (uid `be306efe…`) + Employer `ngochung69223+e1@gmail.com`
+  (uid `a42eab12…`), mật khẩu `[đã rotate và vô hiệu]`. Đăng ký →
   **tự đăng nhập** → dashboard đúng vai + hồ sơ (chứng tỏ trigger tạo `public.users`
-  + bảng profile). **Là tài khoản test THẬT trong DB prod.**
+  + bảng profile). **Hai tài khoản test này đã bị XÓA khỏi prod (xem §0000 cleanup).**
 - **P0.2 xử lý lỗi đăng ký** (commit **`98e8510`**) — `register()` supabase không còn
   nuốt mọi lỗi thành `INVALID_INPUT`. Thêm `mapSignUpError()` (theo `error.code` →
   `status` → message): EMAIL_TAKEN / INVALID_EMAIL / WEAK_PASSWORD / RATE_LIMITED /
@@ -53,8 +53,8 @@
 - **Quan sát (a) đã đóng:** admin có `app_metadata.role` đúng → RLS `is_admin()` OK.
 
 **Dọn dữ liệu test prod (2026-09-17):**
-- Mật khẩu rò rỉ `CaleTest2026!` của +w1/+e1 đã **rotate** → đăng nhập bằng mật khẩu cũ
-  bị **REJECTED**.
+- Mật khẩu rò rỉ của +w1/+e1 (`[đã rotate và vô hiệu]`) đã **rotate** → đăng nhập bằng
+  mật khẩu cũ bị **REJECTED**.
 - Theo quyết định người dùng: **hard-delete toàn bộ footprint test** — ca
   "Phục vụ tiệc cưới cuối tuần" (`3e4048d8…`, Cancelled) + 2 đơn ứng tuyển + 2 tài khoản
   `ngochung69223+w1` / `+e1` (cascade Auth → public.users → profiles). Đã xác minh biến mất
