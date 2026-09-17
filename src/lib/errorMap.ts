@@ -120,6 +120,23 @@ export function toastFromStoreError(
     RATE_LIMITED: t('feedback.error.rateLimited'),
     INVALID_INPUT: t('feedback.error.invalidInput'),
     INVALID_ROLE: t('feedback.error.invalidInput'),
+
+    // P0 attendance RPCs (Supabase mode) — mã lỗi từ SECURITY DEFINER.
+    CHECK_IN_WINDOW_CLOSED: t('attendance.error.checkInWindow'),
+    MARK_PRESENT_WINDOW_CLOSED: t('attendance.error.markPresentWindow'),
+    CHECKOUT_WINDOW_CLOSED: t('attendance.error.checkoutWindow'),
+    CHECKOUT_REQUIRES_SELF_CHECKIN: t('attendance.error.checkoutRequiresCheckin'),
+    SHIFT_NOT_ENDED: t('attendance.error.shiftNotEnded'),
+    EVIDENCE_REQUIRED: t('error.evidence.photoRequired'),
+    NOTE_TOO_LONG: t('error.evidence.tooLong'),
+    EVIDENCE_FILENAME_INVALID: t('attendance.error.evidenceFilename'),
+    INVALID_STATE_FOR_CHECKIN: t('feedback.error.wrongStatus'),
+    INVALID_STATE_FOR_MARK_PRESENT: t('feedback.error.wrongStatus'),
+    INVALID_STATE_FOR_CHECKOUT: t('feedback.error.wrongStatus'),
+    INVALID_STATE_FOR_CONFIRM: t('feedback.error.wrongStatus'),
+    NOT_OWNER: t('attendance.error.notOwner'),
+    NOT_AUTHENTICATED: t('feedback.error.invalidCredentials'),
+    NOT_AN_EMPLOYER: t('attendance.error.notEmployer'),
   };
 
   const message = map[code];

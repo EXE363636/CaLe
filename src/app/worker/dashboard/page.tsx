@@ -56,6 +56,8 @@ function WorkerDashboardContent() {
   const applications = useApplicationStore((s) => s.applications);
   const checkIn = useApplicationStore((s) => s.checkIn);
   const checkOut = useApplicationStore((s) => s.checkOut);
+  const checkInAsync = useApplicationStore((s) => s.checkInAsync);
+  const checkOutAsync = useApplicationStore((s) => s.checkOutAsync);
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
   const withdrawAsync = useApplicationStore((s) => s.withdrawAsync);
   const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
@@ -475,9 +477,11 @@ function WorkerDashboardContent() {
   // the same clamped `worker.reputationScore` — no visible change.
   const reputationScore = getWorkerReputation(worker.id);
 
-  function handleCheckIn(appId: string) {
+  async function handleCheckIn(appId: string) {
+    if (actionLoading) return; // khóa double-click
     setActionLoading(appId);
-    const result = checkIn(appId);
+    // Supabase: RPC + refetch server (trạng thái tồn tại sau reload). Local: sync cũ.
+    const result = isSupabaseEnv() ? await checkInAsync(appId) : checkIn(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('feedback.checkIn.success'));
@@ -494,14 +498,17 @@ function WorkerDashboardContent() {
     setCheckoutTargetId(appId);
   }
 
-  function handleCheckoutSubmit(payload: {
+  async function handleCheckoutSubmit(payload: {
     checklist?: boolean[];
     note?: string;
     evidenceFileName?: string;
   }) {
     if (!checkoutTargetId) return;
+    if (actionLoading) return; // khóa double-click
     setActionLoading(checkoutTargetId);
-    const result = checkOut({ applicationId: checkoutTargetId, ...payload });
+    const input = { applicationId: checkoutTargetId, ...payload };
+    // Supabase: RPC (thời gian server) + refetch → check-out tồn tại sau reload.
+    const result = isSupabaseEnv() ? await checkOutAsync(input) : checkOut(input);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(
