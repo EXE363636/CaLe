@@ -137,12 +137,17 @@ const EMPLOYER_GROUP: MenuGroup = {
 
 const SAFETY_GROUP: MenuGroup = {
   label: 'Hướng dẫn & hỗ trợ',
-  activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide', '/handbook'],
+  activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide', '/handbook', '/pricing'],
   items: [
     {
       href: '/how-it-works',
       label: 'Cách hoạt động',
       description: 'Bốn bước từ đăng ca đến thanh toán',
+    },
+    {
+      href: '/pricing',
+      label: 'Bảng giá',
+      description: 'Miễn phí trong giai đoạn thử nghiệm',
     },
     {
       href: '/safety',

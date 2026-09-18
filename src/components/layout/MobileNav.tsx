@@ -126,8 +126,10 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
   },
   {
     heading: 'Hướng dẫn & hỗ trợ',
+    // (Bảng giá thêm ngay dưới "Cách hoạt động")
     links: [
       { href: '/how-it-works', label: 'Cách hoạt động' },
+      { href: '/pricing', label: 'Bảng giá' },
       { href: '/safety', label: t('nav.label.safety') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/disputes', label: 'Xử lý tranh chấp' },
