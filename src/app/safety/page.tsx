@@ -1,6 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Bảo vệ người dùng — CaLẻ / Now' };
+export const metadata = { title: 'Bảo vệ người dùng — CaLẻ' };
 
 export default function SafetyPage() {
   return (

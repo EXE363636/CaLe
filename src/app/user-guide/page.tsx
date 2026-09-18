@@ -355,7 +355,7 @@ export default function UserGuidePage() {
   return (
     <InfoPage
       eyebrow="Hướng dẫn sử dụng"
-      title="Cách dùng CaLẻ / Now"
+      title="Cách dùng CaLẻ"
       intro="Hướng dẫn từng bước cho người lao động và nhà tuyển dụng. Mỗi bước gắn liền với thao tác thật trên ứng dụng - không phải mô tả chung chung."
       ctas={[
         { label: 'Tìm ca làm ngay', href: '/shifts' },
@@ -369,7 +369,7 @@ export default function UserGuidePage() {
       {/* Hero summary - what is CaLê / Now */}
       <section>
         <p className="text-justify leading-relaxed text-gray-700">
-          CaLẻ / Now là nền tảng kết nối ca làm ngắn hạn tại Việt Nam.
+          CaLẻ là nền tảng kết nối ca làm ngắn hạn tại Việt Nam.
           Người muốn tìm việc theo ca như sinh viên, người lao động tự do hoặc người cần kiếm thêm thu nhập có thể tìm ca phù hợp với lịch cá nhân; nhà tuyển dụng đảm bảo thanh
           toán trước khi đăng ca, giúp người lao động yên tâm về thanh toán.
         </p>

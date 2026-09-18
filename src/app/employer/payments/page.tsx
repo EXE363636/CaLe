@@ -2,7 +2,7 @@ import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 export const metadata = {
-  title: 'Thanh toán — CaLẻ / Now',
+  title: 'Thanh toán — CaLẻ',
 };
 
 export default function EmployerPaymentsPage() {

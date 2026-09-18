@@ -4,7 +4,7 @@
  * NavBar (Phase 9W refinement of the Phase 9T / 9V dropdown).
  *
  * A real product nav with:
- *   - Brand block (CaLẻ / Now) plus a small "by CaLedo Tech" subtitle.
+ *   - Brand block (CaLẻ) plus a small "by CaLedo Tech" subtitle.
  *   - Public guest nav with grouped dropdowns:
  *       Trang chủ · Tìm ca làm · Người lao động ▾ · Nhà tuyển dụng ▾ ·
  *       An toàn & hướng dẫn ▾ · Hỗ trợ
