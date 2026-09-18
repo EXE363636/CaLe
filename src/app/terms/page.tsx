@@ -1,13 +1,13 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Điều khoản sử dụng — CaLẻ / Now' };
+export const metadata = { title: 'Điều khoản sử dụng — CaLẻ' };
 
 export default function TermsPage() {
   return (
     <InfoPage
       eyebrow="Pháp lý"
       title="Điều khoản sử dụng"
-      intro="Bằng việc tạo tài khoản hoặc sử dụng dịch vụ CaLẻ / Now, bạn đồng ý với các điều khoản dưới đây. Tài liệu áp dụng cho phiên bản dùng thử của sản phẩm."
+      intro="Bằng việc tạo tài khoản hoặc sử dụng dịch vụ CaLẻ, bạn đồng ý với các điều khoản dưới đây. Tài liệu áp dụng cho phiên bản dùng thử của sản phẩm."
     >
       <InfoSection title="1. Phạm vi dịch vụ">
         CaLẻ là nền tảng kết nối nhà tuyển dụng cần người lao động ngắn hạn với

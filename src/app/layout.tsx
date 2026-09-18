@@ -14,7 +14,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CaLẻ / Now",
+  title: "CaLẻ",
   description:
     "Nền tảng kết nối nhà tuyển dụng và người lao động cho các ca làm ngắn hạn tại Việt Nam.",
 };

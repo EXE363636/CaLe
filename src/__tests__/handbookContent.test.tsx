@@ -50,7 +50,7 @@
  *
  *   • Page framing — src/app/user-guide/page.tsx: the page is an app USAGE
  *     walkthrough (InfoPage eyebrow "Hướng dẫn sử dụng", title "Cách dùng
- *     CaLẻ / Now"): 9-step worker timeline + 9-step employer timeline +
+ *     CaLẻ"): 9-step worker timeline + 9-step employer timeline +
  *     feature-anchor cards + FAQ — all PROCEDURAL ("how to use the app"),
  *     not a practical behavioral handbook. None of the practical-topic
  *     anchors above appear anywhere in the page (verified by grep: "hài

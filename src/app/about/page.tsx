@@ -2,13 +2,13 @@ import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { PartnersSection } from '@/components/about/PartnersSection';
 import { t } from '@/i18n/vi';
 
-export const metadata = { title: 'Giới thiệu — CaLẻ / Now' };
+export const metadata = { title: 'Giới thiệu — CaLẻ' };
 
 export default function AboutPage() {
   return (
     <InfoPage
       eyebrow="Về chúng tôi"
-      title="Giới thiệu CaLẻ / Now"
+      title="Giới thiệu CaLẻ"
       intro={t('about.intro')}
       ctas={[
         { label: 'Tìm ca làm', href: '/shifts' },

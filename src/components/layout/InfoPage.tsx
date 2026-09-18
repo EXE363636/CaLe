@@ -40,7 +40,7 @@ interface InfoPageProps {
 }
 
 export function InfoPage({
-  eyebrow = 'CaLẻ / Now',
+  eyebrow = 'CaLẻ',
   title,
   intro,
   children,

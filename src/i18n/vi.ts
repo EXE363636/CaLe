@@ -19,7 +19,7 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Site / meta
   // -------------------------------------------------------------------------
-  'site.name': 'CaLẻ / Now',
+  'site.name': 'CaLẻ',
   'site.tagline': 'Nền tảng ca làm ngắn hạn tại Việt Nam',
   'site.description':
     'Kết nối nhà tuyển dụng cần người lao động tạm thời với người lao động linh hoạt tại Việt Nam.',
@@ -864,10 +864,10 @@ export const vi: Record<string, string> = {
   // Auth pages
   // -------------------------------------------------------------------------
   'auth.login.title': 'Đăng nhập',
-  'auth.login.subtitle': 'Chào mừng bạn quay lại CaLẻ / Now',
+  'auth.login.subtitle': 'Chào mừng bạn quay lại CaLẻ',
   'auth.login.noAccount': 'Chưa có tài khoản?',
   'auth.register.title': 'Đăng ký tài khoản',
-  'auth.register.subtitle': 'Tham gia CaLẻ / Now ngay hôm nay',
+  'auth.register.subtitle': 'Tham gia CaLẻ ngay hôm nay',
   'auth.register.hasAccount': 'Đã có tài khoản?',
   'auth.register.selectRole': 'Bạn muốn đăng ký với vai trò nào?',
   'auth.register.asWorker': 'Tôi muốn tìm ca làm',
@@ -877,7 +877,7 @@ export const vi: Record<string, string> = {
   'auth.side.welcome': 'Chào mừng quay lại',
   'auth.side.welcome.desc':
     'Đăng nhập để tiếp tục quản lý ca làm, đơn ứng tuyển và lịch cá nhân của bạn.',
-  'auth.side.join': 'Tham gia CaLẻ / Now',
+  'auth.side.join': 'Tham gia CaLẻ',
   'auth.side.join.desc':
     'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người lao động linh hoạt.',
   'auth.side.benefit1': 'Thanh toán minh bạch',
@@ -1152,7 +1152,7 @@ export const vi: Record<string, string> = {
 
   'help.workerDashboard.title': 'Hướng dẫn - Tổng quan người lao động',
   'help.workerDashboard.intro':
-    'Đây là trang tổng quan các hoạt động của bạn trên CaLẻ / Now.',
+    'Đây là trang tổng quan các hoạt động của bạn trên CaLẻ.',
   'help.workerDashboard.item1':
     'Bấm vào ô "Điểm uy tín" để xem chi tiết cách điểm được cộng/trừ.',
   'help.workerDashboard.item2':
@@ -2267,7 +2267,7 @@ export const vi: Record<string, string> = {
   // (R6.2/R6.3/R6.4) - no real brand names or logos.
   // -------------------------------------------------------------------------
   'about.intro':
-    'CaLẻ (Now) là sản phẩm của CaLedo Tech - đội ngũ Việt Nam mong muốn xây dựng một nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương.',
+    'CaLẻ là sản phẩm của CaLedo Tech - đội ngũ Việt Nam mong muốn xây dựng một nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương.',
 
   'about.vision.title': 'Tầm nhìn',
   'about.vision.body':

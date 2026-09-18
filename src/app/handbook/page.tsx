@@ -3,7 +3,7 @@ import { HandbookCategoryMenu } from '@/components/handbook/HandbookCategoryMenu
 import { FeaturedArticleList } from '@/components/handbook/FeaturedArticleList';
 import { ArticleGrid } from '@/components/handbook/ArticleGrid';
 
-export const metadata = { title: 'Cẩm nang làm việc — CaLẻ / Now' };
+export const metadata = { title: 'Cẩm nang làm việc — CaLẻ' };
 export const dynamic = 'force-dynamic';
 
 export default async function HandbookPage({
