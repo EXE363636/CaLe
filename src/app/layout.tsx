@@ -5,6 +5,7 @@ import { AppHydrator } from "@/components/layout/AppHydrator";
 import { NavBar } from "@/components/layout/NavBar";
 import { Footer } from "@/components/layout/Footer";
 import { ToastHost } from "@/components/layout/ToastHost";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -61,6 +62,8 @@ export default function RootLayout({
           <Footer />
           <ToastHost />
         </AppHydrator>
+        {/* Google Analytics 4 — nạp gtag.js một lần cho toàn app. */}
+        <GoogleAnalytics />
       </body>
     </html>
   );
