@@ -21,6 +21,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getShiftLifecycleState,
   getShiftStatusBadge,
+  isActiveDashboardShift,
   type ShiftLifecycleState,
 } from '@/domain/shiftLifecycleState';
 import {
@@ -393,6 +394,64 @@ describe('CS10 Part 6: badge mapping consistency', () => {
     expect(getShiftStatusBadge('InProgress')).toEqual(
       getShiftStatusBadge('InProgress'),
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Part 6b — isActiveDashboardShift groups by the SAME clock as the badge
+// (BUG B — supabase has no lifecycle sync so `status` lags the wall clock)
+// ---------------------------------------------------------------------------
+
+describe('CS10 Part 6b: isActiveDashboardShift matches the badge clock', () => {
+  const shift = mkShift({ startTime: '18:05', endTime: '18:09' });
+
+  it('keeps a genuinely upcoming shift in the active group', () => {
+    // Before start → Published → active.
+    expect(
+      isActiveDashboardShift(shift, [], localIso('2030-06-02T17:30:00')),
+    ).toBe(true);
+  });
+
+  it('keeps an in-progress shift in the active group', () => {
+    expect(
+      isActiveDashboardShift(shift, [], localIso('2030-06-02T18:06:00')),
+    ).toBe(true);
+  });
+
+  it('DROPS an overdue Published shift nobody worked (badge = Expired)', () => {
+    // Stored status still Published, but the clock is past end and no one
+    // checked in → badge reads Expired → must NOT count as active.
+    const now = localIso('2030-06-02T18:20:00');
+    expect(getShiftLifecycleState(shift, [], now)).toBe('Expired');
+    expect(isActiveDashboardShift(shift, [], now)).toBe(false);
+  });
+
+  it('keeps an overdue shift where a worker still needs check-out', () => {
+    const checkedIn = mkApp({ status: 'CheckedIn', checkInAt: A_ISO });
+    const now = localIso('2030-06-02T18:20:00');
+    expect(getShiftLifecycleState(shift, [checkedIn], now)).toBe(
+      'AwaitingCheckout',
+    );
+    expect(isActiveDashboardShift(shift, [checkedIn], now)).toBe(true);
+  });
+
+  it('keeps a checked-out shift awaiting employer confirmation', () => {
+    const checkedOut = mkApp({ status: 'CheckedOut', checkOutAt: A_ISO });
+    const now = localIso('2030-06-02T18:20:00');
+    expect(getShiftLifecycleState(shift, [checkedOut], now)).toBe(
+      'AwaitingEmployerConfirmation',
+    );
+    expect(isActiveDashboardShift(shift, [checkedOut], now)).toBe(true);
+  });
+
+  it('drops terminal DB states (Completed / Cancelled)', () => {
+    const now = localIso('2030-06-02T18:06:00');
+    expect(
+      isActiveDashboardShift(mkShift({ status: 'Completed' }), [], now),
+    ).toBe(false);
+    expect(
+      isActiveDashboardShift(mkShift({ status: 'Cancelled' }), [], now),
+    ).toBe(false);
   });
 });
 

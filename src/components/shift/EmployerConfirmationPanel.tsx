@@ -33,6 +33,12 @@ export interface EmployerConfirmationPanelProps {
   onConfirm: () => void;
   /** Opens the `<DisputeDialog/>` for the given application id. */
   onDispute: () => void;
+  /**
+   * Whether to render the "Khiếu nại" (dispute) action. Disputes have no
+   * backend in supabase mode, so the parent passes `false` there to avoid
+   * a CTA that would only mutate RAM. Defaults to `true` (local mode).
+   */
+  showDispute?: boolean;
   /** Optional override for the wall clock — wired by tests. */
   nowSource?: AutoReleaseCountdownProps['nowSource'];
   loading?: boolean;
@@ -52,6 +58,7 @@ export function EmployerConfirmationPanel({
   shift,
   onConfirm,
   onDispute,
+  showDispute = true,
   nowSource,
   loading = false,
 }: EmployerConfirmationPanelProps) {
@@ -223,15 +230,17 @@ export function EmployerConfirmationPanel({
 
       {/* Action row. */}
       <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onDispute}
-          disabled={loading}
-          className="w-full sm:w-auto"
-        >
-          {t('employer.confirm.btn.dispute')}
-        </Button>
+        {showDispute && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDispute}
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
+            {t('employer.confirm.btn.dispute')}
+          </Button>
+        )}
         <Button
           size="sm"
           variant="primary"
