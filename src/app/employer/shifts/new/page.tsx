@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
+import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
+import { hasCapability } from '@/data/capabilities';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore, type NewShiftInput } from '@/stores/shiftStore';
 import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
@@ -32,6 +34,33 @@ import { formatVND, formatLogDateTime } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import type { EmployerType10A, ShiftDraft } from '@/types';
+
+/**
+ * NewShiftInput (camelCase) → payload snake_case cho RPC publish_shift /
+ * create_payment_session. Giữ khớp với toPublishPayload trong shiftRepo.
+ */
+function newInputToPayload(input: NewShiftInput): Record<string, unknown> {
+  return {
+    title: input.title,
+    description: input.description,
+    requirements: input.requirements,
+    job_type: input.jobType,
+    custom_job_type_name: input.customJobTypeName,
+    location: input.location,
+    district: input.district,
+    date: input.date,
+    start_time: input.startTime,
+    end_time: input.endTime,
+    hourly_wage: input.hourlyWage,
+    positions_total: input.positionsTotal,
+    workplace_image_label: input.workplaceImageLabel,
+    workplace_notes: input.workplaceNotes,
+    on_site_contact_name: input.onSiteContactName,
+    on_site_contact_phone: input.onSiteContactPhone,
+    requires_verified_document_on_arrival: input.requiresVerifiedDocumentOnArrival ?? false,
+    evidence_requirement: input.evidenceRequirement,
+  };
+}
 
 export default function NewShiftPage() {
   return (
@@ -629,12 +658,27 @@ function NewShiftContent() {
         </div>
       )}
 
-      {/* Xác nhận đăng ca. Supabase/production: KHÔNG khung "cọc/thanh toán" mô phỏng —
-          chỉ xác nhận đăng + thông báo trung thực (B4). Local/demo: giữ mock-deposit. */}
+      {/* Supabase/production: luồng thanh toán MÔ PHỎNG (provider CALE_MOCK) —
+          phiên lưu Supabase, QR vô hại, publish ca sau khi "Mô phỏng thanh toán
+          thành công". Local/demo giữ nguyên DepositConfirmCard (ví mô phỏng cũ). */}
       {createdShiftId && !deposited && (
-        isSupabaseEnv() ? (
-          <PublishConfirmCard onConfirm={handleDeposit} loading={depositLoading} />
-        ) : (
+        isSupabaseEnv() && hasCapability('mockPayments') && pendingInput ? (
+          <MockPaymentSession
+            shiftPayload={newInputToPayload(pendingInput)}
+            clientRequestId={pendingReqId}
+            previewAmount={depositAmount}
+            onPaid={(shiftId) => {
+              setDeposited(true);
+              router.push(`/employer/shifts/${shiftId}`);
+            }}
+            onCancel={() => {
+              setCreatedShiftId(null);
+              setPendingInput(null);
+              // Xoá paymentId khỏi URL để lần tạo sau không tải phiên cũ.
+              router.replace('/employer/shifts/new');
+            }}
+          />
+        ) : !isSupabaseEnv() ? (
           <DepositConfirmCard
             depositAmount={depositAmount}
             trust={trust}
@@ -642,7 +686,7 @@ function NewShiftContent() {
             onConfirm={handleDeposit}
             loading={depositLoading}
           />
-        )
+        ) : null
       )}
 
       {/* CORE-STABILITY-8 Part 1 — "Bản nháp đã lưu" section. Drafts
@@ -996,31 +1040,6 @@ function TrustExplainerCard({
 // ---------------------------------------------------------------------------
 // Deposit confirm card
 // ---------------------------------------------------------------------------
-
-// Supabase/production: xác nhận đăng ca (không cọc/thanh toán mô phỏng).
-function PublishConfirmCard({
-  onConfirm,
-  loading = false,
-}: {
-  onConfirm: () => void;
-  loading?: boolean;
-}) {
-  return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-card">
-      <h2 className="font-semibold text-gray-900">Xác nhận đăng ca</h2>
-      <p className="mt-1 text-sm text-gray-600">
-        Ca sẽ hiển thị công khai cho người lao động ứng tuyển ngay sau khi đăng.
-      </p>
-      <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-600 ring-1 ring-gray-100">
-        CaLẻ hiện chưa thu hoặc giữ tiền. Nhà tuyển dụng và người lao động tự thống nhất
-        phương thức thanh toán.
-      </p>
-      <Button variant="primary" size="lg" onClick={onConfirm} loading={loading} disabled={loading} className="mt-4 w-full">
-        Đăng ca ngay
-      </Button>
-    </div>
-  );
-}
 
 function DepositConfirmCard({
   depositAmount,

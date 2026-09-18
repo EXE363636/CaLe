@@ -28,8 +28,12 @@ export interface Capabilities {
   /** Chấm công: check-in / xác nhận có mặt / check-out / xác nhận hoàn thành
    *  (RPC Supabase, thời gian server). KHÔNG gồm no-show/vắng mặt (chưa nối). */
   attendance: boolean;
-  /** Thu/giữ/chuyển tiền (payment/escrow/cọc). Chưa có backend. */
+  /** Thu/giữ/chuyển tiền (payment/escrow/cọc) THẬT. Chưa có backend. */
   payments: boolean;
+  /** Thanh toán MÔ PHỎNG (provider CALE_MOCK) — QR + phiên lưu Supabase, demo. */
+  mockPayments: boolean;
+  /** Thanh toán THẬT (PAYOS…) — chỉ bật khi có credentials + webhook đã xác minh. */
+  livePayments: boolean;
   /** Ví + sổ cái ví. Chưa có backend. */
   wallet: boolean;
   /** Tranh chấp. Chưa migrate. */
@@ -54,6 +58,8 @@ const SUPABASE_CAPABILITIES: Capabilities = {
   adminUsers: true,
   attendance: true,
   payments: false,
+  mockPayments: true,
+  livePayments: false,
   wallet: false,
   disputes: false,
   verifications: false,
@@ -71,6 +77,8 @@ const LOCAL_CAPABILITIES: Capabilities = {
   adminUsers: true,
   attendance: true,
   payments: true,
+  mockPayments: true,
+  livePayments: false,
   wallet: true,
   disputes: true,
   verifications: true,
