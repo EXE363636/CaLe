@@ -157,6 +157,49 @@ export function getShiftLifecycleState(
 }
 
 // ---------------------------------------------------------------------------
+// Dashboard grouping — group by the SAME clock the badge uses
+// ---------------------------------------------------------------------------
+
+/**
+ * Lifecycle states a shift still belongs to an "active / upcoming"
+ * dashboard group in (worker "Ca sắp tới", employer "Ca đang hoạt
+ * động"). Past / terminal states — Expired, Completed, Cancelled,
+ * Disputed, Draft — are excluded.
+ *
+ * Why this exists: in supabase mode there is no client lifecycle sync,
+ * so a shift can sit at `Published` / `FullyBooked` in the DB long after
+ * its `end` time. The dashboards used to group by the raw stored
+ * `shift.status`, so such a shift showed up under "Ca sắp tới" while its
+ * badge — driven by `getShiftLifecycleState` (the wall clock) — already
+ * read "Đã hết hạn". Grouping through `isActiveDashboardShift` makes the
+ * group and the badge agree without any DB write or migration.
+ */
+const ACTIVE_DASHBOARD_STATES: ReadonlySet<ShiftLifecycleState> = new Set([
+  'PendingDeposit',
+  'Published',
+  'StartingSoon',
+  'InProgress',
+  'AwaitingCheckout',
+  'AwaitingEmployerConfirmation',
+]);
+
+/**
+ * True when the shift's canonical (clock-driven) lifecycle state means it
+ * still belongs in an active / upcoming dashboard group. Use this — not
+ * the raw `shift.status` — to decide dashboard grouping so the group
+ * never disagrees with the `ShiftLifecycleBadge`.
+ */
+export function isActiveDashboardShift(
+  shift: Shift,
+  applications: Application[],
+  nowIso: string,
+): boolean {
+  return ACTIVE_DASHBOARD_STATES.has(
+    getShiftLifecycleState(shift, applications, nowIso),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Single badge mapping (label + tone + priority)
 // ---------------------------------------------------------------------------
 

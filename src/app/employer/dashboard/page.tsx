@@ -16,6 +16,7 @@ import {
 import { deriveEmployerPaidOut, deriveHeldEscrow, sumDepositBasis } from '@/domain/finance';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
+import { isActiveDashboardShift } from '@/domain/shiftLifecycleState';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
@@ -156,8 +157,18 @@ function EmployerDashboardContent() {
   const totalPaidOut = employer
     ? deriveEmployerPaidOut(ledger, employer.id, { shifts, applications })
     : 0;
-  const activeShifts = myShifts.filter((s) =>
-    ['Published', 'FullyBooked', 'InProgress', 'AwaitingConfirmation'].includes(s.status),
+  // Group by the SAME clock the badge uses. The stored `status` gates
+  // candidacy (never surface Draft / terminal DB states), but in supabase
+  // mode there is no lifecycle sync, so a shift can linger at `Published`
+  // past its end time. `isActiveDashboardShift` drops such overdue shifts
+  // so the "Ca đang hoạt động" group agrees with the `ShiftLifecycleBadge`
+  // instead of showing an "Đã hết hạn" card under an active heading.
+  const nowIso = new Date().toISOString();
+  const activeShifts = myShifts.filter(
+    (s) =>
+      ['Published', 'FullyBooked', 'InProgress', 'AwaitingConfirmation'].includes(
+        s.status,
+      ) && isActiveDashboardShift(s, applications, nowIso),
   );
 
   const pendingApps = useMemo(() => {

@@ -26,7 +26,7 @@ import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { deriveWorkerIncome } from '@/domain/finance';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
-import { getShiftLifecycleState } from '@/domain/shiftLifecycleState';
+import { getShiftLifecycleState, isActiveDashboardShift } from '@/domain/shiftLifecycleState';
 import { useScheduleStore } from '@/stores/scheduleStore';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -227,6 +227,7 @@ function WorkerDashboardContent() {
   // upcoming list. The application status `'CancelledByEmployer'` is
   // also excluded from the active set.
   const todayStr = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
   const upcoming = myApps
     .filter((a) => {
       if (
@@ -239,7 +240,13 @@ function WorkerDashboardContent() {
       const sh = getShift(a.shiftId);
       if (!sh) return false;
       if (sh.status === 'Cancelled') return false;
-      return sh.date >= todayStr;
+      if (sh.date < todayStr) return false;
+      // Group by the SAME clock the badge uses. In supabase mode there is
+      // no lifecycle sync, so a shift can linger at `Published` in the DB
+      // after its end time; grouping by the raw status put it under "Ca
+      // sắp tới" with a "Đã hết hạn" badge. `isActiveDashboardShift`
+      // drops such overdue shifts so the group agrees with the badge.
+      return isActiveDashboardShift(sh, applications, nowIso);
     })
     .sort((a, b) => {
       const sa = getShift(a.shiftId)!;

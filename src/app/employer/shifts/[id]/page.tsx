@@ -934,8 +934,19 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     <EmployerConfirmationPanel
                       application={app}
                       shift={shift}
-                      onConfirm={() => setRatingForAppId(app.id)}
+                      onConfirm={() =>
+                        // Ratings có backend (local) → mở RatingForm rồi
+                        // xác nhận. Chưa có (supabase) → xác nhận hoàn thành
+                        // trực tiếp qua RPC `employer_confirm_completion`
+                        // (tồn tại sau reload); KHÔNG mở RatingForm.
+                        hasCapability('ratings')
+                          ? setRatingForAppId(app.id)
+                          : handleConfirmComplete(app.id)
+                      }
                       onDispute={() => handleReportIssue(app.id)}
+                      // Tranh chấp chưa có backend ở supabase → ẩn CTA
+                      // "Khiếu nại" để không có nút chỉ đổi RAM (mục 5).
+                      showDispute={hasCapability('disputes')}
                       loading={actionLoading === app.id}
                     />
                   )}
