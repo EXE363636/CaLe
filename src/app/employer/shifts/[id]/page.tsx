@@ -17,6 +17,7 @@ import { EmployerConfirmationPanel } from '@/components/shift/EmployerConfirmati
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
 import { WorkerProfileModal } from '@/components/user/WorkerProfileModal';
 import { RatingForm } from '@/components/forms/RatingForm';
+import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
 import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
 import {
   DisputeDialog,
@@ -123,6 +124,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [profileWorker, setProfileWorker] = useState<Worker | null>(null);
   const [ratingForAppId, setRatingForAppId] = useState<string | null>(null);
+  const [paymentAppId, setPaymentAppId] = useState<string | null>(null);
   // P0-checkout-stuck: đơn đang chờ xác nhận hoàn thành THỦ CÔNG (worker chưa check-out).
   const [manualCompleteAppId, setManualCompleteAppId] = useState<string | null>(null);
   // Phase 6: rejection-reason dialog state. Holds the application id
@@ -869,6 +871,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 'employer',
               );
               const showRating = ratingForAppId === app.id;
+              const showPayment =
+                app.status === 'Approved' &&
+                shift.status !== 'Draft' &&
+                shift.status !== 'Cancelled' &&
+                shift.status !== 'Expired';
 
               return (
                 <div key={app.id} className="flex flex-col gap-2">
@@ -909,6 +916,37 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                       />
                     }
                   />
+
+                  {showPayment && paymentAppId !== app.id && (
+                    <Button
+                      type="button"
+                      size="md"
+                      variant="secondary"
+                      className="ml-2 self-start"
+                      onClick={() => setPaymentAppId(app.id)}
+                    >
+                      Tạo bảo đảm thanh toán (mô phỏng)
+                    </Button>
+                  )}
+
+                  {showPayment && paymentAppId === app.id && (
+                    <MockPaymentSession
+                      shiftId={shift.id}
+                      applicationId={app.id}
+                      clientRequestId={`mock-payment-${shift.id}-${app.id}`}
+                      previewAmount={
+                        app.payoutAmount ??
+                        Math.round(
+                          shift.hourlyWage *
+                            ((new Date(`${shift.date}T${shift.endTime}:00`).getTime() -
+                              new Date(`${shift.date}T${shift.startTime}:00`).getTime()) /
+                              3600000),
+                        )
+                      }
+                      onPaid={() => showSuccess('Đã giữ tiền mô phỏng cho đơn đã duyệt.')}
+                      onCancel={() => setPaymentAppId(null)}
+                    />
+                  )}
 
                   {/* Cancellation request panel — shows the worker's reason
                       below the row so the employer can decide in context. */}

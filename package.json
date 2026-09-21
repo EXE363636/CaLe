@@ -18,6 +18,7 @@
     "test:rls:phase2": "node scripts/phase2-rls-integration.mjs",
     "test:admin": "node scripts/admin-management-integration.mjs",
     "test:attendance": "node scripts/attendance-integration.mjs",
+    "test:payment": "node scripts/payment-integration.mjs",
     "admin:bootstrap": "node scripts/admin-bootstrap.mjs",
     "test:db": "supabase test db"
   },
@@ -26,6 +27,7 @@
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-qr-code": "^2.2.0",
     "zustand": "^5.0.13"
   },
   "devDependencies": {

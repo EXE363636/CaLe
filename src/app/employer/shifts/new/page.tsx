@@ -6,9 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore, type NewShiftInput } from '@/stores/shiftStore';
-import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
-import { hoursBetween } from '@/domain/deposit';
-import { newPrefixedId } from '@/lib/ids';
+import { getDataMode } from '@/data/supabaseClient';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
@@ -118,10 +116,7 @@ function NewShiftContent() {
   const [deposited, setDeposited] = useState(false);
   // Phase 2 supabase mode: giữ payload chờ + client_request_id (idempotent), publish
   // (INSERT thẳng Published) ở bước "cọc mô phỏng". KHÔNG tạo row Draft trên server.
-  const [pendingInput, setPendingInput] = useState<NewShiftInput | null>(null);
-  const [pendingReqId, setPendingReqId] = useState<string>('');
   const [depositLoading, setDepositLoading] = useState(false);
-  const SB_PENDING = '__pending_supabase__';
   // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
   // employer arrived via ?draft= or saved one this session). When set,
   // "Lưu nháp" updates it instead of creating a new draft.
@@ -275,7 +270,7 @@ function NewShiftContent() {
     return !readiness.checks.workplaceProofApproved;
   }, [readiness]);
 
-  function handleSubmit(values: ShiftFormValues) {
+  async function handleSubmit(values: ShiftFormValues) {
     if (!currentUserId) return;
     // Phase 10A-Fix-3 — readiness (verification) gate. Local mode giữ nguyên.
     // Phase 2 · PHASE_2_PLAN §4.4: ở SUPABASE mode, verification chưa migrate và
@@ -302,19 +297,18 @@ function NewShiftContent() {
       return;
     }
     if (getDataMode() === 'supabase') {
-      // Supabase: KHÔNG tạo row Draft; giữ payload chờ, cọc mô phỏng = publish.
+      // Publishing is free. Mock payment is created only after an application
+      // has been approved from the employer shift detail page.
       const input: NewShiftInput = { ...values, employerId: currentUserId };
-      const dep = Math.round(
-        values.hourlyWage * hoursBetween(values.startTime, values.endTime) * values.positionsTotal,
-      );
-      setPendingInput(input);
-      setPendingReqId(newPrefixedId('req'));
-      setCreatedShiftId(SB_PENDING);
-      setDepositAmount(dep);
-      showSuccess(
-        t('feedback.shift.create.success'),
-        t('feedback.shift.create.success.desc'),
-      );
+      setDepositLoading(true);
+      const result = await publishAsync(input, `free-publish-${Date.now()}`);
+      setDepositLoading(false);
+      if (!result.ok) {
+        showError('Không đăng được ca. ' + result.error);
+        return;
+      }
+      showSuccess(t('feedback.shift.create.success'), t('feedback.shift.create.success.desc'));
+      router.push(`/employer/shifts/${result.value}`);
       return;
     }
     const shift = createShift({ ...values, employerId: currentUserId });
@@ -373,22 +367,6 @@ function NewShiftContent() {
 
   async function handleDeposit() {
     if (!createdShiftId) return;
-
-    // Supabase: cọc mô phỏng = publish_shift (INSERT thẳng Published, idempotent).
-    if (createdShiftId === SB_PENDING) {
-      if (!pendingInput || depositLoading) return;
-      setDepositLoading(true);
-      const res = await publishAsync(pendingInput, pendingReqId);
-      setDepositLoading(false);
-      if (!res.ok) {
-        showError('Không đăng được ca. ' + res.error);
-        return;
-      }
-      setDeposited(true);
-      showSuccess(t('feedback.shift.deposit.success'));
-      setTimeout(() => router.push(`/employer/shifts/${res.value}`), 1200);
-      return;
-    }
 
     const result = simulateDeposit(createdShiftId);
     if (!result.ok) {
@@ -629,20 +607,16 @@ function NewShiftContent() {
         </div>
       )}
 
-      {/* Xác nhận đăng ca. Supabase/production: KHÔNG khung "cọc/thanh toán" mô phỏng —
-          chỉ xác nhận đăng + thông báo trung thực (B4). Local/demo: giữ mock-deposit. */}
-      {createdShiftId && !deposited && (
-        isSupabaseEnv() ? (
-          <PublishConfirmCard onConfirm={handleDeposit} loading={depositLoading} />
-        ) : (
-          <DepositConfirmCard
-            depositAmount={depositAmount}
-            trust={trust}
-            ratio={ratio}
-            onConfirm={handleDeposit}
-            loading={depositLoading}
-          />
-        )
+      {/* Local/demo retains its legacy deposit simulation. Supabase publishing
+          is free; CALE_MOCK starts only after application approval. */}
+      {createdShiftId && !deposited && getDataMode() !== 'supabase' && (
+        <DepositConfirmCard
+          depositAmount={depositAmount}
+          trust={trust}
+          ratio={ratio}
+          onConfirm={handleDeposit}
+          loading={depositLoading}
+        />
       )}
 
       {/* CORE-STABILITY-8 Part 1 — "Bản nháp đã lưu" section. Drafts
@@ -996,31 +970,6 @@ function TrustExplainerCard({
 // ---------------------------------------------------------------------------
 // Deposit confirm card
 // ---------------------------------------------------------------------------
-
-// Supabase/production: xác nhận đăng ca (không cọc/thanh toán mô phỏng).
-function PublishConfirmCard({
-  onConfirm,
-  loading = false,
-}: {
-  onConfirm: () => void;
-  loading?: boolean;
-}) {
-  return (
-    <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-card">
-      <h2 className="font-semibold text-gray-900">Xác nhận đăng ca</h2>
-      <p className="mt-1 text-sm text-gray-600">
-        Ca sẽ hiển thị công khai cho người lao động ứng tuyển ngay sau khi đăng.
-      </p>
-      <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-xs leading-relaxed text-gray-600 ring-1 ring-gray-100">
-        CaLẻ hiện chưa thu hoặc giữ tiền. Nhà tuyển dụng và người lao động tự thống nhất
-        phương thức thanh toán.
-      </p>
-      <Button variant="primary" size="lg" onClick={onConfirm} loading={loading} disabled={loading} className="mt-4 w-full">
-        Đăng ca ngay
-      </Button>
-    </div>
-  );
-}
 
 function DepositConfirmCard({
   depositAmount,

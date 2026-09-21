@@ -43,6 +43,7 @@ const ABOUT_COLUMN: Column = {
   heading: 'Về CaLedo',
   links: [
     { label: 'Giới thiệu', href: '/about' },
+    { label: 'Bảng giá', href: '/pricing' },
     { label: 'Cách hoạt động', href: '/how-it-works' },
     { label: t('nav.label.userGuide'), href: '/user-guide' },
     { label: 'Cẩm nang làm việc', href: '/handbook' },
