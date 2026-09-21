@@ -333,7 +333,7 @@ describe('Stab-1 Bug 6: check-in / check-out windows', () => {
     ).toBe(false);
   });
 
-  it('canWorkerCheckOut allows [end, end + 60min] when CheckedIn (opens at end, not start)', () => {
+  it('canWorkerCheckOut allows checkout from end onward when CheckedIn', () => {
     // CORE-STABILITY-9 Part 2 — check-out now opens at shift END, not
     // start. A worker mid-shift must not see the check-out CTA.
     const start = new Date(ANCHOR_MS);
@@ -369,7 +369,7 @@ describe('Stab-1 Bug 6: check-in / check-out windows', () => {
         shift,
       ),
     ).toBe(true);
-    // End + 61 min — beyond grace.
+    // End + 61 min — late check-out remains available.
     expect(
       canWorkerCheckOut(
         new Date(
@@ -378,7 +378,7 @@ describe('Stab-1 Bug 6: check-in / check-out windows', () => {
         app,
         shift,
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('canEmployerMarkPresent covers [start − 15min, end + grace]', () => {

@@ -30,9 +30,9 @@ export const CHECK_IN_EARLY_MINUTES = 15;
 export const CHECK_IN_LATE_MINUTES = 15;
 
 /**
- * Phase 10C-Stab-1 — grace window after the shift's scheduled end during
- * which the worker can still check out. Beyond this window the lifecycle
- * sync rolls the shift to AwaitingConfirmation and check-out is blocked.
+ * Grace threshold after the shift's scheduled end. Check-out remains
+ * available beyond this threshold; the UI uses it to label the action as
+ * late rather than blocking the worker.
  */
 export const CHECK_OUT_GRACE_MINUTES = 60;
 
@@ -136,16 +136,16 @@ export function canCheckIn(
 /**
  * Predicate: may the worker check out for this application right now?
  *
- * CORE-STABILITY-9 Part 2 — check-out is ONLY available after the shift
- * has ENDED (not merely started). The window is `[shiftEnd, shiftEnd +
- * 60min grace]`. Before end the worker is mid-shift and must not see a
- * check-out CTA (a shift 15:55–16:00 is not checkable-out at 15:55).
+ * P0-checkout-stuck: check-out mở TỪ giờ kết thúc trở đi và KHÔNG còn giới hạn
+ * trên +60 phút (trước đây đóng sau grace khiến đơn kẹt `CheckedIn`). Trước giờ
+ * kết thúc vẫn KHÔNG cho check-out (worker đang trong ca). Sau grace, UI đổi nhãn
+ * thành "Check-out muộn" (xem {@link isLateCheckout}) nhưng vẫn cho phép.
  *
  * `true` iff:
  *   - the application is `'CheckedIn'`, AND
  *   - the worker has self-confirmed presence (`checkInAt` set — an
  *     employer mark-present alone never unlocks check-out), AND
- *   - `now` lies in the inclusive window `[shiftEnd, shiftEnd + 60min]`.
+ *   - `now >= shiftEnd` (không giới hạn trên).
  */
 export function canCheckOut(
   nowIso: string,
@@ -164,8 +164,20 @@ export function canCheckOut(
   const end = shiftEndMs(shift);
   if (Number.isNaN(now) || Number.isNaN(start) || Number.isNaN(end)) return false;
 
-  // CORE-STABILITY-9 Part 2 — check-out opens at shift END, not start.
-  return now >= end && now <= end + CHECK_OUT_GRACE_MS;
+  // Check-out mở từ giờ kết thúc; KHÔNG đóng sau +60 phút (cho check-out muộn).
+  return now >= end;
+}
+
+/**
+ * Predicate: check-out lúc này có phải "muộn" không (đã qua cửa sổ ân hạn
+ * `[shiftEnd, shiftEnd + 60min]`). Dùng để đổi nhãn nút thành "Check-out muộn".
+ * Không chặn hành động — chỉ ảnh hưởng nhãn.
+ */
+export function isLateCheckout(nowIso: string, shift: Shift): boolean {
+  const now = toEpochMs(nowIso);
+  const end = shiftEndMs(shift);
+  if (Number.isNaN(now) || Number.isNaN(end)) return false;
+  return now > end + CHECK_OUT_GRACE_MS;
 }
 
 /**
@@ -289,8 +301,8 @@ export function requiresEmployerApprovalToCancel(
  *   - Worker check-in: 15 min before start through 15 min after start.
  *   - Employer mark-present: same window OR during the shift (start
  *     → end + grace window).
- *   - Worker check-out: from start through end + 60 min grace, only
- *     when the application is `'CheckedIn'`.
+ *   - Worker check-out: from shift end onward with no upper bound, only
+ *     when the application is `'CheckedIn'` and has a self check-in.
  *   - Employer mark-absent: from `start + CHECK_IN_LATE_MS` (i.e. the
  *     moment the worker missed the check-in window) through end + grace.
  *     Available for ALL shifts regardless of `evidenceRequirement`.

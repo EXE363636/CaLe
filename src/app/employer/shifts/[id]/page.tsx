@@ -123,6 +123,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [profileWorker, setProfileWorker] = useState<Worker | null>(null);
   const [ratingForAppId, setRatingForAppId] = useState<string | null>(null);
+  // P0-checkout-stuck: đơn đang chờ xác nhận hoàn thành THỦ CÔNG (worker chưa check-out).
+  const [manualCompleteAppId, setManualCompleteAppId] = useState<string | null>(null);
   // Phase 6: rejection-reason dialog state. Holds the application id
   // currently being rejected; null when the dialog is closed.
   const [rejectingAppId, setRejectingAppId] = useState<string | null>(null);
@@ -239,15 +241,17 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
   // Supabase: xác nhận hoàn thành trực tiếp qua RPC (không thu rating — ratings
   // chưa có backend). Local giữ luồng RatingForm → confirmCompletion cũ.
-  async function handleConfirmComplete(appId: string) {
-    if (actionLoading) return; // khóa double-click
+  async function handleConfirmComplete(appId: string): Promise<boolean> {
+    if (actionLoading) return false; // khóa double-click
     setActionLoading(appId);
     const result = await confirmCompletionAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('feedback.applicant.confirm.success'));
+      return true;
     } else {
       showError(toastFromStoreError(result.error));
+      return false;
     }
   }
 
@@ -812,6 +816,20 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 hasCapability('attendance') &&
                 !shiftTerminal &&
                 canEmployerMarkPresent(nowIso, app, shift);
+              // P0-checkout-stuck: đơn kẹt `CheckedIn` sau khi ca kết thúc —
+              // employer ĐÃ xác nhận có mặt nhưng worker chưa/không check-out.
+              // Cho employer đóng thủ công qua RPC (không có nút này ở local, nơi
+              // lifecycle sync tự xử lý).
+              const shiftEndedNow =
+                new Date(`${shift.date}T${shift.endTime}:00`).getTime() <=
+                new Date(nowIso).getTime();
+              const canManualComplete =
+                isSupabaseEnv() &&
+                !shiftTerminal &&
+                app.status === 'CheckedIn' &&
+                Boolean(app.markedPresentAt) &&
+                !app.checkOutAt &&
+                shiftEndedNow;
               // CORE-STABILITY-7 Part 5.2 — when the worker has already
               // checked in, the "Đánh dấu vắng mặt" action is shown but
               // disabled/dimmed with an explanatory reason (an absence
@@ -949,6 +967,29 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                       showDispute={hasCapability('disputes')}
                       loading={actionLoading === app.id}
                     />
+                  )}
+
+                  {/* P0-checkout-stuck — đơn kẹt CheckedIn sau giờ (worker chưa
+                      check-out). Cho employer đóng thủ công (có modal cảnh báo). */}
+                  {canManualComplete && (
+                    <div className="ml-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3">
+                      <p className="text-sm font-semibold text-amber-900">
+                        Ca đã kết thúc nhưng người lao động chưa check-out
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                        Bạn đã xác nhận người lao động có mặt. Nếu họ đã hoàn thành ca,
+                        bạn có thể xác nhận thủ công.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        className="mt-2"
+                        loading={actionLoading === app.id}
+                        onClick={() => setManualCompleteAppId(app.id)}
+                      >
+                        Xác nhận người lao động đã hoàn thành
+                      </Button>
+                    </div>
                   )}
 
                   {/* Phase 10C-Stab-1 Batch 3 E — Disputed panel.
@@ -1238,6 +1279,41 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 loading={actionLoading === revertAppId}
               >
                 {t('attendance.revert.confirm')}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* P0-checkout-stuck — modal cảnh báo xác nhận hoàn thành THỦ CÔNG khi
+          worker chưa check-out. Gọi RPC employer_confirm_completion (server). */}
+      {manualCompleteAppId && (
+        <Modal
+          open={true}
+          onClose={() => setManualCompleteAppId(null)}
+          title="Xác nhận hoàn thành thủ công"
+        >
+          <div className="flex flex-col gap-3 text-sm">
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
+              Người lao động <strong>chưa bấm check-out</strong>. Bạn đang xác nhận hoàn thành
+              <strong> thủ công</strong> vì đã xác nhận họ có mặt và ca đã kết thúc. Thao tác này
+              được ghi nhận là xác nhận thủ công.
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button size="sm" variant="ghost" onClick={() => setManualCompleteAppId(null)}>
+                {t('btn.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                loading={actionLoading === manualCompleteAppId}
+                onClick={async () => {
+                  const id = manualCompleteAppId;
+                  const completed = await handleConfirmComplete(id);
+                  if (completed) setManualCompleteAppId(null);
+                }}
+              >
+                Xác nhận người lao động đã hoàn thành
               </Button>
             </div>
           </div>

@@ -793,6 +793,8 @@ export interface Application {
   checkInAt?: string;
   checkOutAt?: string;
   confirmedAt?: string;
+  /** True when the employer confirmed completion without a worker check-out. */
+  confirmedWithoutCheckout?: boolean;
   cancelledAt?: string;
   cancelReason?: 'OnTime' | 'LateCancel';
   /** hourlyWage * hours, snapshotted at approval. */
