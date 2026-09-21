@@ -123,6 +123,7 @@ export const vi: Record<string, string> = {
   'btn.reject': 'Từ chối',
   'btn.checkIn': 'Check-in',
   'btn.checkOut': 'Check-out',
+  'btn.checkOutLate': 'Check-out muộn',
   'btn.confirmCompletion': 'Xác nhận hoàn thành',
   'btn.reportIssue': 'Báo cáo vấn đề',
   'btn.deposit': 'Mô phỏng đảm bảo thanh toán',
@@ -1889,7 +1890,7 @@ export const vi: Record<string, string> = {
   'lifecycle.checkIn.outsideWindow':
     'Hiện chưa đến giờ check-in. Bạn có thể check-in trong khoảng 15 phút trước giờ bắt đầu.',
   'lifecycle.checkOut.outsideWindow':
-    'Bạn chỉ có thể check-out sau khi ca kết thúc, trong vòng 60 phút.',
+    'Bạn chỉ có thể check-out sau khi ca kết thúc.',
   'lifecycle.toast.markPresent.success': 'Đã xác nhận người lao động có mặt',
 
   // CORE-STABILITY-7 Part 5 - attendance flexibility (absent dimming +
@@ -1902,7 +1903,7 @@ export const vi: Record<string, string> = {
   'attendance.error.markPresentWindow':
     'Ngoài khoảng thời gian xác nhận có mặt cho ca này.',
   'attendance.error.checkoutWindow':
-    'Chỉ check-out được sau khi ca kết thúc, trong vòng 60 phút.',
+    'Chỉ check-out được sau khi ca kết thúc.',
   'attendance.error.checkoutRequiresCheckin':
     'Bạn cần tự check-in trước khi check-out.',
   'attendance.error.shiftNotEnded': 'Ca chưa kết thúc nên chưa thể xác nhận hoàn thành.',

@@ -1,6 +1,6 @@
 /**
  * Behavioral integration test — P0 attendance persistence + review fixes.
- * Chạy với Supabase THẬT sau khi `supabase db push` migration 0005 + 0006.
+ * Chạy với Supabase THẬT sau khi `supabase db push` migration 0005 + 0006 + 0008.
  * Lệnh: npm run test:attendance
  *
  * Chứng minh: check-in / mark-present / check-out / confirm tồn tại trong
@@ -10,6 +10,8 @@
  *   - Evidence server-side theo domain contract (ChecklistOnly, RequiredHandover,
  *     gửi ARRAY JSON thật — không JSON.stringify; chặn thiếu/sai độ dài/false/sai kiểu).
  *   - check_in_at vs marked_present_at độc lập; idempotency.
+ *   - Check-out muộn vẫn thành công; employer có thể xác nhận thủ công mà
+ *     không tạo check_out_at giả (có confirmed_without_checkout để audit).
  *
  * An toàn: mật khẩu NGẪU NHIÊN mỗi lần chạy; setup/test trong try, cleanup trong
  * finally + kiểm tra kết quả xóa; KHÔNG in token/key/password. service_role chỉ ở
@@ -225,6 +227,51 @@ async function run() {
     const before = (await readApp(appA)).confirmed_at;
     await rpc(eC, 'employer_confirm_completion', { p_application_id: appA });
     ok((await readApp(appA)).confirmed_at === before, 'confirm lần 2 no-op');
+  }
+
+  console.log('\n▶ P0 ca kẹt: check-out muộn + employer xác nhận không có check-out');
+  {
+    const lateShift = await insertShift(E, now - 3 * 3600000, now - 2 * 3600000);
+    const lateApp = await insertApp(lateShift, W1, {
+      status: 'CheckedIn',
+      check_in_at: new Date(now - 3 * 3600000).toISOString(),
+    });
+    ok(
+      (await rpc(w1C, 'worker_check_out', {
+        p_application_id: lateApp,
+        p_checklist: null,
+      })).ok,
+      'worker check-out sau grace 60 phút vẫn thành công',
+    );
+    const lateRow = await readApp(lateApp);
+    ok(
+      lateRow?.status === 'CheckedOut' && !!lateRow?.check_out_at,
+      'check-out muộn ghi check_out_at thật',
+    );
+
+    const manualShift = await insertShift(E, now - 2 * 3600000, now - 5 * 60000);
+    const manualApp = await insertApp(manualShift, W2, {
+      status: 'CheckedIn',
+      marked_present_at: new Date(now - 90 * 60000).toISOString(),
+      marked_present_by_employer_id: E,
+    });
+    ok(
+      (await rpc(eC, 'employer_confirm_completion', {
+        p_application_id: manualApp,
+      })).ok,
+      'employer xác nhận thủ công sau khi ca kết thúc',
+    );
+    const manualRow = await readApp(manualApp);
+    ok(
+      manualRow?.status === 'Confirmed' &&
+        !!manualRow?.confirmed_at &&
+        manualRow?.confirmed_without_checkout === true,
+      'xác nhận thủ công được audit bằng confirmed_without_checkout',
+    );
+    ok(
+      manualRow?.check_out_at === null,
+      'xác nhận thủ công không tạo check_out_at giả',
+    );
   }
 
   console.log('\n▶ Sai trạng thái: check-out khi Approved');

@@ -26,7 +26,7 @@ import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
 import { Button } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
-import { canCheckIn, canCheckOut } from '@/domain/timeGates';
+import { canCheckIn, canCheckOut, isLateCheckout } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -316,6 +316,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const attendanceOn = hasCapability('attendance');
   const showCheckIn = attendanceOn && myApp ? canCheckIn(nowIso, myApp, shift) : false;
   const showCheckOut = attendanceOn && myApp ? canCheckOut(nowIso, myApp, shift) : false;
+  const lateCheckout = showCheckOut && isLateCheckout(nowIso, shift);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
@@ -576,7 +577,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                   }}
                   loading={loading}
                 >
-                  {t('btn.checkOut')}
+                  {t(lateCheckout ? 'btn.checkOutLate' : 'btn.checkOut')}
                 </Button>
               )}
             </div>

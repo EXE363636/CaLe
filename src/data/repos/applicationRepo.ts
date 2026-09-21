@@ -14,6 +14,8 @@ const sOpt = (v: unknown): string | undefined =>
   typeof v === 'string' && v !== '' ? v : undefined;
 const nOpt = (v: unknown): number | undefined =>
   typeof v === 'number' ? v : undefined;
+const bOpt = (v: unknown): boolean | undefined =>
+  typeof v === 'boolean' ? v : undefined;
 
 export function rowToApplication(r: Row): Application {
   return {
@@ -35,6 +37,7 @@ export function rowToApplication(r: Row): Application {
     checkInAt: sOpt(r.check_in_at),
     checkOutAt: sOpt(r.check_out_at),
     confirmedAt: sOpt(r.confirmed_at),
+    confirmedWithoutCheckout: bOpt(r.confirmed_without_checkout),
     markedPresentAt: sOpt(r.marked_present_at),
     markedPresentByEmployerId: sOpt(r.marked_present_by_employer_id),
     workerCheckoutNote: sOpt(r.worker_checkout_note),
