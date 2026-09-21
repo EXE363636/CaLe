@@ -108,7 +108,7 @@ npx tsc --noEmit     # type-check
 1. **Một nguồn sự thật cho lifecycle ca làm** — `getShiftLifecycleState(shift, applications, nowIso)` trong `src/domain/shiftLifecycleState.ts`, dùng ở **mọi** bề mặt. Trạng thái **chỉ theo đồng hồ** cho transition start/end.
 2. **Check-in / employer mark-present KHÔNG đẩy ca sang "Đang diễn ra" sớm**, cũng không kết thúc ca sớm. Presence là "attendance fact", không phải "lifecycle fact".
 3. **Cùng một ca = cùng nhãn + cùng màu badge ở mọi trang** (qua `getShiftStatusBadge` + component `ShiftLifecycleBadge`). "Đang diễn ra" LUÔN là tông `info` (xanh dương).
-4. **Check-out chỉ hiện SAU khi ca kết thúc** (`now >= end`, trong cửa sổ 60 phút) và chỉ khi worker đã tự check-in.
+4. **Check-out chỉ hiện SAU khi ca kết thúc** (`now >= end`, không giới hạn trên; sau 60 phút hiển thị là check-out muộn) và chỉ khi worker đã tự check-in.
 5. **Draft KHÔNG phải ca thật** — lưu ở `shiftDraftStore`, không vào listing công khai, không vào lifecycle, không đụng ví, không cần hủy/hoàn cọc.
 6. **Không polling / setTimeout / setInterval cho lifecycle** — chỉ đồng bộ khi mount qua `useLifecycleSync` (gọi `applicationStore.runLifecycleSync()`) + `AppHydrator`. Mọi sub-step phải **idempotent** (dựa vào audit marker như `shiftStartedNotifiedAt`, notification `dedupeKey`).
 7. **Ví / escrow KHÔNG được ở client trong production** — đây là lý do chính của backend migration.

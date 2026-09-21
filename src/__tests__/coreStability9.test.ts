@@ -18,7 +18,7 @@ import {
   attendanceCopyKey,
   type AttendanceState,
 } from '@/domain/attendanceState';
-import { canCheckOut } from '@/domain/timeGates';
+import { canCheckOut, isLateCheckout } from '@/domain/timeGates';
 import {
   levelForXp,
   skillProgress,
@@ -274,8 +274,11 @@ describe('CS9 Part 2: checkout opens at shift END, not start', () => {
     expect(canCheckOut(localIso('2030-06-02T16:01:00'), app, shift)).toBe(true);
   });
 
-  it('hidden at end + 61min (beyond grace)', () => {
-    expect(canCheckOut(localIso('2030-06-02T17:01:00'), app, shift)).toBe(false);
+  it('remains visible after grace and is labelled as late checkout', () => {
+    const afterGrace = localIso('2030-06-02T17:01:00');
+    expect(canCheckOut(afterGrace, app, shift)).toBe(true);
+    expect(isLateCheckout(afterGrace, shift)).toBe(true);
+    expect(isLateCheckout(localIso('2030-06-02T17:00:00'), shift)).toBe(false);
   });
 
   it('employer mark-present alone (no self check-in) never unlocks checkout', () => {

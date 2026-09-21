@@ -19,7 +19,7 @@ import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { hasCapability } from '@/data/capabilities';
-import { canCheckIn, canCheckOut } from '@/domain/timeGates';
+import { canCheckIn, canCheckOut, isLateCheckout } from '@/domain/timeGates';
 import { deriveAttendanceState, attendanceCopyKey } from '@/domain/attendanceState';
 import { suggestShiftsForWorker } from '@/domain/availabilityMatch';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
@@ -2106,6 +2106,7 @@ function UpcomingShiftCard({
   const attendanceOn = hasCapability('attendance');
   const showCheckIn = attendanceOn && canCheckIn(nowIso, application, shift);
   const showCheckOut = attendanceOn && canCheckOut(nowIso, application, shift);
+  const lateCheckout = showCheckOut && isLateCheckout(nowIso, shift);
   // CORE-STABILITY-9 Parts 1 & 3 — derive the canonical attendance
   // state and render WORKER-perspective copy (never employer text).
   const attendanceState = deriveAttendanceState(application, shift, nowIso);
@@ -2204,7 +2205,7 @@ function UpcomingShiftCard({
         )}
         {showCheckOut && (
           <Button size="md" variant="secondary" onClick={onCheckOut} loading={loading}>
-            {t('btn.checkOut')}
+            {t(lateCheckout ? 'btn.checkOutLate' : 'btn.checkOut')}
           </Button>
         )}
         {application.status === 'Approved' &&
