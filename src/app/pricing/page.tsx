@@ -14,14 +14,14 @@ export default function PricingPage() {
   return (
     <InfoPage
       eyebrow="Bảng giá"
-      title="Giai đoạn thử nghiệm — Miễn phí"
-      intro="CaLẻ đang trong giai đoạn thử nghiệm. Mọi tính năng hiện có đều miễn phí. CaLẻ hiện chưa thu phí và chưa thu, giữ hoặc chuyển tiền giữa hai bên."
+      title="Giai đoạn thử nghiệm — 0đ"
+      intro="Giao dịch và số dư đều là mô phỏng. CaLẻ chưa thu, giữ hoặc chuyển tiền thật."
       ctas={[
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
         { label: 'Đăng ký / Đăng nhập', href: '/register', variant: 'secondary' },
       ]}
     >
-      <InfoSection title="Gói hiện tại: Thử nghiệm — 0đ">
+      <InfoSection title="Hiện tại: Giai đoạn thử nghiệm — 0đ">
         <p className="mb-2">
           <span className="text-2xl font-extrabold text-orange-700">0đ</span>{' '}
           <span className="text-sm text-gray-500">· Miễn phí trong thời gian thử nghiệm</span>
@@ -30,7 +30,7 @@ export default function PricingPage() {
         <InfoList
           items={[
             'Đăng ký / đăng nhập Người lao động và Nhà tuyển dụng.',
-            'Đăng ca, quản lý và duyệt/từ chối ứng viên.',
+            'Đăng ca miễn phí, quản lý và duyệt/từ chối ứng viên miễn phí.',
             'Người lao động tìm ca và ứng tuyển.',
             'Chấm công: check-in, xác nhận có mặt, check-out, xác nhận hoàn thành (lưu trên hệ thống).',
             'Đồng bộ dữ liệu giữa các thiết bị/phiên đăng nhập.',
@@ -38,15 +38,15 @@ export default function PricingPage() {
         />
       </InfoSection>
 
-      <InfoSection title="Gói chính thức — sắp công bố">
-        <p>
-          Chúng tôi sẽ công bố các gói dịch vụ chính thức trong thời gian tới. Nếu có bất kỳ
-          khoản phí nào, CaLẻ sẽ thông báo rõ ràng và trước khi áp dụng.
-        </p>
-        <p className="mt-2 text-sm text-gray-500">
-          Thanh toán trong ứng dụng hiện đang ở chế độ mô phỏng phục vụ thử nghiệm — chưa có giao
-          dịch tiền thật.
-        </p>
+      <InfoSection title="Bảng giá dự kiến — chưa thu phí">
+        <InfoList items={[
+          'Người lao động: miễn phí.',
+          'Nhà tuyển dụng: đăng ca, nhận và duyệt ứng viên miễn phí.',
+          'Phí nền tảng tiêu chuẩn dự kiến: 10% tiền công của ca hoàn thành.',
+          'VIP Nhà tuyển dụng dự kiến: 99.000đ/30 ngày; phí nền tảng dự kiến còn 5% — chưa thu phí.',
+          'Boost tin tuyển dự kiến: 10.000đ/lượt — chưa thu phí.',
+        ]} />
+        <p className="mt-3">Ví dụ mô phỏng: tiền công 200.000đ + phí nền tảng 10% 20.000đ = tổng bảo đảm 220.000đ; worker nhận mô phỏng 200.000đ và CaLẻ ghi nhận phí mô phỏng 20.000đ.</p>
       </InfoSection>
     </InfoPage>
   );

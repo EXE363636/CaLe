@@ -1,12 +1,12 @@
 /**
  * Behavioral integration test — mock payment simulator (provider CALE_MOCK).
- * Chạy với Supabase THẬT sau `supabase db push` migration 20260918000007.
+ * Chạy với Supabase THẬT sau `supabase db push` migration 20260921000009.
  * Lệnh: npm run test:payment
  *
  * Chứng minh (server là nguồn sự thật): amount tính lại ở server (không tin client),
  * chọn kênh mock đúng, reload giữ phiên+kênh (RLS), kênh tắt không dùng được,
- * anon/non-owner bị chặn, confirm→PAID publish ca (idempotent, không publish 2 lần),
- * cancel rồi confirm bị chặn.
+ * anon/non-owner bị chặn, confirm PENDING→HELD (idempotent, không publish ca),
+ * sau khi hoàn thành thì giải ngân RELEASED và ledger không ghi trùng.
  *
  * An toàn: mật khẩu ngẫu nhiên/lần chạy; cleanup trong finally + verify; không in secret.
  */
@@ -47,6 +47,7 @@ const mk = () => createClient(URL, ANON, { auth: { persistSession: false, autoRe
 let admin = null;
 const createdUserIds = new Set();
 let disabledChannelId = null;
+const createdShiftIds = new Set();
 
 async function svcCreateUser(email, meta) {
   const { data, error } = await admin.auth.admin.createUser({ email, password: PW, email_confirm: true, user_metadata: meta });
@@ -75,6 +76,29 @@ function buildPayload(reqId) {
     __req: reqId,
   };
 }
+async function insertShift(employerId) {
+  const { data, error } = await admin.from('shifts').insert({
+    employer_id: employerId, client_request_id: `pay-${ts}-${rnd()}`,
+    title: 'PAY test', description: 'd', requirements: 'r', job_type: 'Phục vụ',
+    location: 'Quận 1', district: 'Quận 1', date: vnDatePlus(3),
+    start_time: '09:00:00', end_time: '12:00:00', hourly_wage: 50000,
+    positions_total: 1, positions_filled: 1, status: 'Published',
+    escrow_status: 'Deposited', deposit_amount: 0,
+    on_site_contact_name: 'QL', on_site_contact_phone: '0901234567',
+    evidence_requirement: 'None',
+  }).select('id').single();
+  if (error) throw new Error('insertShift: ' + error.message);
+  createdShiftIds.add(data.id);
+  return data.id;
+}
+async function insertApprovedApp(shiftId, workerId) {
+  const { data, error } = await admin.from('applications').insert({
+    shift_id: shiftId, worker_id: workerId, status: 'Approved',
+    approved_at: new Date().toISOString(), payout_amount: 150000,
+  }).select('id').single();
+  if (error) throw new Error('insertApprovedApp: ' + error.message);
+  return data.id;
+}
 async function rpc(client, fn, args) {
   const { data, error } = await client.rpc(fn, args);
   if (error) return { ok: false, code: error.message || 'ERROR' };
@@ -94,9 +118,14 @@ async function run() {
 
   const eEmail = `pay-e-${ts}-${rnd()}@example.com`;
   const e2Email = `pay-e2-${ts}-${rnd()}@example.com`;
-  await svcCreateUser(eEmail, { role: 'employer', company_name: 'PAY Co' });
+  const wEmail = `pay-w-${ts}-${rnd()}@example.com`;
+  const employerId = await svcCreateUser(eEmail, { role: 'employer', company_name: 'PAY Co' });
   await svcCreateUser(e2Email, { role: 'employer', company_name: 'PAY Co2' });
+  const workerId = await svcCreateUser(wEmail, { role: 'worker', full_name: 'PAY Worker' });
   const eC = await signIn(eEmail); const e2C = await signIn(e2Email); const anonC = mk();
+
+  const shiftId = await insertShift(employerId);
+  const applicationId = await insertApprovedApp(shiftId, workerId);
 
   const reqId = `pay-${ts}-${rnd()}`;
   const payload = buildPayload(reqId);
@@ -104,18 +133,18 @@ async function run() {
   console.log('\n▶ Chặn quyền + kênh');
   ok(!(await rpc(anonC, 'create_payment_session', { p_channel_id: mockChannelId, p_client_request_id: `${reqId}-anon`, p_shift_payload: payload })).ok, 'anon KHÔNG tạo được phiên');
   {
-    const r = await rpc(eC, 'create_payment_session', { p_channel_id: disabledChannelId, p_client_request_id: `${reqId}-dis`, p_shift_payload: payload });
-    ok(!r.ok && r.code.includes('CHANNEL_DISABLED'), 'kênh đã tắt → CHANNEL_DISABLED');
+    const r = await rpc(eC, 'create_payment_session', { p_channel_id: disabledChannelId, p_client_request_id: `${reqId}-dis`, p_shift_id: shiftId, p_application_id: applicationId });
+    ok(!r.ok && r.code.includes('CHANNEL_NOT_AVAILABLE'), 'kênh đã tắt → CHANNEL_NOT_AVAILABLE');
   }
 
   console.log('\n▶ Tạo phiên: amount tính ở server + đúng kênh');
   let session = null;
   {
-    const r = await rpc(eC, 'create_payment_session', { p_channel_id: mockChannelId, p_client_request_id: reqId, p_shift_payload: payload });
+    const r = await rpc(eC, 'create_payment_session', { p_channel_id: mockChannelId, p_client_request_id: reqId, p_shift_id: shiftId, p_application_id: applicationId });
     ok(r.ok, 'tạo phiên thành công');
     session = r.data;
     ok(session?.status === 'PENDING' && session?.provider === 'CALE_MOCK', 'phiên PENDING, provider CALE_MOCK');
-    ok(session?.amount === 300000, `amount tính ở server = 50000×3h×2 = 300000 (nhận ${session?.amount})`);
+    ok(session?.amount === 165000, `amount tính ở server = 50000×3h + 10% = 165000 (nhận ${session?.amount})`);
     ok(session?.payment_channel_id === mockChannelId, 'gắn đúng payment_channel_id đã chọn');
     // QR vô hại: không số TK/secret; realTransaction:false.
     const qr = JSON.parse(session?.qr_payload ?? '{}');
@@ -126,11 +155,11 @@ async function run() {
   {
     // RPC không nhận tham số amount → client không thể đặt amount. Xác nhận lại qua reload.
     const { data: reloaded } = await eC.from('payment_sessions').select('*').eq('id', session.id).maybeSingle();
-    ok(reloaded?.amount === 300000 && reloaded?.payment_channel_id === mockChannelId && reloaded?.status === 'PENDING', 'reload (RLS employer) giữ amount/kênh/PENDING');
+    ok(reloaded?.amount === 165000 && reloaded?.payment_channel_id === mockChannelId && reloaded?.status === 'PENDING', 'reload (RLS employer) giữ amount/kênh/PENDING');
     // employer thử UPDATE amount trực tiếp → bị chặn (không có quyền update).
     const { error: upErr } = await eC.from('payment_sessions').update({ amount: 1 }).eq('id', session.id);
     const { data: after } = await admin.from('payment_sessions').select('amount').eq('id', session.id).single();
-    ok(after.amount === 300000, 'client KHÔNG sửa được amount (update bị RLS chặn / không đổi)');
+    ok(after.amount === 165000, 'client KHÔNG sửa được amount (update bị RLS chặn / không đổi)');
     void upErr;
   }
 
@@ -142,36 +171,46 @@ async function run() {
     ok(!(await rpc(e2C, 'cancel_payment_session', { p_payment_id: session.id })).ok, 'employer khác KHÔNG hủy được (NOT_OWNER)');
   }
 
-  console.log('\n▶ Idempotent create + confirm→PAID publish ca (không publish 2 lần)');
+  console.log('\n▶ Idempotent create + confirm PENDING→HELD (không publish ca)');
   {
-    const r2 = await rpc(eC, 'create_payment_session', { p_channel_id: mockChannelId, p_client_request_id: reqId, p_shift_payload: payload });
+    const r2 = await rpc(eC, 'create_payment_session', { p_channel_id: mockChannelId, p_client_request_id: reqId, p_shift_id: shiftId, p_application_id: applicationId });
     ok(r2.ok && r2.data.id === session.id, 'create trùng client_request_id → trả phiên cũ (không tạo trùng)');
 
     const c1 = await rpc(eC, 'confirm_payment_session', { p_payment_id: session.id });
-    ok(c1.ok && c1.data.status === 'PAID' && !!c1.data.shift_id, 'confirm → PAID + publish ca');
-    const shiftId = c1.data.shift_id;
+    ok(c1.ok && c1.data.status === 'HELD' && c1.data.shift_id === shiftId, 'confirm → HELD, không publish ca');
     const c2 = await rpc(eC, 'confirm_payment_session', { p_payment_id: session.id });
-    ok(c2.ok && c2.data.shift_id === shiftId, 'confirm lần 2 idempotent (cùng shift_id)');
-    const { count } = await admin.from('shifts').select('id', { count: 'exact', head: true }).eq('client_request_id', reqId);
-    ok((count ?? 0) === 1, 'chỉ 1 ca được đăng dù confirm 2 lần');
-    const { data: paid } = await admin.from('payment_sessions').select('status,published_shift_id,paid_at').eq('id', session.id).single();
-    ok(paid.status === 'PAID' && paid.published_shift_id === shiftId && !!paid.paid_at, 'phiên PAID + published_shift_id + paid_at (tồn tại sau refetch)');
+    ok(c2.ok && c2.data.status === 'HELD', 'confirm lần 2 idempotent (vẫn HELD)');
+    const { data: held } = await admin.from('payment_sessions').select('status,shift_id,application_id,paid_at').eq('id', session.id).single();
+    ok(held.status === 'HELD' && held.shift_id === shiftId && held.application_id === applicationId && !!held.paid_at, 'reload giữ phiên HELD đúng ca/đơn');
+    const { count: holdCount } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', session.id).eq('entry_type', 'HOLD');
+    ok(holdCount === 1, 'ledger HOLD chỉ ghi một lần');
+    await admin.from('applications').update({ status: 'Confirmed', confirmed_at: new Date().toISOString() }).eq('id', applicationId);
+    await admin.from('shifts').update({ status: 'Completed' }).eq('id', shiftId);
+    const released = await rpc(eC, 'employer_confirm_completion', { p_application_id: applicationId });
+    ok(released.ok, 'xác nhận hoàn thành gọi flow giải ngân');
+    const { data: final } = await admin.from('payment_sessions').select('status').eq('id', session.id).single();
+    ok(final.status === 'RELEASED', 'phiên chuyển HELD→RELEASED');
+    await rpc(eC, 'release_mock_payment', { p_payment_id: session.id });
+    const { count: payoutCount } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', session.id).eq('entry_type', 'WORKER_PAYOUT');
+    const { count: feeCount } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', session.id).eq('entry_type', 'PLATFORM_FEE');
+    ok(payoutCount === 1 && feeCount === 1, 'ledger payout và fee mỗi loại chỉ ghi một lần');
   }
 
-  console.log('\n▶ Cancel rồi confirm bị chặn');
+  console.log('\n▶ Phiên HELD không thể hủy và confirm vẫn idempotent');
   {
-    const reqId2 = `pay-${ts}-${rnd()}`;
-    const cr = await rpc(eC, 'create_payment_session', { p_channel_id: mockChannelId, p_client_request_id: reqId2, p_shift_payload: buildPayload(reqId2) });
-    const sid = cr.data.id;
-    ok((await rpc(eC, 'cancel_payment_session', { p_payment_id: sid })).ok, 'hủy phiên PENDING thành công');
-    const conf = await rpc(eC, 'confirm_payment_session', { p_payment_id: sid });
-    ok(!conf.ok && conf.code.includes('INVALID_SESSION_STATE'), 'confirm phiên đã hủy → INVALID_SESSION_STATE');
+    const cancel = await rpc(eC, 'cancel_payment_session', { p_payment_id: session.id });
+    ok(!cancel.ok, 'không hủy phiên HELD');
+    const conf = await rpc(eC, 'confirm_payment_session', { p_payment_id: session.id });
+    ok(conf.ok && conf.data.status === 'RELEASED', 'confirm sau release vẫn idempotent');
   }
 }
 
 async function cleanup() {
   // Xoá ca test (client_request_id pay-<ts>-) trước để giảm cascade.
   try { await admin.from('shifts').delete().like('client_request_id', `pay-${ts}-%`); } catch { /* ignore */ }
+  for (const id of createdShiftIds) {
+    try { await admin.from('shifts').delete().eq('id', id); } catch { /* ignore */ }
+  }
   // Xoá phiên test còn sót.
   try { await admin.from('payment_sessions').delete().like('client_request_id', `pay-${ts}-%`); } catch { /* ignore */ }
   if (disabledChannelId) { try { await admin.from('payment_channels').delete().eq('id', disabledChannelId); } catch { /* ignore */ } }

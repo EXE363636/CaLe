@@ -12,7 +12,8 @@ export type PaymentProviderName = 'CALE_MOCK' | 'PAYOS';
 export type PaymentStatus =
   | 'CREATED'
   | 'PENDING'
-  | 'PAID'
+  | 'HELD'
+  | 'RELEASED'
   | 'CANCELLED'
   | 'EXPIRED'
   | 'FAILED';
@@ -22,8 +23,9 @@ export interface CreatePaymentInput {
   channelId: string;
   /** Idempotency key — trùng key trả lại phiên cũ, không tạo trùng. */
   clientRequestId: string;
-  /** Payload ca (snake_case, khớp RPC publish_shift). Server tự tính amount. */
-  shiftPayload: Record<string, unknown>;
+  /** Existing published shift and approved application. Amount is server-owned. */
+  shiftId: string;
+  applicationId: string;
 }
 
 /** Kết quả phiên thanh toán (data trong envelope { code, desc, data }). */
@@ -39,7 +41,9 @@ export interface PaymentResult {
   bankCode: string | null;
   expiresAt: string | null;
   paidAt: string | null;
-  publishedShiftId: string | null;
+  shiftId: string | null;
+  applicationId: string | null;
+  platformFee: number;
 }
 
 /** Envelope kiểu API payment. */
@@ -61,7 +65,7 @@ export interface PaymentProvider {
  * TUYỆT ĐỐI không expose khả năng này (PAID chỉ đến từ webhook đã xác minh).
  */
 export interface MockCapablePaymentProvider extends PaymentProvider {
-  /** Mô phỏng PENDING→PAID + publish ca (idempotent). Trả shiftId đã đăng. */
+  /** Mô phỏng PENDING→HELD, không đăng/tạo ca. */
   simulateSuccess(paymentId: string): Promise<{ status: PaymentStatus; shiftId: string | null }>;
 }
 

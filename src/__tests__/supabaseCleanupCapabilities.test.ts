@@ -72,8 +72,10 @@ describe('capabilities() theo data mode', () => {
     setMode('local');
     const c = capabilities();
     for (const key of Object.keys(c) as (keyof typeof c)[]) {
+      if (key === 'livePayments') continue;
       expect(c[key], `${key} phải bật ở local`).toBe(true);
     }
+    expect(c.livePayments, 'livePayments phải tắt nếu chưa cấu hình provider thật').toBe(false);
   });
 });
 

@@ -11,7 +11,7 @@
  * Bước:
  *   select  → chọn ngân hàng mô phỏng → "Tạo QR mô phỏng" → tạo phiên PENDING.
  *   session → QR + số tiền + mã đơn + trạng thái + cảnh báo + nút mô phỏng/hủy.
- *   PAID    → biên nhận mô phỏng + điều hướng sang ca đã đăng.
+ *   HELD/RELEASED → biên nhận mô phỏng + điều hướng sang ca đã đăng.
  *
  * Nút "Mô phỏng thanh toán thành công" CHỈ hiện ở mock (khi !livePayments).
  */
@@ -32,27 +32,30 @@ import {
 const STATUS_LABEL: Record<string, string> = {
   CREATED: 'Đã khởi tạo',
   PENDING: 'Đang chờ thanh toán mô phỏng',
-  PAID: 'Đã thanh toán (mô phỏng)',
+  HELD: 'Đã giữ tiền (mô phỏng)',
+  RELEASED: 'Đã giải ngân (mô phỏng)',
   CANCELLED: 'Đã hủy phiên mô phỏng',
   EXPIRED: 'Phiên đã hết hạn',
   FAILED: 'Thất bại',
 };
 
 export interface MockPaymentSessionProps {
-  /** Payload ca (snake_case, khớp publish_shift) — dùng khi TẠO phiên. */
-  shiftPayload: Record<string, unknown>;
+  /** Existing published shift and approved application. */
+  shiftId: string;
+  applicationId: string;
   /** Idempotency key cho phiên + ca (chống tạo trùng). */
   clientRequestId: string;
   /** Số tiền hiển thị trước (server sẽ tính lại chuẩn khi tạo phiên). */
-  previewAmount: number;
-  /** Gọi khi PAID: điều hướng sang chi tiết ca đã đăng. */
+  previewAmount?: number;
+  /** Gọi khi HELD: điều hướng sang chi tiết ca đã đăng. */
   onPaid: (shiftId: string) => void;
   /** Gọi khi hủy phiên → quay lại form. */
   onCancel: () => void;
 }
 
 export function MockPaymentSession({
-  shiftPayload,
+  shiftId,
+  applicationId,
   clientRequestId,
   previewAmount,
   onPaid,
@@ -129,7 +132,8 @@ export function MockPaymentSession({
       const s = await provider.createPayment({
         channelId: selectedChannelId,
         clientRequestId,
-        shiftPayload,
+        shiftId,
+        applicationId,
       });
       setSession(s);
       setParamPaymentId(s.paymentId); // reload-safe
@@ -145,8 +149,8 @@ export function MockPaymentSession({
     setLoading(true); setBusyAction('confirm'); setError(null);
     try {
       const r = await provider.simulateSuccess(session.paymentId);
-      // Cập nhật hiển thị PAID rồi điều hướng.
-      setSession((prev) => (prev ? { ...prev, status: 'PAID', publishedShiftId: r.shiftId } : prev));
+      // Cập nhật hiển thị khoản giữ tiền rồi điều hướng.
+      setSession((prev) => (prev ? { ...prev, status: r.status } : prev));
       if (r.shiftId) {
         setTimeout(() => onPaid(r.shiftId as string), 900);
       }
@@ -255,7 +259,7 @@ export function MockPaymentSession({
           </Button>
         </div>
         <p className="mt-3 text-xs text-gray-500">
-          Số tiền dự kiến: <strong>{formatVND(previewAmount)}</strong> (máy chủ sẽ tính lại chính xác).
+          Số tiền dự kiến: <strong>{formatVND(previewAmount ?? 0)}</strong> (máy chủ sẽ tính lại chính xác).
         </p>
       </div>
     );
@@ -264,7 +268,7 @@ export function MockPaymentSession({
   // ---- Đã có phiên: PAID / CANCELLED / EXPIRED / PENDING -------------------
   const statusLabel = STATUS_LABEL[session.status] ?? session.status;
 
-  if (session.status === 'PAID') {
+  if (session.status === 'HELD' || session.status === 'RELEASED') {
     return (
       <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-card">
         <h2 className="font-semibold text-emerald-900">Biên nhận mô phỏng</h2>
@@ -278,12 +282,12 @@ export function MockPaymentSession({
         <p className="mt-3 text-center text-xs font-bold uppercase tracking-wide text-red-700">
           Không phải giao dịch ngân hàng thật
         </p>
-        {session.publishedShiftId && (
+        {session.shiftId && (
           <Button
             variant="primary"
             size="lg"
             className="mt-4 w-full"
-            onClick={() => onPaid(session.publishedShiftId as string)}
+            onClick={() => onPaid(session.shiftId as string)}
           >
             Xem ca đã đăng
           </Button>
@@ -339,7 +343,7 @@ export function MockPaymentSession({
             disabled={loading}
             onClick={handleSimulateSuccess}
           >
-            Mô phỏng thanh toán thành công
+            Mô phỏng giữ tiền (HELD)
           </Button>
         )}
         <Button

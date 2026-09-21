@@ -16,7 +16,8 @@ const h = vi.hoisted(() => ({
     provider: 'CALE_MOCK', paymentId: 'p1', orderCode: 'CALE260918ABCD1234',
     amount: 300000, currency: 'VND', status: 'PENDING',
     qrPayload: JSON.stringify({ type: 'CALE_MOCK_PAYMENT', paymentId: 'p1', amount: 300000, realTransaction: false }),
-    channelId: 'c1', bankCode: 'MB', expiresAt: null, paidAt: null, publishedShiftId: null,
+    channelId: 'c1', bankCode: 'MB', expiresAt: null, paidAt: null,
+    shiftId: 'shift-1', applicationId: 'application-1', platformFee: 0,
   },
 }));
 
@@ -66,7 +67,7 @@ describe('PricingPage — trung thực, không nút mua', () => {
     const text = nfc(container.textContent);
     expect(text).toContain('Giai đoạn thử nghiệm');
     expect(text).toContain('0đ');
-    expect(text).toContain('sắp công bố');
+    expect(text).toContain('Bảng giá dự kiến — chưa thu phí');
     expect(text.toLowerCase()).not.toContain('mua ngay');
     expect(text.toLowerCase()).not.toContain('thanh toán ngay');
   });
@@ -74,18 +75,19 @@ describe('PricingPage — trung thực, không nút mua', () => {
 
 describe('MockPaymentSession — nút mô phỏng theo mode', () => {
   const props = {
-    shiftPayload: {},
+    shiftId: 'shift-1',
+    applicationId: 'application-1',
     clientRequestId: 'req-1',
     previewAmount: 300000,
     onPaid: vi.fn(),
     onCancel: vi.fn(),
   };
 
-  it('mock mode: CÓ nút "Mô phỏng thanh toán thành công"', async () => {
+  it('mock mode: CÓ nút mô phỏng giữ tiền và cảnh báo không chuyển tiền thật', async () => {
     h.live = false;
     render(<MockPaymentSession {...props} />);
     // Chờ phiên PENDING khôi phục từ query.
-    expect(await screen.findByText('Mô phỏng thanh toán thành công')).toBeInTheDocument();
+    expect(await screen.findByText('Mô phỏng giữ tiền (HELD)')).toBeInTheDocument();
     expect(screen.getByText('MÔ PHỎNG — KHÔNG CHUYỂN TIỀN THẬT')).toBeInTheDocument();
   });
 

@@ -4,13 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
-import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
-import { hasCapability } from '@/data/capabilities';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore, type NewShiftInput } from '@/stores/shiftStore';
-import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
-import { hoursBetween } from '@/domain/deposit';
-import { newPrefixedId } from '@/lib/ids';
+import { getDataMode } from '@/data/supabaseClient';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
@@ -34,33 +30,6 @@ import { formatVND, formatLogDateTime } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import type { EmployerType10A, ShiftDraft } from '@/types';
-
-/**
- * NewShiftInput (camelCase) → payload snake_case cho RPC publish_shift /
- * create_payment_session. Giữ khớp với toPublishPayload trong shiftRepo.
- */
-function newInputToPayload(input: NewShiftInput): Record<string, unknown> {
-  return {
-    title: input.title,
-    description: input.description,
-    requirements: input.requirements,
-    job_type: input.jobType,
-    custom_job_type_name: input.customJobTypeName,
-    location: input.location,
-    district: input.district,
-    date: input.date,
-    start_time: input.startTime,
-    end_time: input.endTime,
-    hourly_wage: input.hourlyWage,
-    positions_total: input.positionsTotal,
-    workplace_image_label: input.workplaceImageLabel,
-    workplace_notes: input.workplaceNotes,
-    on_site_contact_name: input.onSiteContactName,
-    on_site_contact_phone: input.onSiteContactPhone,
-    requires_verified_document_on_arrival: input.requiresVerifiedDocumentOnArrival ?? false,
-    evidence_requirement: input.evidenceRequirement,
-  };
-}
 
 export default function NewShiftPage() {
   return (
@@ -147,10 +116,7 @@ function NewShiftContent() {
   const [deposited, setDeposited] = useState(false);
   // Phase 2 supabase mode: giữ payload chờ + client_request_id (idempotent), publish
   // (INSERT thẳng Published) ở bước "cọc mô phỏng". KHÔNG tạo row Draft trên server.
-  const [pendingInput, setPendingInput] = useState<NewShiftInput | null>(null);
-  const [pendingReqId, setPendingReqId] = useState<string>('');
   const [depositLoading, setDepositLoading] = useState(false);
-  const SB_PENDING = '__pending_supabase__';
   // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
   // employer arrived via ?draft= or saved one this session). When set,
   // "Lưu nháp" updates it instead of creating a new draft.
@@ -304,7 +270,7 @@ function NewShiftContent() {
     return !readiness.checks.workplaceProofApproved;
   }, [readiness]);
 
-  function handleSubmit(values: ShiftFormValues) {
+  async function handleSubmit(values: ShiftFormValues) {
     if (!currentUserId) return;
     // Phase 10A-Fix-3 — readiness (verification) gate. Local mode giữ nguyên.
     // Phase 2 · PHASE_2_PLAN §4.4: ở SUPABASE mode, verification chưa migrate và
@@ -331,19 +297,18 @@ function NewShiftContent() {
       return;
     }
     if (getDataMode() === 'supabase') {
-      // Supabase: KHÔNG tạo row Draft; giữ payload chờ, cọc mô phỏng = publish.
+      // Publishing is free. Mock payment is created only after an application
+      // has been approved from the employer shift detail page.
       const input: NewShiftInput = { ...values, employerId: currentUserId };
-      const dep = Math.round(
-        values.hourlyWage * hoursBetween(values.startTime, values.endTime) * values.positionsTotal,
-      );
-      setPendingInput(input);
-      setPendingReqId(newPrefixedId('req'));
-      setCreatedShiftId(SB_PENDING);
-      setDepositAmount(dep);
-      showSuccess(
-        t('feedback.shift.create.success'),
-        t('feedback.shift.create.success.desc'),
-      );
+      setDepositLoading(true);
+      const result = await publishAsync(input, `free-publish-${Date.now()}`);
+      setDepositLoading(false);
+      if (!result.ok) {
+        showError('Không đăng được ca. ' + result.error);
+        return;
+      }
+      showSuccess(t('feedback.shift.create.success'), t('feedback.shift.create.success.desc'));
+      router.push(`/employer/shifts/${result.value}`);
       return;
     }
     const shift = createShift({ ...values, employerId: currentUserId });
@@ -402,22 +367,6 @@ function NewShiftContent() {
 
   async function handleDeposit() {
     if (!createdShiftId) return;
-
-    // Supabase: cọc mô phỏng = publish_shift (INSERT thẳng Published, idempotent).
-    if (createdShiftId === SB_PENDING) {
-      if (!pendingInput || depositLoading) return;
-      setDepositLoading(true);
-      const res = await publishAsync(pendingInput, pendingReqId);
-      setDepositLoading(false);
-      if (!res.ok) {
-        showError('Không đăng được ca. ' + res.error);
-        return;
-      }
-      setDeposited(true);
-      showSuccess(t('feedback.shift.deposit.success'));
-      setTimeout(() => router.push(`/employer/shifts/${res.value}`), 1200);
-      return;
-    }
 
     const result = simulateDeposit(createdShiftId);
     if (!result.ok) {
@@ -658,35 +607,16 @@ function NewShiftContent() {
         </div>
       )}
 
-      {/* Supabase/production: luồng thanh toán MÔ PHỎNG (provider CALE_MOCK) —
-          phiên lưu Supabase, QR vô hại, publish ca sau khi "Mô phỏng thanh toán
-          thành công". Local/demo giữ nguyên DepositConfirmCard (ví mô phỏng cũ). */}
-      {createdShiftId && !deposited && (
-        isSupabaseEnv() && hasCapability('mockPayments') && pendingInput ? (
-          <MockPaymentSession
-            shiftPayload={newInputToPayload(pendingInput)}
-            clientRequestId={pendingReqId}
-            previewAmount={depositAmount}
-            onPaid={(shiftId) => {
-              setDeposited(true);
-              router.push(`/employer/shifts/${shiftId}`);
-            }}
-            onCancel={() => {
-              setCreatedShiftId(null);
-              setPendingInput(null);
-              // Xoá paymentId khỏi URL để lần tạo sau không tải phiên cũ.
-              router.replace('/employer/shifts/new');
-            }}
-          />
-        ) : !isSupabaseEnv() ? (
-          <DepositConfirmCard
-            depositAmount={depositAmount}
-            trust={trust}
-            ratio={ratio}
-            onConfirm={handleDeposit}
-            loading={depositLoading}
-          />
-        ) : null
+      {/* Local/demo retains its legacy deposit simulation. Supabase publishing
+          is free; CALE_MOCK starts only after application approval. */}
+      {createdShiftId && !deposited && getDataMode() !== 'supabase' && (
+        <DepositConfirmCard
+          depositAmount={depositAmount}
+          trust={trust}
+          ratio={ratio}
+          onConfirm={handleDeposit}
+          loading={depositLoading}
+        />
       )}
 
       {/* CORE-STABILITY-8 Part 1 — "Bản nháp đã lưu" section. Drafts

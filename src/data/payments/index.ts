@@ -37,7 +37,9 @@ function rowToPaymentResult(r: Row): PaymentResult {
     bankCode: null, // đọc từ channel khi cần hiển thị
     expiresAt: sOpt(r.expires_at),
     paidAt: sOpt(r.paid_at),
-    publishedShiftId: sOpt(r.published_shift_id),
+    shiftId: sOpt(r.shift_id),
+    applicationId: sOpt(r.application_id),
+    platformFee: num(r.platform_fee),
   };
 }
 
@@ -77,7 +79,8 @@ class MockPaymentProvider implements MockCapablePaymentProvider {
     const { data, error } = await getSupabaseClient().rpc('create_payment_session', {
       p_channel_id: input.channelId,
       p_client_request_id: input.clientRequestId,
-      p_shift_payload: input.shiftPayload,
+      p_shift_id: input.shiftId,
+      p_application_id: input.applicationId,
     });
     if (error) throw new Error(error.message);
     return rowToPaymentResult(data as Row);
@@ -109,7 +112,7 @@ class MockPaymentProvider implements MockCapablePaymentProvider {
     });
     if (error) throw new Error(error.message);
     const d = (data ?? {}) as { status?: string; shift_id?: string };
-    return { status: (d.status as PaymentResult['status']) ?? 'PAID', shiftId: d.shift_id ?? null };
+    return { status: (d.status as PaymentResult['status']) ?? 'HELD', shiftId: d.shift_id ?? null };
   }
 }
 
