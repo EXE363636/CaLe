@@ -627,7 +627,16 @@ function NewShiftContent() {
             shiftPayload={depositPayload}
             clientRequestId={depositReqId}
             previewAmount={depositPreview}
-            onPaid={(shiftId) => {
+            onPaid={async (shiftId) => {
+              // Ca vừa được publish SERVER-SIDE trong confirm_deposit_session.
+              // Nạp ca vào store trước khi điều hướng — nếu không, trang chi tiết
+              // chưa có ca trong store sẽ 404 (mở tab mới thì AppHydrator refetch
+              // mới thấy). refetchOne đọc get_shift_detail/public_shifts + upsert.
+              try {
+                await useShiftStore.getState().refetchOne(shiftId);
+              } catch {
+                /* trang chi tiết sẽ tự nạp lại khi hydrate; không chặn điều hướng */
+              }
               showSuccess(
                 t('feedback.shift.create.success'),
                 t('feedback.shift.create.success.desc'),
