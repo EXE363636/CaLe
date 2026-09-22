@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "CaLẻ",
   description:
     "Nền tảng kết nối nhà tuyển dụng và người lao động cho các ca làm ngắn hạn tại Việt Nam.",
+  // Favicon/app icons (src/app: favicon.ico, icon.svg, apple-icon.png) được Next
+  // tự nhận. Manifest cho Android/PWA (icon 192/512 trong public/).
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
