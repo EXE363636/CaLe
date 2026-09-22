@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback, type ReactNode } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -16,7 +16,8 @@ import {
 import { deriveEmployerPaidOut, deriveHeldEscrow, sumDepositBasis } from '@/domain/finance';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
-import { isActiveDashboardShift } from '@/domain/shiftLifecycleState';
+import { isActiveDashboardShift, getShiftLifecycleState } from '@/domain/shiftLifecycleState';
+import { showSuccess } from '@/lib/toast';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
@@ -49,6 +50,7 @@ function EmployerDashboardContent() {
   // the employer's paid-out tile stays reactive and is derived from the single
   // money source (see `totalPaidOut` below).
   const ledger = useWalletStore((s) => s.ledger);
+  const refundForShiftAsync = useWalletStore((s) => s.refundForShiftAsync);
   const allNotifications = useNotificationStore((s) => s.notifications);
   const notifications = useMemo(
     () =>
@@ -66,6 +68,37 @@ function EmployerDashboardContent() {
   const workerDocuments = useVerificationStore((s) => s.workerDocuments);
 
   const employer = asEmployer(users.find((u) => u.id === currentUserId));
+
+  // Hoàn cọc (mô phỏng) cho ca HUỶ / HẾT HẠN KHÔNG CÓ NGƯỜI LÀM. Server tự kiểm
+  // điều kiện + idempotent; ref chống gọi lặp cùng một ca trong phiên. Chỉ quét
+  // ca của employer đang ở lifecycle Cancelled/Expired (không ai Confirmed).
+  const refundedShiftsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!currentUserId) return;
+    const nowIso = new Date().toISOString();
+    const refundable = shifts.filter(
+      (sh) =>
+        sh.employerId === currentUserId &&
+        !refundedShiftsRef.current.has(sh.id) &&
+        (() => {
+          const st = getShiftLifecycleState(sh, applications, nowIso);
+          return st === 'Cancelled' || st === 'Expired';
+        })(),
+    );
+    if (refundable.length === 0) return;
+    void (async () => {
+      for (const sh of refundable) {
+        refundedShiftsRef.current.add(sh.id);
+        const refunded = await refundForShiftAsync(sh.id, currentUserId);
+        if (refunded) {
+          showSuccess(
+            'Đã hoàn cọc (mô phỏng)',
+            `Ca "${sh.title}" huỷ/hết hạn — cọc đã trả về ví.`,
+          );
+        }
+      }
+    })();
+  }, [shifts, applications, currentUserId, refundForShiftAsync]);
 
   // Phase 9H — stat-tile detail modals. Replaces the previous
   // `scrollToId(...)` shortcuts with proper modal lists so every tile

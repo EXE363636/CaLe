@@ -59,6 +59,26 @@ export async function walletWithdraw(amount: number): Promise<number> {
   return num((data as { balance?: number } | null)?.balance);
 }
 
+/**
+ * Hoàn cọc (mô phỏng) cho một ca BỊ HUỶ / HẾT HẠN KHÔNG CÓ NGƯỜI LÀM.
+ * Server tự kiểm điều kiện + idempotent (phiên đã hoàn → no-op). Trả trạng thái.
+ * KHÔNG ném lỗi cho các no-op thường gặp (không có phiên HELD / chưa đủ điều
+ * kiện) để tiện gọi hàng loạt khi quét ca; chỉ ném khi lỗi thật (quyền, mạng).
+ */
+export async function refundDepositForShift(
+  shiftId: string,
+): Promise<'REFUNDED' | 'NO_HELD_SESSION' | 'NOT_REFUNDABLE'> {
+  const { data, error } = await getSupabaseClient().rpc('refund_deposit_for_shift', {
+    p_shift_id: shiftId,
+  });
+  if (error) {
+    if (error.message.includes('SHIFT_NOT_REFUNDABLE')) return 'NOT_REFUNDABLE';
+    throw new Error(error.message);
+  }
+  const status = s((data as { status?: string } | null)?.status);
+  return status === 'REFUNDED' ? 'REFUNDED' : 'NO_HELD_SESSION';
+}
+
 /** Số dư két trung tâm Két bảo đảm CALE_MOCK (minh bạch demo). */
 export async function getSystemBank(): Promise<{ name: string; balance: number }> {
   const { data, error } = await getSupabaseClient().rpc('get_system_bank');

@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import QRCode from 'react-qr-code';
 import { Button, Card, Modal } from '@/components/ui';
 import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
@@ -22,7 +23,22 @@ import { useWalletStore } from '@/stores/walletStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { walletHistoryLink } from '@/lib/notificationTarget';
 import { deriveWalletBalance, projectRecentTransactions } from '@/domain/finance';
+import { listPaymentChannels, type PaymentChannel } from '@/data/payments';
 import type { Role, WalletLedgerEntry } from '@/types';
+
+/** Tên đầy đủ theo mã ngân hàng — hiển thị "MÃ - Tên đầy đủ" (chữ thông tin,
+ *  không phải logo/nhãn hiệu). Kênh vẫn gắn nhãn Demo. */
+const BANK_FULL_NAME: Record<string, string> = {
+  ACB: 'Ngân hàng Thương mại Cổ phần Á Châu',
+  BIDV: 'Ngân hàng Thương mại Cổ phần Đầu tư và Phát triển Việt Nam',
+  MB: 'Ngân hàng Thương mại Cổ phần Quân đội',
+  VCB: 'Ngân hàng Thương mại Cổ phần Ngoại thương Việt Nam',
+};
+
+function topUpChannelLabel(ch: PaymentChannel): string {
+  const full = ch.bankCode ? BANK_FULL_NAME[ch.bankCode] : undefined;
+  return full && ch.bankCode ? `${ch.bankCode} - ${full}` : ch.displayName;
+}
 
 interface WalletPanelProps {
   userId: string;
@@ -136,15 +152,24 @@ export function WalletPanel({
   className = '',
 }: WalletPanelProps) {
   const ledger = useWalletStore((s) => s.ledger);
+  const wallets = useWalletStore((s) => s.wallets);
   const topUp = useWalletStore((s) => s.topUp);
   const withdraw = useWalletStore((s) => s.withdraw);
   const topUpAsync = useWalletStore((s) => s.topUpAsync);
   const withdrawAsync = useWalletStore((s) => s.withdrawAsync);
+  const refetchAsync = useWalletStore((s) => s.refetchAsync);
   const systemBank = useWalletStore((s) => s.systemBank);
   const pushNotification = useNotificationStore((s) => s.push);
   // Supabase: ví THẬT ở server (RPC). Local/demo: ví mock localStorage.
   const supabase = getDataMode() === 'supabase';
   const [busy, setBusy] = useState(false);
+
+  // Supabase: nạp số dư THẬT từ server khi mount (không nơi nào khác gọi
+  // refetch → nếu bỏ, UI hiển thị số dư client suy từ ledger, lệch server →
+  // đăng ca báo INSUFFICIENT_BALANCE dù UI đủ). No-op ở local.
+  useEffect(() => {
+    if (supabase) void refetchAsync(userId);
+  }, [supabase, refetchAsync, userId]);
 
   // Cluster 3 · BUG 5 (Req 2.5): route the balance + transaction list through
   // the single derived money module. `deriveWalletBalance` equals the store's
@@ -153,10 +178,13 @@ export function WalletPanel({
   // reproduces the same user-scoped, newest-first projection the panel built
   // inline — so the panel's behavior + format are unchanged; only the source
   // is unified.
-  const balance = useMemo(
-    () => deriveWalletBalance(ledger, userId),
-    [ledger, userId],
-  );
+  // Supabase: số dư THẬT server (wallets[].balance từ refetchAsync) — nguồn
+  // sự thật, KHÔNG suy từ ledger (client) để tránh lệch với server khi đăng
+  // ca (#7). Local/demo: suy từ ledger như cũ.
+  const balance = useMemo(() => {
+    if (supabase) return wallets.find((w) => w.userId === userId)?.balance ?? 0;
+    return deriveWalletBalance(ledger, userId);
+  }, [supabase, wallets, ledger, userId]);
   const userLedger = useMemo(
     () => projectRecentTransactions(ledger, userId),
     [ledger, userId],
@@ -184,6 +212,12 @@ export function WalletPanel({
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [topUpText, setTopUpText] = useState('');
   const [topUpError, setTopUpError] = useState<string | null>(null);
+  // Flow hybrid (supabase): nạp tiền qua QR mô phỏng. Bước 'amount' → nhập số;
+  // bước 'qr' → chọn ngân hàng demo + QR → "Mô phỏng nạp thành công".
+  const [topUpStep, setTopUpStep] = useState<'amount' | 'qr'>('amount');
+  const [topUpAmount, setTopUpAmount] = useState(0);
+  const [topUpChannels, setTopUpChannels] = useState<PaymentChannel[]>([]);
+  const [topUpChannelId, setTopUpChannelId] = useState<string | null>(null);
   // CORE-STABILITY-6 Part 3 — withdrawal modal state.
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawText, setWithdrawText] = useState('');
@@ -205,20 +239,23 @@ export function WalletPanel({
       setTopUpError(t('wallet.topUp.error.tooLarge'));
       return;
     }
-    // Supabase: nạp qua RPC (ví + két "Két bảo đảm CALE_MOCK"). Không giữ tiền client.
+    // Supabase: nạp qua QR mô phỏng — chuyển sang bước chọn ngân hàng + QR.
+    // RPC wallet_top_up chỉ gọi khi bấm "Mô phỏng nạp thành công" (confirmTopUpQR).
     if (supabase) {
       if (busy) return;
       setBusy(true);
-      const r = await topUpAsync(amount);
-      setBusy(false);
-      if (!r.ok) {
-        setTopUpError(mapWalletErr(r.error));
-        return;
-      }
-      showSuccess(t('wallet.topUp.success'), `+${formatVND(amount)}`);
-      setTopUpText('');
       setTopUpError(null);
-      setTopUpOpen(false);
+      try {
+        const chs = await listPaymentChannels();
+        setTopUpChannels(chs);
+        setTopUpChannelId((prev) => prev ?? chs[0]?.id ?? null);
+        setTopUpAmount(amount);
+        setTopUpStep('qr');
+      } catch {
+        setTopUpError('Không tải được danh sách ngân hàng. Vui lòng thử lại.');
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     const entry = topUp(userId, amount);
@@ -241,6 +278,48 @@ export function WalletPanel({
     setTopUpError(null);
     setTopUpOpen(false);
   }
+
+  /** Đóng + reset modal nạp tiền về bước đầu. */
+  function closeTopUp() {
+    setTopUpOpen(false);
+    setTopUpStep('amount');
+    setTopUpText('');
+    setTopUpAmount(0);
+    setTopUpError(null);
+  }
+
+  /** Supabase QR: bấm "Mô phỏng nạp thành công" → RPC wallet_top_up (ví + két
+   *  "Két bảo đảm CALE_MOCK" cùng tăng) → refetch số dư. */
+  async function confirmTopUpQR() {
+    if (busy) return;
+    setBusy(true);
+    const r = await topUpAsync(topUpAmount);
+    setBusy(false);
+    if (!r.ok) {
+      setTopUpError(mapWalletErr(r.error));
+      return;
+    }
+    showSuccess(t('wallet.topUp.success'), `+${formatVND(topUpAmount)}`);
+    closeTopUp();
+  }
+
+  /** Payload QR mô phỏng — VÔ HẠI: không số tài khoản thật, đánh dấu không
+   *  phải giao dịch thật. Chỉ để hiển thị mã QR demo. */
+  const topUpQrPayload = useMemo(
+    () =>
+      JSON.stringify({
+        realTransaction: false,
+        provider: 'CALE_MOCK',
+        purpose: 'wallet_topup',
+        amount: topUpAmount,
+      }),
+    [topUpAmount],
+  );
+
+  const topUpSelectedChannel = useMemo(
+    () => topUpChannels.find((c) => c.id === topUpChannelId) ?? null,
+    [topUpChannels, topUpChannelId],
+  );
 
   async function submitWithdraw() {
     const trimmed = withdrawText.trim();
@@ -328,6 +407,7 @@ export function WalletPanel({
               onClick={() => {
                 setTopUpText('');
                 setTopUpError(null);
+                setTopUpStep('amount');
                 setTopUpOpen(true);
               }}
             >
@@ -414,73 +494,177 @@ export function WalletPanel({
         </div>
       </Modal>
 
-      {/* QA-Fix-2 Phase 4 — custom-amount top-up modal. */}
+      {/* QA-Fix-2 Phase 4 — custom-amount top-up modal. Supabase: 2 bước
+          (nhập số → QR mô phỏng). Local/demo: 1 bước (nhập số → nạp). */}
       <Modal
         open={topUpOpen}
-        onClose={() => setTopUpOpen(false)}
-        title={t('wallet.topUp.modal.title')}
+        onClose={closeTopUp}
+        title={
+          supabase && topUpStep === 'qr'
+            ? 'Nạp tiền — quét QR mô phỏng'
+            : t('wallet.topUp.modal.title')
+        }
       >
-        <div className="flex flex-col gap-3 text-sm">
-          <div className="flex flex-wrap gap-2">
-            {TOP_UP_PRESETS.map((preset) => (
+        {supabase && topUpStep === 'qr' ? (
+          <div className="flex flex-col gap-3 text-sm">
+            <p className="rounded-md bg-red-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
+              MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
+            </p>
+
+            <dl className="flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 ring-1 ring-orange-100">
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Số tiền nạp</dt>
+                <dd className="font-semibold tabular-nums text-orange-700">{formatVND(topUpAmount)}</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Nạp vào</dt>
+                <dd className="font-medium text-gray-900">Ví CALE_MOCK của bạn</dd>
+              </div>
+            </dl>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-700">Chọn ngân hàng mô phỏng</span>
+              <div className="flex flex-col gap-2">
+                {topUpChannels.map((ch) => (
+                  <label
+                    key={ch.id}
+                    className={[
+                      'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors',
+                      topUpChannelId === ch.id
+                        ? 'border-orange-400 bg-white shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-orange-300',
+                    ].join(' ')}
+                  >
+                    <input
+                      type="radio"
+                      name="wallet-topup-channel"
+                      className="h-4 w-4 accent-orange-500"
+                      checked={topUpChannelId === ch.id}
+                      onChange={() => setTopUpChannelId(ch.id)}
+                    />
+                    <span className="min-w-0 flex-1 font-medium text-gray-900">
+                      {topUpChannelLabel(ch)}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                      Demo
+                    </span>
+                  </label>
+                ))}
+                {topUpChannels.length === 0 && (
+                  <span className="text-sm text-gray-500">Chưa có kênh ngân hàng mô phỏng.</span>
+                )}
+              </div>
+            </label>
+
+            {topUpChannelId && (
+              <div className="flex justify-center">
+                <div className="w-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-orange-200">
+                  <QRCode value={topUpQrPayload} size={176} level="M" aria-label="Mã QR nạp tiền mô phỏng" />
+                </div>
+              </div>
+            )}
+            {topUpSelectedChannel && (
+              <p className="text-center text-xs text-gray-500">
+                Người thụ hưởng: <strong>{topUpSelectedChannel.accountName ?? 'CALE DEMO'}</strong>
+                {topUpSelectedChannel.accountNumberMasked
+                  ? ` · ${topUpSelectedChannel.accountNumberMasked}`
+                  : ''}
+              </p>
+            )}
+
+            {topUpError && (
+              <p role="alert" className="text-xs text-red-600">
+                {topUpError}
+              </p>
+            )}
+
+            <div className="flex justify-between gap-2 pt-1">
               <Button
-                key={preset}
                 size="sm"
                 variant="ghost"
                 onClick={() => {
-                  setTopUpText(formatNumberVNInput(preset));
+                  setTopUpStep('amount');
                   setTopUpError(null);
                 }}
+                disabled={busy}
               >
-                {formatVND(preset)}
+                Quay lại
               </Button>
-            ))}
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={confirmTopUpQR}
+                loading={busy}
+                disabled={busy || !topUpChannelId}
+              >
+                Mô phỏng nạp tiền thành công
+              </Button>
+            </div>
           </div>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-gray-700">
-              {t('wallet.topUp.modal.label')}
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              value={topUpText}
-              placeholder={t('wallet.topUp.modal.placeholder')}
-              onChange={(e) => {
-                // Numbers only — strip non-digits, format with VN grouping.
-                const numericOnly = e.target.value.replace(/[^\d]/g, '');
-                setTopUpText(formatNumberVNInput(numericOnly));
-                if (topUpError) setTopUpError(null);
-              }}
-              aria-invalid={!!topUpError}
-              className={[
-                'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
-                'min-h-[44px] transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
-                topUpError
-                  ? 'border-red-400 bg-red-50'
-                  : 'border-gray-300 bg-white hover:border-gray-400',
-              ].join(' ')}
-            />
-          </label>
-          {topUpError && (
-            <p role="alert" className="text-xs text-red-600">
-              {topUpError}
-            </p>
-          )}
-          <div className="flex justify-end gap-2 pt-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setTopUpOpen(false)}
-            >
-              {t('wallet.topUp.modal.cancel')}
-            </Button>
-            <Button size="sm" variant="primary" onClick={submitTopUp} loading={busy}>
-              {t('wallet.topUp.modal.submit')}
-            </Button>
+        ) : (
+          <div className="flex flex-col gap-3 text-sm">
+            <div className="flex flex-wrap gap-2">
+              {TOP_UP_PRESETS.map((preset) => (
+                <Button
+                  key={preset}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setTopUpText(formatNumberVNInput(preset));
+                    setTopUpError(null);
+                  }}
+                >
+                  {formatVND(preset)}
+                </Button>
+              ))}
+            </div>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-700">
+                {t('wallet.topUp.modal.label')}
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={topUpText}
+                placeholder={t('wallet.topUp.modal.placeholder')}
+                onChange={(e) => {
+                  // Numbers only — strip non-digits, format with VN grouping.
+                  const numericOnly = e.target.value.replace(/[^\d]/g, '');
+                  setTopUpText(formatNumberVNInput(numericOnly));
+                  if (topUpError) setTopUpError(null);
+                }}
+                aria-invalid={!!topUpError}
+                className={[
+                  'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
+                  'min-h-[44px] transition-colors',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
+                  topUpError
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-gray-300 bg-white hover:border-gray-400',
+                ].join(' ')}
+              />
+            </label>
+            {supabase && (
+              <p className="text-xs text-gray-500">
+                Bước sau: chọn ngân hàng mô phỏng + quét QR để nạp vào ví CALE_MOCK.
+              </p>
+            )}
+            {topUpError && (
+              <p role="alert" className="text-xs text-red-600">
+                {topUpError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button size="sm" variant="ghost" onClick={closeTopUp}>
+                {t('wallet.topUp.modal.cancel')}
+              </Button>
+              <Button size="sm" variant="primary" onClick={submitTopUp} loading={busy}>
+                {supabase ? 'Tiếp tục' : t('wallet.topUp.modal.submit')}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </Modal>
 
       {/* CORE-STABILITY-6 Part 3 — withdrawal modal (demo). */}

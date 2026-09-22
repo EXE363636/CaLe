@@ -67,3 +67,30 @@ export function calculateDeposit(
 ): number {
   return wage * hours * positions;
 }
+
+/**
+ * Phí dịch vụ (mô phỏng) — 10% trên tiền công gốc. KHỚP server
+ * (create_deposit_session: `v_fee := round(v_wage * 0.10)`).
+ */
+export const PLATFORM_FEE_RATE = 0.1;
+
+/** Phí dịch vụ mô phỏng trên một khoản tiền công gốc (làm tròn như server). */
+export function platformFee(base: number): number {
+  return Math.round(base * PLATFORM_FEE_RATE);
+}
+
+/**
+ * Số dư cần đảm bảo THẬT khi đăng ca (supabase) = tiền công gốc + 10% phí.
+ * Đây là số tiền server trừ khỏi ví employer khi giữ cọc, nên UI hiển thị số
+ * này để employer biết cần bao nhiêu số dư ví.
+ *
+ * @example calculateDepositWithFee(50000, 3, 1); // 150000 + 15000 = 165000
+ */
+export function calculateDepositWithFee(
+  wage: number,
+  hours: number,
+  positions: number,
+): number {
+  const base = calculateDeposit(wage, hours, positions);
+  return base + platformFee(base);
+}

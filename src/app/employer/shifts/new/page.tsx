@@ -10,8 +10,9 @@ import { getDataMode } from '@/data/supabaseClient';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
-import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
+import { DepositWalletConfirm } from '@/components/payment/DepositWalletConfirm';
 import { toPublishPayload } from '@/data/repos/shiftRepo';
+import { calculateDepositWithFee } from '@/domain/deposit';
 import { Badge, Button, Card, Modal, PageHelpButton } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
@@ -315,7 +316,10 @@ function NewShiftContent() {
       );
       setDepositPayload(toPublishPayload(input));
       setDepositReqId(`deposit-${currentUserId}-${Date.now()}`);
-      setDepositPreview(Math.round(values.hourlyWage * hours * values.positionsTotal));
+      // Số dư cần giữ = tiền công gốc + 10% phí (khớp server create_deposit_session).
+      setDepositPreview(
+        calculateDepositWithFee(values.hourlyWage, hours, values.positionsTotal),
+      );
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -620,10 +624,10 @@ function NewShiftContent() {
       {depositPayload && (
         <div className="mb-2">
           <p className="mb-3 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200">
-            Để đăng ca, vui lòng <strong>giữ tiền ca làm (mô phỏng)</strong> trước.
-            Ca chỉ được đăng sau khi giữ tiền. Trong MVP/demo không có giao dịch thật.
+            Để đăng ca, hệ thống <strong>giữ cọc từ số dư ví (mô phỏng)</strong> của bạn.
+            Ca chỉ được đăng sau khi giữ cọc. Trong MVP/demo không có giao dịch thật.
           </p>
-          <MockPaymentSession
+          <DepositWalletConfirm
             shiftPayload={depositPayload}
             clientRequestId={depositReqId}
             previewAmount={depositPreview}

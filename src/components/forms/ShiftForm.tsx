@@ -10,7 +10,7 @@ import {
   numberToVietnameseCurrency,
   parseVNNumberInput,
 } from '@/lib/numberVN';
-import { hoursBetween, calculateDeposit } from '@/domain/deposit';
+import { hoursBetween, calculateDeposit, platformFee } from '@/domain/deposit';
 import {
   EVIDENCE_REQUIREMENT_VALUES,
   suggestedEvidenceForJobType,
@@ -239,12 +239,16 @@ export function ShiftForm({
     String(initialValues?.positionsTotal ?? DEFAULT_VALUES.positionsTotal),
   );
 
-  // Live deposit calculation
-  const liveDeposit = calculateDeposit(
+  // Live deposit calculation. Tiền công gốc + 10% phí dịch vụ (supabase khớp
+  // server; local/demo không cộng phí). Hiển thị số dư cần đảm bảo THẬT để
+  // employer biết cần bao nhiêu số dư ví.
+  const liveDepositBase = calculateDeposit(
     values.hourlyWage,
     hoursBetween(values.startTime, values.endTime),
     values.positionsTotal,
   );
+  const liveDepositFee = isSupabaseEnv() ? platformFee(liveDepositBase) : 0;
+  const liveDeposit = liveDepositBase + liveDepositFee;
 
   function set<K extends keyof ShiftFormValues>(key: K, value: ShiftFormValues[K]) {
     setValues((prev) => {
@@ -716,11 +720,20 @@ export function ShiftForm({
       </div>
       </FormSection>
 
-      {/* Live deposit total */}
+      {/* Live deposit total. Khi có phí (supabase) → hiển thị breakdown +
+          note để employer hiểu số dư cần đảm bảo đã gồm 10% phí dịch vụ. */}
       {liveDeposit > 0 && (
         <div className="rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
-          <span className="font-medium">{t('shifts.deposit.amount')}:</span>{' '}
-          {formatVND(liveDeposit)}
+          <div>
+            <span className="font-medium">{t('shifts.deposit.amount')}:</span>{' '}
+            <span className="font-semibold">{formatVND(liveDeposit)}</span>
+          </div>
+          {liveDepositFee > 0 && (
+            <p className="mt-1 text-xs text-orange-700">
+              Gồm {formatVND(liveDepositBase)} tiền công + {formatVND(liveDepositFee)} phí
+              dịch vụ 10% (mô phỏng). Đây là số dư ví sẽ bị giữ khi đăng ca.
+            </p>
+          )}
         </div>
       )}
 

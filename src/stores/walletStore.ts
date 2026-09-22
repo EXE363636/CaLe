@@ -15,6 +15,7 @@ import {
   walletTopUp,
   walletWithdraw,
   getSystemBank,
+  refundDepositForShift,
 } from '@/data/repos/walletRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type {
@@ -50,12 +51,19 @@ export interface WalletStore {
   /**
    * Supabase: nạp số dư + lịch sử ví của user hiện tại từ server
    * (get_wallet_state) + số dư két. KHÔNG giữ tiền client (#7). No-op ở local.
+   * `userId` (current auth user) để gán số dư server kể cả khi ledger rỗng.
    */
-  refetchAsync(): Promise<void>;
+  refetchAsync(userId?: string): Promise<void>;
   /** Nạp tiền vào ví (mô phỏng) qua RPC → refetch. Supabase-only. */
   topUpAsync(amount: number): Promise<Result<number, string>>;
   /** Rút tiền khỏi ví (mô phỏng) qua RPC → refetch. Supabase-only. */
   withdrawAsync(amount: number): Promise<Result<number, string>>;
+  /**
+   * Hoàn cọc (mô phỏng) cho ca huỷ/hết hạn không có người làm → refetch số dư.
+   * Server idempotent + tự kiểm điều kiện. Trả true nếu vừa hoàn (để caller
+   * hiển thị toast). Supabase-only; no-op ở local. KHÔNG ném cho no-op thường.
+   */
+  refundForShiftAsync(shiftId: string, userId?: string): Promise<boolean>;
 
   getBalance(userId: string): number;
   forUser(userId: string): WalletLedgerEntry[];
@@ -184,15 +192,17 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     set({ wallets, ledger });
   },
 
-  async refetchAsync() {
+  async refetchAsync(userId) {
     if (getDataMode() !== 'supabase') return;
     const [state, bank] = await Promise.all([
       getWalletState(),
       getSystemBank().catch(() => null),
     ]);
     // Số dư THẬT từ server (không suy client). Ghi vào ví của user hiện tại.
-    // (RLS: chỉ trả ví của mình → ledger toàn của current user.)
-    const uid = state.ledger[0]?.userId;
+    // (RLS: chỉ trả ví của mình → ledger toàn của current user.) Ưu tiên
+    // `userId` truyền vào để gán số dư kể cả khi ledger rỗng (server có số dư
+    // nhưng chưa có giao dịch nào của user, hoặc balance>0 mà ledger trống).
+    const uid = userId ?? state.ledger[0]?.userId;
     const wallets: UserWallet[] = uid
       ? [{ userId: uid, balance: state.balance, updatedAt: nowIso() }]
       : [];
@@ -218,6 +228,21 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       return { ok: true, value: amount };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'WITHDRAW_FAILED' };
+    }
+  },
+
+  async refundForShiftAsync(shiftId, userId) {
+    if (getDataMode() !== 'supabase') return false;
+    try {
+      const r = await refundDepositForShift(shiftId);
+      if (r === 'REFUNDED') {
+        await get().refetchAsync(userId);
+        return true;
+      }
+      return false;
+    } catch {
+      // No-op an toàn: lỗi mạng/quyền không chặn UI. Sẽ thử lại lần quét sau.
+      return false;
     }
   },
 

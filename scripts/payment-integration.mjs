@@ -262,6 +262,45 @@ async function run() {
     const conf = await rpc(eC, 'confirm_payment_session', { p_payment_id: session.id });
     ok(conf.ok && conf.data.status === 'RELEASED', 'confirm sau release vẫn idempotent');
   }
+
+  console.log('\n▶ Hoàn cọc ca huỷ/hết hạn (refund_deposit_for_shift, 0015)');
+  {
+    // Nạp ví employer đủ rồi đăng ca (HELD).
+    await rpc(eC, 'wallet_top_up', { p_amount: 400000 });
+    const rReq = `pay-${ts}-refund-${rnd()}`;
+    const rc = await rpc(eC, 'create_deposit_session', { p_shift_payload: buildPayload(rReq), p_channel_id: mockChannelId, p_client_request_id: rReq });
+    const rConf = await rpc(eC, 'confirm_deposit_session', { p_payment_id: rc.data.id });
+    const rShiftId = rConf.data?.shift_id;
+    if (rShiftId) createdShiftIds.add(rShiftId);
+
+    const balBefore = (await rpc(eC, 'get_wallet_state', {})).data?.balance ?? 0;
+    const bankBefore = (await rpc(eC, 'get_system_bank', {})).data?.balance ?? 0;
+
+    // Chưa huỷ + chưa hết hạn (ca 3 ngày sau) → không hoàn được.
+    const early = await rpc(eC, 'refund_deposit_for_shift', { p_shift_id: rShiftId });
+    ok(!early.ok && early.code.includes('SHIFT_NOT_REFUNDABLE'), 'ca chưa huỷ/chưa hết hạn → chặn hoàn');
+
+    // Admin huỷ ca (Cancelled).
+    await admin.from('shifts').update({ status: 'Cancelled', escrow_status: 'Refunded' }).eq('id', rShiftId);
+
+    // Hoàn cọc → ví employer +330000, két KHÔNG đổi.
+    const refund = await rpc(eC, 'refund_deposit_for_shift', { p_shift_id: rShiftId });
+    ok(refund.ok && refund.data.status === 'REFUNDED', 'hoàn cọc ca huỷ → REFUNDED');
+    const balAfter = (await rpc(eC, 'get_wallet_state', {})).data?.balance ?? 0;
+    ok(balAfter === balBefore + 330000, `hoàn cọc TRẢ VỀ ví employer 330000 (${balBefore} → ${balAfter})`);
+    const bankAfter = (await rpc(eC, 'get_system_bank', {})).data?.balance ?? 0;
+    ok(bankAfter === bankBefore, 'REFUND: KÉT KHÔNG đổi');
+
+    // Idempotent: hoàn lần 2 → no-op (không có phiên HELD nữa).
+    const refund2 = await rpc(eC, 'refund_deposit_for_shift', { p_shift_id: rShiftId });
+    ok(refund2.ok && refund2.data.status === 'NO_HELD_SESSION', 'hoàn lần 2 idempotent (no-op)');
+    const balFinal = (await rpc(eC, 'get_wallet_state', {})).data?.balance ?? 0;
+    ok(balFinal === balAfter, 'hoàn lần 2 KHÔNG cộng trùng');
+
+    // Non-owner không hoàn được ca của người khác.
+    const other = await rpc(e2C, 'refund_deposit_for_shift', { p_shift_id: rShiftId });
+    ok(!other.ok && other.code.includes('NOT_OWNER'), 'employer khác KHÔNG hoàn được (NOT_OWNER)');
+  }
 }
 
 async function cleanup() {
