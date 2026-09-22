@@ -40,9 +40,14 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export interface MockPaymentSessionProps {
-  /** Existing published shift and approved application. */
-  shiftId: string;
-  applicationId: string;
+  /** Per-worker: ca đã đăng + đơn đã duyệt. Bỏ trống khi dùng chế độ cọc. */
+  shiftId?: string;
+  applicationId?: string;
+  /**
+   * Chế độ CỌC TRƯỚC KHI ĐĂNG: payload ca chưa đăng. Khi có, component tạo
+   * phiên cọc và ca chỉ được publish (server-side) sau khi giữ tiền (HELD).
+   */
+  shiftPayload?: Record<string, unknown>;
   /** Idempotency key cho phiên + ca (chống tạo trùng). */
   clientRequestId: string;
   /** Số tiền hiển thị trước (server sẽ tính lại chuẩn khi tạo phiên). */
@@ -56,11 +61,14 @@ export interface MockPaymentSessionProps {
 export function MockPaymentSession({
   shiftId,
   applicationId,
+  shiftPayload,
   clientRequestId,
   previewAmount,
   onPaid,
   onCancel,
 }: MockPaymentSessionProps) {
+  // Chế độ cọc-trước-khi-đăng khi được truyền shiftPayload (chưa có ca/đơn).
+  const isDeposit = shiftPayload != null;
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentIdParam = searchParams?.get('paymentId') ?? null;
@@ -129,12 +137,18 @@ export function MockPaymentSession({
     if (loading || !selectedChannelId) return;
     setLoading(true); setBusyAction('create'); setError(null);
     try {
-      const s = await provider.createPayment({
-        channelId: selectedChannelId,
-        clientRequestId,
-        shiftId,
-        applicationId,
-      });
+      const s = isDeposit
+        ? await provider.createDeposit({
+            shiftPayload: shiftPayload as Record<string, unknown>,
+            channelId: selectedChannelId,
+            clientRequestId,
+          })
+        : await provider.createPayment({
+            channelId: selectedChannelId,
+            clientRequestId,
+            shiftId: shiftId as string,
+            applicationId: applicationId as string,
+          });
       setSession(s);
       setParamPaymentId(s.paymentId); // reload-safe
     } catch (e) {
@@ -148,9 +162,12 @@ export function MockPaymentSession({
     if (loading || !session) return;
     setLoading(true); setBusyAction('confirm'); setError(null);
     try {
-      const r = await provider.simulateSuccess(session.paymentId);
+      // Cọc-trước-khi-đăng: confirm sẽ PUBLISH ca từ payload rồi trả shiftId.
+      const r = isDeposit
+        ? await provider.confirmDeposit(session.paymentId)
+        : await provider.simulateSuccess(session.paymentId);
       // Cập nhật hiển thị khoản giữ tiền rồi điều hướng.
-      setSession((prev) => (prev ? { ...prev, status: r.status } : prev));
+      setSession((prev) => (prev ? { ...prev, status: r.status, shiftId: r.shiftId ?? prev.shiftId } : prev));
       if (r.shiftId) {
         setTimeout(() => onPaid(r.shiftId as string), 900);
       }

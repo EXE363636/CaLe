@@ -114,6 +114,30 @@ class MockPaymentProvider implements MockCapablePaymentProvider {
     const d = (data ?? {}) as { status?: string; shift_id?: string };
     return { status: (d.status as PaymentResult['status']) ?? 'HELD', shiftId: d.shift_id ?? null };
   }
+
+  // --- "Trả cọc trước khi đăng" (deposit-before-publish) --------------------
+  async createDeposit(input: {
+    shiftPayload: Record<string, unknown>;
+    channelId: string;
+    clientRequestId: string;
+  }): Promise<PaymentResult> {
+    const { data, error } = await getSupabaseClient().rpc('create_deposit_session', {
+      p_shift_payload: input.shiftPayload,
+      p_channel_id: input.channelId,
+      p_client_request_id: input.clientRequestId,
+    });
+    if (error) throw new Error(error.message);
+    return rowToPaymentResult(data as Row);
+  }
+
+  async confirmDeposit(paymentId: string): Promise<{ status: PaymentResult['status']; shiftId: string | null }> {
+    const { data, error } = await getSupabaseClient().rpc('confirm_deposit_session', {
+      p_payment_id: paymentId,
+    });
+    if (error) throw new Error(error.message);
+    const d = (data ?? {}) as { status?: string; shift_id?: string };
+    return { status: (d.status as PaymentResult['status']) ?? 'HELD', shiftId: d.shift_id ?? null };
+  }
 }
 
 // ---------------------------------------------------------------------------

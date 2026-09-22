@@ -108,8 +108,10 @@ export function publicRowToShift(r: Row): Shift {
   };
 }
 
-/** payload camelCase (NewShiftInput) → jsonb snake_case cho RPC publish_shift. */
-function toPublishPayload(input: NewShiftInput): Record<string, unknown> {
+/** payload camelCase (NewShiftInput) → jsonb snake_case cho RPC publish_shift.
+ *  Export để luồng "trả cọc trước khi đăng" dựng shift_payload cho
+ *  create_deposit_session (server publish ca từ payload khi giữ tiền). */
+export function toPublishPayload(input: NewShiftInput): Record<string, unknown> {
   return {
     title: input.title,
     description: input.description,

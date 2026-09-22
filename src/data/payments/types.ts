@@ -67,6 +67,17 @@ export interface PaymentProvider {
 export interface MockCapablePaymentProvider extends PaymentProvider {
   /** Mô phỏng PENDING→HELD, không đăng/tạo ca. */
   simulateSuccess(paymentId: string): Promise<{ status: PaymentStatus; shiftId: string | null }>;
+  /**
+   * "Trả cọc trước khi đăng": tạo phiên cọc cho MỘT ca CHƯA đăng (shift_payload).
+   * Amount tính ở server (lương × giờ × vị trí + phí). Ca chỉ publish khi confirm.
+   */
+  createDeposit(input: {
+    shiftPayload: Record<string, unknown>;
+    channelId: string;
+    clientRequestId: string;
+  }): Promise<PaymentResult>;
+  /** PENDING→HELD + publish ca từ payload (idempotent). Trả shiftId đã đăng. */
+  confirmDeposit(paymentId: string): Promise<{ status: PaymentStatus; shiftId: string | null }>;
 }
 
 /** Kênh ngân hàng mô phỏng để chọn khi tạo QR. */

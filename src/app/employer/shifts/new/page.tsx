@@ -10,6 +10,8 @@ import { getDataMode } from '@/data/supabaseClient';
 import { useUserStore, asEmployer } from '@/stores/userStore';
 import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
+import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
+import { toPublishPayload } from '@/data/repos/shiftRepo';
 import { Badge, Button, Card, Modal, PageHelpButton } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
@@ -49,7 +51,6 @@ function NewShiftContent() {
   const shifts = useShiftStore((s) => s.shifts);
   const createShift = useShiftStore((s) => s.create);
   const simulateDeposit = useShiftStore((s) => s.simulateDeposit);
-  const publishAsync = useShiftStore((s) => s.publishAsync);
   const discardDraftShift = useShiftStore((s) => s.discardDraftShift);
   const topUp = useWalletStore((s) => s.topUp);
   const walletBalance = useWalletStore((s) =>
@@ -117,6 +118,11 @@ function NewShiftContent() {
   // Phase 2 supabase mode: giữ payload chờ + client_request_id (idempotent), publish
   // (INSERT thẳng Published) ở bước "cọc mô phỏng". KHÔNG tạo row Draft trên server.
   const [depositLoading, setDepositLoading] = useState(false);
+  // "Trả cọc trước khi đăng" (supabase): giữ payload ca + reqId + số tiền dự kiến;
+  // ca chỉ publish (server-side) sau khi giữ tiền (HELD) trong MockPaymentSession.
+  const [depositPayload, setDepositPayload] = useState<Record<string, unknown> | null>(null);
+  const [depositReqId, setDepositReqId] = useState('');
+  const [depositPreview, setDepositPreview] = useState(0);
   // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
   // employer arrived via ?draft= or saved one this session). When set,
   // "Lưu nháp" updates it instead of creating a new draft.
@@ -297,18 +303,20 @@ function NewShiftContent() {
       return;
     }
     if (getDataMode() === 'supabase') {
-      // Publishing is free. Mock payment is created only after an application
-      // has been approved from the employer shift detail page.
+      // "Đăng ca phải thanh toán trước": KHÔNG publish ngay. Dựng shift_payload +
+      // reqId (idempotent), mở MockPaymentSession chế độ cọc. Ca chỉ được publish
+      // (server-side qua confirm_deposit_session) sau khi giữ tiền (HELD).
       const input: NewShiftInput = { ...values, employerId: currentUserId };
-      setDepositLoading(true);
-      const result = await publishAsync(input, `free-publish-${Date.now()}`);
-      setDepositLoading(false);
-      if (!result.ok) {
-        showError('Không đăng được ca. ' + result.error);
-        return;
-      }
-      showSuccess(t('feedback.shift.create.success'), t('feedback.shift.create.success.desc'));
-      router.push(`/employer/shifts/${result.value}`);
+      const hours = Math.max(
+        0,
+        (new Date(`${values.date}T${values.endTime}:00`).getTime() -
+          new Date(`${values.date}T${values.startTime}:00`).getTime()) /
+          3_600_000,
+      );
+      setDepositPayload(toPublishPayload(input));
+      setDepositReqId(`deposit-${currentUserId}-${Date.now()}`);
+      setDepositPreview(Math.round(values.hourlyWage * hours * values.positionsTotal));
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     const shift = createShift({ ...values, employerId: currentUserId });
@@ -607,8 +615,32 @@ function NewShiftContent() {
         </div>
       )}
 
+      {/* "Đăng ca phải thanh toán trước" (supabase): giữ tiền cọc (mô phỏng)
+          rồi ca mới được đăng. Ca chỉ tồn tại sau khi HELD. */}
+      {depositPayload && (
+        <div className="mb-2">
+          <p className="mb-3 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200">
+            Để đăng ca, vui lòng <strong>giữ tiền ca làm (mô phỏng)</strong> trước.
+            Ca chỉ được đăng sau khi giữ tiền. Trong MVP/demo không có giao dịch thật.
+          </p>
+          <MockPaymentSession
+            shiftPayload={depositPayload}
+            clientRequestId={depositReqId}
+            previewAmount={depositPreview}
+            onPaid={(shiftId) => {
+              showSuccess(
+                t('feedback.shift.create.success'),
+                t('feedback.shift.create.success.desc'),
+              );
+              router.push(`/employer/shifts/${shiftId}`);
+            }}
+            onCancel={() => setDepositPayload(null)}
+          />
+        </div>
+      )}
+
       {/* Local/demo retains its legacy deposit simulation. Supabase publishing
-          is free; CALE_MOCK starts only after application approval. */}
+          now requires an up-front mock deposit (above) before the shift posts. */}
       {createdShiftId && !deposited && getDataMode() !== 'supabase' && (
         <DepositConfirmCard
           depositAmount={depositAmount}
@@ -672,7 +704,7 @@ function NewShiftContent() {
       {/* Form (hidden after creation). Phase 10A-Fix-3 — workplace
           image required by employer-type readiness rules; the live
           draft drives the readiness recompute via `onValuesChange`. */}
-      {!createdShiftId && (
+      {!createdShiftId && !depositPayload && (
         <ShiftForm
           key={formKey}
           mode="create"

@@ -1,7 +1,11 @@
 /**
  * Behavioral integration test — mock payment simulator (provider CALE_MOCK).
- * Chạy với Supabase THẬT sau `supabase db push` migration 20260921000009.
+ * Chạy với Supabase THẬT sau `supabase db push` (tới migration 20260922000010).
  * Lệnh: npm run test:payment
+ *
+ * Gồm: luồng per-worker (0009) + luồng "cọc-trước-khi-đăng" (0010):
+ * create_deposit_session (amount server-owned) → confirm_deposit_session
+ * (PENDING→HELD + publish ca từ payload, idempotent).
  *
  * Chứng minh (server là nguồn sự thật): amount tính lại ở server (không tin client),
  * chọn kênh mock đúng, reload giữ phiên+kênh (RLS), kênh tắt không dùng được,
@@ -194,6 +198,31 @@ async function run() {
     const { count: payoutCount } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', session.id).eq('entry_type', 'WORKER_PAYOUT');
     const { count: feeCount } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', session.id).eq('entry_type', 'PLATFORM_FEE');
     ok(payoutCount === 1 && feeCount === 1, 'ledger payout và fee mỗi loại chỉ ghi một lần');
+  }
+
+  console.log('\n▶ Cọc-trước-khi-đăng: create_deposit_session → confirm publish ca (0010)');
+  {
+    const dReq = `pay-${ts}-dep-${rnd()}`;
+    const dPayload = buildPayload(dReq); // 50000×3h×2 vị trí = 300000 + 10% phí = 330000
+    ok(!(await rpc(anonC, 'create_deposit_session', { p_shift_payload: dPayload, p_channel_id: mockChannelId, p_client_request_id: `${dReq}-anon` })).ok, 'anon KHÔNG tạo được phiên cọc');
+    const dc = await rpc(eC, 'create_deposit_session', { p_shift_payload: dPayload, p_channel_id: mockChannelId, p_client_request_id: dReq });
+    ok(dc.ok, 'tạo phiên cọc thành công');
+    const dSession = dc.data ?? {};
+    ok(dSession.status === 'PENDING' && dSession.amount === 330000, `cọc PENDING, amount = 50000×3h×2 + 10% = 330000 (nhận ${dSession.amount})`);
+    ok(!dSession.shift_id, 'chưa publish ca lúc PENDING (shift_id rỗng)');
+    const dc2 = await rpc(eC, 'create_deposit_session', { p_shift_payload: dPayload, p_channel_id: mockChannelId, p_client_request_id: dReq });
+    ok(dc2.ok && dc2.data.id === dSession.id, 'create cọc trùng reqId → trả phiên cũ (idempotent)');
+    ok(!(await rpc(e2C, 'confirm_deposit_session', { p_payment_id: dSession.id })).ok, 'employer khác KHÔNG confirm được phiên cọc (NOT_OWNER)');
+    const dConf = await rpc(eC, 'confirm_deposit_session', { p_payment_id: dSession.id });
+    ok(dConf.ok && dConf.data.status === 'HELD' && !!dConf.data.shift_id, 'confirm cọc → HELD + publish ca (có shift_id)');
+    const newShiftId = dConf.data?.shift_id;
+    if (newShiftId) createdShiftIds.add(newShiftId);
+    const { data: pubShift } = await admin.from('shifts').select('status,employer_id').eq('id', newShiftId).maybeSingle();
+    ok(pubShift?.status === 'Published' && pubShift?.employer_id === employerId, 'ca đã publish (Published, đúng employer)');
+    const dConf2 = await rpc(eC, 'confirm_deposit_session', { p_payment_id: dSession.id });
+    ok(dConf2.ok && dConf2.data.status === 'HELD' && dConf2.data.shift_id === newShiftId, 'confirm cọc lần 2 idempotent (không publish trùng)');
+    const { count: dHold } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', dSession.id).eq('entry_type', 'HOLD');
+    ok(dHold === 1, 'ledger HOLD (cọc) chỉ ghi một lần');
   }
 
   console.log('\n▶ Phiên HELD không thể hủy và confirm vẫn idempotent');
