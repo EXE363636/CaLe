@@ -15,10 +15,10 @@ export default function SupportPage() {
       <InfoSection title="Email hỗ trợ">
         Gửi email về{' '}
         <a
-          href="mailto:support@caledo.vn"
+          href="mailto:nguyenphuonganh98113@gmail.com"
           className="font-medium text-orange-700 hover:underline"
         >
-          support@caledo.vn
+          nguyenphuonganh98113@gmail.com
         </a>
         . Trong tiêu đề, vui lòng ghi rõ vai trò (người lao động hoặc nhà
         tuyển dụng) và mã ca làm liên quan (nếu có) để chúng tôi xử lý
@@ -26,7 +26,7 @@ export default function SupportPage() {
       </InfoSection>
 
       <InfoSection title="Hotline">
-        Tổng đài: <span className="font-medium">1900 3636</span>
+        Tổng đài: <span className="font-medium">0868325698</span>
         <br />
         Giờ trực: 08:00 – 20:00, Thứ Hai đến Thứ Bảy.
       </InfoSection>

@@ -113,15 +113,15 @@ export function Footer() {
               <li>
                 <span className="text-gray-400">Email: </span>
                 <a
-                  href="mailto:support@caledo.vn"
+                  href="mailto:nguyenphuonganh98113@gmail.com"
                   className="hover:text-orange-700 hover:underline"
                 >
-                  support@caledo.vn
+                  nguyenphuonganh98113@gmail.com
                 </a>
               </li>
               <li>
                 <span className="text-gray-400">Hotline: </span>
-                <span className="font-medium text-gray-700">1900 3636</span>
+                <span className="font-medium text-gray-700">0868325698</span>
               </li>
               <li>
                 <span className="text-gray-400">Địa chỉ: </span>
@@ -139,9 +139,6 @@ export function Footer() {
         {/* Bottom row */}
         <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-gray-100 pt-6 text-xs text-gray-500 sm:flex-row sm:items-center">
           <p>© 2026 CaLedo Tech. All rights reserved.</p>
-          <p className="text-xs text-gray-400">
-            Made with care by CaLeDo Tech ❤️ Made for her
-          </p>
         </div>
 
         {/* Honest backend-status note — theo data mode (build-time inlined).

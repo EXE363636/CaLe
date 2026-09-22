@@ -54,10 +54,10 @@ export default function DisputesPage() {
         Nếu bạn cho rằng quyết định chưa hợp lý, có thể gửi phản hồi
         bằng văn bản về{' '}
         <a
-          href="mailto:support@caledo.vn"
+          href="mailto:nguyenphuonganh98113@gmail.com"
           className="text-orange-700 hover:underline"
         >
-          support@caledo.vn
+          nguyenphuonganh98113@gmail.com
         </a>
         . Quản trị viên cấp cao sẽ xem xét lại trong vòng 7 ngày.
       </InfoSection>

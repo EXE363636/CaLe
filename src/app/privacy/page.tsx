@@ -47,10 +47,10 @@ export default function PrivacyPage() {
       <InfoSection title="Liên hệ về quyền riêng tư">
         Email phụ trách quyền riêng tư:{' '}
         <a
-          href="mailto:support@caledo.vn"
+          href="mailto:nguyenphuonganh98113@gmail.com"
           className="text-orange-700 hover:underline"
         >
-          support@caledo.vn
+          nguyenphuonganh98113@gmail.com
         </a>
         .
       </InfoSection>
