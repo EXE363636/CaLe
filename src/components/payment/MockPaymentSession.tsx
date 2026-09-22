@@ -232,14 +232,13 @@ export function MockPaymentSession({
                   checked={selectedChannelId === ch.id}
                   onChange={() => setSelectedChannelId(ch.id)}
                 />
-                {/* logo (nếu có) — bọc onError để không vỡ layout khi thiếu ảnh */}
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-50 ring-1 ring-gray-100">
-                  {ch.logoPath ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={ch.logoPath} alt="" className="h-6 w-6 object-contain" />
-                  ) : (
-                    <span className="text-[10px] font-bold text-gray-400">{ch.bankCode ?? '—'}</span>
-                  )}
+                {/* Badge mã ngân hàng (mô phỏng). KHÔNG dùng logo ngân hàng thật:
+                    (1) là nhãn hiệu đã đăng ký, (2) đây là kênh Demo — logo thật
+                    sẽ gợi ý tích hợp ngân hàng thật (trái quy tắc trung thực). */}
+                <span className="flex h-8 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-100 px-1 text-center ring-1 ring-gray-200">
+                  <span className="text-[10px] font-bold leading-none tracking-tight text-gray-600">
+                    {ch.bankCode ?? '—'}
+                  </span>
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="font-medium text-gray-900">{ch.displayName}</span>
