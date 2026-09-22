@@ -724,8 +724,8 @@ function WorkerDashboardContent() {
           onClick={() => setStatDetail('completed')}
           ariaLabel="Xem chi tiết ca đã hoàn thành"
         />
-        {/* Thu nhập/ví: chưa có backend thanh toán → ẩn ở supabase. */}
-        {hasCapability('wallet') && (
+        {/* Thu nhập: local (ví đầy đủ) hoặc supabase (ví read-only suy từ server). */}
+        {(hasCapability('wallet') || hasCapability('walletReadonly')) && (
           <StatTile
             label={t('worker.dashboard.stats.totalEarnings')}
             value={formatVND(totalEarnings)}
@@ -764,14 +764,24 @@ function WorkerDashboardContent() {
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
           this follows the work area + stats (order-3); desktop unchanged. */}
       <section className="order-3 mb-8 lg:order-none">
-        {isSupabaseEnv() ? (
-          <NoPaymentNotice />
-        ) : (
+        {hasCapability('walletReadonly') ? (
+          // Supabase: ví READ-ONLY suy từ server (lương ca đã hoàn thành).
+          // Không nạp/rút (không giữ tiền client — bất biến #7).
+          <WalletPanel
+            userId={worker.id}
+            role="worker"
+            openLedgerSignal={walletLedgerSignal}
+            allowTopUp={false}
+            allowWithdraw={false}
+          />
+        ) : hasCapability('wallet') ? (
           <WalletPanel
             userId={worker.id}
             role="worker"
             openLedgerSignal={walletLedgerSignal}
           />
+        ) : (
+          <NoPaymentNotice />
         )}
       </section>
 
@@ -1670,7 +1680,7 @@ function WorkerDashboardContent() {
 
       {/* Phase 9G — income detail modal */}
       <Modal
-        open={statDetail === 'income' && hasCapability('wallet')}
+        open={statDetail === 'income' && (hasCapability('wallet') || hasCapability('walletReadonly'))}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.stats.totalEarnings')}
         titleAccessory={
