@@ -312,8 +312,9 @@ function EmployerDashboardContent() {
           onClick={() => setStatDetail('completed')}
           ariaLabel="Xem chi tiết ca đã hoàn thành"
         />
-        {/* Tiền cọc/đã chi trả: chưa có backend thanh toán → ẩn ở supabase (mục 5). */}
-        {hasCapability('wallet') && (
+        {/* Tổng đã đảm bảo/đã chi (tính từ escrow local) — ở supabase tiền nằm
+            trong Ví (WalletPanel) nên ẩn 2 tile này để tránh số liệu lệch. */}
+        {hasCapability('wallet') && !isSupabaseEnv() && (
           <StatTile
             label={t('employer.dashboard.stats.totalDeposited')}
             value={formatVND(totalDeposited)}
@@ -323,7 +324,7 @@ function EmployerDashboardContent() {
             ariaLabel="Xem chi tiết tiền chờ thanh toán"
           />
         )}
-        {hasCapability('wallet') && (
+        {hasCapability('wallet') && !isSupabaseEnv() && (
           <StatTile
             label={t('employer.dashboard.stats.totalPaidOut')}
             value={formatVND(totalPaidOut)}
@@ -339,14 +340,15 @@ function EmployerDashboardContent() {
           this follows the work area + stats (order-3); desktop unchanged. */}
       {currentUserId && (
         <section className="order-3 mb-8 lg:order-none">
-          {isSupabaseEnv() ? (
-            <NoPaymentNotice />
-          ) : (
+          {hasCapability('wallet') ? (
+            // Ví mô phỏng (server): employer nạp tiền + trả cọc đăng ca từ số dư.
             <WalletPanel
               userId={currentUserId}
               role="employer"
               openLedgerSignal={walletLedgerSignal}
             />
+          ) : (
+            <NoPaymentNotice />
           )}
         </section>
       )}
@@ -390,7 +392,7 @@ function EmployerDashboardContent() {
                 {activeShifts.map((shift) => (
                   <div key={shift.id} className="relative group flex flex-col gap-2">
                     <Link href={`/employer/shifts/${shift.id}`}>
-                      <ShiftCard shift={shift} applications={applications} showEscrow={hasCapability('wallet')} />
+                      <ShiftCard shift={shift} applications={applications} showEscrow={hasCapability('wallet') && !isSupabaseEnv()} />
                     </Link>
                     {/* Các nút No-show/thay thế hiện chỉ là mô phỏng (alert), chưa
                         có backend → ẩn ở supabase/production (mục 4). */}
@@ -478,7 +480,7 @@ function EmployerDashboardContent() {
           contributing to the deposit and payout totals so employers
           aren't staring at two opaque sums. */}
       <Modal
-        open={(statDetail === 'payments' || statDetail === 'deposits') && hasCapability('wallet')}
+        open={(statDetail === 'payments' || statDetail === 'deposits') && hasCapability('wallet') && !isSupabaseEnv()}
         onClose={() => setStatDetail(null)}
         title={t('employer.payments.title')}
         titleAccessory={

@@ -17,6 +17,7 @@ import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
+import { getDataMode } from '@/data/supabaseClient';
 import { useWalletStore } from '@/stores/walletStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { walletHistoryLink } from '@/lib/notificationTarget';
@@ -84,6 +85,13 @@ function formatOccurredAt(iso: string): string {
   return DATE_FMT.format(d);
 }
 
+/** Map lỗi RPC ví (supabase) sang copy tiếng Việt. */
+function mapWalletErr(raw: string): string {
+  if (raw.includes('INSUFFICIENT_BALANCE')) return t('wallet.withdraw.error.insufficient');
+  if (raw.includes('INVALID_AMOUNT')) return t('wallet.topUp.error.invalid');
+  return 'Không thực hiện được. Vui lòng thử lại.';
+}
+
 function entryToneClass(amount: number): string {
   if (amount > 0) return 'text-emerald-700';
   if (amount < 0) return 'text-rose-700';
@@ -130,7 +138,13 @@ export function WalletPanel({
   const ledger = useWalletStore((s) => s.ledger);
   const topUp = useWalletStore((s) => s.topUp);
   const withdraw = useWalletStore((s) => s.withdraw);
+  const topUpAsync = useWalletStore((s) => s.topUpAsync);
+  const withdrawAsync = useWalletStore((s) => s.withdrawAsync);
+  const systemBank = useWalletStore((s) => s.systemBank);
   const pushNotification = useNotificationStore((s) => s.push);
+  // Supabase: ví THẬT ở server (RPC). Local/demo: ví mock localStorage.
+  const supabase = getDataMode() === 'supabase';
+  const [busy, setBusy] = useState(false);
 
   // Cluster 3 · BUG 5 (Req 2.5): route the balance + transaction list through
   // the single derived money module. `deriveWalletBalance` equals the store's
@@ -176,7 +190,7 @@ export function WalletPanel({
   const [withdrawNote, setWithdrawNote] = useState('');
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
-  function submitTopUp() {
+  async function submitTopUp() {
     const trimmed = topUpText.trim();
     if (trimmed === '') {
       setTopUpError(t('wallet.topUp.error.required'));
@@ -189,6 +203,22 @@ export function WalletPanel({
     }
     if (amount > TOP_UP_MAX) {
       setTopUpError(t('wallet.topUp.error.tooLarge'));
+      return;
+    }
+    // Supabase: nạp qua RPC (ví + két "Két bảo đảm CALE_MOCK"). Không giữ tiền client.
+    if (supabase) {
+      if (busy) return;
+      setBusy(true);
+      const r = await topUpAsync(amount);
+      setBusy(false);
+      if (!r.ok) {
+        setTopUpError(mapWalletErr(r.error));
+        return;
+      }
+      showSuccess(t('wallet.topUp.success'), `+${formatVND(amount)}`);
+      setTopUpText('');
+      setTopUpError(null);
+      setTopUpOpen(false);
       return;
     }
     const entry = topUp(userId, amount);
@@ -212,7 +242,7 @@ export function WalletPanel({
     setTopUpOpen(false);
   }
 
-  function submitWithdraw() {
+  async function submitWithdraw() {
     const trimmed = withdrawText.trim();
     if (trimmed === '') {
       setWithdrawError(t('wallet.withdraw.error.required'));
@@ -221,6 +251,23 @@ export function WalletPanel({
     const amount = parseVNNumberInput(trimmed);
     if (!Number.isFinite(amount) || amount <= 0) {
       setWithdrawError(t('wallet.withdraw.error.invalid'));
+      return;
+    }
+    // Supabase: rút qua RPC (guard đủ số dư ở server). Két không đổi.
+    if (supabase) {
+      if (busy) return;
+      setBusy(true);
+      const r = await withdrawAsync(amount);
+      setBusy(false);
+      if (!r.ok) {
+        setWithdrawError(mapWalletErr(r.error));
+        return;
+      }
+      showSuccess(t('wallet.withdraw.success'), `-${formatVND(amount)}`);
+      setWithdrawText('');
+      setWithdrawNote('');
+      setWithdrawError(null);
+      setWithdrawOpen(false);
       return;
     }
     const result = withdraw(userId, amount, withdrawNote);
@@ -303,6 +350,22 @@ export function WalletPanel({
           )}
         </div>
       </div>
+
+      {/* Supabase: nhãn mô phỏng + số dư két bảo đảm (minh bạch demo). */}
+      {supabase && (
+        <div className="mt-3 flex flex-col gap-2">
+          <p className="rounded-md bg-red-50 px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
+            MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
+          </p>
+          {systemBank && (
+            <p className="rounded-md bg-gray-50 px-3 py-1.5 text-[11px] text-gray-600 ring-1 ring-gray-100">
+              {systemBank.name}:{' '}
+              <span className="font-semibold text-gray-900">{formatVND(systemBank.balance)}</span>{' '}
+              <span className="text-gray-400">(két bảo đảm mô phỏng)</span>
+            </p>
+          )}
+        </div>
+      )}
 
       {userLedger.length === 0 ? (
         <p className="mt-3 text-xs italic text-gray-500">
@@ -413,7 +476,7 @@ export function WalletPanel({
             >
               {t('wallet.topUp.modal.cancel')}
             </Button>
-            <Button size="sm" variant="primary" onClick={submitTopUp}>
+            <Button size="sm" variant="primary" onClick={submitTopUp} loading={busy}>
               {t('wallet.topUp.modal.submit')}
             </Button>
           </div>
@@ -486,7 +549,7 @@ export function WalletPanel({
             >
               {t('wallet.withdraw.modal.cancel')}
             </Button>
-            <Button size="sm" variant="primary" onClick={submitWithdraw}>
+            <Button size="sm" variant="primary" onClick={submitWithdraw} loading={busy}>
               {t('wallet.withdraw.modal.submit')}
             </Button>
           </div>

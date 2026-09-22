@@ -53,10 +53,10 @@ describe('capabilities() theo data mode', () => {
     expect(c.shifts).toBe(true);
     expect(c.applications).toBe(true);
     expect(c.adminUsers).toBe(true);
-    // Mọi tính năng chưa có backend đều tắt.
+    // Mọi tính năng chưa có backend đều tắt. (wallet: ĐÃ có backend ví/escrow
+    // mô phỏng qua RPC → bật; nên không nằm trong danh sách tắt.)
     for (const key of [
       'payments',
-      'wallet',
       'disputes',
       'verifications',
       'ratings',
