@@ -88,6 +88,8 @@ export interface PaymentChannel {
   displayName: string;
   bankCode: string | null;
   bankName: string | null;
+  /** Tên người thụ hưởng (để user đối chiếu khi chuyển khoản). */
+  accountName: string | null;
   accountNumberMasked: string | null;
   logoPath: string | null;
   enabled: boolean;
