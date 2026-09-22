@@ -49,10 +49,10 @@ export default function TermsPage() {
       <InfoSection title="6. Liên hệ">
         Mọi thắc mắc về điều khoản, vui lòng gửi về{' '}
         <a
-          href="mailto:support@caledo.vn"
+          href="mailto:nguyenphuonganh98113@gmail.com"
           className="text-orange-700 hover:underline"
         >
-          support@caledo.vn
+          nguyenphuonganh98113@gmail.com
         </a>
         .
       </InfoSection>
