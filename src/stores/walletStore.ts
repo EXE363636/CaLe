@@ -9,8 +9,6 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
-import { getDataMode } from '@/data/supabaseClient';
-import { getWalletLedger } from '@/data/repos/walletRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type {
   Result,
@@ -39,13 +37,6 @@ export interface WalletStore {
     wallets: UserWallet[],
     ledger: WalletLedgerEntry[],
   ) => void;
-
-  /**
-   * Supabase (READ-ONLY): nạp ledger ví suy từ server qua RPC get_wallet_ledger
-   * (không giữ tiền client — bất biến #7). No-op ở local mode. Số dư suy từ
-   * tổng ledger của từng user.
-   */
-  refetchAsync(): Promise<void>;
 
   getBalance(userId: string): number;
   forUser(userId: string): WalletLedgerEntry[];
@@ -171,21 +162,6 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
 
   hydrate(wallets, ledger) {
     set({ wallets, ledger });
-  },
-
-  async refetchAsync() {
-    if (getDataMode() !== 'supabase') return;
-    const entries = await getWalletLedger();
-    // Số dư (mô phỏng) suy từ tổng ledger theo user — không giữ tiền client.
-    const byUser = new Map<string, number>();
-    for (const e of entries) byUser.set(e.userId, (byUser.get(e.userId) ?? 0) + e.amount);
-    const ts = nowIso();
-    const wallets: UserWallet[] = [...byUser].map(([userId, balance]) => ({
-      userId,
-      balance,
-      updatedAt: ts,
-    }));
-    set({ ledger: entries, wallets });
   },
 
   getBalance(userId) {

@@ -34,11 +34,8 @@ export interface Capabilities {
   mockPayments: boolean;
   /** Thanh toán THẬT (PAYOS…) — chỉ bật khi có credentials + webhook đã xác minh. */
   livePayments: boolean;
-  /** Ví + sổ cái ví (đầy đủ: nạp/rút mô phỏng). Chưa có backend ở supabase. */
+  /** Ví + sổ cái ví. Chưa có backend. */
   wallet: boolean;
-  /** Ví READ-ONLY: hiển thị số dư/lịch sử suy từ server (get_wallet_ledger),
-   *  không nạp/rút. Bật ở supabase để worker xem thu nhập ca đã hoàn thành. */
-  walletReadonly: boolean;
   /** Tranh chấp. Chưa migrate. */
   disputes: boolean;
   /** Xác minh giấy tờ. Chưa migrate. */
@@ -64,7 +61,6 @@ const SUPABASE_CAPABILITIES: Capabilities = {
   mockPayments: true,
   livePayments: false,
   wallet: false,
-  walletReadonly: true,
   disputes: false,
   verifications: false,
   ratings: false,
@@ -84,7 +80,6 @@ const LOCAL_CAPABILITIES: Capabilities = {
   mockPayments: true,
   livePayments: false,
   wallet: true,
-  walletReadonly: false,
   disputes: true,
   verifications: true,
   ratings: true,

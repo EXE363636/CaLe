@@ -72,13 +72,10 @@ describe('capabilities() theo data mode', () => {
     setMode('local');
     const c = capabilities();
     for (const key of Object.keys(c) as (keyof typeof c)[]) {
-      // livePayments: chưa cấu hình provider thật.
-      // walletReadonly: chỉ dành cho supabase (local đã có ví ĐẦY ĐỦ qua `wallet`).
-      if (key === 'livePayments' || key === 'walletReadonly') continue;
+      if (key === 'livePayments') continue;
       expect(c[key], `${key} phải bật ở local`).toBe(true);
     }
     expect(c.livePayments, 'livePayments phải tắt nếu chưa cấu hình provider thật').toBe(false);
-    expect(c.walletReadonly, 'walletReadonly chỉ bật ở supabase (local dùng ví đầy đủ)').toBe(false);
   });
 });
 

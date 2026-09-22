@@ -200,20 +200,6 @@ async function run() {
     ok(payoutCount === 1 && feeCount === 1, 'ledger payout và fee mỗi loại chỉ ghi một lần');
   }
 
-  console.log('\n▶ Ví read-only (get_wallet_ledger, 0011) — worker thấy lương ca đã hoàn thành');
-  {
-    const wC = await signIn(wEmail);
-    const r = await rpc(wC, 'get_wallet_ledger', {});
-    ok(r.ok, 'worker gọi get_wallet_ledger thành công');
-    const entries = Array.isArray(r.data) ? r.data : [];
-    const wage = entries.find((e) => e.applicationId === applicationId);
-    ok(
-      !!wage && wage.kind === 'WorkerWageReleased' && wage.amount === 150000,
-      `ví có lương ca đã xác nhận = 150000 (nhận ${wage?.amount})`,
-    );
-    ok(!(await rpc(anonC, 'get_wallet_ledger', {})).ok, 'anon KHÔNG đọc được ví');
-  }
-
   console.log('\n▶ Cọc-trước-khi-đăng: create_deposit_session → confirm publish ca (0010)');
   {
     const dReq = `pay-${ts}-dep-${rnd()}`;

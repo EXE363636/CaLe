@@ -107,10 +107,6 @@ async function refetchPhase2Supabase(): Promise<void> {
     .filter((id) => id !== cur?.id);
   const profs = await getUserRepo().loadPublicProfiles(empIds);
   for (const p of profs) useUserStore.getState().overlayUser(p);
-
-  // Ví read-only (mô phỏng) suy từ server: worker thấy lương các ca đã hoàn
-  // thành. Không giữ tiền client (#7). Refetch cùng scope boot + on-focus.
-  await useWalletStore.getState().refetchAsync();
 }
 
 export function AppHydrator({ children }: AppHydratorProps): ReactNode {
