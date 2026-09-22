@@ -61,7 +61,6 @@ const SUPABASE_CAPABILITIES: Capabilities = {
   mockPayments: true,
   livePayments: false,
   wallet: true,
-  walletReadonly: false,
   disputes: false,
   verifications: false,
   ratings: false,
