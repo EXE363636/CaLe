@@ -51,6 +51,7 @@ function rowToChannel(r: Row): PaymentChannel {
     displayName: s(r.display_name),
     bankCode: sOpt(r.bank_code),
     bankName: sOpt(r.bank_name),
+    accountName: sOpt(r.account_name),
     accountNumberMasked: sOpt(r.account_number_masked),
     logoPath: sOpt(r.logo_path),
     enabled: Boolean(r.enabled),

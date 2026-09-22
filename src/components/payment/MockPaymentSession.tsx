@@ -39,6 +39,21 @@ const STATUS_LABEL: Record<string, string> = {
   FAILED: 'Thất bại',
 };
 
+/** Tên đầy đủ theo mã ngân hàng — hiển thị "MÃ - Tên đầy đủ". Đây là TÊN
+ *  (chữ thông tin), không phải logo/nhãn hiệu. Kênh vẫn gắn nhãn Demo. */
+const BANK_FULL_NAME: Record<string, string> = {
+  ACB: 'Ngân hàng Thương mại Cổ phần Á Châu',
+  BIDV: 'Ngân hàng Thương mại Cổ phần Đầu tư và Phát triển Việt Nam',
+  MB: 'Ngân hàng Thương mại Cổ phần Quân đội',
+  VCB: 'Ngân hàng Thương mại Cổ phần Ngoại thương Việt Nam',
+};
+
+/** Nhãn kênh: "MÃ - Tên đầy đủ" nếu biết mã; nếu không, dùng display_name seed. */
+function channelLabel(ch: { bankCode: string | null; displayName: string }): string {
+  const full = ch.bankCode ? BANK_FULL_NAME[ch.bankCode] : undefined;
+  return full && ch.bankCode ? `${ch.bankCode} - ${full}` : ch.displayName;
+}
+
 export interface MockPaymentSessionProps {
   /** Per-worker: ca đã đăng + đơn đã duyệt. Bỏ trống khi dùng chế độ cọc. */
   shiftId?: string;
@@ -232,19 +247,10 @@ export function MockPaymentSession({
                   checked={selectedChannelId === ch.id}
                   onChange={() => setSelectedChannelId(ch.id)}
                 />
-                {/* Badge mã ngân hàng (mô phỏng). KHÔNG dùng logo ngân hàng thật:
-                    (1) là nhãn hiệu đã đăng ký, (2) đây là kênh Demo — logo thật
-                    sẽ gợi ý tích hợp ngân hàng thật (trái quy tắc trung thực). */}
-                <span className="flex h-8 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-100 px-1 text-center ring-1 ring-gray-200">
-                  <span className="text-[10px] font-bold leading-none tracking-tight text-gray-600">
-                    {ch.bankCode ?? '—'}
-                  </span>
-                </span>
+                {/* Nhãn kênh đã gồm "MÃ - Tên đầy đủ" nên bỏ badge viết tắt cho gọn.
+                    KHÔNG dùng logo ngân hàng thật (nhãn hiệu + kênh Demo). */}
                 <span className="min-w-0 flex-1">
-                  <span className="font-medium text-gray-900">{ch.displayName}</span>
-                  {ch.accountNumberMasked && (
-                    <span className="ml-2 font-mono text-xs text-gray-500">{ch.accountNumberMasked}</span>
-                  )}
+                  <span className="font-medium text-gray-900">{channelLabel(ch)}</span>
                 </span>
                 <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
                   Demo
@@ -335,7 +341,10 @@ export function MockPaymentSession({
       <dl className="mt-4 flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-orange-100">
         <Row label="Số tiền" value={formatVND(session.amount)} highlight />
         <Row label="Mã đơn" value={session.orderCode} mono />
-        <Row label="Ngân hàng" value={selectedChannel?.displayName ?? '—'} />
+        <Row label="Ngân hàng" value={selectedChannel ? channelLabel(selectedChannel) : '—'} />
+        {/* Thông tin đối chiếu khi chuyển khoản (mô phỏng). */}
+        <Row label="Người thụ hưởng" value={selectedChannel?.accountName ?? '—'} />
+        <Row label="Số tài khoản" value={selectedChannel?.accountNumberMasked ?? '—'} mono />
         <Row label="Trạng thái" value={statusLabel} />
       </dl>
 
