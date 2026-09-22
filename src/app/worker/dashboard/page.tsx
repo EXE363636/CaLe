@@ -764,14 +764,17 @@ function WorkerDashboardContent() {
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
           this follows the work area + stats (order-3); desktop unchanged. */}
       <section className="order-3 mb-8 lg:order-none">
-        {isSupabaseEnv() ? (
-          <NoPaymentNotice />
-        ) : (
+        {hasCapability('wallet') ? (
+          // Ví mô phỏng (server): worker NHẬN lương (tự cộng khi ca hoàn thành)
+          // + RÚT. Không nạp (worker không đặt cọc). Không giữ tiền client (#7).
           <WalletPanel
             userId={worker.id}
             role="worker"
             openLedgerSignal={walletLedgerSignal}
+            allowTopUp={false}
           />
+        ) : (
+          <NoPaymentNotice />
         )}
       </section>
 

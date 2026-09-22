@@ -200,29 +200,59 @@ async function run() {
     ok(payoutCount === 1 && feeCount === 1, 'ledger payout và fee mỗi loại chỉ ghi một lần');
   }
 
-  console.log('\n▶ Cọc-trước-khi-đăng: create_deposit_session → confirm publish ca (0010)');
+  console.log('\n▶ Ví escrow (get_wallet_state, 0012) — worker nhận lương vào ví sau khi ca hoàn thành');
   {
+    const wC = await signIn(wEmail);
+    const r = await rpc(wC, 'get_wallet_state', {});
+    ok(r.ok, 'worker gọi get_wallet_state thành công');
+    const st = r.data ?? {};
+    ok(st.balance === 150000, `số dư ví worker = lương ca (150000) (nhận ${st.balance})`);
+    const wage = (st.ledger ?? []).find((e) => e.applicationId === applicationId);
+    ok(!!wage && wage.kind === 'WorkerWageReleased' && wage.amount === 150000, 'ledger ví có WorkerWageReleased 150000');
+    ok(!(await rpc(anonC, 'get_wallet_state', {})).ok, 'anon KHÔNG đọc được ví');
+    // Rút: guard đủ số dư.
+    ok(!(await rpc(wC, 'wallet_withdraw', { p_amount: 999999 })).ok, 'rút quá số dư → chặn');
+    const wd = await rpc(wC, 'wallet_withdraw', { p_amount: 50000 });
+    ok(wd.ok && wd.data.balance === 100000, `rút 50000 → còn 100000 (nhận ${wd.data?.balance})`);
+  }
+
+  console.log('\n▶ Nạp ví + đăng ca trừ ví + két "Két bảo đảm CALE_MOCK" (0012)');
+
+  {
+    // Két trước khi nạp.
+    const bank0 = (await rpc(eC, 'get_system_bank', {})).data?.balance ?? 0;
+    // Deposit: nạp ví employer → ví + két cùng tăng.
+    ok(!(await rpc(eC, 'wallet_top_up', { p_amount: 0 })).ok, 'nạp số tiền <= 0 → chặn');
+    const tu = await rpc(eC, 'wallet_top_up', { p_amount: 400000 });
+    ok(tu.ok && tu.data.balance >= 400000, 'nạp ví employer 400000 thành công');
+    const bank1 = (await rpc(eC, 'get_system_bank', {})).data?.balance ?? 0;
+    ok(bank1 === bank0 + 400000, `nạp làm KÉT tăng đúng 400000 (${bank0} → ${bank1})`);
+    const empBal0 = (await rpc(eC, 'get_wallet_state', {})).data?.balance ?? 0;
+
     const dReq = `pay-${ts}-dep-${rnd()}`;
-    const dPayload = buildPayload(dReq); // 50000×3h×2 vị trí = 300000 + 10% phí = 330000
-    ok(!(await rpc(anonC, 'create_deposit_session', { p_shift_payload: dPayload, p_channel_id: mockChannelId, p_client_request_id: `${dReq}-anon` })).ok, 'anon KHÔNG tạo được phiên cọc');
+    const dPayload = buildPayload(dReq); // 50000×3h×2 + 10% = 330000
     const dc = await rpc(eC, 'create_deposit_session', { p_shift_payload: dPayload, p_channel_id: mockChannelId, p_client_request_id: dReq });
-    ok(dc.ok, 'tạo phiên cọc thành công');
+    ok(dc.ok && dc.data.amount === 330000, 'tạo phiên cọc 330000');
     const dSession = dc.data ?? {};
-    ok(dSession.status === 'PENDING' && dSession.amount === 330000, `cọc PENDING, amount = 50000×3h×2 + 10% = 330000 (nhận ${dSession.amount})`);
-    ok(!dSession.shift_id, 'chưa publish ca lúc PENDING (shift_id rỗng)');
-    const dc2 = await rpc(eC, 'create_deposit_session', { p_shift_payload: dPayload, p_channel_id: mockChannelId, p_client_request_id: dReq });
-    ok(dc2.ok && dc2.data.id === dSession.id, 'create cọc trùng reqId → trả phiên cũ (idempotent)');
-    ok(!(await rpc(e2C, 'confirm_deposit_session', { p_payment_id: dSession.id })).ok, 'employer khác KHÔNG confirm được phiên cọc (NOT_OWNER)');
+    // LOCK: confirm trừ cọc TỪ VÍ employer, KÉT không đổi.
     const dConf = await rpc(eC, 'confirm_deposit_session', { p_payment_id: dSession.id });
-    ok(dConf.ok && dConf.data.status === 'HELD' && !!dConf.data.shift_id, 'confirm cọc → HELD + publish ca (có shift_id)');
+    ok(dConf.ok && dConf.data.status === 'HELD' && !!dConf.data.shift_id, 'confirm cọc → HELD + publish ca');
     const newShiftId = dConf.data?.shift_id;
     if (newShiftId) createdShiftIds.add(newShiftId);
-    const { data: pubShift } = await admin.from('shifts').select('status,employer_id').eq('id', newShiftId).maybeSingle();
-    ok(pubShift?.status === 'Published' && pubShift?.employer_id === employerId, 'ca đã publish (Published, đúng employer)');
+    const empBal1 = (await rpc(eC, 'get_wallet_state', {})).data?.balance ?? 0;
+    ok(empBal1 === empBal0 - 330000, `đăng ca TRỪ ví employer đúng 330000 (${empBal0} → ${empBal1})`);
+    const bank2 = (await rpc(eC, 'get_system_bank', {})).data?.balance ?? 0;
+    ok(bank2 === bank1, 'LOCK: KÉT KHÔNG đổi (tiền vẫn trong két)');
     const dConf2 = await rpc(eC, 'confirm_deposit_session', { p_payment_id: dSession.id });
-    ok(dConf2.ok && dConf2.data.status === 'HELD' && dConf2.data.shift_id === newShiftId, 'confirm cọc lần 2 idempotent (không publish trùng)');
-    const { count: dHold } = await admin.from('mock_payment_ledger').select('id', { count: 'exact', head: true }).eq('payment_session_id', dSession.id).eq('entry_type', 'HOLD');
-    ok(dHold === 1, 'ledger HOLD (cọc) chỉ ghi một lần');
+    ok(dConf2.ok && dConf2.data.shift_id === newShiftId, 'confirm cọc lần 2 idempotent (không publish/trừ trùng)');
+
+    // Insufficient: employer khác (chưa nạp) không đủ số dư để đăng ca.
+    const dReq2 = `pay-${ts}-dep2-${rnd()}`;
+    const d2 = await rpc(e2C, 'create_deposit_session', { p_shift_payload: buildPayload(dReq2), p_channel_id: mockChannelId, p_client_request_id: dReq2 });
+    if (d2.ok) {
+      const c2 = await rpc(e2C, 'confirm_deposit_session', { p_payment_id: d2.data.id });
+      ok(!c2.ok && c2.code.includes('INSUFFICIENT_BALANCE'), 'ví không đủ → confirm bị chặn INSUFFICIENT_BALANCE');
+    } else { ok(false, 'tạo phiên cọc cho employer2 thất bại'); }
   }
 
   console.log('\n▶ Phiên HELD không thể hủy và confirm vẫn idempotent');

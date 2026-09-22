@@ -335,7 +335,7 @@ export function MockPaymentSession({
     <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-6 shadow-card">
       <h2 className="font-semibold text-orange-950">Thanh toán mô phỏng</h2>
       <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-center text-sm font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
-        MÔ PHỎNG — KHÔNG CHUYỂN TIỀN THẬT
+        MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
       </p>
 
       <dl className="mt-4 flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-orange-100">
@@ -410,6 +410,7 @@ function mapErr(e: unknown): string {
     SESSION_EXPIRED: 'Phiên thanh toán đã hết hạn. Vui lòng tạo lại.',
     INVALID_SESSION_STATE: 'Phiên không ở trạng thái hợp lệ.',
     NOT_OWNER: 'Bạn không có quyền với phiên này.',
+    INSUFFICIENT_BALANCE: 'Số dư ví không đủ để giữ cọc. Vui lòng nạp thêm vào ví (mô phỏng) rồi thử lại.',
     SHIFT_IN_PAST: 'Ca đã qua giờ bắt đầu, không thể đăng. Vui lòng chỉnh lại thời gian.',
   };
   for (const k of Object.keys(map)) if (raw.includes(k)) return map[k];

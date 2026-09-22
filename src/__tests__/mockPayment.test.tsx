@@ -88,7 +88,7 @@ describe('MockPaymentSession — nút mô phỏng theo mode', () => {
     render(<MockPaymentSession {...props} />);
     // Chờ phiên PENDING khôi phục từ query.
     expect(await screen.findByText('Mô phỏng giữ tiền (HELD)')).toBeInTheDocument();
-    expect(screen.getByText('MÔ PHỎNG — KHÔNG CHUYỂN TIỀN THẬT')).toBeInTheDocument();
+    expect(screen.getByText('MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT')).toBeInTheDocument();
   });
 
   it('live mode: KHÔNG render nút xác nhận giả', async () => {

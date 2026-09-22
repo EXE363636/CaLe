@@ -9,6 +9,13 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import { getDataMode } from '@/data/supabaseClient';
+import {
+  getWalletState,
+  walletTopUp,
+  walletWithdraw,
+  getSystemBank,
+} from '@/data/repos/walletRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type {
   Result,
@@ -32,11 +39,23 @@ interface MutationContext {
 export interface WalletStore {
   wallets: UserWallet[];
   ledger: WalletLedgerEntry[];
+  /** Số dư két trung tâm "Két bảo đảm CALE_MOCK" (supabase). */
+  systemBank: { name: string; balance: number } | null;
 
   hydrate: (
     wallets: UserWallet[],
     ledger: WalletLedgerEntry[],
   ) => void;
+
+  /**
+   * Supabase: nạp số dư + lịch sử ví của user hiện tại từ server
+   * (get_wallet_state) + số dư két. KHÔNG giữ tiền client (#7). No-op ở local.
+   */
+  refetchAsync(): Promise<void>;
+  /** Nạp tiền vào ví (mô phỏng) qua RPC → refetch. Supabase-only. */
+  topUpAsync(amount: number): Promise<Result<number, string>>;
+  /** Rút tiền khỏi ví (mô phỏng) qua RPC → refetch. Supabase-only. */
+  withdrawAsync(amount: number): Promise<Result<number, string>>;
 
   getBalance(userId: string): number;
   forUser(userId: string): WalletLedgerEntry[];
@@ -159,9 +178,47 @@ function applyMutation(
 export const useWalletStore = create<WalletStore>((set, get) => ({
   wallets: [],
   ledger: [],
+  systemBank: null,
 
   hydrate(wallets, ledger) {
     set({ wallets, ledger });
+  },
+
+  async refetchAsync() {
+    if (getDataMode() !== 'supabase') return;
+    const [state, bank] = await Promise.all([
+      getWalletState(),
+      getSystemBank().catch(() => null),
+    ]);
+    // Số dư THẬT từ server (không suy client). Ghi vào ví của user hiện tại.
+    // (RLS: chỉ trả ví của mình → ledger toàn của current user.)
+    const uid = state.ledger[0]?.userId;
+    const wallets: UserWallet[] = uid
+      ? [{ userId: uid, balance: state.balance, updatedAt: nowIso() }]
+      : [];
+    set({ ledger: state.ledger, wallets, systemBank: bank });
+  },
+
+  async topUpAsync(amount) {
+    if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
+    try {
+      await walletTopUp(amount);
+      await get().refetchAsync();
+      return { ok: true, value: amount };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'TOP_UP_FAILED' };
+    }
+  },
+
+  async withdrawAsync(amount) {
+    if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
+    try {
+      await walletWithdraw(amount);
+      await get().refetchAsync();
+      return { ok: true, value: amount };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'WITHDRAW_FAILED' };
+    }
   },
 
   getBalance(userId) {
