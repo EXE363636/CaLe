@@ -735,25 +735,30 @@ function WorkerDashboardContent() {
             ariaLabel="Xem chi tiết thu nhập"
           />
         )}
-        <StatTile
-          label={t('worker.dashboard.cancelQuota')}
-          value={
-            liveQuota
-              ? `${liveQuota.weekly.remaining}/${liveQuota.weekly.limit}`
-              : '–'
-          }
-          suffix={liveQuota ? t('worker.dashboard.cancelQuota.weekHint') : undefined}
-          tone={
-            liveQuota && liveQuota.weekly.remaining === 0
-              ? 'bad'
-              : liveQuota && liveQuota.weekly.remaining <= 1
-                ? 'warn'
-                : 'neutral'
-          }
-          icon="calendar"
-          onClick={() => setStatDetail('quota')}
-          ariaLabel="Xem chi tiết hạn mức huỷ"
-        />
+        {/* Hạn mức huỷ ca thuộc hệ thống uy tín — CHƯA có backend ở supabase
+            (withdraw không ghi cancellationHistory), nên số sẽ luôn 5/5 và không
+            giảm. Ẩn ở supabase để không hiện dữ liệu sai (giống điểm uy tín). */}
+        {hasCapability('ratings') && (
+          <StatTile
+            label={t('worker.dashboard.cancelQuota')}
+            value={
+              liveQuota
+                ? `${liveQuota.weekly.remaining}/${liveQuota.weekly.limit}`
+                : '–'
+            }
+            suffix={liveQuota ? t('worker.dashboard.cancelQuota.weekHint') : undefined}
+            tone={
+              liveQuota && liveQuota.weekly.remaining === 0
+                ? 'bad'
+                : liveQuota && liveQuota.weekly.remaining <= 1
+                  ? 'warn'
+                  : 'neutral'
+            }
+            icon="calendar"
+            onClick={() => setStatDetail('quota')}
+            ariaLabel="Xem chi tiết hạn mức huỷ"
+          />
+        )}
       </section>
 
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
@@ -1285,7 +1290,9 @@ function WorkerDashboardContent() {
               shift={shift}
               onConfirm={handleCancelConfirm}
               loading={actionLoading === cancelTarget.id}
-              quota={cancelQuota}
+              // Hạn mức huỷ chưa có backend ở supabase → không truyền quota (tránh
+              // hiện 5/5 sai). Local giữ nguyên.
+              quota={hasCapability('ratings') ? cancelQuota : undefined}
             />
           );
         })()}
@@ -1521,7 +1528,7 @@ function WorkerDashboardContent() {
           see exactly which cancellations counted against the weekly /
           monthly window. */}
       <Modal
-        open={statDetail === 'quota'}
+        open={statDetail === 'quota' && hasCapability('ratings')}
         onClose={() => setStatDetail(null)}
         title={t('worker.dashboard.cancelQuota')}
         titleAccessory={
