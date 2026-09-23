@@ -17,6 +17,12 @@ import {
   getSystemBank,
   refundDepositForShift,
 } from '@/data/repos/walletRepo';
+import {
+  createPayment,
+  getPaymentOrderStatus,
+  confirmMockPayment,
+  type CreatePaymentResult,
+} from '@/data/repos/paymentRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type {
   Result,
@@ -56,6 +62,22 @@ export interface WalletStore {
   refetchAsync(userId?: string): Promise<void>;
   /** Nạp tiền vào ví (mô phỏng) qua RPC → refetch. Supabase-only. */
   topUpAsync(amount: number): Promise<Result<number, string>>;
+  /**
+   * NẠP tiền THẬT qua PayOS: tạo đơn + link/QR (Edge Function). KHÔNG cộng ví
+   * ở đây — ví chỉ tăng khi webhook PayOS xác nhận. Trả QR để UI hiển thị.
+   * Supabase-only.
+   */
+  createRealTopUp(amount: number): Promise<Result<CreatePaymentResult, string>>;
+  /**
+   * Poll trạng thái một đơn nạp thật. Nếu đã PAID → refetch số dư (ví đã được
+   * webhook cộng server-side) và trả true. Supabase-only.
+   */
+  pollRealTopUp(orderCode: number, userId?: string): Promise<boolean>;
+  /**
+   * MÔ PHỎNG (PAYOS_MOCK): xác nhận "đã chuyển khoản" → server cộng ví ngay →
+   * refetch số dư. Trả true nếu ghi nhận thành công. Supabase-only.
+   */
+  confirmMockTopUp(orderCode: number, userId?: string): Promise<boolean>;
   /** Rút tiền khỏi ví (mô phỏng) qua RPC → refetch. Supabase-only. */
   withdrawAsync(amount: number): Promise<Result<number, string>>;
   /**
@@ -217,6 +239,42 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       return { ok: true, value: amount };
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : 'TOP_UP_FAILED' };
+    }
+  },
+
+  async createRealTopUp(amount) {
+    if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
+    try {
+      const res = await createPayment(amount);
+      return { ok: true, value: res };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'CREATE_PAYMENT_FAILED' };
+    }
+  },
+
+  async pollRealTopUp(orderCode, userId) {
+    if (getDataMode() !== 'supabase') return false;
+    try {
+      const order = await getPaymentOrderStatus(orderCode);
+      if (order.status === 'PAID') {
+        await get().refetchAsync(userId);
+        return true;
+      }
+      return false;
+    } catch {
+      // No-op an toàn: lỗi mạng không chặn UI; lần poll sau thử lại.
+      return false;
+    }
+  },
+
+  async confirmMockTopUp(orderCode, userId) {
+    if (getDataMode() !== 'supabase') return false;
+    try {
+      const ok = await confirmMockPayment(orderCode);
+      if (ok) await get().refetchAsync(userId);
+      return ok;
+    } catch {
+      return false;
     }
   },
 

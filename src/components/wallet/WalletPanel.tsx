@@ -156,12 +156,17 @@ export function WalletPanel({
   const topUp = useWalletStore((s) => s.topUp);
   const withdraw = useWalletStore((s) => s.withdraw);
   const topUpAsync = useWalletStore((s) => s.topUpAsync);
+  const createRealTopUp = useWalletStore((s) => s.createRealTopUp);
+  const pollRealTopUp = useWalletStore((s) => s.pollRealTopUp);
+  const confirmMockTopUp = useWalletStore((s) => s.confirmMockTopUp);
   const withdrawAsync = useWalletStore((s) => s.withdrawAsync);
   const refetchAsync = useWalletStore((s) => s.refetchAsync);
   const systemBank = useWalletStore((s) => s.systemBank);
   const pushNotification = useNotificationStore((s) => s.push);
   // Supabase: ví THẬT ở server (RPC). Local/demo: ví mock localStorage.
   const supabase = getDataMode() === 'supabase';
+  // Bật nạp tiền THẬT qua PayOS. Tắt (mặc định) → giữ luồng nạp mô phỏng.
+  const payosEnabled = process.env.NEXT_PUBLIC_PAYOS_ENABLED === 'true';
   const [busy, setBusy] = useState(false);
 
   // Supabase: nạp số dư THẬT từ server khi mount (không nơi nào khác gọi
@@ -218,6 +223,15 @@ export function WalletPanel({
   const [topUpAmount, setTopUpAmount] = useState(0);
   const [topUpChannels, setTopUpChannels] = useState<PaymentChannel[]>([]);
   const [topUpChannelId, setTopUpChannelId] = useState<string | null>(null);
+  // PayOS THẬT (bật qua NEXT_PUBLIC_PAYOS_ENABLED=true). Khi bật, bước 'qr' hiển
+  // thị QR THẬT của PayOS + nút "Tôi đã chuyển khoản" để poll trạng thái đơn.
+  const [topUpReal, setTopUpReal] = useState<{
+    orderCode: number;
+    checkoutUrl: string;
+    qrCode: string | null;
+    mock: boolean;
+  } | null>(null);
+  const [topUpChecking, setTopUpChecking] = useState(false);
   // CORE-STABILITY-6 Part 3 — withdrawal modal state.
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawText, setWithdrawText] = useState('');
@@ -237,6 +251,27 @@ export function WalletPanel({
     }
     if (amount > TOP_UP_MAX) {
       setTopUpError(t('wallet.topUp.error.tooLarge'));
+      return;
+    }
+    // Supabase + PayOS THẬT: tạo đơn nạp + QR thật qua Edge Function.
+    if (supabase && payosEnabled) {
+      if (busy) return;
+      setBusy(true);
+      setTopUpError(null);
+      const r = await createRealTopUp(amount);
+      setBusy(false);
+      if (!r.ok) {
+        setTopUpError(mapWalletErr(r.error));
+        return;
+      }
+      setTopUpAmount(amount);
+      setTopUpReal({
+        orderCode: r.value.orderCode,
+        checkoutUrl: r.value.checkoutUrl,
+        qrCode: r.value.qrCode,
+        mock: r.value.mock,
+      });
+      setTopUpStep('qr');
       return;
     }
     // Supabase: nạp qua QR mô phỏng — chuyển sang bước chọn ngân hàng + QR.
@@ -286,6 +321,36 @@ export function WalletPanel({
     setTopUpText('');
     setTopUpAmount(0);
     setTopUpError(null);
+    setTopUpReal(null);
+    setTopUpChecking(false);
+  }
+
+  /** PayOS THẬT: người dùng đã chuyển khoản → poll trạng thái đơn. Đã PAID →
+   *  webhook đã cộng ví server-side → refetch + báo thành công. Chưa PAID → nhắc
+   *  đợi/thử lại (webhook có độ trễ vài giây). KHÔNG dùng timer (poll theo nút). */
+  async function checkRealTopUp() {
+    if (!topUpReal || topUpChecking) return;
+    setTopUpChecking(true);
+    setTopUpError(null);
+    // MÔ PHỎNG: server cộng ví ngay khi xác nhận. THẬT: chỉ poll (webhook cộng).
+    const paid = topUpReal.mock
+      ? await confirmMockTopUp(topUpReal.orderCode, userId)
+      : await pollRealTopUp(topUpReal.orderCode, userId);
+    setTopUpChecking(false);
+    if (paid) {
+      showSuccess(t('wallet.topUp.success'), `+${formatVND(topUpAmount)}`);
+      pushNotification({
+        userId,
+        kind: 'UserTopUp',
+        title: t('wallet.topUp.success'),
+        body: `${t('wallet.kind.UserTopUp')}: +${formatVND(topUpAmount)}`,
+        link: walletHistoryLink(role),
+        dedupeKey: `PayosTopUp:${topUpReal.orderCode}`,
+      });
+      closeTopUp();
+      return;
+    }
+    setTopUpError('Chưa nhận được xác nhận thanh toán. Nếu vừa chuyển khoản, đợi vài giây rồi bấm kiểm tra lại.');
   }
 
   /** Supabase QR: bấm "Mô phỏng nạp thành công" → RPC wallet_top_up (ví + két
@@ -500,12 +565,92 @@ export function WalletPanel({
         open={topUpOpen}
         onClose={closeTopUp}
         title={
-          supabase && topUpStep === 'qr'
-            ? 'Nạp tiền — quét QR mô phỏng'
-            : t('wallet.topUp.modal.title')
+          supabase && topUpStep === 'qr' && topUpReal
+            ? 'Nạp tiền — quét QR chuyển khoản'
+            : supabase && topUpStep === 'qr'
+              ? 'Nạp tiền — quét QR mô phỏng'
+              : t('wallet.topUp.modal.title')
         }
       >
-        {supabase && topUpStep === 'qr' ? (
+        {supabase && topUpStep === 'qr' && topUpReal ? (
+          <div className="flex flex-col gap-3 text-sm">
+            {topUpReal.mock && (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
+                MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
+              </p>
+            )}
+
+            <dl className="flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 ring-1 ring-orange-100">
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Số tiền nạp</dt>
+                <dd className="font-semibold tabular-nums text-orange-700">{formatVND(topUpAmount)}</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="text-gray-600">Nạp vào</dt>
+                <dd className="font-medium text-gray-900">Ví của bạn</dd>
+              </div>
+            </dl>
+
+            <p className="text-center text-xs text-gray-600">
+              {topUpReal.mock
+                ? 'Đây là luồng mô phỏng: bấm "Tôi đã chuyển khoản (mô phỏng)" để cộng số dư ví ngay, không có tiền thật.'
+                : 'Quét mã QR bên dưới bằng app ngân hàng để chuyển khoản. Số dư ví cập nhật tự động sau khi ngân hàng xác nhận.'}
+            </p>
+
+            {topUpReal.qrCode ? (
+              <div className="flex justify-center">
+                <div className="w-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-orange-200">
+                  <QRCode value={topUpReal.qrCode} size={200} level="M" aria-label="Mã QR chuyển khoản PayOS" />
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-xs text-gray-500">
+                Không tạo được mã QR. Dùng nút mở trang thanh toán bên dưới.
+              </p>
+            )}
+
+            {!topUpReal.mock && (
+              <a
+                href={topUpReal.checkoutUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-orange-300 bg-white px-3 py-2 text-center text-sm font-medium text-orange-700 hover:bg-orange-50"
+              >
+                Mở trang thanh toán PayOS
+              </a>
+            )}
+
+            {topUpError && (
+              <p role="alert" className="text-xs text-red-600">
+                {topUpError}
+              </p>
+            )}
+
+            <div className="flex justify-between gap-2 pt-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setTopUpStep('amount');
+                  setTopUpReal(null);
+                  setTopUpError(null);
+                }}
+                disabled={topUpChecking}
+              >
+                Quay lại
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={checkRealTopUp}
+                loading={topUpChecking}
+                disabled={topUpChecking}
+              >
+                {topUpReal.mock ? 'Tôi đã chuyển khoản (mô phỏng)' : 'Tôi đã chuyển khoản'}
+              </Button>
+            </div>
+          </div>
+        ) : supabase && topUpStep === 'qr' ? (
           <div className="flex flex-col gap-3 text-sm">
             <p className="rounded-md bg-red-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
               MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT

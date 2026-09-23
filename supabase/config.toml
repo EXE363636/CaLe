@@ -370,6 +370,13 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# PayOS webhook do PayOS (server ngoài) gọi, KHÔNG kèm JWT Supabase → phải tắt
+# verify_jwt để gateway không chặn. Bảo mật dựa trên VERIFY CHỮ KÝ (checksum key)
+# bên trong hàm, không dựa vào JWT. create-payment giữ verify_jwt mặc định (client
+# gọi kèm JWT người dùng).
+[functions.payos-webhook]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

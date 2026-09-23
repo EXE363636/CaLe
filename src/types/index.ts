@@ -494,6 +494,14 @@ export interface Worker extends BaseUser {
    * to 0 in the wallet store hydrate.
    */
   walletBalance?: number;
+  /**
+   * PayOS payout (tiền THẬT) — tài khoản ngân hàng worker nhận lương khi xong
+   * ca. `bankBin` = mã BIN ngân hàng (napas). Optional / back-compat: hồ sơ cũ
+   * đọc là undefined; chỉ dùng ở chế độ supabase khi bật payout thật.
+   */
+  bankBin?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
 }
 
 export interface Employer extends BaseUser {
@@ -1250,6 +1258,55 @@ export interface WalletLedgerEntry {
 export interface UserWallet {
   userId: string;
   balance: number;
+  updatedAt: string;
+}
+
+/**
+ * PayOS — đơn NẠP tiền THẬT (Kênh thu / QR). Khác wallet ledger mô phỏng: đây là
+ * dòng tiền thật qua cổng. Webhook PayOS xác nhận -> cộng ví thật.
+ */
+export type PaymentOrderStatus =
+  | 'PENDING'
+  | 'PAID'
+  | 'CANCELLED'
+  | 'EXPIRED'
+  | 'FAILED';
+
+export interface PaymentOrder {
+  orderCode: number;
+  status: PaymentOrderStatus;
+  amount: number;
+  checkoutUrl?: string;
+  qrCode?: string;
+  paidAt?: string;
+}
+
+/**
+ * PayOS — đơn CHI tiền THẬT (Kênh chi) ra STK người nhận.
+ *   WORKER_PAYOUT  : trả lương worker khi xong ca.
+ *   EMPLOYER_REFUND: hoàn cọc employer khi ca huỷ/hết hạn.
+ */
+export type PayoutOrderKind = 'WORKER_PAYOUT' | 'EMPLOYER_REFUND';
+export type PayoutOrderStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'SUCCEEDED'
+  | 'FAILED'
+  | 'CANCELLED';
+
+export interface PayoutOrder {
+  id: string;
+  kind: PayoutOrderKind;
+  userId: string;
+  shiftId?: string;
+  applicationId?: string;
+  amount: number;
+  toBin: string;
+  toAccountNumber: string;
+  toAccountName?: string;
+  status: PayoutOrderStatus;
+  failReason?: string;
+  createdAt: string;
   updatedAt: string;
 }
 
