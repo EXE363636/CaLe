@@ -93,14 +93,9 @@ Rồi **Authentication → Rate Limits** → "Rate limit for sending emails" →
 
 ### 3.3 Mẫu email tiếng Việt
 **Authentication → Emails → Templates → Reset Password**:
-- Subject: `Đặt lại mật khẩu CaLẻ`
-- Body:
-```html
-<h2>Đặt lại mật khẩu</h2>
-<p>Bạn (hoặc ai đó) vừa yêu cầu đặt lại mật khẩu tài khoản CaLẻ.</p>
-<p><a href="{{ .ConfirmationURL }}">Bấm vào đây để đặt mật khẩu mới</a></p>
-<p>Link chỉ dùng được một lần và hết hạn sau 1 giờ. Nếu không phải bạn yêu cầu, hãy bỏ qua email này.</p>
-```
+- Subject: `🔑 Đặt lại mật khẩu CaLẻ`
+- Body: dán TOÀN BỘ nội dung file `supabase/templates/reset-password.html` (logo
+  `https://cale.io.vn/images/logo.png`, màu thương hiệu, nút cam, link dự phòng).
 
 ---
 
