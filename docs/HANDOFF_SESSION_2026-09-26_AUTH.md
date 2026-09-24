@@ -7,8 +7,13 @@
 - Migration **`0022_phone_otp_identity_oauth.sql` ĐÃ apply** (`db push`), đã chạy thử
   trong transaction + rollback trước khi push. Edge Function **`phone-otp` ĐÃ deploy**.
 - Cờ bắt buộc (`platform_settings`) đều **TẮT** → chưa ai bị chặn.
-- Chưa cấu hình (chủ dự án làm theo `docs/SETUP_AUTH_OTP_CCCD.md`): Google provider,
-  SMTP Resend + mẫu email, secret `SMS_PROVIDER` / `SPEEDSMS_TOKEN`, Redirect URLs.
+- ĐÃ cấu hình & chạy thật (25/09): Google provider (OAuth consent **In production**,
+  không logo → không cần Google duyệt), SMTP Resend (domain `cale.io.vn`, DNS ở
+  P.A Việt Nam: DKIM `resend._domainkey`, CNAME `rsend`/`send`, TXT `_dmarc`), mẫu
+  email Reset password tiếng Việt (`supabase/templates/reset-password.html`),
+  Site URL + Redirect URLs.
+- CHƯA: secret `SMS_PROVIDER` / `SPEEDSMS_TOKEN` (OTP SĐT) → xem mục 4 của
+  `docs/SETUP_AUTH_OTP_CCCD.md`.
 - Gate: `tsc` sạch; eslint sạch trên file sửa; `test:run` 716/719 (3 fail
   `handbookContent` có sẵn); `build` OK (31 trang, thêm `/forgot-password`).
 
