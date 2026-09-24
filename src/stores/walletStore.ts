@@ -12,8 +12,6 @@ import { STORAGE_KEYS, write } from '@/data/persistence';
 import { getDataMode } from '@/data/supabaseClient';
 import {
   getWalletState,
-  walletTopUp,
-  walletWithdraw,
   getSystemBank,
   refundDepositForShift,
 } from '@/data/repos/walletRepo';
@@ -21,15 +19,26 @@ import {
   createPayment,
   getPaymentOrderStatus,
   confirmMockPayment,
+  requestWithdrawal,
+  checkWithdrawal,
+  listMyWithdrawals,
+  PaymentApiError,
   type CreatePaymentResult,
+  type WithdrawalRequest,
+  type WithdrawalResult,
 } from '@/data/repos/paymentRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type {
+  PayoutOrder,
   Result,
   UserWallet,
   WalletLedgerEntry,
   WalletLedgerEntryKind,
 } from '@/types';
+
+/** Mã lỗi server (PaymentApiError.code) hoặc message — để UI map sang câu tiếng Việt. */
+const errCode = (e: unknown, fallback: string): string =>
+  e instanceof PaymentApiError ? e.code : e instanceof Error ? e.message : fallback;
 
 const nowIso = (): string => new Date().toISOString();
 
@@ -48,6 +57,8 @@ export interface WalletStore {
   ledger: WalletLedgerEntry[];
   /** Số dư két trung tâm "Két bảo đảm CALE_MOCK" (supabase). */
   systemBank: { name: string; balance: number } | null;
+  /** Lệnh rút tiền thật gần đây của user hiện tại (supabase). */
+  withdrawals: PayoutOrder[];
 
   hydrate: (
     wallets: UserWallet[],
@@ -60,8 +71,6 @@ export interface WalletStore {
    * `userId` (current auth user) để gán số dư server kể cả khi ledger rỗng.
    */
   refetchAsync(userId?: string): Promise<void>;
-  /** Nạp tiền vào ví (mô phỏng) qua RPC → refetch. Supabase-only. */
-  topUpAsync(amount: number): Promise<Result<number, string>>;
   /**
    * NẠP tiền THẬT qua PayOS: tạo đơn + link/QR (Edge Function). KHÔNG cộng ví
    * ở đây — ví chỉ tăng khi webhook PayOS xác nhận. Trả QR để UI hiển thị.
@@ -78,8 +87,16 @@ export interface WalletStore {
    * refetch số dư. Trả true nếu ghi nhận thành công. Supabase-only.
    */
   confirmMockTopUp(orderCode: number, userId?: string): Promise<boolean>;
-  /** Rút tiền khỏi ví (mô phỏng) qua RPC → refetch. Supabase-only. */
-  withdrawAsync(amount: number): Promise<Result<number, string>>;
+  /**
+   * RÚT tiền THẬT về tài khoản ngân hàng (PayOS Kênh chi) → refetch số dư + danh
+   * sách lệnh rút. Lỗi trả mã server (INSUFFICIENT_BALANCE, PAYOUT_REJECTED...).
+   * Supabase-only.
+   */
+  withdrawAsync(req: WithdrawalRequest, userId?: string): Promise<Result<WithdrawalResult, string>>;
+  /** Nạp danh sách lệnh rút gần đây. Supabase-only; lỗi → giữ danh sách cũ. */
+  refetchWithdrawalsAsync(): Promise<void>;
+  /** Tra lại một lệnh rút đang xử lý → refetch số dư + danh sách. Supabase-only. */
+  checkWithdrawalAsync(id: string, userId?: string): Promise<Result<WithdrawalResult, string>>;
   /**
    * Hoàn cọc (mô phỏng) cho ca huỷ/hết hạn không có người làm → refetch số dư.
    * Server idempotent + tự kiểm điều kiện. Trả true nếu vừa hoàn (để caller
@@ -209,6 +226,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
   wallets: [],
   ledger: [],
   systemBank: null,
+  withdrawals: [],
 
   hydrate(wallets, ledger) {
     set({ wallets, ledger });
@@ -231,24 +249,13 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     set({ ledger: state.ledger, wallets, systemBank: bank });
   },
 
-  async topUpAsync(amount) {
-    if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
-    try {
-      await walletTopUp(amount);
-      await get().refetchAsync();
-      return { ok: true, value: amount };
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : 'TOP_UP_FAILED' };
-    }
-  },
-
   async createRealTopUp(amount) {
     if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
     try {
       const res = await createPayment(amount);
       return { ok: true, value: res };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : 'CREATE_PAYMENT_FAILED' };
+      return { ok: false, error: errCode(e, 'CREATE_PAYMENT_FAILED') };
     }
   },
 
@@ -278,14 +285,43 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     }
   },
 
-  async withdrawAsync(amount) {
+  async withdrawAsync(req, userId) {
     if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
     try {
-      await walletWithdraw(amount);
-      await get().refetchAsync();
-      return { ok: true, value: amount };
+      const res = await requestWithdrawal(req);
+      return { ok: true, value: res };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : 'WITHDRAW_FAILED' };
+      return { ok: false, error: errCode(e, 'WITHDRAW_FAILED') };
+    } finally {
+      // Kể cả khi lỗi: server có thể đã trừ rồi hoàn ví — luôn đọc lại số dư thật.
+      await Promise.all([
+        get().refetchAsync(userId).catch(() => undefined),
+        get().refetchWithdrawalsAsync(),
+      ]);
+    }
+  },
+
+  async refetchWithdrawalsAsync() {
+    if (getDataMode() !== 'supabase') return;
+    try {
+      set({ withdrawals: await listMyWithdrawals() });
+    } catch {
+      // Giữ danh sách cũ; không chặn UI.
+    }
+  },
+
+  async checkWithdrawalAsync(id, userId) {
+    if (getDataMode() !== 'supabase') return { ok: false, error: 'NOT_SUPABASE' };
+    try {
+      const res = await checkWithdrawal(id);
+      return { ok: true, value: res };
+    } catch (e) {
+      return { ok: false, error: errCode(e, 'CHECK_FAILED') };
+    } finally {
+      await Promise.all([
+        get().refetchAsync(userId).catch(() => undefined),
+        get().refetchWithdrawalsAsync(),
+      ]);
     }
   },
 

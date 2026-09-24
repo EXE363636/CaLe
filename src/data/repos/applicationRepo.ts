@@ -61,6 +61,8 @@ export interface ApplicationRepo {
   // P0 attendance mutations (SECURITY DEFINER RPC, thời gian server).
   workerCheckIn(applicationId: string): Promise<void>;
   employerMarkPresent(applicationId: string): Promise<void>;
+  /** Employer đánh dấu vắng mặt (chốt cọc nếu là người cuối cùng). */
+  employerMarkNoShow(applicationId: string): Promise<void>;
   workerCheckOut(
     applicationId: string,
     payload: { note?: string; evidenceFileName?: string; checklist?: boolean[] },
@@ -138,6 +140,11 @@ class SupabaseApplicationRepo implements ApplicationRepo {
 
   async employerMarkPresent(applicationId: string): Promise<void> {
     const { error } = await getSupabaseClient().rpc('employer_mark_present', { p_application_id: applicationId });
+    if (error) throw new Error(error.message);
+  }
+
+  async employerMarkNoShow(applicationId: string): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('employer_mark_no_show', { p_application_id: applicationId });
     if (error) throw new Error(error.message);
   }
 

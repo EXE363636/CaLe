@@ -1,10 +1,10 @@
 /**
- * Wallet repo (supabase) — ví điện tử MÔ PHỎNG + két trung tâm "Két bảo đảm CALE_MOCK".
+ * Wallet repo (supabase) — đọc ví + két trung tâm, hoàn cọc ca huỷ/hết hạn.
  * Mọi thay đổi tiền đi qua RPC server (security definer). Client KHÔNG tự cộng/
- * trừ số dư (bất biến #7). Tiền không thật.
- *   Deposit (top-up) : ví +amount, két +amount.
- *   Withdraw         : ví -amount (guard đủ), két không đổi.
- *   Lock/Complete    : nằm trong confirm_deposit_session / employer_confirm_completion.
+ * trừ số dư (bất biến #7).
+ *   Nạp / rút tiền THẬT : xem paymentRepo (PayOS). Hàm nạp/rút mô phỏng
+ *                         wallet_top_up / wallet_withdraw đã bị khoá ở 0017.
+ *   Lock/Complete       : nằm trong confirm_deposit_session / employer_confirm_completion.
  */
 
 import { getSupabaseClient } from '@/data/supabaseClient';
@@ -43,20 +43,6 @@ export async function getWalletState(): Promise<WalletState> {
     balance: num(obj.balance),
     ledger: Array.isArray(obj.ledger) ? obj.ledger.map(rowToEntry) : [],
   };
-}
-
-/** Nạp tiền vào ví (mô phỏng) → ví +amount, két +amount. Trả số dư mới. */
-export async function walletTopUp(amount: number): Promise<number> {
-  const { data, error } = await getSupabaseClient().rpc('wallet_top_up', { p_amount: amount });
-  if (error) throw new Error(error.message);
-  return num((data as { balance?: number } | null)?.balance);
-}
-
-/** Rút tiền khỏi ví (mô phỏng) → ví -amount (guard đủ số dư). Trả số dư mới. */
-export async function walletWithdraw(amount: number): Promise<number> {
-  const { data, error } = await getSupabaseClient().rpc('wallet_withdraw', { p_amount: amount });
-  if (error) throw new Error(error.message);
-  return num((data as { balance?: number } | null)?.balance);
 }
 
 /**

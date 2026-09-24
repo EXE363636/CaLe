@@ -114,26 +114,60 @@ ví cộng tiền):
 
 ---
 
-## 6. CHƯA LÀM / việc tiếp theo (Bước 3+)
+## 6. Cập nhật 24/09/2026 — Rút tiền THẬT + trả công/hoàn cọc tiền thật
 
-1. **Payout THẬT (Kênh chi)** — quan trọng nhất:
-   - Form worker khai STK (cột DB đã có ở 0016, type đã có; thiếu UI ở
-     `worker/profile`).
-   - Edge Function `create-payout`: xong ca + employer xác nhận → gọi PayOS Kênh
-     chi ra STK worker, kèm `X-Idempotency-Key`, ghi `payout_orders`.
-   - Edge Function `create-refund`: ca huỷ/hết hạn → chi hoàn về employer.
-   - Nối vào lifecycle hiện có (`release_deposit` / `refund_deposit_for_shift`).
-   - **Lưu ý mô hình**: nạp thật làm tăng ví; nhưng payout thật rút tiền ra khỏi
-     TK ngân hàng thật, KHÁC với "trừ ví mô phỏng". Cần quyết cách đối soát
-     ví-vs-tiền-thật trước khi code (chưa chốt).
-2. **i18n hoá** chuỗi mới (đang hardcode trong WalletPanel/paymentRepo).
-3. **Đối soát**: trang admin xem `payment_orders`/`payout_orders`.
+### 6.1 Rút tiền về ngân hàng (worker + employer) — migration 0017
+- Ví → nút "Rút tiền" → chọn ngân hàng + STK + tên → Edge Function `withdraw`
+  → `begin_withdrawal` (trừ ví, `payout_orders` PENDING) → PayOS Kênh chi
+  `POST /v1/payouts`. Thất bại rõ ràng (FAILED/CANCELLED…) → `settle_withdrawal`
+  hoàn ví đúng 1 lần. Lỗi mạng → PROCESSING (không hoàn), nút "Kiểm tra".
+- `wallet_top_up`/`wallet_withdraw` (mô phỏng) đã bị revoke.
+- Secrets (đặt bằng `npx supabase secrets set`, KHÔNG commit):
+  `PAYOS_PAYOUT_CLIENT_ID`, `PAYOS_PAYOUT_API_KEY`, `PAYOS_PAYOUT_CHECKSUM_KEY`
+  (bộ key RIÊNG của Kênh chi), `PAYOS_PAYOUT_PROXY_URL`, tuỳ chọn
+  `PAYOS_PAYOUT_DESCRIPTION` (chỉ chữ+số, mặc định CALE).
+- **IP cố định**: Kênh chi PayOS bắt buộc whitelist IP; Edge Function không có
+  IP cố định → lệnh chi đi qua proxy tinyproxy trên VPS (chỉ cho tới
+  `api-merchant.payos.vn:443`, có BasicAuth). Cài bằng
+  `supabase/scripts/setup-payout-proxy.sh`; IP VPS đã khai trong Kênh chi.
+  Chạy lại script = mật khẩu proxy MỚI → phải set lại `PAYOS_PAYOUT_PROXY_URL`.
+- **Vận hành**: tiền nạp vào TK THU (BIDV), tiền chi lấy từ ví **Bảo Kim** (TK
+  CHI). PayOS KHÔNG tự chuyển thu → chi → phải nạp quỹ Bảo Kim trước (pilot:
+  nạp sẵn 1–2 triệu). Bảo Kim hết tiền → lệnh rút báo "Số dư tài khoản không
+  đủ…" và tiền tự hoàn về ví người dùng.
+
+### 6.2 Trả công / vắng mặt / hoàn cọc — migration 0018
+- Trả công **ngay khi employer xác nhận từng người** (không chờ cả ca), mỗi đơn
+  1 lần (unique index `wallet_ledger_wage_once_idx`).
+- RPC mới `employer_mark_no_show` (nút "Đánh dấu vắng mặt" đã bật ở supabase,
+  có hỏi xác nhận, KHÔNG hoàn tác). Sau giờ bắt đầu + 15 phút.
+- Chốt cọc khi hết người đang làm: hoàn về ví employer phần
+  `amount − tiền công đã trả − phí 10% tương ứng` (vị trí trống/vắng không mất phí).
+- `refund_deposit_for_shift`: ca huỷ → hoàn ngay; ca hết hạn → chỉ sau giờ kết
+  thúc + 60 phút và không còn ai CheckedIn/CheckedOut.
+- `edit_shift` chặn tăng giờ/số vị trí vượt tiền cọc (`DEPOSIT_TOO_LOW`) và cập
+  nhật tiền công người đã duyệt theo giờ mới.
+- Đã revoke khỏi authenticated (lỗ hổng tiền thật): `publish_shift` (đăng ca
+  không cọc), `create_payment_session`/`confirm_payment_session` (0009, phiên
+  HELD không trừ ví), `release_mock_payment`,
+  `employer_confirm_completion_before_payment_release`, `edit_shift_before_deposit_guard`.
+- Ghi chú ví bỏ chữ "(mô phỏng)".
+
+### 6.3 CHƯA LÀM
+1. Tự xác nhận hoàn thành sau X giờ nếu employer không bấm (cần job định kỳ
+   phía server) — hiện worker phụ thuộc employer bấm xác nhận.
+2. Vắng mặt ở server chưa trừ điểm uy tín / chưa có "đến muộn → có mặt".
+3. Cảnh báo admin khi Kênh chi hết số dư.
+4. `npm run test:payment` (scripts/payment-integration.mjs) còn gọi RPC mô phỏng
+   đã revoke → cần viết lại.
+5. Trang admin đối soát `payment_orders`/`payout_orders`; các trang tĩnh còn
+   chữ "mô phỏng".
 
 ---
 
 ## 7. Ràng buộc (giữ nguyên)
 - AI KHÔNG push `main` (deploy prod Vercel) → **partner tự merge/push main**.
   Session này push lên branch `feat/payos-real-payment`.
-- KHÔNG commit `.env*`/key. KHÔNG sửa migration đã apply.
+- KHÔNG commit `.env*`/key. KHÔNG sửa migration đã apply (0001–0018).
 - RPC: security definer, `search_path=''`, revoke public/anon + grant đúng vai trò.
-- Tiền tệ `đ`/`đồng` (cấm `VNĐ`/`₫`). Màn tiền mô phỏng ghi "MÔ PHỎNG".
+- Tiền tệ `đ`/`đồng` (cấm `VNĐ`/`₫`). Tiền trong ví giờ là TIỀN THẬT.

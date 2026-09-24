@@ -64,6 +64,42 @@ export async function verifyWebhookSignature(
   return expected.length === signature.length && expected.toLowerCase() === signature.toLowerCase();
 }
 
+/** Sắp xếp sâu key object (mảng giữ nguyên thứ tự) — chuẩn hoá trước khi ký payout. */
+function deepSortObj(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(obj).sort()) {
+    const v = obj[key];
+    if (Array.isArray(v)) {
+      out[key] = v.map((item) =>
+        item !== null && typeof item === 'object' ? deepSortObj(item as Record<string, unknown>) : item,
+      );
+    } else if (v !== null && typeof v === 'object') {
+      out[key] = deepSortObj(v as Record<string, unknown>);
+    } else {
+      out[key] = v;
+    }
+  }
+  return out;
+}
+
+/**
+ * Chữ ký header `x-signature` cho Kênh chi (POST /v1/payouts) — KHÁC chữ ký Kênh
+ * thu: sắp xếp sâu, mảng/object -> JSON, encodeURIComponent cả key lẫn value
+ * (theo demo chính thức payOSHQ/payos-payout-demo-nodejs).
+ */
+export async function signPayout(checksumKey: string, body: Record<string, unknown>): Promise<string> {
+  const sorted = deepSortObj(body);
+  const query = Object.keys(sorted)
+    .map((k) => {
+      let v = sorted[k];
+      if (v !== null && typeof v === 'object') v = JSON.stringify(v);
+      const val = v === null || v === undefined ? '' : String(v);
+      return `${encodeURIComponent(k)}=${encodeURIComponent(val)}`;
+    })
+    .join('&');
+  return hmacSha256Hex(checksumKey, query);
+}
+
 export const PAYOS_BASE = 'https://api-merchant.payos.vn';
 
 export const CORS: Record<string, string> = {

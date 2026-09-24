@@ -1234,7 +1234,9 @@ export type WalletLedgerEntryKind =
    * user's wallet (amount stored negative). No real banking
    * integration; bounded by available balance.
    */
-  | 'UserWithdrawal';
+  | 'UserWithdrawal'
+  /** Rút tiền THẬT (PayOS Kênh chi) thất bại → hoàn lại vào ví. */
+  | 'UserWithdrawalReversed';
 
 /**
  * Single wallet ledger entry. Append-only; never mutated.
@@ -1286,7 +1288,7 @@ export interface PaymentOrder {
  *   WORKER_PAYOUT  : trả lương worker khi xong ca.
  *   EMPLOYER_REFUND: hoàn cọc employer khi ca huỷ/hết hạn.
  */
-export type PayoutOrderKind = 'WORKER_PAYOUT' | 'EMPLOYER_REFUND';
+export type PayoutOrderKind = 'WORKER_PAYOUT' | 'EMPLOYER_REFUND' | 'USER_WITHDRAWAL';
 export type PayoutOrderStatus =
   | 'PENDING'
   | 'PROCESSING'

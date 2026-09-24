@@ -486,7 +486,7 @@ export const vi: Record<string, string> = {
   'feedback.applicant.reject.success': 'Đã từ chối đơn ứng tuyển',
   'feedback.applicant.confirm.success': 'Đã xác nhận hoàn thành ca',
   'feedback.applicant.confirm.success.desc':
-    'Tiền công đã được thanh toán cho người lao động (mô phỏng).',
+    'Tiền công đã được cộng vào ví của người lao động.',
   'feedback.applicant.markNoShow.success': 'Đã đánh dấu vắng mặt',
   'feedback.applicant.markNoShow.success.desc':
     'Bạn được tặng 1 lượt boost cho ca tiếp theo.',
@@ -1911,6 +1911,16 @@ export const vi: Record<string, string> = {
   'attendance.error.evidenceInvalid': 'Dữ liệu minh chứng không hợp lệ.',
   'attendance.error.notOwner': 'Bạn không có quyền thao tác trên đơn/ca này.',
   'attendance.error.notEmployer': 'Chỉ nhà tuyển dụng sở hữu ca mới thực hiện được thao tác này.',
+  'attendance.error.noShowTooEarly':
+    'Chỉ đánh dấu vắng mặt được sau giờ bắt đầu ca 15 phút.',
+  'attendance.markNoShow.confirm':
+    'Đánh dấu người lao động này VẮNG MẶT? Thao tác không hoàn tác được: người này không nhận tiền công, phần cọc tương ứng sẽ được hoàn về ví của bạn khi ca chốt.',
+  'feedback.applicant.markNoShow.success.descReal':
+    'Phần cọc của vị trí này sẽ được hoàn về ví khi ca chốt.',
+  'wallet.error.depositTooLow':
+    'Không thể tăng giờ làm / số vị trí vượt quá tiền cọc đã giữ. Hãy huỷ ca và đăng ca mới.',
+  'wallet.error.depositNotHeld':
+    'Tiền cọc của ca này đã được chốt, không thể trả thêm tiền công. Vui lòng liên hệ hỗ trợ.',
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',
   'attendance.revert.title': 'Chuyển sang có mặt (đến muộn)',
   'attendance.revert.body':
@@ -2242,6 +2252,34 @@ export const vi: Record<string, string> = {
   'wallet.withdraw.error.invalid': 'Số tiền không hợp lệ. Chỉ nhập số dương.',
   'wallet.withdraw.error.insufficient': 'Số dư không đủ để rút tiền.',
   'wallet.withdraw.success': 'Đã rút tiền khỏi ví (demo)',
+
+  // Rút tiền THẬT về tài khoản ngân hàng (PayOS Kênh chi) — chế độ supabase.
+  'wallet.kind.UserWithdrawalReversed': 'Hoàn tiền rút không thành công',
+  'wallet.withdraw.real.title': 'Rút tiền về tài khoản ngân hàng',
+  'wallet.withdraw.real.bank': 'Ngân hàng',
+  'wallet.withdraw.real.bankPlaceholder': 'Chọn ngân hàng',
+  'wallet.withdraw.real.account': 'Số tài khoản',
+  'wallet.withdraw.real.accountName': 'Tên chủ tài khoản (viết hoa, không dấu)',
+  'wallet.withdraw.real.accountNamePlaceholder': 'Ví dụ: NGUYEN VAN A',
+  'wallet.withdraw.real.note':
+    'Tiền được chuyển thật qua PayOS về đúng tài khoản bạn nhập. Kiểm tra kỹ ngân hàng và số tài khoản — chuyển nhầm không lấy lại được.',
+  'wallet.withdraw.real.submit': 'Rút tiền',
+  'wallet.withdraw.real.error.min': 'Số tiền rút tối thiểu là 2.000 đ.',
+  'wallet.withdraw.real.error.bank': 'Vui lòng chọn ngân hàng.',
+  'wallet.withdraw.real.error.account': 'Số tài khoản không hợp lệ (chỉ gồm chữ số).',
+  'wallet.withdraw.real.error.rejected':
+    'PayOS từ chối lệnh rút. Số tiền đã được hoàn lại vào ví của bạn.',
+  'wallet.withdraw.real.error.generic': 'Không rút được tiền. Vui lòng thử lại.',
+  'wallet.withdraw.real.success': 'Đã chuyển tiền về tài khoản của bạn',
+  'wallet.withdraw.real.processing':
+    'Lệnh rút đang được xử lý. Tiền thường về tài khoản sau vài phút.',
+  'wallet.withdraw.real.history': 'Lệnh rút gần đây',
+  'wallet.withdraw.real.check': 'Kiểm tra',
+  'wallet.withdraw.real.status.PENDING': 'Đang gửi',
+  'wallet.withdraw.real.status.PROCESSING': 'Đang xử lý',
+  'wallet.withdraw.real.status.SUCCEEDED': 'Thành công',
+  'wallet.withdraw.real.status.FAILED': 'Thất bại — đã hoàn vào ví',
+  'wallet.withdraw.real.status.CANCELLED': 'Đã huỷ',
 
   'wallet.income.note':
     'Số dư ví là nguồn chính. "Tổng thu nhập" là tổng tiền công đã nhận tích luỹ.',

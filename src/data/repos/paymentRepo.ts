@@ -1,14 +1,25 @@
 /**
- * Payment repo (supabase) — NẠP tiền THẬT qua PayOS (Kênh thu / QR).
+ * Payment repo (supabase) — tiền THẬT qua PayOS.
  *
- * KHÁC walletRepo (mô phỏng CALE_MOCK): đây là dòng tiền THẬT.
- *   createPayment          : gọi Edge Function `create-payment` -> trả QR/link PayOS.
- *   getPaymentOrderStatus  : RPC poll trạng thái đơn sau khi người dùng quét QR.
- * Client KHÔNG tự cộng ví; ví chỉ tăng khi webhook PayOS xác nhận (server).
+ *   Nạp (Kênh thu / QR):
+ *     createPayment          : Edge Function `create-payment` -> QR/link PayOS.
+ *     getPaymentOrderStatus  : RPC poll trạng thái đơn nạp.
+ *     confirmMockPayment     : chỉ khi server chạy PAYOS_MOCK.
+ *   Rút (Kênh chi):
+ *     requestWithdrawal      : Edge Function `withdraw` (create) -> trừ ví + chi PayOS.
+ *     checkWithdrawal        : Edge Function `withdraw` (status) -> tra lại lệnh chưa xong.
+ *     listMyWithdrawals      : đọc payout_orders của chính mình (RLS).
+ * Client KHÔNG tự cộng/trừ ví; mọi thay đổi số dư do server quyết định.
  */
 
 import { getSupabaseClient } from '@/data/supabaseClient';
-import type { PaymentOrder, PaymentOrderStatus } from '@/types';
+import type {
+  PaymentOrder,
+  PaymentOrderStatus,
+  PayoutOrder,
+  PayoutOrderKind,
+  PayoutOrderStatus,
+} from '@/types';
 
 export class PaymentApiError extends Error {
   code: string;
@@ -20,23 +31,18 @@ export class PaymentApiError extends Error {
 }
 
 const s = (v: unknown): string => (typeof v === 'string' ? v : '');
+const sOpt = (v: unknown): string | undefined =>
+  typeof v === 'string' && v !== '' ? v : undefined;
 const num = (v: unknown): number => (typeof v === 'number' ? v : Number(v) || 0);
 
-export interface CreatePaymentResult {
-  orderCode: number;
-  amount: number;
-  checkoutUrl: string;
-  qrCode: string | null;
-  /** true = luồng MÔ PHỎNG (PAYOS_MOCK); client hiện nhãn + dùng mock-confirm. */
-  mock: boolean;
-}
+type FnResult = { ok?: boolean; error?: string; message?: string } & Record<string, unknown>;
 
-/** Tạo đơn nạp thật + link/QR PayOS. amount = số nguyên đồng. */
-export async function createPayment(amount: number): Promise<CreatePaymentResult> {
-  const client = getSupabaseClient();
-  const { data, error } = await client.functions.invoke('create-payment', {
-    body: { amount },
-  });
+/**
+ * Gọi Edge Function. functions.invoke coi HTTP non-2xx là error; mã lỗi thật
+ * `{ ok:false, error }` nằm trong error.context (Response) — đọc ra để ném đúng mã.
+ */
+async function invokeFn(name: string, body: Record<string, unknown>): Promise<FnResult> {
+  const { data, error } = await getSupabaseClient().functions.invoke(name, { body });
   if (error) {
     let code = 'REQUEST_FAILED';
     let message = error.message;
@@ -52,17 +58,33 @@ export async function createPayment(amount: number): Promise<CreatePaymentResult
     }
     throw new PaymentApiError(code, message);
   }
-  const d = data as {
-    ok?: boolean; error?: string; message?: string;
-    orderCode?: number; amount?: number; checkoutUrl?: string; qrCode?: string | null;
-  };
-  if (!d || d.ok === false) throw new PaymentApiError(String(d?.error ?? 'REQUEST_FAILED'), d?.message);
+  const d = (data ?? {}) as FnResult;
+  if (d.ok === false) throw new PaymentApiError(String(d.error ?? 'REQUEST_FAILED'), d.message);
+  return d;
+}
+
+// ---------------------------------------------------------------------------
+// Nạp tiền
+// ---------------------------------------------------------------------------
+
+export interface CreatePaymentResult {
+  orderCode: number;
+  amount: number;
+  checkoutUrl: string;
+  qrCode: string | null;
+  /** true = luồng MÔ PHỎNG (PAYOS_MOCK); client hiện nhãn + dùng mock-confirm. */
+  mock: boolean;
+}
+
+/** Tạo đơn nạp thật + link/QR PayOS. amount = số nguyên đồng. */
+export async function createPayment(amount: number): Promise<CreatePaymentResult> {
+  const d = await invokeFn('create-payment', { amount });
   return {
     orderCode: num(d.orderCode),
     amount: num(d.amount),
     checkoutUrl: s(d.checkoutUrl),
-    qrCode: d.qrCode ?? null,
-    mock: (d as { mock?: boolean }).mock === true,
+    qrCode: typeof d.qrCode === 'string' ? d.qrCode : null,
+    mock: d.mock === true,
   };
 }
 
@@ -72,24 +94,8 @@ export async function createPayment(amount: number): Promise<CreatePaymentResult
  * thuộc người gọi. Trả true nếu server đã ghi nhận trả.
  */
 export async function confirmMockPayment(orderCode: number): Promise<boolean> {
-  const client = getSupabaseClient();
-  const { data, error } = await client.functions.invoke('create-payment', {
-    body: { action: 'mock-confirm', orderCode },
-  });
-  if (error) {
-    let code = 'REQUEST_FAILED';
-    const ctx = (error as unknown as { context?: Response }).context;
-    if (ctx && typeof ctx.json === 'function') {
-      try {
-        const parsed = await ctx.json();
-        if (parsed?.error) code = String(parsed.error);
-      } catch {
-        /* giữ mã mặc định */
-      }
-    }
-    throw new PaymentApiError(code, error.message);
-  }
-  return (data as { ok?: boolean } | null)?.ok === true;
+  const d = await invokeFn('create-payment', { action: 'mock-confirm', orderCode });
+  return d.ok === true;
 }
 
 /** Poll trạng thái đơn nạp theo orderCode (RLS + guard chủ sở hữu ở RPC). */
@@ -98,16 +104,71 @@ export async function getPaymentOrderStatus(orderCode: number): Promise<PaymentO
     p_order_code: orderCode,
   });
   if (error) throw new PaymentApiError('STATUS_FAILED', error.message);
-  const o = (data ?? {}) as {
-    orderCode?: number; status?: string; amount?: number;
-    checkoutUrl?: string; qrCode?: string; paidAt?: string;
-  };
+  const o = (data ?? {}) as Record<string, unknown>;
   return {
     orderCode: num(o.orderCode),
     status: (s(o.status) as PaymentOrderStatus) || 'PENDING',
     amount: num(o.amount),
-    checkoutUrl: o.checkoutUrl ?? undefined,
-    qrCode: o.qrCode ?? undefined,
-    paidAt: o.paidAt ?? undefined,
+    checkoutUrl: sOpt(o.checkoutUrl),
+    qrCode: sOpt(o.qrCode),
+    paidAt: sOpt(o.paidAt),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Rút tiền
+// ---------------------------------------------------------------------------
+
+export interface WithdrawalRequest {
+  amount: number;
+  toBin: string;
+  toAccountNumber: string;
+  toAccountName: string;
+  /** Một key cho MỘT lần bấm rút — bấm lặp/gửi lại không tạo lệnh thứ hai. */
+  idempotencyKey: string;
+}
+
+export interface WithdrawalResult {
+  id: string;
+  status: PayoutOrderStatus;
+}
+
+/** Tạo lệnh rút: server trừ ví + chi qua PayOS. Ném PaymentApiError khi lỗi. */
+export async function requestWithdrawal(req: WithdrawalRequest): Promise<WithdrawalResult> {
+  const d = await invokeFn('withdraw', { action: 'create', ...req });
+  return { id: s(d.id), status: (s(d.status) as PayoutOrderStatus) || 'PENDING' };
+}
+
+/** Tra lại trạng thái lệnh rút chưa xong (server hỏi PayOS + hoàn ví nếu thất bại). */
+export async function checkWithdrawal(id: string): Promise<WithdrawalResult> {
+  const d = await invokeFn('withdraw', { action: 'status', id });
+  return { id: s(d.id), status: (s(d.status) as PayoutOrderStatus) || 'PENDING' };
+}
+
+/** Các lệnh rút gần đây của người dùng hiện tại (RLS: chỉ thấy của mình). */
+export async function listMyWithdrawals(limit = 10): Promise<PayoutOrder[]> {
+  const { data, error } = await getSupabaseClient()
+    .from('payout_orders')
+    .select(
+      'id, kind, user_id, shift_id, application_id, amount, to_bin, to_account_number, to_account_name, status, fail_reason, created_at, updated_at',
+    )
+    .eq('kind', 'USER_WITHDRAWAL')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new PaymentApiError('LIST_FAILED', error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: s(r.id),
+    kind: s(r.kind) as PayoutOrderKind,
+    userId: s(r.user_id),
+    shiftId: sOpt(r.shift_id),
+    applicationId: sOpt(r.application_id),
+    amount: num(r.amount),
+    toBin: s(r.to_bin),
+    toAccountNumber: s(r.to_account_number),
+    toAccountName: sOpt(r.to_account_name),
+    status: s(r.status) as PayoutOrderStatus,
+    failReason: sOpt(r.fail_reason),
+    createdAt: s(r.created_at),
+    updatedAt: s(r.updated_at),
+  }));
 }

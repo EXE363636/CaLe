@@ -140,6 +140,12 @@ export function toastFromStoreError(
     NOT_OWNER: t('attendance.error.notOwner'),
     NOT_AUTHENTICATED: t('feedback.error.invalidCredentials'),
     NOT_AN_EMPLOYER: t('attendance.error.notEmployer'),
+    // 0018 — vắng mặt + chốt cọc tiền thật.
+    NO_SHOW_TOO_EARLY: t('attendance.error.noShowTooEarly'),
+    INVALID_STATE_FOR_NO_SHOW: t('feedback.error.wrongStatus'),
+    DEPOSIT_TOO_LOW: t('wallet.error.depositTooLow'),
+    DEPOSIT_NOT_HELD: t('wallet.error.depositNotHeld'),
+    DEPOSIT_EXCEEDED: t('wallet.error.depositNotHeld'),
   };
 
   const message = map[code];

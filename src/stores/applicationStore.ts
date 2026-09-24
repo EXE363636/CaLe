@@ -512,6 +512,8 @@ interface ApplicationStore {
   checkInAsync(applicationId: string): Promise<Result<void, string>>;
   /** Employer xác nhận worker có mặt. */
   markPresentAsync(applicationId: string): Promise<Result<void, string>>;
+  /** Employer đánh dấu vắng mặt. Supabase: RPC (server chốt cọc/hoàn phần dư). */
+  markNoShowAsync(applicationId: string): Promise<Result<void, string>>;
   /** Worker check-out (kèm metadata evidence/checklist/note). Local giữ lỗi
    *  có cấu trúc EVIDENCE_REQUIRED để dialog hiện thông báo chính xác. */
   checkOutAsync(input: CheckoutInput): Promise<Result<void, string | CheckOutError>>;
@@ -2852,6 +2854,24 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
       }
     }
     const r = get().markPresentByEmployer(applicationId);
+    return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
+  },
+
+  async markNoShowAsync(applicationId) {
+    const app = get().applications.find((a) => a.id === applicationId);
+    if (getDataMode() === 'supabase') {
+      try {
+        await getApplicationRepo().employerMarkNoShow(applicationId);
+        if (app) {
+          await get().refetchForShift(app.shiftId);
+          await useShiftStore.getState().refetchOne(app.shiftId);
+        }
+        return { ok: true, value: undefined };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'MARK_NO_SHOW_FAILED' };
+      }
+    }
+    const r = get().markNoShow(applicationId);
     return r.ok ? { ok: true, value: undefined } : { ok: false, error: r.error };
   },
 

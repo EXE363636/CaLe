@@ -69,7 +69,7 @@ function EmployerDashboardContent() {
 
   const employer = asEmployer(users.find((u) => u.id === currentUserId));
 
-  // Hoàn cọc (mô phỏng) cho ca HUỶ / HẾT HẠN KHÔNG CÓ NGƯỜI LÀM. Server tự kiểm
+  // Hoàn cọc cho ca HUỶ / HẾT HẠN KHÔNG CÓ NGƯỜI LÀM. Server tự kiểm
   // điều kiện + idempotent; ref chống gọi lặp cùng một ca trong phiên. Chỉ quét
   // ca của employer đang ở lifecycle Cancelled/Expired (không ai Confirmed).
   const refundedShiftsRef = useRef<Set<string>>(new Set());
@@ -92,8 +92,8 @@ function EmployerDashboardContent() {
         const refunded = await refundForShiftAsync(sh.id, currentUserId);
         if (refunded) {
           showSuccess(
-            'Đã hoàn cọc (mô phỏng)',
-            `Ca "${sh.title}" huỷ/hết hạn — cọc đã trả về ví.`,
+            'Đã hoàn cọc',
+            `Ca "${sh.title}" huỷ/hết hạn — phần cọc chưa dùng đã trả về ví.`,
           );
         }
       }

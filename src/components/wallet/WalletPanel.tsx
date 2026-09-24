@@ -12,32 +12,29 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import QRCode from 'react-qr-code';
 import { Button, Card, Modal } from '@/components/ui';
+import { PayosTopUpQr } from '@/components/payment/PayosTopUpQr';
 import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import { getDataMode } from '@/data/supabaseClient';
+import type { CreatePaymentResult } from '@/data/repos/paymentRepo';
 import { useWalletStore } from '@/stores/walletStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { walletHistoryLink } from '@/lib/notificationTarget';
+import { BANKS, bankByBin } from '@/lib/banks';
 import { deriveWalletBalance, projectRecentTransactions } from '@/domain/finance';
-import { listPaymentChannels, type PaymentChannel } from '@/data/payments';
-import type { Role, WalletLedgerEntry } from '@/types';
+import type { PayoutOrder, Role, WalletLedgerEntry } from '@/types';
 
-/** Tên đầy đủ theo mã ngân hàng — hiển thị "MÃ - Tên đầy đủ" (chữ thông tin,
- *  không phải logo/nhãn hiệu). Kênh vẫn gắn nhãn Demo. */
-const BANK_FULL_NAME: Record<string, string> = {
-  ACB: 'Ngân hàng Thương mại Cổ phần Á Châu',
-  BIDV: 'Ngân hàng Thương mại Cổ phần Đầu tư và Phát triển Việt Nam',
-  MB: 'Ngân hàng Thương mại Cổ phần Quân đội',
-  VCB: 'Ngân hàng Thương mại Cổ phần Ngoại thương Việt Nam',
-};
+/** PayOS: số tiền tối thiểu cho một lần nạp / rút. */
+const PAYOS_MIN_AMOUNT = 2000;
 
-function topUpChannelLabel(ch: PaymentChannel): string {
-  const full = ch.bankCode ? BANK_FULL_NAME[ch.bankCode] : undefined;
-  return full && ch.bankCode ? `${ch.bankCode} - ${full}` : ch.displayName;
+/** Tone chữ cho trạng thái lệnh rút (luôn kèm nhãn chữ, không chỉ dựa màu). */
+function withdrawalTone(status: PayoutOrder['status']): string {
+  if (status === 'SUCCEEDED') return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+  if (status === 'FAILED' || status === 'CANCELLED') return 'bg-rose-50 text-rose-800 ring-rose-200';
+  return 'bg-amber-50 text-amber-800 ring-amber-200';
 }
 
 interface WalletPanelProps {
@@ -101,10 +98,17 @@ function formatOccurredAt(iso: string): string {
   return DATE_FMT.format(d);
 }
 
-/** Map lỗi RPC ví (supabase) sang copy tiếng Việt. */
+/** Map mã lỗi server (supabase / PayOS) sang copy tiếng Việt. */
 function mapWalletErr(raw: string): string {
   if (raw.includes('INSUFFICIENT_BALANCE')) return t('wallet.withdraw.error.insufficient');
   if (raw.includes('INVALID_AMOUNT')) return t('wallet.topUp.error.invalid');
+  if (raw.includes('INVALID_BANK')) return t('wallet.withdraw.real.error.bank');
+  if (raw.includes('INVALID_ACCOUNT')) return t('wallet.withdraw.real.error.account');
+  if (raw.includes('PAYOUT_REJECTED')) return t('wallet.withdraw.real.error.rejected');
+  if (raw.includes('PAYOS_REJECTED') || raw.includes('PAYOS_UNREACHABLE')) {
+    return 'Không tạo được mã thanh toán PayOS. Vui lòng thử lại sau.';
+  }
+  if (raw.includes('NOT_CONFIGURED')) return 'Cổng thanh toán chưa được cấu hình. Vui lòng liên hệ hỗ trợ.';
   return 'Không thực hiện được. Vui lòng thử lại.';
 }
 
@@ -155,26 +159,26 @@ export function WalletPanel({
   const wallets = useWalletStore((s) => s.wallets);
   const topUp = useWalletStore((s) => s.topUp);
   const withdraw = useWalletStore((s) => s.withdraw);
-  const topUpAsync = useWalletStore((s) => s.topUpAsync);
   const createRealTopUp = useWalletStore((s) => s.createRealTopUp);
-  const pollRealTopUp = useWalletStore((s) => s.pollRealTopUp);
-  const confirmMockTopUp = useWalletStore((s) => s.confirmMockTopUp);
   const withdrawAsync = useWalletStore((s) => s.withdrawAsync);
   const refetchAsync = useWalletStore((s) => s.refetchAsync);
-  const systemBank = useWalletStore((s) => s.systemBank);
+  const withdrawals = useWalletStore((s) => s.withdrawals);
+  const refetchWithdrawalsAsync = useWalletStore((s) => s.refetchWithdrawalsAsync);
+  const checkWithdrawalAsync = useWalletStore((s) => s.checkWithdrawalAsync);
   const pushNotification = useNotificationStore((s) => s.push);
-  // Supabase: ví THẬT ở server (RPC). Local/demo: ví mock localStorage.
+  // Supabase: ví THẬT ở server — nạp/rút tiền thật qua PayOS.
+  // Local/demo: ví mock localStorage (nạp/rút demo như cũ).
   const supabase = getDataMode() === 'supabase';
-  // Bật nạp tiền THẬT qua PayOS. Tắt (mặc định) → giữ luồng nạp mô phỏng.
-  const payosEnabled = process.env.NEXT_PUBLIC_PAYOS_ENABLED === 'true';
   const [busy, setBusy] = useState(false);
 
-  // Supabase: nạp số dư THẬT từ server khi mount (không nơi nào khác gọi
-  // refetch → nếu bỏ, UI hiển thị số dư client suy từ ledger, lệch server →
-  // đăng ca báo INSUFFICIENT_BALANCE dù UI đủ). No-op ở local.
+  // Supabase: nạp số dư THẬT + lệnh rút gần đây từ server khi mount (không nơi
+  // nào khác gọi refetch → nếu bỏ, UI hiển thị số dư client suy từ ledger, lệch
+  // server). No-op ở local.
   useEffect(() => {
-    if (supabase) void refetchAsync(userId);
-  }, [supabase, refetchAsync, userId]);
+    if (!supabase) return;
+    void refetchAsync(userId);
+    void refetchWithdrawalsAsync();
+  }, [supabase, refetchAsync, refetchWithdrawalsAsync, userId]);
 
   // Cluster 3 · BUG 5 (Req 2.5): route the balance + transaction list through
   // the single derived money module. `deriveWalletBalance` equals the store's
@@ -217,26 +221,37 @@ export function WalletPanel({
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [topUpText, setTopUpText] = useState('');
   const [topUpError, setTopUpError] = useState<string | null>(null);
-  // Flow hybrid (supabase): nạp tiền qua QR mô phỏng. Bước 'amount' → nhập số;
-  // bước 'qr' → chọn ngân hàng demo + QR → "Mô phỏng nạp thành công".
+  // Supabase: nạp tiền THẬT qua PayOS. Bước 'amount' → nhập số → tạo đơn;
+  // bước 'qr' → QR PayOS + "Tôi đã chuyển khoản" (component PayosTopUpQr).
   const [topUpStep, setTopUpStep] = useState<'amount' | 'qr'>('amount');
-  const [topUpAmount, setTopUpAmount] = useState(0);
-  const [topUpChannels, setTopUpChannels] = useState<PaymentChannel[]>([]);
-  const [topUpChannelId, setTopUpChannelId] = useState<string | null>(null);
-  // PayOS THẬT (bật qua NEXT_PUBLIC_PAYOS_ENABLED=true). Khi bật, bước 'qr' hiển
-  // thị QR THẬT của PayOS + nút "Tôi đã chuyển khoản" để poll trạng thái đơn.
-  const [topUpReal, setTopUpReal] = useState<{
-    orderCode: number;
-    checkoutUrl: string;
-    qrCode: string | null;
-    mock: boolean;
-  } | null>(null);
-  const [topUpChecking, setTopUpChecking] = useState(false);
+  const [topUpOrder, setTopUpOrder] = useState<CreatePaymentResult | null>(null);
   // CORE-STABILITY-6 Part 3 — withdrawal modal state.
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawText, setWithdrawText] = useState('');
   const [withdrawNote, setWithdrawNote] = useState('');
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  // Supabase: rút tiền THẬT về tài khoản ngân hàng (PayOS Kênh chi).
+  const [withdrawBin, setWithdrawBin] = useState('');
+  const [withdrawAccount, setWithdrawAccount] = useState('');
+  const [withdrawName, setWithdrawName] = useState('');
+  /** Một key cho một lần mở form rút — bấm lặp không tạo lệnh rút thứ hai. */
+  const withdrawIdemRef = useRef('');
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+
+  /** Mở form rút tiền: key idempotency mới + điền sẵn tài khoản của lệnh rút gần nhất. */
+  function openWithdraw() {
+    setWithdrawText('');
+    setWithdrawNote('');
+    setWithdrawError(null);
+    withdrawIdemRef.current = crypto.randomUUID();
+    const last = withdrawals[0];
+    if (last) {
+      setWithdrawBin(last.toBin);
+      setWithdrawAccount(last.toAccountNumber);
+      setWithdrawName(last.toAccountName ?? '');
+    }
+    setWithdrawOpen(true);
+  }
 
   async function submitTopUp() {
     const trimmed = topUpText.trim();
@@ -253,8 +268,13 @@ export function WalletPanel({
       setTopUpError(t('wallet.topUp.error.tooLarge'));
       return;
     }
-    // Supabase + PayOS THẬT: tạo đơn nạp + QR thật qua Edge Function.
-    if (supabase && payosEnabled) {
+    // Supabase: tạo đơn nạp THẬT + QR PayOS qua Edge Function. Ví chỉ tăng khi
+    // PayOS xác nhận đã nhận tiền (webhook, server-side).
+    if (supabase) {
+      if (amount < PAYOS_MIN_AMOUNT) {
+        setTopUpError(`Số tiền nạp tối thiểu là ${formatVND(PAYOS_MIN_AMOUNT)}.`);
+        return;
+      }
       if (busy) return;
       setBusy(true);
       setTopUpError(null);
@@ -264,33 +284,8 @@ export function WalletPanel({
         setTopUpError(mapWalletErr(r.error));
         return;
       }
-      setTopUpAmount(amount);
-      setTopUpReal({
-        orderCode: r.value.orderCode,
-        checkoutUrl: r.value.checkoutUrl,
-        qrCode: r.value.qrCode,
-        mock: r.value.mock,
-      });
+      setTopUpOrder(r.value);
       setTopUpStep('qr');
-      return;
-    }
-    // Supabase: nạp qua QR mô phỏng — chuyển sang bước chọn ngân hàng + QR.
-    // RPC wallet_top_up chỉ gọi khi bấm "Mô phỏng nạp thành công" (confirmTopUpQR).
-    if (supabase) {
-      if (busy) return;
-      setBusy(true);
-      setTopUpError(null);
-      try {
-        const chs = await listPaymentChannels();
-        setTopUpChannels(chs);
-        setTopUpChannelId((prev) => prev ?? chs[0]?.id ?? null);
-        setTopUpAmount(amount);
-        setTopUpStep('qr');
-      } catch {
-        setTopUpError('Không tải được danh sách ngân hàng. Vui lòng thử lại.');
-      } finally {
-        setBusy(false);
-      }
       return;
     }
     const entry = topUp(userId, amount);
@@ -319,72 +314,34 @@ export function WalletPanel({
     setTopUpOpen(false);
     setTopUpStep('amount');
     setTopUpText('');
-    setTopUpAmount(0);
     setTopUpError(null);
-    setTopUpReal(null);
-    setTopUpChecking(false);
+    setTopUpOrder(null);
   }
 
-  /** PayOS THẬT: người dùng đã chuyển khoản → poll trạng thái đơn. Đã PAID →
-   *  webhook đã cộng ví server-side → refetch + báo thành công. Chưa PAID → nhắc
-   *  đợi/thử lại (webhook có độ trễ vài giây). KHÔNG dùng timer (poll theo nút). */
-  async function checkRealTopUp() {
-    if (!topUpReal || topUpChecking) return;
-    setTopUpChecking(true);
-    setTopUpError(null);
-    // MÔ PHỎNG: server cộng ví ngay khi xác nhận. THẬT: chỉ poll (webhook cộng).
-    const paid = topUpReal.mock
-      ? await confirmMockTopUp(topUpReal.orderCode, userId)
-      : await pollRealTopUp(topUpReal.orderCode, userId);
-    setTopUpChecking(false);
-    if (paid) {
-      showSuccess(t('wallet.topUp.success'), `+${formatVND(topUpAmount)}`);
-      pushNotification({
-        userId,
-        kind: 'UserTopUp',
-        title: t('wallet.topUp.success'),
-        body: `${t('wallet.kind.UserTopUp')}: +${formatVND(topUpAmount)}`,
-        link: walletHistoryLink(role),
-        dedupeKey: `PayosTopUp:${topUpReal.orderCode}`,
-      });
-      closeTopUp();
-      return;
-    }
-    setTopUpError('Chưa nhận được xác nhận thanh toán. Nếu vừa chuyển khoản, đợi vài giây rồi bấm kiểm tra lại.');
-  }
-
-  /** Supabase QR: bấm "Mô phỏng nạp thành công" → RPC wallet_top_up (ví + két
-   *  "Két bảo đảm CALE_MOCK" cùng tăng) → refetch số dư. */
-  async function confirmTopUpQR() {
-    if (busy) return;
-    setBusy(true);
-    const r = await topUpAsync(topUpAmount);
-    setBusy(false);
-    if (!r.ok) {
-      setTopUpError(mapWalletErr(r.error));
-      return;
-    }
-    showSuccess(t('wallet.topUp.success'), `+${formatVND(topUpAmount)}`);
+  /** PayOS xác nhận đã nhận tiền (ví đã được refetch trong PayosTopUpQr). */
+  function onTopUpPaid(order: CreatePaymentResult) {
+    showSuccess('Đã nạp tiền vào ví', `+${formatVND(order.amount)}`);
+    pushNotification({
+      userId,
+      kind: 'UserTopUp',
+      title: 'Đã nạp tiền vào ví',
+      body: `${t('wallet.kind.UserTopUp')}: +${formatVND(order.amount)}`,
+      link: walletHistoryLink(role),
+      dedupeKey: `PayosTopUp:${order.orderCode}`,
+    });
     closeTopUp();
   }
 
-  /** Payload QR mô phỏng — VÔ HẠI: không số tài khoản thật, đánh dấu không
-   *  phải giao dịch thật. Chỉ để hiển thị mã QR demo. */
-  const topUpQrPayload = useMemo(
-    () =>
-      JSON.stringify({
-        realTransaction: false,
-        provider: 'CALE_MOCK',
-        purpose: 'wallet_topup',
-        amount: topUpAmount,
-      }),
-    [topUpAmount],
-  );
-
-  const topUpSelectedChannel = useMemo(
-    () => topUpChannels.find((c) => c.id === topUpChannelId) ?? null,
-    [topUpChannels, topUpChannelId],
-  );
+  /** Tra lại một lệnh rút đang xử lý (server hỏi PayOS; thất bại → hoàn ví). */
+  async function checkWithdrawal(id: string) {
+    if (checkingId) return;
+    setCheckingId(id);
+    const r = await checkWithdrawalAsync(id, userId);
+    setCheckingId(null);
+    if (r.ok && r.value.status === 'SUCCEEDED') {
+      showSuccess(t('wallet.withdraw.real.success'));
+    }
+  }
 
   async function submitWithdraw() {
     const trimmed = withdrawText.trim();
@@ -397,20 +354,64 @@ export function WalletPanel({
       setWithdrawError(t('wallet.withdraw.error.invalid'));
       return;
     }
-    // Supabase: rút qua RPC (guard đủ số dư ở server). Két không đổi.
+    // Supabase: rút THẬT về tài khoản ngân hàng qua PayOS. Server trừ ví (khoá
+    // chống rút vượt số dư) rồi chi; PayOS từ chối → server hoàn ví.
     if (supabase) {
+      if (amount < PAYOS_MIN_AMOUNT) {
+        setWithdrawError(t('wallet.withdraw.real.error.min'));
+        return;
+      }
+      if (amount > balance) {
+        setWithdrawError(t('wallet.withdraw.error.insufficient'));
+        return;
+      }
+      if (!bankByBin(withdrawBin)) {
+        setWithdrawError(t('wallet.withdraw.real.error.bank'));
+        return;
+      }
+      const account = withdrawAccount.replace(/\s+/g, '');
+      if (!/^[0-9]{4,30}$/.test(account)) {
+        setWithdrawError(t('wallet.withdraw.real.error.account'));
+        return;
+      }
       if (busy) return;
       setBusy(true);
-      const r = await withdrawAsync(amount);
+      setWithdrawError(null);
+      const r = await withdrawAsync(
+        {
+          amount,
+          toBin: withdrawBin,
+          toAccountNumber: account,
+          toAccountName: withdrawName.trim().toUpperCase(),
+          idempotencyKey: withdrawIdemRef.current || crypto.randomUUID(),
+        },
+        userId,
+      );
       setBusy(false);
       if (!r.ok) {
         setWithdrawError(mapWalletErr(r.error));
+        // Lệnh đã bị từ chối + hoàn ví → lần bấm tiếp là lệnh MỚI.
+        withdrawIdemRef.current = crypto.randomUUID();
         return;
       }
-      showSuccess(t('wallet.withdraw.success'), `-${formatVND(amount)}`);
+      if (r.value.status === 'SUCCEEDED') {
+        showSuccess(t('wallet.withdraw.real.success'), `-${formatVND(amount)}`);
+      } else if (r.value.status === 'FAILED') {
+        setWithdrawError(t('wallet.withdraw.real.error.rejected'));
+        withdrawIdemRef.current = crypto.randomUUID();
+        return;
+      } else {
+        showSuccess(t('wallet.withdraw.real.processing'), `-${formatVND(amount)}`);
+      }
+      pushNotification({
+        userId,
+        kind: 'UserWithdrawal',
+        title: t('wallet.withdraw.real.title'),
+        body: `${t('wallet.kind.UserWithdrawal')}: -${formatVND(amount)}`,
+        link: walletHistoryLink(role),
+        dedupeKey: `PayosWithdrawal:${r.value.id}`,
+      });
       setWithdrawText('');
-      setWithdrawNote('');
-      setWithdrawError(null);
       setWithdrawOpen(false);
       return;
     }
@@ -480,35 +481,65 @@ export function WalletPanel({
             </Button>
           )}
           {allowWithdraw && balance > 0 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setWithdrawText('');
-                setWithdrawNote('');
-                setWithdrawError(null);
-                setWithdrawOpen(true);
-              }}
-            >
+            <Button size="sm" variant="ghost" onClick={openWithdraw}>
               {t('wallet.withdraw.button')}
             </Button>
           )}
         </div>
       </div>
 
-      {/* Supabase: nhãn mô phỏng + số dư két bảo đảm (minh bạch demo). */}
-      {supabase && (
-        <div className="mt-3 flex flex-col gap-2">
-          <p className="rounded-md bg-red-50 px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
-            MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
+      {/* Supabase: lệnh rút tiền thật gần đây + nút tra lại lệnh đang xử lý. */}
+      {supabase && withdrawals.length > 0 && (
+        <div className="mt-3">
+          <p className="mb-1 text-xs font-medium text-gray-700">
+            {t('wallet.withdraw.real.history')}
           </p>
-          {systemBank && (
-            <p className="rounded-md bg-gray-50 px-3 py-1.5 text-[11px] text-gray-600 ring-1 ring-gray-100">
-              {systemBank.name}:{' '}
-              <span className="font-semibold text-gray-900">{formatVND(systemBank.balance)}</span>{' '}
-              <span className="text-gray-400">(két bảo đảm mô phỏng)</span>
-            </p>
-          )}
+          <ul className="flex flex-col gap-2">
+            {withdrawals.slice(0, 3).map((w) => {
+              const pending = w.status === 'PENDING' || w.status === 'PROCESSING';
+              return (
+                <li
+                  key={w.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-semibold tabular-nums text-gray-900">
+                      -{formatVND(w.amount)}
+                    </span>
+                    <span className="mt-0.5 block text-gray-600">
+                      {bankByBin(w.toBin)?.shortName ?? w.toBin} · *{w.toAccountNumber.slice(-4)} ·{' '}
+                      <span className="font-mono text-[11px] text-gray-500">
+                        {formatOccurredAt(w.createdAt)}
+                      </span>
+                    </span>
+                    {w.status === 'FAILED' && w.failReason && (
+                      <span className="mt-0.5 block text-[11px] leading-relaxed text-rose-700">
+                        Lý do: {w.failReason}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${withdrawalTone(w.status)}`}
+                    >
+                      {t(`wallet.withdraw.real.status.${w.status}`)}
+                    </span>
+                    {pending && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => checkWithdrawal(w.id)}
+                        loading={checkingId === w.id}
+                        disabled={checkingId !== null}
+                      >
+                        {t('wallet.withdraw.real.check')}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
@@ -560,192 +591,29 @@ export function WalletPanel({
       </Modal>
 
       {/* QA-Fix-2 Phase 4 — custom-amount top-up modal. Supabase: 2 bước
-          (nhập số → QR mô phỏng). Local/demo: 1 bước (nhập số → nạp). */}
+          (nhập số → QR PayOS thật). Local/demo: 1 bước (nhập số → nạp demo). */}
       <Modal
         open={topUpOpen}
         onClose={closeTopUp}
         title={
-          supabase && topUpStep === 'qr' && topUpReal
+          supabase && topUpStep === 'qr'
             ? 'Nạp tiền — quét QR chuyển khoản'
-            : supabase && topUpStep === 'qr'
-              ? 'Nạp tiền — quét QR mô phỏng'
+            : supabase
+              ? 'Nạp tiền vào ví'
               : t('wallet.topUp.modal.title')
         }
       >
-        {supabase && topUpStep === 'qr' && topUpReal ? (
-          <div className="flex flex-col gap-3 text-sm">
-            {topUpReal.mock && (
-              <p className="rounded-md bg-red-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
-                MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
-              </p>
-            )}
-
-            <dl className="flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 ring-1 ring-orange-100">
-              <div className="flex items-center justify-between">
-                <dt className="text-gray-600">Số tiền nạp</dt>
-                <dd className="font-semibold tabular-nums text-orange-700">{formatVND(topUpAmount)}</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-gray-600">Nạp vào</dt>
-                <dd className="font-medium text-gray-900">Ví của bạn</dd>
-              </div>
-            </dl>
-
-            <p className="text-center text-xs text-gray-600">
-              {topUpReal.mock
-                ? 'Đây là luồng mô phỏng: bấm "Tôi đã chuyển khoản (mô phỏng)" để cộng số dư ví ngay, không có tiền thật.'
-                : 'Quét mã QR bên dưới bằng app ngân hàng để chuyển khoản. Số dư ví cập nhật tự động sau khi ngân hàng xác nhận.'}
-            </p>
-
-            {topUpReal.qrCode ? (
-              <div className="flex justify-center">
-                <div className="w-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-orange-200">
-                  <QRCode value={topUpReal.qrCode} size={200} level="M" aria-label="Mã QR chuyển khoản PayOS" />
-                </div>
-              </div>
-            ) : (
-              <p className="text-center text-xs text-gray-500">
-                Không tạo được mã QR. Dùng nút mở trang thanh toán bên dưới.
-              </p>
-            )}
-
-            {!topUpReal.mock && (
-              <a
-                href={topUpReal.checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-orange-300 bg-white px-3 py-2 text-center text-sm font-medium text-orange-700 hover:bg-orange-50"
-              >
-                Mở trang thanh toán PayOS
-              </a>
-            )}
-
-            {topUpError && (
-              <p role="alert" className="text-xs text-red-600">
-                {topUpError}
-              </p>
-            )}
-
-            <div className="flex justify-between gap-2 pt-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setTopUpStep('amount');
-                  setTopUpReal(null);
-                  setTopUpError(null);
-                }}
-                disabled={topUpChecking}
-              >
-                Quay lại
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={checkRealTopUp}
-                loading={topUpChecking}
-                disabled={topUpChecking}
-              >
-                {topUpReal.mock ? 'Tôi đã chuyển khoản (mô phỏng)' : 'Tôi đã chuyển khoản'}
-              </Button>
-            </div>
-          </div>
-        ) : supabase && topUpStep === 'qr' ? (
-          <div className="flex flex-col gap-3 text-sm">
-            <p className="rounded-md bg-red-50 px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-red-700 ring-1 ring-red-200">
-              MÔ PHỎNG — KHÔNG CÓ GIAO DỊCH TIỀN THẬT
-            </p>
-
-            <dl className="flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 ring-1 ring-orange-100">
-              <div className="flex items-center justify-between">
-                <dt className="text-gray-600">Số tiền nạp</dt>
-                <dd className="font-semibold tabular-nums text-orange-700">{formatVND(topUpAmount)}</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="text-gray-600">Nạp vào</dt>
-                <dd className="font-medium text-gray-900">Ví CALE_MOCK của bạn</dd>
-              </div>
-            </dl>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-gray-700">Chọn ngân hàng mô phỏng</span>
-              <div className="flex flex-col gap-2">
-                {topUpChannels.map((ch) => (
-                  <label
-                    key={ch.id}
-                    className={[
-                      'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm transition-colors',
-                      topUpChannelId === ch.id
-                        ? 'border-orange-400 bg-white shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-orange-300',
-                    ].join(' ')}
-                  >
-                    <input
-                      type="radio"
-                      name="wallet-topup-channel"
-                      className="h-4 w-4 accent-orange-500"
-                      checked={topUpChannelId === ch.id}
-                      onChange={() => setTopUpChannelId(ch.id)}
-                    />
-                    <span className="min-w-0 flex-1 font-medium text-gray-900">
-                      {topUpChannelLabel(ch)}
-                    </span>
-                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                      Demo
-                    </span>
-                  </label>
-                ))}
-                {topUpChannels.length === 0 && (
-                  <span className="text-sm text-gray-500">Chưa có kênh ngân hàng mô phỏng.</span>
-                )}
-              </div>
-            </label>
-
-            {topUpChannelId && (
-              <div className="flex justify-center">
-                <div className="w-fit rounded-2xl bg-white p-4 shadow-sm ring-1 ring-orange-200">
-                  <QRCode value={topUpQrPayload} size={176} level="M" aria-label="Mã QR nạp tiền mô phỏng" />
-                </div>
-              </div>
-            )}
-            {topUpSelectedChannel && (
-              <p className="text-center text-xs text-gray-500">
-                Người thụ hưởng: <strong>{topUpSelectedChannel.accountName ?? 'CALE DEMO'}</strong>
-                {topUpSelectedChannel.accountNumberMasked
-                  ? ` · ${topUpSelectedChannel.accountNumberMasked}`
-                  : ''}
-              </p>
-            )}
-
-            {topUpError && (
-              <p role="alert" className="text-xs text-red-600">
-                {topUpError}
-              </p>
-            )}
-
-            <div className="flex justify-between gap-2 pt-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setTopUpStep('amount');
-                  setTopUpError(null);
-                }}
-                disabled={busy}
-              >
-                Quay lại
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                onClick={confirmTopUpQR}
-                loading={busy}
-                disabled={busy || !topUpChannelId}
-              >
-                Mô phỏng nạp tiền thành công
-              </Button>
-            </div>
-          </div>
+        {supabase && topUpStep === 'qr' && topUpOrder ? (
+          <PayosTopUpQr
+            order={topUpOrder}
+            userId={userId}
+            onPaid={() => onTopUpPaid(topUpOrder)}
+            onBack={() => {
+              setTopUpStep('amount');
+              setTopUpOrder(null);
+              setTopUpError(null);
+            }}
+          />
         ) : (
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex flex-wrap gap-2">
@@ -792,7 +660,8 @@ export function WalletPanel({
             </label>
             {supabase && (
               <p className="text-xs text-gray-500">
-                Bước sau: chọn ngân hàng mô phỏng + quét QR để nạp vào ví CALE_MOCK.
+                Bước sau: quét mã QR bằng app ngân hàng để chuyển khoản qua PayOS. Tối
+                thiểu {formatVND(PAYOS_MIN_AMOUNT)}.
               </p>
             )}
             {topUpError && (
@@ -812,11 +681,11 @@ export function WalletPanel({
         )}
       </Modal>
 
-      {/* CORE-STABILITY-6 Part 3 — withdrawal modal (demo). */}
+      {/* Rút tiền. Supabase: rút THẬT về tài khoản ngân hàng (PayOS). Local: demo. */}
       <Modal
         open={withdrawOpen}
         onClose={() => setWithdrawOpen(false)}
-        title={t('wallet.withdraw.modal.title')}
+        title={supabase ? t('wallet.withdraw.real.title') : t('wallet.withdraw.modal.title')}
       >
         <div className="flex flex-col gap-3 text-sm">
           <p className="text-xs text-gray-600">
@@ -851,20 +720,79 @@ export function WalletPanel({
               ].join(' ')}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-gray-700">
-              {t('wallet.withdraw.modal.noteLabel')}
-            </span>
-            <input
-              type="text"
-              autoComplete="off"
-              value={withdrawNote}
-              maxLength={120}
-              placeholder={t('wallet.withdraw.modal.notePlaceholder')}
-              onChange={(e) => setWithdrawNote(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-            />
-          </label>
+          {supabase ? (
+            <>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-gray-700">
+                  {t('wallet.withdraw.real.bank')}
+                </span>
+                <select
+                  value={withdrawBin}
+                  onChange={(e) => {
+                    setWithdrawBin(e.target.value);
+                    if (withdrawError) setWithdrawError(null);
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  <option value="">{t('wallet.withdraw.real.bankPlaceholder')}</option>
+                  {BANKS.map((b) => (
+                    <option key={b.bin} value={b.bin}>
+                      {b.shortName} — {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-gray-700">
+                  {t('wallet.withdraw.real.account')}
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={withdrawAccount}
+                  maxLength={30}
+                  onChange={(e) => {
+                    setWithdrawAccount(e.target.value.replace(/[^\d]/g, ''));
+                    if (withdrawError) setWithdrawError(null);
+                  }}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-gray-700">
+                  {t('wallet.withdraw.real.accountName')}
+                </span>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={withdrawName}
+                  maxLength={100}
+                  placeholder={t('wallet.withdraw.real.accountNamePlaceholder')}
+                  onChange={(e) => setWithdrawName(e.target.value.toUpperCase())}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                />
+              </label>
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+                {t('wallet.withdraw.real.note')}
+              </p>
+            </>
+          ) : (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-gray-700">
+                {t('wallet.withdraw.modal.noteLabel')}
+              </span>
+              <input
+                type="text"
+                autoComplete="off"
+                value={withdrawNote}
+                maxLength={120}
+                placeholder={t('wallet.withdraw.modal.notePlaceholder')}
+                onChange={(e) => setWithdrawNote(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              />
+            </label>
+          )}
           {withdrawError && (
             <p role="alert" className="text-xs text-red-600">
               {withdrawError}
@@ -879,7 +807,7 @@ export function WalletPanel({
               {t('wallet.withdraw.modal.cancel')}
             </Button>
             <Button size="sm" variant="primary" onClick={submitWithdraw} loading={busy}>
-              {t('wallet.withdraw.modal.submit')}
+              {supabase ? t('wallet.withdraw.real.submit') : t('wallet.withdraw.modal.submit')}
             </Button>
           </div>
         </div>

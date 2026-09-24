@@ -91,7 +91,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const applications = useApplicationStore((s) => s.applications);
   const approveAsync = useApplicationStore((s) => s.approveAsync);
   const rejectAsync = useApplicationStore((s) => s.rejectAsync);
-  const markNoShow = useApplicationStore((s) => s.markNoShow);
+  const markNoShowAsync = useApplicationStore((s) => s.markNoShowAsync);
   const markPresentAsync = useApplicationStore((s) => s.markPresentAsync);
   const confirmCompletionAsync = useApplicationStore((s) => s.confirmCompletionAsync);
   const revertNoShowToPresent = useApplicationStore(
@@ -208,14 +208,23 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     setRejectingAppId(null);
   }
 
-  function handleMarkNoShow(appId: string) {
+  async function handleMarkNoShow(appId: string) {
+    if (actionLoading) return; // khóa double-click
+    // Supabase: vắng mặt là KHÔNG hoàn tác được (server chốt cọc, hoàn phần dư
+    // về ví khi người cuối cùng được xử lý) → hỏi lại trước khi gửi.
+    if (isSupabaseEnv() && !window.confirm(t('attendance.markNoShow.confirm'))) return;
     setActionLoading(appId);
-    const result = markNoShow(appId);
+    // Wrapper tự dispatch: supabase → RPC + refetch server; local → sync cũ.
+    const result = await markNoShowAsync(appId);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(
         t('feedback.applicant.markNoShow.success'),
-        t('feedback.applicant.markNoShow.success.desc'),
+        t(
+          isSupabaseEnv()
+            ? 'feedback.applicant.markNoShow.success.descReal'
+            : 'feedback.applicant.markNoShow.success.desc',
+        ),
       );
     } else {
       showError(toastFromStoreError(result.error));
@@ -805,8 +814,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               // `evidenceRequirement`); the legacy `shouldMarkNoShow`
               // call is preserved as the fallback inside the helper.
               const canMarkAbsent =
-                // Đánh dấu vắng mặt CHƯA nối backend → ẩn ở supabase/production.
-                !isSupabaseEnv() &&
+                // Supabase: RPC employer_mark_no_show (0018) — gate qua capability attendance.
+                (!isSupabaseEnv() || hasCapability('attendance')) &&
                 !shiftTerminal &&
                 app.status === 'Approved' &&
                 (canEmployerMarkAbsent(nowIso, app, shift) ||
