@@ -153,6 +153,11 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
           const status = await useAuthStore.getState().syncSessionUser(session.user.id);
           if (status === 'error') {
             setBootError('session');
+          } else if (
+            status === 'notfound' &&
+            (await useAuthStore.getState().markPendingOAuth())
+          ) {
+            // Đăng nhập Google lần đầu: giữ phiên, trang đăng ký hiện bước chọn vai trò.
           } else if (status === 'suspended' || status === 'notfound') {
             await client.auth.signOut();
           }

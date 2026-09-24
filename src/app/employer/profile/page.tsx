@@ -23,6 +23,8 @@ import { formatDateVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
 import { notifyAdmins } from '@/lib/adminNotifications';
 import { t } from '@/i18n/vi';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
 import type {
   EmployerType10A,
   EmployerVerificationDocumentType,
@@ -106,7 +108,13 @@ function EmployerProfileContent() {
       {/* Phase 10A — employer verification card. Lists submitted
           documents per type with status + lets the employer submit
           mock documents matching their account shape. */}
-      <EmployerVerificationCard employer={employer} />
+      {/* Supabase: xác thực SĐT (OTP) + CCCD (admin duyệt) thật — 0022. Thẻ
+          giấy tờ mô phỏng cũ chỉ còn ở local/demo. */}
+      {isSupabaseEnv() ? (
+        <AccountVerificationCard userId={employer.id} role="employer" className="mt-6" />
+      ) : (
+        <EmployerVerificationCard employer={employer} />
+      )}
 
       {/* CORE-STABILITY-8 Part 5 — understaffed policy setting. */}
       <UnderstaffedPolicyCard employer={employer} onSave={handleSave} saving={saving} />

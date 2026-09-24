@@ -147,6 +147,20 @@ export function toastFromStoreError(
     DEPOSIT_NOT_HELD: t('wallet.error.depositNotHeld'),
     DEPOSIT_EXCEEDED: t('wallet.error.depositNotHeld'),
     INVALID_STATE_FOR_REVERT: t('attendance.revert.error.settled'),
+    // 0022 — xác thực SĐT / CCCD bắt buộc + đăng nhập Google.
+    PHONE_NOT_VERIFIED: t('error.PHONE_NOT_VERIFIED'),
+    IDENTITY_NOT_VERIFIED: t('error.IDENTITY_NOT_VERIFIED'),
+    INVALID_ID_NUMBER: t('verify.id.error.INVALID_ID_NUMBER'),
+    INVALID_FULL_NAME: t('verify.id.error.INVALID_FULL_NAME'),
+    INVALID_DATE_OF_BIRTH: t('verify.id.error.INVALID_DATE_OF_BIRTH'),
+    INVALID_DOCUMENT: t('verify.id.error.INVALID_DOCUMENT'),
+    ID_NUMBER_IN_USE: t('verify.id.error.ID_NUMBER_IN_USE'),
+    ALREADY_PENDING: t('verify.id.error.ALREADY_PENDING'),
+    IDENTITY_ALREADY_VERIFIED: t('verify.id.error.IDENTITY_ALREADY_VERIFIED'),
+    UPLOAD_FAILED: t('verify.id.error.UPLOAD_FAILED'),
+    ALREADY_REVIEWED: t('feedback.error.wrongStatus'),
+    SAME_PASSWORD: t('auth.reset.error.same'),
+    SESSION_EXPIRED: t('auth.reset.error.expired'),
   };
 
   const message = map[code];

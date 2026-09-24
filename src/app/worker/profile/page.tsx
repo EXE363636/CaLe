@@ -30,6 +30,8 @@ import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { formatDateVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
 import { t } from '@/i18n/vi';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
 import type {
   VerificationFlag,
   Worker,
@@ -159,7 +161,9 @@ function WorkerProfileContent() {
               upload toggles was removed; phone verification is now a
               row inside this canonical card so the worker sees ONE
               source of truth, not two competing upload paths. */}
-          {/* Xác minh giấy tờ hiện là mô phỏng, chưa migrate → ẩn ở supabase. */}
+          {/* Supabase: xác thực SĐT (OTP) + CCCD (admin duyệt) thật — 0022. */}
+          {isSupabaseEnv() && <AccountVerificationCard userId={worker.id} role="worker" />}
+          {/* Local/demo: luồng xác minh giấy tờ mô phỏng cũ. */}
           {hasCapability('verifications') && (
             <WorkerIdentityVerificationCard
               worker={worker}

@@ -19,6 +19,7 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { VerificationsPanel } from './VerificationsPanel';
+import { IdentityReviewPanel } from './IdentityReviewPanel';
 import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -49,7 +50,8 @@ function AdminDashboardContent() {
   // Task tổng vệ sinh · mục 7 — ở supabase chỉ giữ tab có dữ liệu server thật.
   // Tranh chấp/xác minh chưa migrate → ẩn tab + badge hoàn toàn.
   const showDisputes = hasCapability('disputes');
-  const showVerifications = hasCapability('verifications');
+  // Supabase: tab này là hàng đợi CCCD thật + cài đặt xác thực (0022).
+  const showVerifications = hasCapability('verifications') || isSupabaseEnv();
 
   // Supabase: nạp user thật ở cấp dashboard để analytics đếm đúng (không seed).
   const refreshUsersAsync = useAdminStore((s) => s.refreshUsersAsync);
@@ -284,7 +286,7 @@ function AdminDashboardContent() {
                 : undefined
             }
           >
-            {t('admin.dashboard.tabs.verifications')}
+            {isSupabaseEnv() ? t('admin.identity.tab') : t('admin.dashboard.tabs.verifications')}
           </TabButton>
         )}
       </div>
@@ -299,7 +301,8 @@ function AdminDashboardContent() {
       {tab === 'users' && <UsersPanel initialFilter={usersInitialFilter} />}
       {tab === 'shifts' && <ShiftsPanel initialFilter={shiftsInitialFilter} />}
       {tab === 'disputes' && showDisputes && <DisputesPanel />}
-      {tab === 'verifications' && showVerifications && <VerificationsPanel />}
+      {tab === 'verifications' && showVerifications &&
+        (isSupabaseEnv() ? <IdentityReviewPanel /> : <VerificationsPanel />)}
 
       {/* Admin-only snapshot dev utility — CHỈ local/demo mode. Ở supabase/
           production ẩn hoàn toàn (công cụ mock/localStorage của developer, B2). */}

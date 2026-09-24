@@ -49,6 +49,31 @@ export interface RegisterSuccess {
   needsConfirmation: boolean;
 }
 
+/** User đăng nhập Google lần đầu: đã có phiên nhưng CHƯA có hồ sơ (chưa chọn vai trò). */
+export interface PendingOAuth {
+  email: string;
+  fullName: string;
+}
+
+export interface CompleteOAuthInput {
+  role: 'worker' | 'employer';
+  phone: string;
+  fullName?: string;
+  companyName?: string;
+  businessType?: string;
+  employerType10A?: 'Individual' | 'HouseholdBusiness' | 'Company' | 'AgencyEvent';
+}
+
+export type PasswordResetError = 'INVALID_EMAIL' | 'RATE_LIMITED' | 'BACKEND_ERROR';
+export type UpdatePasswordError =
+  | 'WEAK_PASSWORD'
+  | 'SAME_PASSWORD'
+  | 'SESSION_EXPIRED'
+  | 'BACKEND_ERROR';
+
+/** sessionStorage: vai trò người dùng chọn trước khi bấm "Tiếp tục với Google". */
+export const OAUTH_ROLE_KEY = 'cale.oauthRole';
+
 export interface RegisterInput {
   role: 'worker' | 'employer';
   email: string;
@@ -64,6 +89,8 @@ export interface RegisterInput {
 interface AuthStore {
   currentUserId: string | null;
   lastActivityAt: string | null;
+  /** Supabase: phiên OAuth chưa có hồ sơ → trang đăng ký hiện bước chọn vai trò. */
+  pendingOAuth: PendingOAuth | null;
 
   currentUser: () => User | null;
 
@@ -71,6 +98,22 @@ interface AuthStore {
   register(input: RegisterInput): Promise<Result<RegisterSuccess, RegisterError>>;
   logout(): Promise<void>;
   touch(): void;
+
+  /** Supabase: chuyển sang Google. `role` (nếu có) dùng để điền sẵn bước chọn vai trò. */
+  signInWithGoogle(role?: 'worker' | 'employer'): Promise<Result<void, 'BACKEND_ERROR'>>;
+  /** Supabase: tạo hồ sơ cho phiên OAuth mới (RPC complete_oauth_signup). */
+  completeOAuthSignup(input: CompleteOAuthInput): Promise<Result<User, string>>;
+  /** Huỷ bước chọn vai trò → đăng xuất phiên OAuth. */
+  cancelOAuthSignup(): Promise<void>;
+  /**
+   * Phiên hợp lệ nhưng chưa có hồ sơ: nếu là phiên OAuth → ghi `pendingOAuth`
+   * và trả true (KHÔNG đăng xuất); ngược lại false.
+   */
+  markPendingOAuth(): Promise<boolean>;
+  /** Supabase: gửi email đặt lại mật khẩu (không tiết lộ email có tồn tại không). */
+  requestPasswordReset(email: string): Promise<Result<void, PasswordResetError>>;
+  /** Supabase: đặt mật khẩu mới trong phiên khôi phục (link email). */
+  updatePassword(password: string): Promise<Result<void, UpdatePasswordError>>;
 
   /**
    * Nạp user của session Supabase `uid` vào store (supabase mode). Xử lý account
@@ -197,6 +240,7 @@ export function mapSignUpError(error: unknown): RegisterError {
 export const useAuthStore = create<AuthStore>((set, get) => ({
   currentUserId: null,
   lastActivityAt: null,
+  pendingOAuth: null,
 
   currentUser: () => {
     const id = get().currentUserId;
@@ -354,8 +398,124 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // email/phone của user cũ KHÔNG được còn trong bộ nhớ.
       useUserStore.getState().resetToSeedUsers();
     }
-    set({ currentUserId: null, lastActivityAt: null });
+    set({ currentUserId: null, lastActivityAt: null, pendingOAuth: null });
     persistAuth(null, null);
+  },
+
+  async signInWithGoogle(role) {
+    try {
+      if (role) {
+        try {
+          sessionStorage.setItem(OAUTH_ROLE_KEY, role);
+        } catch {
+          /* không có sessionStorage → bỏ qua điền sẵn */
+        }
+      }
+      const { error } = await getSupabaseClient().auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+          queryParams: { prompt: 'select_account' },
+        },
+      });
+      if (error) return { ok: false, error: 'BACKEND_ERROR' };
+      return { ok: true, value: undefined };
+    } catch {
+      return { ok: false, error: 'BACKEND_ERROR' };
+    }
+  },
+
+  async markPendingOAuth() {
+    try {
+      const { data } = await getSupabaseClient().auth.getSession();
+      const u = data.session?.user;
+      const provider = u?.app_metadata?.provider;
+      if (!u || !provider || provider === 'email' || provider === 'phone') return false;
+      const meta = (u.user_metadata ?? {}) as Record<string, unknown>;
+      const name =
+        typeof meta.full_name === 'string'
+          ? meta.full_name
+          : typeof meta.name === 'string'
+            ? meta.name
+            : '';
+      set({ pendingOAuth: { email: u.email ?? '', fullName: name } });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  async completeOAuthSignup(input) {
+    const client = getSupabaseClient();
+    const { data } = await client.auth.getSession();
+    const uid = data.session?.user.id;
+    if (!uid) return { ok: false, error: 'NOT_AUTHENTICATED' };
+    const { error } = await client.rpc('complete_oauth_signup', {
+      p_profile: {
+        role: input.role,
+        phone: input.phone,
+        full_name: input.fullName ?? '',
+        company_name: input.companyName ?? '',
+        business_type: input.businessType ?? '',
+        employer_type10a: input.employerType10A ?? null,
+      },
+    });
+    if (error && !error.message.includes('ALREADY_REGISTERED')) {
+      return { ok: false, error: error.message };
+    }
+    const status = await get().syncSessionUser(uid);
+    if (status !== 'ok') return { ok: false, error: 'BACKEND_ERROR' };
+    const user = get().currentUser();
+    if (!user) return { ok: false, error: 'BACKEND_ERROR' };
+    set({ pendingOAuth: null });
+    try {
+      sessionStorage.removeItem(OAUTH_ROLE_KEY);
+    } catch {
+      /* ignore */
+    }
+    return { ok: true, value: user };
+  },
+
+  async cancelOAuthSignup() {
+    set({ pendingOAuth: null });
+    try {
+      await getSupabaseClient().auth.signOut();
+    } catch {
+      /* ignore */
+    }
+  },
+
+  async requestPasswordReset(email) {
+    const trimmed = (email ?? '').trim().toLowerCase();
+    if (trimmed === '') return { ok: false, error: 'INVALID_EMAIL' };
+    const { error } = await getSupabaseClient().auth.resetPasswordForEmail(trimmed, {
+      redirectTo: `${window.location.origin}/forgot-password?mode=reset`,
+    });
+    if (error) {
+      // Email không tồn tại KHÔNG báo lỗi (Supabase vẫn trả thành công).
+      const code = mapSignUpError(error);
+      if (code === 'RATE_LIMITED') return { ok: false, error: 'RATE_LIMITED' };
+      if (code === 'INVALID_EMAIL') return { ok: false, error: 'INVALID_EMAIL' };
+      return { ok: false, error: 'BACKEND_ERROR' };
+    }
+    return { ok: true, value: undefined };
+  },
+
+  async updatePassword(password) {
+    const client = getSupabaseClient();
+    const { data } = await client.auth.getSession();
+    if (!data.session) return { ok: false, error: 'SESSION_EXPIRED' };
+    const { error } = await client.auth.updateUser({ password });
+    if (error) {
+      const code = ((error as { code?: string }).code ?? '').toLowerCase();
+      if (code === 'weak_password') return { ok: false, error: 'WEAK_PASSWORD' };
+      if (code === 'same_password') return { ok: false, error: 'SAME_PASSWORD' };
+      if (code === 'session_not_found' || code === 'session_expired') {
+        return { ok: false, error: 'SESSION_EXPIRED' };
+      }
+      return { ok: false, error: 'BACKEND_ERROR' };
+    }
+    return { ok: true, value: undefined };
   },
 
   async syncSessionUser(uid) {
@@ -393,7 +553,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (event === 'SIGNED_OUT' || !session) {
         // Xoá private user cũ + khôi phục seed (guardrail 4).
         useUserStore.getState().resetToSeedUsers();
-        set({ currentUserId: null, lastActivityAt: null });
+        set({ currentUserId: null, lastActivityAt: null, pendingOAuth: null });
         return;
       }
       if (
@@ -407,6 +567,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         setTimeout(() => {
           void (async () => {
             const status = await get().syncSessionUser(uid);
+            // Đăng nhập Google lần đầu: chưa có hồ sơ → chờ chọn vai trò, không đăng xuất.
+            if (status === 'notfound' && (await get().markPendingOAuth())) return;
             if (status !== 'ok') {
               try {
                 await getSupabaseClient().auth.signOut();

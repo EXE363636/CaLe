@@ -3,7 +3,9 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore, useCurrentUser } from '@/stores/authStore';
+import { OAUTH_ROLE_KEY, useAuthStore, useCurrentUser } from '@/stores/authStore';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+import { AuthDivider, GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Input, Button } from '@/components/ui';
 import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
@@ -68,6 +70,11 @@ function RegisterForm() {
   const initialRole = (searchParams.get('role') === 'employer' ? 'employer' : 'worker') as Role;
 
   const register = useAuthStore((s) => s.register);
+  const completeOAuthSignup = useAuthStore((s) => s.completeOAuthSignup);
+  const cancelOAuthSignup = useAuthStore((s) => s.cancelOAuthSignup);
+  // Đăng nhập Google lần đầu: có phiên nhưng chưa có hồ sơ → form hoàn tất
+  // (không email/mật khẩu), tạo hồ sơ qua RPC complete_oauth_signup.
+  const pendingOAuth = useAuthStore((s) => s.pendingOAuth);
   const currentUser = useCurrentUser();
 
   const [values, setValues] = useState<FormValues>({
@@ -91,7 +98,25 @@ function RegisterForm() {
     }
   }, [currentUser, router]);
 
+  // Điền sẵn tên Google + vai trò đã chọn trước khi chuyển sang Google.
+  useEffect(() => {
+    if (!pendingOAuth) return;
+    let storedRole: string | null = null;
+    try {
+      storedRole = sessionStorage.getItem(OAUTH_ROLE_KEY);
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- điền sẵn một lần khi phiên OAuth sẵn sàng
+    setValues((p) => ({
+      ...p,
+      role: storedRole === 'employer' || storedRole === 'worker' ? storedRole : p.role,
+      fullName: p.fullName || pendingOAuth.fullName,
+    }));
+  }, [pendingOAuth]);
+
   if (currentUser) return null;
+  const oauth = pendingOAuth;
 
   function set<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((p) => ({ ...p, [key]: value }));
@@ -100,12 +125,14 @@ function RegisterForm() {
 
   function validate(): FormErrors {
     const errs: FormErrors = {};
-    if (!isRequired(values.email).ok) errs.email = t('error.required');
-    else if (!isValidEmail(values.email).ok) errs.email = t('error.email.invalid');
+    if (!oauth) {
+      if (!isRequired(values.email).ok) errs.email = t('error.required');
+      else if (!isValidEmail(values.email).ok) errs.email = t('error.email.invalid');
+      if (!isRequired(values.password).ok) errs.password = t('error.required');
+      else if (!isValidPassword(values.password).ok) errs.password = t('error.password.tooShort');
+    }
     if (!isRequired(values.phone).ok) errs.phone = t('error.required');
     else if (!isValidVNPhone(values.phone).ok) errs.phone = t('error.phone.invalid');
-    if (!isRequired(values.password).ok) errs.password = t('error.required');
-    else if (!isValidPassword(values.password).ok) errs.password = t('error.password.tooShort');
     if (values.role === 'worker' && !isRequired(values.fullName).ok) errs.fullName = t('error.required');
     if (values.role === 'employer') {
       if (!isRequired(values.companyName).ok) errs.companyName = t('error.required');
@@ -125,6 +152,31 @@ function RegisterForm() {
 
     setLoading(true);
     setErrors({});
+
+    if (oauth) {
+      const done = await completeOAuthSignup({
+        role: values.role,
+        phone: values.phone.trim(),
+        fullName: values.role === 'worker' ? values.fullName.trim() : undefined,
+        companyName: values.role === 'employer' ? values.companyName.trim() : undefined,
+        businessType: values.role === 'employer' ? values.businessType.trim() : undefined,
+        employerType10A:
+          values.role === 'employer' && values.employerType10A !== ''
+            ? values.employerType10A
+            : undefined,
+      });
+      setLoading(false);
+      if (!done.ok) {
+        const msg = toastFromStoreError(done.error);
+        setErrors({ form: msg });
+        showError(msg, undefined, { scope: 'auth' });
+        return;
+      }
+      clearToastsByScope('auth');
+      showSuccess(t('auth.oauth.complete.success'), undefined, { scope: 'auth' });
+      router.push(DASHBOARD[values.role]);
+      return;
+    }
 
     const result = await register({
       role: values.role,
@@ -182,8 +234,15 @@ function RegisterForm() {
         <div className="w-full">
           <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">{t('auth.register.title')}</h1>
-            <p className="mt-1 text-sm text-gray-600">{t('auth.register.subtitle')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {oauth ? t('auth.oauth.complete.title') : t('auth.register.title')}
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {oauth ? t('auth.oauth.complete.subtitle') : t('auth.register.subtitle')}
+            </p>
+            {oauth && oauth.email && (
+              <p className="mt-2 text-sm font-medium text-gray-800">{oauth.email}</p>
+            )}
           </div>
 
           {/* Role selector */}
@@ -208,6 +267,13 @@ function RegisterForm() {
               ))}
             </div>
           </div>
+
+          {isSupabaseEnv() && !oauth && (
+            <>
+              <GoogleSignInButton role={values.role} />
+              <AuthDivider />
+            </>
+          )}
 
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
             {/* Worker-specific */}
@@ -298,15 +364,17 @@ function RegisterForm() {
             )}
 
             {/* Common fields */}
-            <Input
-              label={t('form.email')}
-              type="email"
-              value={values.email}
-              onChange={(e) => set('email', e.target.value)}
-              error={errors.email}
-              autoComplete="email"
-              required
-            />
+            {!oauth && (
+              <Input
+                label={t('form.email')}
+                type="email"
+                value={values.email}
+                onChange={(e) => set('email', e.target.value)}
+                error={errors.email}
+                autoComplete="email"
+                required
+              />
+            )}
             <Input
               label={t('form.phone')}
               type="tel"
@@ -318,16 +386,18 @@ function RegisterForm() {
               autoComplete="tel"
               required
             />
-            <Input
-              label={t('form.password')}
-              type="password"
-              value={values.password}
-              onChange={(e) => set('password', e.target.value)}
-              error={errors.password}
-              hint="Ít nhất 8 ký tự"
-              autoComplete="new-password"
-              required
-            />
+            {!oauth && (
+              <Input
+                label={t('form.password')}
+                type="password"
+                value={values.password}
+                onChange={(e) => set('password', e.target.value)}
+                error={errors.password}
+                hint="Ít nhất 8 ký tự"
+                autoComplete="new-password"
+                required
+              />
+            )}
 
             {errors.form && (
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
@@ -336,10 +406,19 @@ function RegisterForm() {
             )}
 
             <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
-              {t('btn.register')}
+              {oauth ? t('auth.oauth.complete.submit') : t('btn.register')}
             </Button>
           </form>
 
+          {oauth ? (
+            <button
+              type="button"
+              onClick={() => void cancelOAuthSignup()}
+              className="mx-auto mt-4 flex min-h-[44px] items-center rounded px-2 text-sm font-medium text-gray-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              {t('auth.oauth.complete.cancel')}
+            </button>
+          ) : (
           <p className="mt-5 text-center text-sm text-gray-500">
             {t('auth.register.hasAccount')}{' '}
             <Link
@@ -349,6 +428,7 @@ function RegisterForm() {
               {t('btn.login')}
             </Link>
           </p>
+          )}
         </div>
       </div>
       </div>

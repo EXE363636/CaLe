@@ -33,6 +33,7 @@ import { formatVND, formatLogDateTime } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import type { EmployerType10A, ShiftDraft } from '@/types';
+import { VerificationGateNotice } from '@/components/verification/VerificationGateNotice';
 
 export default function NewShiftPage() {
   return (
@@ -579,6 +580,8 @@ function NewShiftContent() {
           />
         </div>
       </header>
+
+      <VerificationGateNotice action="post" className="mb-6" />
 
       {/* Phase 10C-Stab-1 Batch 3 A — repost-from banner. Visible
           when the employer arrived via /employer/shifts/new?from={id}

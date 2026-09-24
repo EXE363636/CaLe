@@ -35,6 +35,7 @@ import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { Shift, VerificationFlag } from '@/types';
 import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
+import { VerificationGateNotice } from '@/components/verification/VerificationGateNotice';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -523,6 +524,8 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         {currentUser?.role === 'admin' && (
           <p className="text-sm text-gray-500">Bạn đang xem với tư cách quản trị viên.</p>
         )}
+
+        {worker && !myApp && <VerificationGateNotice action="apply" />}
 
         {worker && (
           <ApplicationActions
