@@ -244,6 +244,8 @@ interface ShiftStore {
   refetchEmployer(employerId: string): Promise<void>;
   /** Supabase: nạp lại danh sách ca công khai vào cache. No-op ở local. */
   refetchPublic(): Promise<void>;
+  /** Supabase (admin): thay cache bằng MỌI ca, kể cả đã hoàn thành/huỷ. No-op ở local. */
+  refetchAll(): Promise<void>;
 
   /** Hydrate the slice from a persisted snapshot. */
   hydrate(shifts: Shift[]): void;
@@ -780,6 +782,11 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     // Giữ ca đã có bản chi tiết (owner) không thuộc listing công khai; upsert phần công khai.
     const kept = get().shifts.filter((s) => !ids.has(s.id));
     set({ shifts: [...kept, ...rows] });
+  },
+
+  async refetchAll() {
+    if (getDataMode() !== 'supabase') return;
+    set({ shifts: await getShiftRepo().listAllShifts() });
   },
 
   hydrate(shifts) {

@@ -1236,7 +1236,9 @@ export type WalletLedgerEntryKind =
    */
   | 'UserWithdrawal'
   /** Rút tiền THẬT (PayOS Kênh chi) thất bại → hoàn lại vào ví. */
-  | 'UserWithdrawalReversed';
+  | 'UserWithdrawalReversed'
+  /** Phí nền tảng 10% của một ca → ví admin được chỉ định (migration 0021). */
+  | 'PlatformFeeReceived';
 
 /**
  * Single wallet ledger entry. Append-only; never mutated.

@@ -20,6 +20,7 @@ import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { VerificationsPanel } from './VerificationsPanel';
 import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
+import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { showSuccess, showError } from '@/lib/toast';
@@ -361,63 +362,76 @@ function AnalyticsPanel({
   const completedShifts = shifts.filter((s) => s.status === 'Completed').length;
   const disputedPayments = shifts.filter((s) => s.escrowStatus === 'Disputed').length;
   const openDisputes = disputes.filter((d) => d.status === 'Open').length;
+  const currentAdminId = useAuthStore((s) => s.currentUserId);
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <StatCard
-        label="Tổng người dùng"
-        value={String(users.length)}
-        onClick={() => onJumpToUsers('all')}
-        ariaLabel="Xem toàn bộ người dùng"
-      />
-      <StatCard
-        label={t('admin.analytics.totalWorkers')}
-        value={String(workerCount)}
-        onClick={() => onJumpToUsers('worker')}
-        ariaLabel="Lọc người lao động trong tab Người dùng"
-      />
-      <StatCard
-        label={t('admin.analytics.totalEmployers')}
-        value={String(employerCount)}
-        onClick={() => onJumpToUsers('employer')}
-        ariaLabel="Lọc nhà tuyển dụng trong tab Người dùng"
-      />
-      <StatCard
-        label={t('admin.analytics.totalShifts')}
-        value={String(shifts.length)}
-        onClick={() => onJumpToShifts('all')}
-        ariaLabel="Xem toàn bộ ca làm trong tab Ca làm"
-      />
-      <StatCard
-        label="Ca đang hoạt động"
-        value={String(activeShifts)}
-        onClick={() => onJumpToShifts('active')}
-        ariaLabel="Lọc ca đang hoạt động"
-      />
-      <StatCard
-        label={t('admin.analytics.completedShifts')}
-        value={String(completedShifts)}
-        onClick={() => onJumpToShifts('completed')}
-        ariaLabel="Lọc ca đã hoàn thành"
-      />
-      {/* Thanh toán/tranh chấp: chỉ hiện khi có backend thật (ẩn ở supabase). */}
-      {hasCapability('payments') && (
-        <StatCard
-          label="Thanh toán đang tranh chấp"
-          value={String(disputedPayments)}
-          highlight
-          onClick={() => onJumpToShifts('disputed')}
-          ariaLabel="Lọc ca có thanh toán tranh chấp"
+    <div className="flex flex-col gap-6">
+      {/* Supabase: phí 10% mỗi ca được server cộng vào ví admin được chỉ định
+          (migration 0021). Admin chỉ rút, không nạp. */}
+      {isSupabaseEnv() && hasCapability('wallet') && currentAdminId && (
+        <WalletPanel
+          userId={currentAdminId}
+          role="admin"
+          title={t('admin.wallet.title')}
+          allowTopUp={false}
         />
       )}
-      {hasCapability('disputes') && (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
-          label={t('admin.analytics.activeDisputes')}
-          value={String(openDisputes)}
-          onClick={onJumpToDisputes}
-          ariaLabel="Mở tab Tranh chấp"
+          label="Tổng người dùng"
+          value={String(users.length)}
+          onClick={() => onJumpToUsers('all')}
+          ariaLabel="Xem toàn bộ người dùng"
         />
-      )}
+        <StatCard
+          label={t('admin.analytics.totalWorkers')}
+          value={String(workerCount)}
+          onClick={() => onJumpToUsers('worker')}
+          ariaLabel="Lọc người lao động trong tab Người dùng"
+        />
+        <StatCard
+          label={t('admin.analytics.totalEmployers')}
+          value={String(employerCount)}
+          onClick={() => onJumpToUsers('employer')}
+          ariaLabel="Lọc nhà tuyển dụng trong tab Người dùng"
+        />
+        <StatCard
+          label={t('admin.analytics.totalShifts')}
+          value={String(shifts.length)}
+          onClick={() => onJumpToShifts('all')}
+          ariaLabel="Xem toàn bộ ca làm trong tab Ca làm"
+        />
+        <StatCard
+          label="Ca đang hoạt động"
+          value={String(activeShifts)}
+          onClick={() => onJumpToShifts('active')}
+          ariaLabel="Lọc ca đang hoạt động"
+        />
+        <StatCard
+          label={t('admin.analytics.completedShifts')}
+          value={String(completedShifts)}
+          onClick={() => onJumpToShifts('completed')}
+          ariaLabel="Lọc ca đã hoàn thành"
+        />
+        {/* Thanh toán/tranh chấp: chỉ hiện khi có backend thật (ẩn ở supabase). */}
+        {hasCapability('payments') && (
+          <StatCard
+            label="Thanh toán đang tranh chấp"
+            value={String(disputedPayments)}
+            highlight
+            onClick={() => onJumpToShifts('disputed')}
+            ariaLabel="Lọc ca có thanh toán tranh chấp"
+          />
+        )}
+        {hasCapability('disputes') && (
+          <StatCard
+            label={t('admin.analytics.activeDisputes')}
+            value={String(openDisputes)}
+            onClick={onJumpToDisputes}
+            ariaLabel="Mở tab Tranh chấp"
+          />
+        )}
+      </div>
     </div>
   );
 }

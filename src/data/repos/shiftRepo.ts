@@ -153,6 +153,8 @@ function toEditPatch(patch: ShiftEditablePatch): Record<string, unknown> {
 export interface ShiftRepo {
   listPublicShifts(): Promise<Shift[]>;
   getEmployerShifts(employerId: string): Promise<Shift[]>;
+  /** Admin: mọi ca (RLS `shifts_select` cho `is_admin()`). */
+  listAllShifts(): Promise<Shift[]>;
   getShiftDetail(id: string): Promise<Shift | null>;
   publish(input: NewShiftInput, clientRequestId: string, repostedFromShiftId?: string): Promise<string>;
   edit(id: string, patch: ShiftEditablePatch): Promise<void>;
@@ -176,6 +178,15 @@ class SupabaseShiftRepo implements ShiftRepo {
       .eq('employer_id', employerId)
       .order('created_at', { ascending: false });
     if (error) throw new Error(`getEmployerShifts: ${error.message}`);
+    return (data ?? []).flatMap((r) => { const m = safeRowToShift(r as Row); return m ? [m] : []; });
+  }
+
+  async listAllShifts(): Promise<Shift[]> {
+    const { data, error } = await getSupabaseClient()
+      .from('shifts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(`listAllShifts: ${error.message}`);
     return (data ?? []).flatMap((r) => { const m = safeRowToShift(r as Row); return m ? [m] : []; });
   }
 

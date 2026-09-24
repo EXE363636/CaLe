@@ -81,7 +81,16 @@ async function refetchPhase2Supabase(): Promise<void> {
   // Tự chốt ca quá hạn (tự xác nhận / vắng mặt / hoàn cọc dư) TRƯỚC khi nạp để
   // dữ liệu hiển thị đã phản ánh kết quả. Idempotent; lỗi không chặn boot.
   if (cur) await syncOverdueSettlements().catch(() => undefined);
-  await useShiftStore.getState().refetchPublic();
+  if (cur?.role === 'admin') {
+    // Admin cần MỌI ca (kể cả đã hoàn thành/huỷ — không có trong `public_shifts`)
+    // để thống kê + tab "Ca làm" đếm đúng. RLS `shifts_select`/`applications_select`
+    // đã cho `is_admin()` đọc toàn bộ.
+    await useShiftStore.getState().refetchAll();
+    const ids = useShiftStore.getState().shifts.map((s) => s.id);
+    await useApplicationStore.getState().refetchForShifts(ids);
+  } else {
+    await useShiftStore.getState().refetchPublic();
+  }
   if (cur?.role === 'employer') {
     await useShiftStore.getState().refetchEmployer(cur.id);
     const ids = useShiftStore.getState().byEmployer(cur.id).map((s) => s.id);
