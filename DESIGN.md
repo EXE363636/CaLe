@@ -126,7 +126,7 @@ components:
 
 > **Nguồn sự thật palette (đồng bộ runtime).** Runtime `src/app/globals.css`
 > (khối `:root` + `@theme`) là nguồn chuẩn (canonical) DUY NHẤT cho bảng màu.
-> Tài liệu này — cùng `.impeccable/design.json` — được cập nhật để **khớp** runtime,
+> Tài liệu này được cập nhật để **khớp** runtime,
 > không phải ngược lại. Khi có khác biệt, giá trị trong `globals.css` là giá trị đúng.
 
 ## 1. Overview

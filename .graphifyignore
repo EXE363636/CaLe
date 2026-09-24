@@ -1,0 +1,11 @@
+# Tooling của agent — không phải code sản phẩm, làm nhiễu graph
+.claude/
+graphify-out/
+
+# Build / artefact
+.next/
+node_modules/
+test-results/
+playwright-report/
+*.min.js
+*.umd.js

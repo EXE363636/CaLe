@@ -38,7 +38,7 @@
  * ----------------------------------------------------------------------------
  * ANCHOR: the `:root` custom properties plus the two `@theme` blocks that
  * follow are the ONE canonical runtime source of truth for the CaLẻ brand
- * palette. `DESIGN.md` and `.impeccable/design.json` are DOCUMENTATION kept
+ * palette. `DESIGN.md` is DOCUMENTATION kept
  * in sync with THESE values — never the reverse (Req 1.7).
  *
  * Canonical brand palette (already WCAG AA — DO NOT re-color these values):

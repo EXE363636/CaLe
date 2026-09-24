@@ -72,7 +72,7 @@ src/
   __tests__/             # 46 file unit + property (thư mục properties/, generators/)
 e2e/                     # 23 spec Playwright + fixtures/
 docs/                    # tài liệu handoff, backend plan, security note
-.kiro/                   # spec (đã hoàn thành các phase) + skill "impeccable" (design tooling)
+.kiro/specs/             # spec requirements/design/tasks các phase (tài liệu lịch sử)
 ```
 
 ### Kiến trúc dữ liệu (quan trọng để hiểu)
@@ -131,7 +131,7 @@ npx tsc --noEmit     # type-check
 - **Không viết lại app từ đầu.** Code đã ổn định, có test.
 - **Không thêm tính năng mới** (chat, staff-supply/agency, AI matching) trước khi backend/core ổn định — đã quyết định hoãn.
 - Khi đổi shape dữ liệu persistence → **bump `SCHEMA_VERSION`** trong `persistence.ts` (hiện là 19) để tự reseed.
-- **Palette:** `src/app/globals.css` là nguồn chuẩn DUY NHẤT. `DESIGN.md` + `.impeccable/design.json` cập nhật để KHỚP globals.css, không ngược lại.
+- **Palette:** `src/app/globals.css` là nguồn chuẩn DUY NHẤT. `DESIGN.md` cập nhật để KHỚP globals.css, không ngược lại.
 - Mục tiêu **WCAG 2.1 AA**, mobile-first, chạm tối thiểu 44×44px, tôn trọng `prefers-reduced-motion`.
 
 ---
@@ -170,3 +170,13 @@ npx tsc --noEmit     # type-check
 - `docs/KIRO_HANDOFF_CURRENT_STATE.md` — bàn giao trạng thái (lịch sử các phase CORE-STABILITY).
 - `docs/CURRENT_TODO.md` — checklist QA thủ công + thứ tự migration.
 - `docs/SUPABASE_SECURITY_NOTE.md` — đọc TRƯỚC khi cấu hình Supabase.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
