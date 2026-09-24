@@ -313,6 +313,11 @@ async function cleanup() {
       if (error) { console.error(`⚠ Không trả lại được két (lệch ${bankDelta}đ) — sửa tay!`); process.exitCode = 1; }
     }
   }
+  // Gỡ dấu "employer xác nhận có mặt" trỏ tới user test (phòng DB chưa có 0020).
+  try {
+    await admin.from('applications').update({ marked_present_by_employer_id: null })
+      .in('marked_present_by_employer_id', [...createdUserIds]);
+  } catch { /* ignore */ }
   const leftovers = [];
   for (const id of createdUserIds) {
     try {
