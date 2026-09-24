@@ -1,4 +1,5 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 export const metadata = { title: 'Bảo vệ người dùng — CaLẻ' };
 
@@ -18,10 +19,9 @@ export default function SafetyPage() {
       </InfoSection>
 
       <InfoSection title="Đảm bảo thanh toán trước khi công khai ca">
-        Nhà tuyển dụng phải đảm bảo thanh toán đủ tiền công trước khi ca
-        được công khai. Khoản này được giữ trong ví ký quỹ mô phỏng và
-        chỉ được giải ngân sau khi ca hoàn thành hoặc hoàn lại nếu ca bị
-        huỷ đúng quy định.
+        {isSupabaseEnv()
+          ? 'Nhà tuyển dụng phải giữ cọc đủ tiền công trước khi ca được công khai. Khoản cọc được giữ trên hệ thống CaLẻ, chỉ trả cho người lao động khi ca hoàn thành, và được hoàn cho nhà tuyển dụng nếu ca bị huỷ hoặc vị trí không có người làm.'
+          : 'Nhà tuyển dụng phải đảm bảo thanh toán đủ tiền công trước khi ca được công khai. Khoản này được giữ trong ví ký quỹ mô phỏng và chỉ được giải ngân sau khi ca hoàn thành hoặc hoàn lại nếu ca bị huỷ đúng quy định.'}
       </InfoSection>
 
       <InfoSection title="Điểm uy tín hai chiều">

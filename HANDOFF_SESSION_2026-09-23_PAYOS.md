@@ -153,21 +153,41 @@ ví cộng tiền):
   `employer_confirm_completion_before_payment_release`, `edit_shift_before_deposit_guard`.
 - Ghi chú ví bỏ chữ "(mô phỏng)".
 
-### 6.3 CHƯA LÀM
-1. Tự xác nhận hoàn thành sau X giờ nếu employer không bấm (cần job định kỳ
-   phía server) — hiện worker phụ thuộc employer bấm xác nhận.
-2. Vắng mặt ở server chưa trừ điểm uy tín / chưa có "đến muộn → có mặt".
-3. Cảnh báo admin khi Kênh chi hết số dư.
-4. `npm run test:payment` (scripts/payment-integration.mjs) còn gọi RPC mô phỏng
-   đã revoke → cần viết lại.
-5. Trang admin đối soát `payment_orders`/`payout_orders`; các trang tĩnh còn
-   chữ "mô phỏng".
+### 6.3 Migration 0019 — tự chốt + đến muộn + cảnh báo quỹ chi
+- **Tự chốt ca quá hạn** (giờ kết thúc + 24h, ca còn cọc HELD): CheckedOut/
+  CheckedIn → tự Confirmed (trả công), Approved không điểm danh → NoShow,
+  CancellationRequested treo → Expired, rồi chốt cọc. Chạy khi mở app
+  (`sync_overdue_settlements`, gọi trong AppHydrator lúc boot/focus) + pg_cron
+  15 phút/lần nếu project bật được extension (lỗi chỉ NOTICE).
+- `employer_revert_no_show` (nút "Đến muộn - chuyển sang có mặt" đã bật ở
+  supabase): chỉ khi cọc chưa chốt.
+- `admin_payout_health` + banner đỏ ở trang admin khi có lệnh rút bị từ chối vì
+  Kênh chi hết tiền (người dùng thấy "Hệ thống tạm thời chưa chi được…").
+- `npm run test:payment` viết lại cho luồng tiền thật (không gọi PayOS; nạp bằng
+  service_role qua đúng đường webhook; cleanup trả lại két + xoá user test).
+  Cần `SUPABASE_SERVICE_ROLE_KEY` trong `.env.test.local`. Chạy vào DB dùng chung
+  prod — chỉ tạo user @example.com.
+- Nội dung production (landing, footer, FAQ, bảng giá, điều khoản, bảo vệ người
+  dùng, hướng dẫn, trang thanh toán) đã bỏ "mô phỏng"/"chưa thu, giữ tiền" và mô
+  tả đúng luồng tiền thật; bản local/demo giữ nguyên.
+
+### 6.4 Lưu ý vận hành migration
+- **Luôn áp migration bằng `npx supabase db push`**, KHÔNG dán tay vào SQL Editor
+  (lịch sử migration sẽ lệch → db push chạy lại migration cũ). 24/09 đã
+  `migration repair --status applied` cho 0012–0017.
+
+### 6.5 CHƯA LÀM
+1. Server chưa có hệ thống điểm uy tín → vắng mặt ở production chưa trừ điểm.
+2. Chưa có tranh chấp (dispute) phía server: đơn Disputed sẽ chặn chốt cọc.
+3. Điều khoản sử dụng / bảng giá mới chỉ mô tả đúng hành vi hệ thống — cần chủ
+   dự án duyệt nội dung pháp lý trước khi mở rộng người dùng.
+4. Trang admin đối soát chi tiết `payment_orders`/`payout_orders`.
 
 ---
 
 ## 7. Ràng buộc (giữ nguyên)
 - AI KHÔNG push `main` (deploy prod Vercel) → **partner tự merge/push main**.
   Session này push lên branch `feat/payos-real-payment`.
-- KHÔNG commit `.env*`/key. KHÔNG sửa migration đã apply (0001–0018).
+- KHÔNG commit `.env*`/key. KHÔNG sửa migration đã apply (0001–0019).
 - RPC: security definer, `search_path=''`, revoke public/anon + grant đúng vai trò.
 - Tiền tệ `đ`/`đồng` (cấm `VNĐ`/`₫`). Tiền trong ví giờ là TIỀN THẬT.

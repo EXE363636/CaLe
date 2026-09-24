@@ -731,7 +731,7 @@ export function ShiftForm({
           {liveDepositFee > 0 && (
             <p className="mt-1 text-xs text-orange-700">
               Gồm {formatVND(liveDepositBase)} tiền công + {formatVND(liveDepositFee)} phí
-              dịch vụ 10% (mô phỏng). Đây là số dư ví sẽ bị giữ khi đăng ca.
+              dịch vụ 10%. Đây là số dư ví sẽ bị giữ khi đăng ca.
             </p>
           )}
         </div>

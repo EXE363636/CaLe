@@ -46,7 +46,40 @@ export async function getWalletState(): Promise<WalletState> {
 }
 
 /**
- * Hoàn cọc (mô phỏng) cho một ca BỊ HUỶ / HẾT HẠN KHÔNG CÓ NGƯỜI LÀM.
+ * Tự chốt các ca quá hạn (sau giờ kết thúc + 24h): tự xác nhận / vắng mặt /
+ * hoàn cọc phần dư (RPC sync_overdue_settlements, 0019). Idempotent; gọi khi
+ * mở app (không polling). Trả số ca đã xử lý.
+ */
+export async function syncOverdueSettlements(): Promise<number> {
+  const { data, error } = await getSupabaseClient().rpc('sync_overdue_settlements');
+  if (error) throw new Error(error.message);
+  return num(data);
+}
+
+export interface PayoutHealth {
+  /** Lệnh rút thất bại vì Kênh chi hết tiền trong 24h qua. */
+  insufficientFailures24h: number;
+  lastInsufficientAt: string | null;
+  failed24h: number;
+  /** Lệnh rút đang chờ / đang xử lý. */
+  processingCount: number;
+}
+
+/** Tình trạng Kênh chi (chỉ admin; RPC admin_payout_health, 0019). */
+export async function getPayoutHealth(): Promise<PayoutHealth> {
+  const { data, error } = await getSupabaseClient().rpc('admin_payout_health');
+  if (error) throw new Error(error.message);
+  const o = (data ?? {}) as Row;
+  return {
+    insufficientFailures24h: num(o.insufficientFailures24h),
+    lastInsufficientAt: sOpt(o.lastInsufficientAt) ?? null,
+    failed24h: num(o.failed24h),
+    processingCount: num(o.processingCount),
+  };
+}
+
+/**
+ * Hoàn cọc cho một ca BỊ HUỶ / HẾT HẠN (phần chưa dùng).
  * Server tự kiểm điều kiện + idempotent (phiên đã hoàn → no-op). Trả trạng thái.
  * KHÔNG ném lỗi cho các no-op thường gặp (không có phiên HELD / chưa đủ điều
  * kiện) để tiện gọi hàng loạt khi quét ca; chỉ ném khi lỗi thật (quyền, mạng).

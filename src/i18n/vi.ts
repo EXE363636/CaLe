@@ -769,9 +769,9 @@ export const vi: Record<string, string> = {
   // Honest microcopy rendered directly under the hero CTAs.
   'landing.hero.trustHint':
     'Miễn phí dùng thử · Đây là bản demo · Các bước thanh toán đều là mô phỏng.',
-  // Supabase/production (Beta): tài khoản/ca/đơn là thật; CaLẻ chưa thu/giữ tiền.
+  // Supabase/production (Beta): tài khoản/ca/đơn + nạp/cọc/trả công/rút là THẬT (PayOS).
   'landing.hero.trustHint.supabase':
-    'Miễn phí dùng thử · Giai đoạn thử nghiệm giới hạn (Beta) · CaLẻ chưa thu hoặc giữ tiền.',
+    'Người lao động dùng miễn phí · Giai đoạn thử nghiệm giới hạn (Beta) · Tiền công được giữ cọc trước khi ca công khai.',
 
   // Live shift board (FeaturedJobMockup). Presentation-only labels for the
   // dispatch board. repLabel is locked (see HONESTY RULE note above).
@@ -806,7 +806,7 @@ export const vi: Record<string, string> = {
   'landing.trust.simNote':
     'Các bước giữ tiền và thanh toán hiện là mô phỏng trong prototype.',
   'landing.trust.simNote.supabase':
-    'CaLẻ hiện chưa hỗ trợ thu, giữ hoặc chuyển tiền giữa hai bên. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán.',
+    'Nhà tuyển dụng giữ cọc tiền công trước khi đăng ca. Tiền công vào ví người lao động khi ca được xác nhận hoàn thành và rút về ngân hàng qua cổng thanh toán PayOS.',
 
   // How it works - merged worker lane + employer lane, three steps each.
   'landing.howItWorks.title': 'Cách hoạt động',
@@ -842,10 +842,10 @@ export const vi: Record<string, string> = {
   'landing.safety.finance.title': 'Đảm bảo thanh toán',
   'landing.safety.finance.desc':
     'Đặt cọc, ví và thanh toán đều là sổ cái mô phỏng trong bản demo - chưa có giao dịch thật.',
-  // Supabase/production: không có ví/ký quỹ; nói đúng bản chất tự thống nhất.
-  'landing.safety.finance.title.supabase': 'Tự thống nhất thanh toán',
+  // Supabase/production: cọc/ví là tiền THẬT (PayOS) — mô tả đúng luồng giữ cọc.
+  'landing.safety.finance.title.supabase': 'Giữ cọc tiền công',
   'landing.safety.finance.desc.supabase':
-    'CaLẻ chưa thu hoặc giữ tiền. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán trực tiếp.',
+    'Tiền công được giữ cọc từ ví nhà tuyển dụng trước khi ca công khai và chuyển vào ví người lao động khi ca hoàn thành. Ca huỷ hoặc vị trí không có người làm được hoàn cọc.',
 
   // Worker / employer split - two clear choices.
   'landing.split.worker.title': 'Tôi muốn tìm ca',
@@ -883,10 +883,10 @@ export const vi: Record<string, string> = {
     'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người lao động linh hoạt.',
   'auth.side.benefit1': 'Thanh toán minh bạch',
   'auth.side.benefit1.desc': 'Nhà tuyển dụng thanh toán trước, tiền chỉ giải ngân khi hoàn thành.',
-  // Supabase/production: CaLẻ chưa thu/giữ tiền → mô tả trung thực.
+  // Supabase/production: tiền công giữ cọc THẬT → mô tả trung thực.
   'auth.side.benefit1.supabase': 'Rõ ca – rõ tiền',
   'auth.side.benefit1.desc.supabase':
-    'Mỗi ca ghi rõ giờ làm và tiền công. CaLẻ chưa thu hoặc giữ tiền; hai bên tự thống nhất cách thanh toán.',
+    'Mỗi ca ghi rõ giờ làm và tiền công. Tiền công được giữ cọc trước và vào ví của bạn khi ca hoàn thành.',
   'auth.side.benefit2': 'Không phí ẩn',
   'auth.side.benefit2.desc': 'Người lao động không phải trả trước. Đăng ký miễn phí.',
   'auth.side.benefit3': 'Điểm uy tín hai chiều',
@@ -894,7 +894,7 @@ export const vi: Record<string, string> = {
   'auth.side.disclaimer':
     'Phiên bản MVP - toàn bộ thanh toán & xác minh đều giả lập, không có giao dịch thật.',
   'auth.side.disclaimer.supabase':
-    'Giai đoạn thử nghiệm giới hạn (Beta). Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. CaLẻ hiện chưa hỗ trợ thu, giữ hoặc chuyển tiền giữa hai bên.',
+    'Giai đoạn thử nghiệm giới hạn (Beta). Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. Nạp, rút tiền qua cổng thanh toán PayOS; tiền công được giữ cọc cho tới khi ca hoàn thành.',
 
   // -------------------------------------------------------------------------
   // Worker dashboard
@@ -1199,7 +1199,7 @@ export const vi: Record<string, string> = {
 
   'help.shiftCreate.title': 'Hướng dẫn - Đăng ca mới',
   'help.shiftCreate.intro':
-    'Hoàn thành thông tin ca làm và mô phỏng đảm bảo thanh toán theo mức tin cậy.',
+    'Hoàn thành thông tin ca làm; ca chỉ được đăng sau khi giữ cọc tiền công.',
   'help.shiftCreate.item1':
     'Lương theo giờ nhập số nguyên - hệ thống tự đọc thành chữ Việt.',
   'help.shiftCreate.item2':
@@ -1243,7 +1243,7 @@ export const vi: Record<string, string> = {
   'help.workerDashboard.section.numbers.item2':
     'Hạn mức huỷ tuần: 3 lượt mặc định. Đạt điểm uy tín cao thì được nâng (4–5 lượt/tuần).',
   'help.workerDashboard.section.numbers.item3':
-    'Tổng thu nhập: tổng tiền của các ca đã hoàn thành và đã thanh toán (mô phỏng MVP).',
+    'Tổng thu nhập: tổng tiền công của các ca đã hoàn thành và đã được thanh toán.',
   'help.workerDashboard.section.numbers.item4':
     'Ca đã hoàn thành: số ca có trạng thái "Đã xác nhận".',
   'help.workerDashboard.section.actions.heading': 'Thao tác chính',
@@ -1295,12 +1295,12 @@ export const vi: Record<string, string> = {
   'help.employerDashboard.section.numbers.item2':
     'Đơn chờ duyệt: số đơn ứng tuyển ở trạng thái "Chờ duyệt" trên các ca của bạn.',
   'help.employerDashboard.section.numbers.item3':
-    'Tổng đã đảm bảo thanh toán / đã thanh toán: tổng khoản đảm bảo thanh toán và tổng tiền đã giải ngân (mô phỏng MVP).',
+    'Tổng đã đảm bảo thanh toán / đã thanh toán: tổng tiền cọc đã giữ và tổng tiền công đã trả cho người lao động.',
   'help.employerDashboard.section.numbers.item4':
     'Lượt boost: 1 lượt được tặng mỗi khi đánh dấu vắng mặt; dùng để đẩy ca lên đầu danh sách.',
   'help.employerDashboard.section.actions.heading': 'Thao tác chính',
   'help.employerDashboard.section.actions.item1':
-    'Bấm "Đăng ca mới" để tạo ca và mô phỏng đảm bảo thanh toán.',
+    'Bấm "Đăng ca mới" để tạo ca và giữ cọc tiền công.',
   'help.employerDashboard.section.actions.item2':
     'Bấm vào ô số liệu để xem danh sách chi tiết tương ứng (ca đã đăng / đơn chờ duyệt / thanh toán).',
   'help.employerDashboard.section.actions.item3':
@@ -1386,7 +1386,7 @@ export const vi: Record<string, string> = {
 
   // Employer dashboard empty states
   'employer.dashboard.empty.upcoming.descriptionRich':
-    'Bấm "Đăng ca mới" để tạo ca và mô phỏng đảm bảo thanh toán. Ca chỉ công khai sau khi đảm bảo thanh toán thành công.',
+    'Bấm "Đăng ca mới" để tạo ca và giữ cọc tiền công. Ca chỉ công khai sau khi giữ cọc thành công.',
   'employer.dashboard.empty.pending.title':
     'Chưa có đơn ứng tuyển nào chờ duyệt.',
   'employer.dashboard.empty.pending.description':
@@ -1430,7 +1430,7 @@ export const vi: Record<string, string> = {
   'hint.employer.statusApproved':
     'Bạn đã chấp nhận ứng viên này. Họ sẽ check-in khi đến giờ ca.',
   'hint.employer.statusCompleted':
-    'Bạn đã xác nhận ứng viên hoàn thành ca này. Tiền công đã được giải ngân (mô phỏng).',
+    'Bạn đã xác nhận ứng viên hoàn thành ca này. Tiền công đã được chuyển vào ví người lao động.',
 
   // HelpPopover description - admin override button
   'hint.admin.override':
@@ -1919,6 +1919,15 @@ export const vi: Record<string, string> = {
     'Phần cọc của vị trí này sẽ được hoàn về ví khi ca chốt.',
   'wallet.error.depositTooLow':
     'Không thể tăng giờ làm / số vị trí vượt quá tiền cọc đã giữ. Hãy huỷ ca và đăng ca mới.',
+  'attendance.revert.error.settled':
+    'Không thể chuyển sang có mặt: ca đã chốt hoặc đơn không còn ở trạng thái vắng mặt.',
+  'wallet.withdraw.real.failPayoutFunds':
+    'Hệ thống tạm thời chưa chi được. Tiền đã hoàn về ví, bạn vui lòng thử lại sau.',
+  'admin.payoutHealth.lowFunds.title': 'Quỹ chi (Kênh chi PayOS) đang hết tiền',
+  'admin.payoutHealth.lowFunds.body':
+    '{count} lệnh rút trong 24 giờ qua bị từ chối vì tài khoản chi không đủ số dư. Tiền đã tự hoàn về ví người dùng — hãy nạp thêm vào tài khoản chi (ví Bảo Kim) để họ rút lại được.',
+  'admin.payoutHealth.lowFunds.last': 'Lần gần nhất:',
+  'admin.payoutHealth.processing': '{count} lệnh rút đang chờ PayOS xử lý.',
   'wallet.error.depositNotHeld':
     'Tiền cọc của ca này đã được chốt, không thể trả thêm tiền công. Vui lòng liên hệ hỗ trợ.',
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',
@@ -2341,6 +2350,8 @@ export const vi: Record<string, string> = {
     'CaLẻ được phát triển bởi CaLedo Tech - một đội ngũ tại Việt Nam mong muốn đưa các công cụ làm việc ngắn hạn đến gần hơn với thị trường lao động trong nước. Chúng tôi đặc biệt hướng tới các bạn cần ca linh hoạt theo lịch học hoặc lịch cá nhân, và các chủ quán/cửa hàng cần người lao động bù trong giờ cao điểm.',
 
   'about.version.title': 'Phiên bản hiện tại',
+  'about.version.body.supabase':
+    'Đây là giai đoạn thử nghiệm giới hạn (Beta). Nạp tiền, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS. Chúng tôi sẽ thông báo trước cho người dùng khi có thay đổi về phí hoặc điều khoản.',
   'about.version.body':
     'Đây là phiên bản dùng thử. Mọi giao dịch tiền tệ trên ứng dụng đều là mô phỏng - chưa kết nối với hệ thống thanh toán thực. Khi sản phẩm chính thức ra mắt, chúng tôi sẽ thông báo trước cho người dùng đã đăng ký.',
 

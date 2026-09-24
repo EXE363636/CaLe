@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { loadAll, cleanupLegacyBusinessData } from '@/data/persistence';
 import { getDataMode, getSupabaseClient, isSupabaseEnv } from '@/data/supabaseClient';
 import { getUserRepo } from '@/data/repos/userRepo';
+import { syncOverdueSettlements } from '@/data/repos/walletRepo';
 import {
   useApplicationStore,
   useAuthStore,
@@ -77,6 +78,9 @@ function BootErrorBar({
  */
 async function refetchPhase2Supabase(): Promise<void> {
   const cur = useAuthStore.getState().currentUser();
+  // Tự chốt ca quá hạn (tự xác nhận / vắng mặt / hoàn cọc dư) TRƯỚC khi nạp để
+  // dữ liệu hiển thị đã phản ánh kết quả. Idempotent; lỗi không chặn boot.
+  if (cur) await syncOverdueSettlements().catch(() => undefined);
   await useShiftStore.getState().refetchPublic();
   if (cur?.role === 'employer') {
     await useShiftStore.getState().refetchEmployer(cur.id);

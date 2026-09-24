@@ -1,6 +1,7 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { PartnersSection } from '@/components/about/PartnersSection';
 import { t } from '@/i18n/vi';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 export const metadata = { title: 'Giới thiệu — CaLẻ' };
 
@@ -52,7 +53,7 @@ export default function AboutPage() {
       <PartnersSection />
 
       <InfoSection title={t('about.version.title')}>
-        {t('about.version.body')}
+        {isSupabaseEnv() ? t('about.version.body.supabase') : t('about.version.body')}
       </InfoSection>
     </InfoPage>
   );

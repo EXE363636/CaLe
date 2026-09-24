@@ -74,12 +74,13 @@ describe('B1 — login demo box gated by data mode', () => {
 // ---------------------------------------------------------------------------
 
 describe('B5 — footer honest note by data mode', () => {
-  it('supabase: nói đã lưu trên hệ thống + chưa thu/giữ/chuyển tiền, không "demo/MVP"', () => {
+  it('supabase: nói đã lưu trên hệ thống + tiền thật qua PayOS, không "demo/MVP"', () => {
     setMode('supabase');
     const { container } = render(<Footer />);
     const text = nfc(container.textContent);
     expect(text).toContain('được lưu trên hệ thống');
-    expect(text).toContain('chưa hỗ trợ thu, giữ hoặc chuyển tiền');
+    expect(text).toContain('giao dịch thật qua cổng thanh toán PayOS');
+    expect(lc(text)).not.toContain('mô phỏng');
     expect(lc(text)).not.toContain('mvp');
     expect(lc(text)).not.toContain('dữ liệu demo');
   });
@@ -101,7 +102,8 @@ describe('B4 — /employer/payments content by data mode', () => {
     setMode('supabase');
     const { container } = render(<EmployerPaymentsPage />);
     const text = lc(container.textContent);
-    expect(text).toContain('chưa thu, giữ hoặc chuyển tiền');
+    expect(text).toContain('giữ cọc tiền công');
+    expect(text).toContain('xác nhận hoàn thành');
     expect(text).not.toContain('mô phỏng');
     expect(text).not.toContain('ký quỹ');
     expect(text).not.toContain('mvp');
@@ -127,14 +129,15 @@ describe('B4 — NoPaymentNotice honest message', () => {
 });
 
 describe('B — AuthSidePanel honesty by data mode', () => {
-  it('supabase: không hứa ký quỹ/giải ngân, không "MVP/giả lập"', () => {
+  it('supabase: mô tả giữ cọc thật, không "ký quỹ/giải ngân/MVP/giả lập"', () => {
     setMode('supabase');
     const { container } = render(<AuthSidePanel mode="register" />);
     const text = lc(container.textContent);
     expect(text).not.toContain('giải ngân');
     expect(text).not.toContain('mvp');
     expect(text).not.toContain('giả lập');
-    expect(text).toContain('chưa thu hoặc giữ tiền');
+    expect(text).toContain('giữ cọc');
+    expect(text).not.toContain('mô phỏng');
   });
 
   it('local: giữ nguyên nội dung dùng thử (MVP)', () => {

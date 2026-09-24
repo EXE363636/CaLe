@@ -63,6 +63,8 @@ export interface ApplicationRepo {
   employerMarkPresent(applicationId: string): Promise<void>;
   /** Employer đánh dấu vắng mặt (chốt cọc nếu là người cuối cùng). */
   employerMarkNoShow(applicationId: string): Promise<void>;
+  /** Vắng mặt → có mặt (đến muộn), khi cọc chưa chốt. */
+  employerRevertNoShow(applicationId: string, reason: string): Promise<void>;
   workerCheckOut(
     applicationId: string,
     payload: { note?: string; evidenceFileName?: string; checklist?: boolean[] },
@@ -145,6 +147,14 @@ class SupabaseApplicationRepo implements ApplicationRepo {
 
   async employerMarkNoShow(applicationId: string): Promise<void> {
     const { error } = await getSupabaseClient().rpc('employer_mark_no_show', { p_application_id: applicationId });
+    if (error) throw new Error(error.message);
+  }
+
+  async employerRevertNoShow(applicationId: string, reason: string): Promise<void> {
+    const { error } = await getSupabaseClient().rpc('employer_revert_no_show', {
+      p_application_id: applicationId,
+      p_reason: reason,
+    });
     if (error) throw new Error(error.message);
   }
 

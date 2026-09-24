@@ -514,7 +514,9 @@ export function WalletPanel({
                     </span>
                     {w.status === 'FAILED' && w.failReason && (
                       <span className="mt-0.5 block text-[11px] leading-relaxed text-rose-700">
-                        Lý do: {w.failReason}
+                        {/không đủ|insufficient/i.test(w.failReason)
+                          ? t('wallet.withdraw.real.failPayoutFunds')
+                          : `Lý do: ${w.failReason}`}
                       </span>
                     )}
                   </div>

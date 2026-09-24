@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+
+/** Production (supabase): tiền thật qua PayOS; local/demo: mô phỏng. */
+const REAL_MONEY = isSupabaseEnv();
 
 /**
  * Public user guide - Phase 9Y, polished in Phase 9Z-Fix-4.
@@ -79,7 +83,9 @@ const WORKER_STEPS: Step[] = [
   {
     title: 'Nhận thanh toán.',
     body:
-      'Khi nhà tuyển dụng bấm “Xác nhận hoàn thành”, ca được ghi nhận là hoàn thành và tiền công được chuyển cho bạn. Trong bản MVP, việc chuyển tiền chỉ được mô phỏng. Ô "Tổng thu nhập" trên trang Tổng quan tăng tương ứng.',
+      REAL_MONEY
+        ? 'Khi nhà tuyển dụng bấm “Xác nhận hoàn thành”, tiền công được chuyển ngay vào ví của bạn và có thể rút về tài khoản ngân hàng. Nếu nhà tuyển dụng không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'
+        : 'Khi nhà tuyển dụng bấm “Xác nhận hoàn thành”, ca được ghi nhận là hoàn thành và tiền công được chuyển cho bạn. Trong bản MVP, việc chuyển tiền chỉ được mô phỏng. Ô "Tổng thu nhập" trên trang Tổng quan tăng tương ứng.',
   },
   {
     title: 'Theo dõi điểm uy tín.',
@@ -131,7 +137,9 @@ const EMPLOYER_STEPS: Step[] = [
   {
     title: 'Xác nhận hoàn thành.',
     body:
-      'Bấm "Xác nhận hoàn thành" trên từng người lao động. Tiền công được chuyển cho người lao động và ca chuyển sang trạng thái Đã hoàn thành. Trong bản MVP, giao dịch này chỉ được mô phỏng. Nếu người lao động vắng mặt, bấm "Vắng mặt" - bạn được tặng 1 lượt boost cho ca tiếp theo.',
+      REAL_MONEY
+        ? 'Bấm "Xác nhận hoàn thành" trên từng người lao động: tiền công vào ví người đó ngay. Nếu người lao động không đến, bấm "Vắng mặt" (sau giờ bắt đầu 15 phút) - phần cọc của vị trí đó được hoàn về ví của bạn khi ca chốt. Nếu bạn không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'
+        : 'Bấm "Xác nhận hoàn thành" trên từng người lao động. Tiền công được chuyển cho người lao động và ca chuyển sang trạng thái Đã hoàn thành. Trong bản MVP, giao dịch này chỉ được mô phỏng. Nếu người lao động vắng mặt, bấm "Vắng mặt" - bạn được tặng 1 lượt boost cho ca tiếp theo.',
   },
   {
     title: 'Đánh giá sau ca.',
@@ -449,7 +457,9 @@ export default function UserGuidePage() {
           title="Tổng thu nhập được tính như thế nào?"
           bullets={[
             'Tổng thu nhập là tổng tiền công từ những ca bạn đã hoàn thành và đã được nhà tuyển dụng xác nhận thanh toán.',
-            'Một ca chỉ tính vào tổng thu nhập sau khi nhà tuyển dụng bấm Xác nhận hoàn thành - tiền sẽ được giải ngân (mô phỏng trong bản MVP).',
+            REAL_MONEY
+              ? 'Một ca chỉ tính vào tổng thu nhập sau khi được xác nhận hoàn thành - tiền công khi đó vào ví của bạn.'
+              : 'Một ca chỉ tính vào tổng thu nhập sau khi nhà tuyển dụng bấm Xác nhận hoàn thành - tiền sẽ được giải ngân (mô phỏng trong bản MVP).',
             'Số tiền này không bao gồm các ca đang diễn ra hoặc đang chờ xác nhận.',
           ]}
           example="Bạn hoàn thành 2 ca: một ca 4 giờ với lương 45.000 đ/giờ (tổng 180.000 đ) và một ca 5 giờ với lương 60.000 đ/giờ (tổng 300.000 đ). Sau khi cả hai được xác nhận, ô “Tổng thu nhập” tăng thêm 480.000 đ."
@@ -500,7 +510,9 @@ export default function UserGuidePage() {
             'Khi có người ứng tuyển, nhà tuyển dụng xem hồ sơ, điểm uy tín, kỹ năng và lịch sử làm việc của ứng viên ngay trên trang quản lý ca.',
             'Bấm Duyệt để chấp nhận đơn ứng tuyển, hoặc Từ chối kèm lý do (bắt buộc) để người lao động hiểu vì sao.',
             'Sau khi duyệt, người lao động sẽ nhận thông báo và đến giờ thực hiện ca.',
-            'Sau khi ca hoàn thành, nhà tuyển dụng bấm Xác nhận hoàn thành - tiền công được giải ngân (mô phỏng) cho người lao động.',
+            REAL_MONEY
+              ? 'Sau khi ca hoàn thành, nhà tuyển dụng bấm Xác nhận hoàn thành - tiền công vào ví người lao động.'
+              : 'Sau khi ca hoàn thành, nhà tuyển dụng bấm Xác nhận hoàn thành - tiền công được giải ngân (mô phỏng) cho người lao động.',
           ]}
           example="Có 3 người ứng tuyển ca tối nay. Bạn xem hồ sơ từng người: ứng viên A có điểm uy tín 95 và 12 ca hoàn thành, ứng viên B có 75 và 4 ca, ứng viên C mới (100 điểm, chưa có ca). Bạn duyệt A và B, từ chối C kèm lý do «Ưu tiên người có kinh nghiệm cho ca này»."
           nextAction="Trong Tổng quan nhà tuyển dụng, bấm vào ô “Đơn chờ duyệt” để xử lý các đơn còn chờ."
@@ -553,7 +565,9 @@ export default function UserGuidePage() {
           title="Ca đã hoàn thành là gì?"
           bullets={[
             'Đây là các ca đã được xác nhận hoàn thành sau khi người lao động check-in / check-out và bạn bấm Xác nhận hoàn thành.',
-            'Tiền công cho các ca này đã được giải ngân (mô phỏng trong bản MVP).',
+            REAL_MONEY
+              ? 'Tiền công cho các ca này đã được chuyển vào ví người lao động.'
+              : 'Tiền công cho các ca này đã được giải ngân (mô phỏng trong bản MVP).',
             'Số liệu này dùng để xây dựng hồ sơ uy tín nhà tuyển dụng - càng nhiều ca hoàn thành thành công, càng dễ thu hút người lao động chất lượng.',
           ]}
           example="Tháng này bạn đã đăng 6 ca. 4 ca đã chạy xong và bạn đã bấm Xác nhận hoàn thành cho từng người lao động. Ô “Ca đã hoàn thành” đếm 4; 2 ca còn lại vẫn ở trạng thái Đang diễn ra hoặc Chờ xác nhận."
@@ -574,7 +588,9 @@ export default function UserGuidePage() {
             'Nhà tuyển dụng thanh toán trước tiền công trước khi ca được công khai trên hệ thống.',
             'Tiền công chỉ được giải ngân cho người lao động sau khi ca hoàn thành và được xác nhận hai chiều.',
             'Cơ chế thanh toán trước giúp người lao động yên tâm về thanh toán mà không phải trả trước bất kỳ khoản nào.',
-            'Trong bản MVP, mọi giao dịch được mô phỏng trong trình duyệt; không có thanh toán thật.',
+            REAL_MONEY
+              ? 'Nạp và rút tiền là giao dịch thật qua cổng thanh toán PayOS.'
+              : 'Trong bản MVP, mọi giao dịch được mô phỏng trong trình duyệt; không có thanh toán thật.',
           ]}
           example="Bạn đăng một ca trị giá 280.000 đ. Hệ thống yêu cầu đảm bảo thanh toán 100% tức 280.000 đ. Số tiền này được giữ tạm trong hệ thống đến khi ca hoàn thành - lúc đó tiền sẽ được chuyển cho người lao động. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ tương lai, không ảnh hưởng đến tỷ lệ đảm bảo thanh toán."
           nextAction="Xem cấp độ tin cậy hiện tại của bạn và cách nâng cấp để được ưu tiên hiển thị và giảm phí dịch vụ trong tương lai."
@@ -590,7 +606,9 @@ export default function UserGuidePage() {
             'Đây là tổng tiền công đang được hệ thống giữ tạm chờ thanh toán.',
             'Bao gồm khoản tiền công chờ thanh toán của các ca đang tuyển, đã đủ người, đang diễn ra và chờ xác nhận.',
             'Đây chưa phải là khoản tiền đã chi trả. Hệ thống đang giữ tạm số tiền này và sẽ chuyển cho người lao động sau khi ca được xác nhận hoàn thành.',
-            'Trong bản MVP, thao tác giữ tiền chờ thanh toán chỉ là mô phỏng, chưa có giao dịch thật.',
+            REAL_MONEY
+              ? 'Tiền cọc được giữ thật từ ví nhà tuyển dụng; phần không sử dụng được hoàn về ví.'
+              : 'Trong bản MVP, thao tác giữ tiền chờ thanh toán chỉ là mô phỏng, chưa có giao dịch thật.',
           ]}
           example="Bạn đăng một ca 4 giờ, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Hệ thống sẽ giữ tạm 100% là 280.000 đ. Sau khi đăng ca, ô “Tổng tiền công chờ thanh toán” tăng thêm 280.000 đ."
           nextAction="Bấm vào ô “Tổng tiền công chờ thanh toán” trên Tổng quan nhà tuyển dụng để xem danh sách các ca đang giữ tiền."

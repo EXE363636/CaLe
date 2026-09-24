@@ -142,14 +142,14 @@ export function Footer() {
         </div>
 
         {/* Honest backend-status note — theo data mode (build-time inlined).
-            - supabase: tài khoản/ca/đơn đã ở máy chủ (thật); CHỈ cọc/giữ tiền còn
-              mô phỏng (Phase 3 mới có thanh toán thật).
+            - supabase: tài khoản/ca/đơn ở máy chủ; nạp/cọc/trả công/rút là tiền
+              THẬT qua PayOS.
             - local (demo/prototype): dữ liệu ở localStorage.
             Dùng process.env trực tiếp (không getDataMode()) để build không throw. */}
         {process.env.NEXT_PUBLIC_DATA_MODE === 'supabase' ? (
           <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-[11px] leading-relaxed text-gray-600 ring-1 ring-gray-100">
             Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống.
-            CaLẻ hiện chưa hỗ trợ thu, giữ hoặc chuyển tiền giữa hai bên.
+            Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.
           </p>
         ) : (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11px] leading-relaxed text-amber-800 ring-1 ring-amber-100">

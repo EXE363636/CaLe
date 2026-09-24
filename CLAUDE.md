@@ -120,6 +120,11 @@ npx tsc --noEmit     # type-check
 - Thanh toán → **"theo dõi trạng thái thanh toán"**, không phải cổng thật.
 - Check-in/out → **"trạng thái ở mức prototype"**, không phải GPS/QR chống gian lận.
 - Không dùng từ/icon gợi ý "guaranteed payout" hay giao dịch tài chính thật.
+- **Ngoại lệ — production (`NEXT_PUBLIC_DATA_MODE=supabase`, từ 09/2026):** nạp, giữ
+  cọc, trả công, hoàn cọc, rút tiền là **tiền THẬT qua PayOS** (migration 0016–0019)
+  → UI production KHÔNG được ghi "mô phỏng" cho các luồng này; mô tả đúng luồng
+  server. Nhãn mô phỏng chỉ còn cho chế độ local/demo và khi bật `PAYOS_MOCK=true`.
+  Xác minh giấy tờ, check-in, điểm uy tín vẫn là mô phỏng/prototype.
 - **Tiền tệ:** dùng chữ thường `đ` / `đồng`. **Cấm `VNĐ` và `₫`.**
 
 ### Kỹ thuật

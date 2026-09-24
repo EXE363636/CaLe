@@ -94,8 +94,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const markNoShowAsync = useApplicationStore((s) => s.markNoShowAsync);
   const markPresentAsync = useApplicationStore((s) => s.markPresentAsync);
   const confirmCompletionAsync = useApplicationStore((s) => s.confirmCompletionAsync);
-  const revertNoShowToPresent = useApplicationStore(
-    (s) => s.revertNoShowToPresent,
+  const revertNoShowToPresentAsync = useApplicationStore(
+    (s) => s.revertNoShowToPresentAsync,
   );
   const reportIssue = useApplicationStore((s) => s.reportIssue);
   const appendDisputeResponse = useApplicationStore(
@@ -272,15 +272,15 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     setRevertAppId(appId);
   }
 
-  function handleConfirmRevert() {
-    if (!revertAppId) return;
+  async function handleConfirmRevert() {
+    if (!revertAppId || actionLoading) return;
     const trimmed = revertReason.trim();
     if (trimmed === '') {
       setRevertError(t('attendance.revert.error.reasonRequired'));
       return;
     }
     setActionLoading(revertAppId);
-    const result = revertNoShowToPresent(revertAppId, trimmed);
+    const result = await revertNoShowToPresentAsync(revertAppId, trimmed);
     setActionLoading(null);
     if (result.ok) {
       showSuccess(t('attendance.revert.success'));
@@ -863,11 +863,13 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               // present (late arrival) while the shift hasn't fully
               // closed out (escrow not yet Released).
               const canRevertToPresent =
-                // Chuyển vắng mặt → có mặt CHƯA nối backend → ẩn ở supabase.
-                !isSupabaseEnv() &&
+                // Supabase: RPC employer_revert_no_show (0019) — server chặn khi
+                // cọc đã chốt (DEPOSIT_NOT_HELD).
+                (!isSupabaseEnv() || hasCapability('attendance')) &&
                 app.status === 'NoShow' &&
                 shift.status !== 'Completed' &&
-                shift.escrowStatus !== 'Released';
+                shift.status !== 'Cancelled' &&
+                (isSupabaseEnv() || shift.escrowStatus !== 'Released');
               // CORE-STABILITY-9 Parts 1 & 3 — role-aware attendance
               // copy for the EMPLOYER viewer (never worker-perspective
               // text). One banner derived from the canonical state

@@ -6,19 +6,30 @@ export const metadata = {
 };
 
 export default function EmployerPaymentsPage() {
-  // Supabase/production: CaLẻ chưa thu/giữ tiền → nội dung trung thực, không mô tả
-  // ví ký quỹ / giải ngân mô phỏng (B4). Giữ phần quy định huỷ ca (thật, server enforce).
+  // Supabase/production: giữ cọc + trả công + hoàn cọc là tiền THẬT (0016–0019).
+  // Mô tả đúng luồng server; quy định huỷ ca do server enforce.
   if (isSupabaseEnv()) {
     return (
       <InfoPage
         eyebrow="Dành cho nhà tuyển dụng"
         title="Thanh toán"
-        intro="CaLẻ hiện chưa thu, giữ hoặc chuyển tiền giữa hai bên. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán trực tiếp."
+        intro="Nạp tiền vào ví bằng chuyển khoản (PayOS). Khi đăng ca, hệ thống giữ cọc tiền công cùng phí nền tảng 10% từ ví của bạn; tiền công chỉ được trả cho người lao động khi ca hoàn thành."
         ctas={[
           { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
           { label: 'Quản lý ứng viên', href: '/employer/dashboard', variant: 'secondary' },
         ]}
       >
+        <InfoSection title="Khi nào tiền được trả hoặc hoàn">
+          <InfoList
+            items={[
+              'Bạn bấm "Xác nhận hoàn thành" cho từng người: tiền công vào ví người đó ngay.',
+              'Nếu bạn không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.',
+              'Vị trí không có người làm, người lao động bị đánh dấu vắng mặt, hoặc ca bị huỷ: phần cọc tương ứng (kể cả phí) được hoàn về ví của bạn.',
+              'Số dư ví rút về tài khoản ngân hàng bất cứ lúc nào.',
+            ]}
+          />
+        </InfoSection>
+
         <InfoSection title="Quy định huỷ ca cho nhà tuyển dụng">
           <InfoList
             items={[

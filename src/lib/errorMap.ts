@@ -146,6 +146,7 @@ export function toastFromStoreError(
     DEPOSIT_TOO_LOW: t('wallet.error.depositTooLow'),
     DEPOSIT_NOT_HELD: t('wallet.error.depositNotHeld'),
     DEPOSIT_EXCEEDED: t('wallet.error.depositNotHeld'),
+    INVALID_STATE_FOR_REVERT: t('attendance.revert.error.settled'),
   };
 
   const message = map[code];

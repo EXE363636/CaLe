@@ -619,13 +619,14 @@ function NewShiftContent() {
         </div>
       )}
 
-      {/* "Đăng ca phải thanh toán trước" (supabase): giữ tiền cọc (mô phỏng)
+      {/* "Đăng ca phải thanh toán trước" (supabase): giữ cọc từ ví (tiền thật)
           rồi ca mới được đăng. Ca chỉ tồn tại sau khi HELD. */}
       {depositPayload && (
         <div className="mb-2">
           <p className="mb-3 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200">
-            Để đăng ca, hệ thống <strong>giữ cọc từ số dư ví (mô phỏng)</strong> của bạn.
-            Ca chỉ được đăng sau khi giữ cọc. Trong MVP/demo không có giao dịch thật.
+            Để đăng ca, hệ thống <strong>giữ cọc từ số dư ví</strong> của bạn. Ca chỉ được
+            đăng sau khi giữ cọc. Tiền cọc trả cho người lao động khi ca hoàn thành; phần
+            không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.
           </p>
           <DepositWalletConfirm
             shiftPayload={depositPayload}

@@ -1,4 +1,5 @@
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 export const metadata = { title: 'Câu hỏi thường gặp — CaLẻ' };
 
@@ -33,10 +34,9 @@ export default function FaqPage() {
       </InfoSection>
 
       <InfoSection title="Khi nào tôi nhận được tiền công?">
-        Sau khi bạn check-out và nhà tuyển dụng xác nhận hoàn thành,
-        tiền công được giải ngân vào hệ thống và phản ánh ngay trong
-        mục &quot;Tổng thu nhập&quot; trên dashboard người lao động. Trong bản
-        dùng thử hiện tại, mọi giao dịch tiền tệ đều là mô phỏng.
+        {isSupabaseEnv()
+          ? 'Ngay khi nhà tuyển dụng xác nhận bạn hoàn thành ca, tiền công được chuyển vào ví của bạn trên CaLẻ và bạn có thể rút về tài khoản ngân hàng bất cứ lúc nào. Nếu nhà tuyển dụng không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'
+          : 'Sau khi bạn check-out và nhà tuyển dụng xác nhận hoàn thành, tiền công được giải ngân vào hệ thống và phản ánh ngay trong mục "Tổng thu nhập" trên dashboard người lao động. Trong bản dùng thử hiện tại, mọi giao dịch tiền tệ đều là mô phỏng.'}
       </InfoSection>
 
       <InfoSection title="Tôi đăng ca xong nhưng chưa ai ứng tuyển, làm sao bây giờ?">

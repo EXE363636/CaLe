@@ -19,6 +19,7 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { VerificationsPanel } from './VerificationsPanel';
+import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { showSuccess, showError } from '@/lib/toast';
@@ -243,6 +244,8 @@ function AdminDashboardContent() {
           </div>
         </div>
       </header>
+
+      {isSupabaseEnv() && <PayoutHealthBanner />}
 
       {/* Tab nav */}
       <div className="mb-6 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-white/80 p-1 shadow-sm backdrop-blur-sm">
