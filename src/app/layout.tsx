@@ -5,6 +5,7 @@ import { AppHydrator } from "@/components/layout/AppHydrator";
 import { NavBar } from "@/components/layout/NavBar";
 import { Footer } from "@/components/layout/Footer";
 import { ToastHost } from "@/components/layout/ToastHost";
+import { OAuthOnboardingRedirect } from "@/components/auth/OAuthOnboardingRedirect";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 
 const inter = Inter({
@@ -64,6 +65,7 @@ export default function RootLayout({
           </main>
           <Footer />
           <ToastHost />
+          <OAuthOnboardingRedirect />
         </AppHydrator>
         {/* Google Analytics 4 — nạp gtag.js một lần cho toàn app. */}
         <GoogleAnalytics />
