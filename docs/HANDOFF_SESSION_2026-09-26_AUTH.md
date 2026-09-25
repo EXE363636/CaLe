@@ -3,7 +3,20 @@
 > Đọc kèm `CLAUDE.md`, `HANDOFF.md`, `docs/SETUP_AUTH_OTP_CCCD.md` (hướng dẫn cấu hình
 > dashboard từng bước).
 
+## 0. Partner cần làm sau khi pull
+1. `git pull` (main = `feat/payos-real-payment`). Không đụng file local nào.
+2. **KHÔNG cần** chạy migration hay deploy function — `0022` và `phone-otp` đã có trên
+   Supabase dùng chung. Kiểm tra: `npx supabase migration list` → 0001–0022 đủ 2 cột.
+3. Dựng lại graph: `graphify update .`
+4. Thử trên cale.io.vn: Đăng nhập Google (Gmail chưa đăng ký → trang "Hoàn tất đăng
+   ký"), Quên mật khẩu (mail tiếng Việt từ `no-reply@cale.io.vn`), Hồ sơ → thẻ "Xác
+   thực tài khoản" (nộp CCCD), admin → tab "Xác thực" (duyệt CCCD, cài đặt).
+5. Muốn thử OTP không tốn tiền: `npx supabase secrets set SMS_PROVIDER=mock` → mã hiện
+   ở Supabase → Edge Functions → phone-otp → Logs. (Chủ dự án đang đăng ký SpeedSMS.)
+
 ## 1. Trạng thái
+- Commit chính: `8254543` (tính năng), `073a118` (Google mới luôn tới bước hoàn tất
+  đăng ký), `ec88b2e` (mẫu email), `c7cde4f` (tài liệu).
 - Migration **`0022_phone_otp_identity_oauth.sql` ĐÃ apply** (`db push`), đã chạy thử
   trong transaction + rollback trước khi push. Edge Function **`phone-otp` ĐÃ deploy**.
 - Cờ bắt buộc (`platform_settings`) đều **TẮT** → chưa ai bị chặn.
