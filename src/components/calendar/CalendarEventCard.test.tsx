@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { CalendarEventCard } from './CalendarEventCard';
+import { CalendarEventCard, calendarSlotRowHeight } from './CalendarEventCard';
 
 describe('CalendarEventCard', () => {
   it('renders title, time range, and subtitle', () => {
@@ -112,5 +112,27 @@ describe('CalendarEventCard', () => {
 
     const root = container.firstElementChild as HTMLElement;
     expect(root.className).toContain('min-h-[44px]');
+  });
+
+  it('grid (absolute) card shows the text status label instead of the chip', () => {
+    render(
+      <CalendarEventCard
+        title="Ca ngắn"
+        timeRange="17:00 - 18:00"
+        statusLabel="Hoàn thành"
+        statusChip={<span data-testid="chip-hidden">chip</span>}
+        variant="completedShift"
+        absolute
+      />,
+    );
+    expect(screen.getByText('Hoàn thành')).toBeInTheDocument();
+    expect(screen.queryByTestId('chip-hidden')).toBeNull();
+  });
+
+  it('calendarSlotRowHeight gives every hour at least 60px', () => {
+    expect(calendarSlotRowHeight(120)).toBe(120);
+    expect(calendarSlotRowHeight(60)).toBe(60);
+    expect(calendarSlotRowHeight(30)).toBe(60);
+    expect(calendarSlotRowHeight(Number.NaN)).toBe(60);
   });
 });

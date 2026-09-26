@@ -39,6 +39,7 @@ import {
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import {
   CalendarEventCard,
+  calendarSlotRowHeight,
   type CalendarEventVariant,
 } from './CalendarEventCard';
 
@@ -62,6 +63,8 @@ export interface CalendarEvent {
   endTime: string;
   subtitle?: string;
   statusChip?: ReactNode;
+  /** Nhãn trạng thái dạng chữ cho thẻ trên lưới (xem CalendarEventCard). */
+  statusLabel?: string;
   variant: CalendarEventVariant;
 }
 
@@ -90,8 +93,6 @@ const WEEKDAY_LABELS: readonly string[] = [
   'Chủ Nhật',
 ];
 
-/** Fixed visual height for one slot row (in pixels). */
-const SLOT_ROW_HEIGHT = 60;
 
 /** Width of the leftmost time gutter (in pixels). Wide enough for `HH:mm - HH:mm`. */
 const TIME_GUTTER_WIDTH = 96;
@@ -116,6 +117,7 @@ export function WeekView({
   // exactly `SLOT_ROW_HEIGHT` pixels. Guard against an invalid config —
   // `generateSlots` already returns an empty list in that case, but the
   // div-by-zero would still leak `Infinity` into inline styles.
+  const SLOT_ROW_HEIGHT = calendarSlotRowHeight(slotConfig.slotMinutes);
   const pxPerMinute =
     slotConfig.slotMinutes > 0 ? SLOT_ROW_HEIGHT / slotConfig.slotMinutes : 0;
 
@@ -238,9 +240,10 @@ export function WeekView({
                   >
                     <CalendarEventCard
                       title={event.title}
-                      timeRange={`${formatTimeVN(event.startTime)} - ${formatTimeVN(event.endTime)}`}
+                      timeRange={`${formatTimeVN(event.startTime)}–${formatTimeVN(event.endTime)}`}
                       subtitle={event.subtitle}
                       statusChip={event.statusChip}
+                      statusLabel={event.statusLabel}
                       variant={event.variant}
                       onClick={
                         onEventClick ? () => onEventClick(event) : undefined

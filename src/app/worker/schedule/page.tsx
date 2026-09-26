@@ -62,6 +62,7 @@ import {
   validateSlotConfig,
   type SlotConfig,
 } from '@/domain/week';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import { t } from '@/i18n/vi';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
@@ -82,10 +83,13 @@ const DEFAULT_SLOT_CONFIG: SlotConfig = {
   slotMinutes: 120,
 };
 
-/** Shifts in any of these statuses are not surfaced on the worker calendar. */
+/**
+ * Shifts in any of these statuses are not surfaced on the worker calendar.
+ * `Completed` is NOT here: a finished shift stays on the calendar as history
+ * (green "Đã hoàn thành"), matching the employer calendar.
+ */
 const TERMINAL_SHIFT_STATUSES: ReadonlySet<ShiftStatus> = new Set([
   'Cancelled',
-  'Completed',
   'Expired',
 ]);
 
@@ -136,6 +140,14 @@ function SchedulePageContent() {
   // selector — see HANDOFF.md Section 11.
   const blocks = useScheduleStore((s) => s.blocks);
   const remove = useScheduleStore((s) => s.remove);
+  const serverSync = useScheduleStore((s) => s.serverSync);
+  const syncError = useScheduleStore((s) => s.syncError);
+
+  // Nạp lịch từ server khi mở trang (không polling) — phủ cả trường hợp đăng
+  // nhập trong app sau khi AppHydrator đã boot.
+  useEffect(() => {
+    if (currentUserId) void useScheduleStore.getState().refetchMine(currentUserId);
+  }, [currentUserId]);
   const applications = useApplicationStore((s) => s.applications);
   const shifts = useShiftStore((s) => s.shifts);
 
@@ -168,7 +180,8 @@ function SchedulePageContent() {
           a.status === 'Pending' ||
           a.status === 'CancellationRequested' ||
           a.status === 'CheckedIn' ||
-          a.status === 'CheckedOut'),
+          a.status === 'CheckedOut' ||
+          a.status === 'Confirmed'),
     );
   }, [applications, currentUserId]);
 
@@ -206,7 +219,9 @@ function SchedulePageContent() {
       if (TERMINAL_SHIFT_STATUSES.has(shift.status)) continue;
 
       const variant: CalendarEvent['variant'] =
-        app.status === 'Approved' ||
+        app.status === 'Confirmed'
+          ? 'completedShift'
+          : app.status === 'Approved' ||
         app.status === 'CheckedIn' ||
         app.status === 'CheckedOut'
           ? 'approvedShift'
@@ -236,6 +251,7 @@ function SchedulePageContent() {
         variant,
         subtitle: shift.location,
         statusChip: isLocked ? <LockedChip /> : undefined,
+        statusLabel: t(`apply.applied.${app.status}`),
       });
     }
 
@@ -372,6 +388,11 @@ function SchedulePageContent() {
         <p className="text-xs leading-relaxed text-orange-800">
           {t('schedule.page.approvedShiftsNote')}
         </p>
+        {isSupabaseEnv() && serverSync !== 'on' && (
+          <p className="mt-2 text-xs leading-relaxed text-orange-800">
+            {t('schedule.page.deviceOnlyNote')}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -451,6 +472,28 @@ function SchedulePageContent() {
           className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
         >
           {actionError}
+        </div>
+      )}
+
+      {syncError && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <span className="min-w-0 flex-1">
+            {syncError === 'LOAD_FAILED'
+              ? t('schedule.sync.loadFailed')
+              : t('schedule.sync.saveFailed')}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              if (currentUserId) void useScheduleStore.getState().refetchMine(currentUserId);
+            }}
+            className="min-h-[44px] rounded-xl px-3 font-semibold text-red-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          >
+            {t('schedule.sync.retry')}
+          </button>
         </div>
       )}
 
@@ -610,7 +653,7 @@ function SchedulePageContent() {
 
 function LockedChip() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 ring-1 ring-orange-200">
+    <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-1.5 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">
       <svg
         className="h-2.5 w-2.5"
         viewBox="0 0 24 24"
@@ -656,7 +699,7 @@ function BlockRow({
             </span>
             <span
               className={[
-                'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
                 block.kind === 'available'
                   ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
                   : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',

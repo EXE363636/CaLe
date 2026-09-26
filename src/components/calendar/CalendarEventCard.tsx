@@ -21,6 +21,12 @@ export interface CalendarEventCardProps {
   subtitle?: string;
   /** Pre-rendered chip (e.g. ShiftStatusBadge) */
   statusChip?: ReactNode;
+  /**
+   * Nhãn trạng thái dạng chữ cho thẻ trên lưới lịch (absolute). Khi có,
+   * thẻ lưới hiện dòng chữ này thay cho `statusChip` — gọn đủ để ca 1 giờ
+   * vẫn đọc được trạng thái, không chỉ dựa vào màu thẻ.
+   */
+  statusLabel?: string;
   variant: CalendarEventVariant;
   onClick?: () => void;
   className?: string;
@@ -48,18 +54,37 @@ const variantClasses: Record<CalendarEventVariant, string> = {
   cancelledShift: 'bg-red-100 border-red-300 text-red-900 line-through',
 };
 
+/**
+ * Mỗi giờ trên lưới cao tối thiểu 60px: đủ cho 3 dòng của thẻ ca 1 giờ
+ * (tên ca 20px + giờ 16px + trạng thái 16px + đệm 8px), để thẻ nằm gọn
+ * trong khung giờ của nó và trạng thái không chỉ dựa vào màu.
+ */
+const PX_PER_HOUR_MIN = 60;
+
+/**
+ * Chiều cao (px) của một hàng khung giờ trên lưới lịch tuần/ngày.
+ * Khung 120 phút → 120px; 60 phút → 60px; 30 phút → 60px.
+ */
+export function calendarSlotRowHeight(slotMinutes: number): number {
+  if (!(slotMinutes > 0)) return 60;
+  return Math.max(60, Math.round(slotMinutes * (PX_PER_HOUR_MIN / 60)));
+}
+
 export function CalendarEventCard({
   title,
   timeRange,
   subtitle,
   statusChip,
+  statusLabel,
   variant,
   onClick,
   className = '',
   absolute = false,
 }: CalendarEventCardProps) {
   const baseClasses = [
-    'flex flex-col gap-0.5 overflow-hidden rounded-lg border px-2 py-1.5 text-left',
+    'flex flex-col overflow-hidden rounded-lg border text-left',
+    // Lưới lịch: cột có thể chỉ ~90px → lề ngang gọn để giờ ca không bị cắt.
+    absolute ? 'px-1.5 py-1' : 'gap-0.5 px-2 py-1.5',
     'min-h-[44px] shadow-sm',
     absolute ? 'h-full w-full' : 'w-full',
     variantClasses[variant],
@@ -71,7 +96,29 @@ export function CalendarEventCard({
     .filter(Boolean)
     .join(' ');
 
-  const body = (
+  // Thẻ thấp bị cắt chữ → di chuột vẫn đọc được đủ tên + giờ.
+  const tooltip = absolute
+    ? [title, timeRange, statusLabel, subtitle].filter(Boolean).join(' · ')
+    : undefined;
+
+  // Trên lưới lịch (absolute) cột rất hẹp (~100px): xếp dọc theo thứ tự ưu
+  // tiên tên ca → giờ → nhãn trạng thái → phụ đề, để phần bị cắt khi thẻ
+  // thấp là phần ít quan trọng nhất. Nhãn trạng thái KHÔNG chung hàng với
+  // tên ca (nhãn không co lại được, sẽ đẩy tên ca về 0px).
+  const body = absolute ? (
+    <>
+      <span className="shrink-0 truncate text-sm font-medium leading-5">{title}</span>
+      <span className="shrink-0 truncate text-xs leading-4 tabular-nums opacity-75">{timeRange}</span>
+      {statusLabel ? (
+        <span className="shrink-0 truncate text-xs font-semibold leading-4">{statusLabel}</span>
+      ) : statusChip ? (
+        <span className="flex max-w-full shrink-0 pt-0.5 leading-none">{statusChip}</span>
+      ) : null}
+      {subtitle ? (
+        <span className="truncate text-xs leading-4">{subtitle}</span>
+      ) : null}
+    </>
+  ) : (
     <>
       <div className="flex items-start justify-between gap-1">
         <span className="truncate font-medium text-sm">{title}</span>
@@ -88,11 +135,15 @@ export function CalendarEventCard({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={baseClasses}>
+      <button type="button" onClick={onClick} className={baseClasses} title={tooltip}>
         {body}
       </button>
     );
   }
 
-  return <div className={baseClasses}>{body}</div>;
+  return (
+    <div className={baseClasses} title={tooltip}>
+      {body}
+    </div>
+  );
 }

@@ -16,7 +16,13 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { loadAll, cleanupLegacyBusinessData } from '@/data/persistence';
+import {
+  loadAll,
+  cleanupLegacyBusinessData,
+  read,
+  STORAGE_KEYS,
+} from '@/data/persistence';
+import type { ScheduleBlock } from '@/types';
 import { getDataMode, getSupabaseClient, isSupabaseEnv } from '@/data/supabaseClient';
 import { getUserRepo } from '@/data/repos/userRepo';
 import { syncOverdueSettlements } from '@/data/repos/walletRepo';
@@ -97,6 +103,8 @@ async function refetchPhase2Supabase(): Promise<void> {
     await useApplicationStore.getState().refetchForShifts(ids);
   } else if (cur?.role === 'worker') {
     await useApplicationStore.getState().refetchForWorker(cur.id);
+    // Lịch cá nhân (0023) — cần cho gợi ý ca + chặn ứng tuyển trùng lịch bận.
+    await useScheduleStore.getState().refetchMine(cur.id);
     // Nạp các ca worker ĐÃ ứng tuyển nhưng KHÔNG còn trong listing công khai
     // (đã huỷ / đầy chỗ / hết hạn) — chúng không có trong `public_shifts` nên
     // thiếu khỏi shiftStore → dashboard + trang chi tiết sẽ 404/không hiển thị
@@ -206,7 +214,13 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
       useApplicationStore.getState().hydrateRatings([]);
       useApplicationStore.getState().hydrateDisputes([]);
       useNotificationStore.getState().hydrate([]);
-      useScheduleStore.getState().hydrate([]);
+      // Lịch cá nhân (bận/rảnh) CHƯA có bảng server → lưu trên thiết bị này
+      // (localStorage). Nạp lại để không mất sau mỗi lần tải trang; trang
+      // lịch lọc theo currentUserId nên không lẫn lịch của tài khoản khác.
+      const storedBlocks = read<ScheduleBlock[]>(STORAGE_KEYS.scheduleBlocks, []);
+      useScheduleStore
+        .getState()
+        .hydrate(Array.isArray(storedBlocks) ? storedBlocks : []);
       useEmployerFeedbackStore.getState().hydrate([]);
       useReviewReportStore.getState().hydrate([]);
       useShiftDraftStore.getState().hydrate([]);
@@ -259,9 +273,19 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     const onFocus = () => {
       if (document.visibilityState !== 'visible' || running) return;
       running = true;
-      void refetchPhase2Supabase().finally(() => {
-        running = false;
-      });
+      // Đồng bộ nền khi quay lại tab: thất bại (mạng chập chờn, phiên vừa hết
+      // hạn / đổi tài khoản giữa chừng → request chạy như anon) KHÔNG được làm
+      // vỡ trang — giữ dữ liệu đã nạp, lần focus sau thử lại. Trước đây thiếu
+      // catch → unhandledRejection hiện overlay lỗi của Next.
+      void refetchPhase2Supabase()
+        .catch((e: unknown) => {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[AppHydrator] refetch-on-focus failed:', e);
+          }
+        })
+        .finally(() => {
+          running = false;
+        });
     };
     document.addEventListener('visibilitychange', onFocus);
     window.addEventListener('focus', onFocus);

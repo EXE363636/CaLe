@@ -212,7 +212,10 @@ export function write<T>(key: string, value: T): void {
   // Supabase/production: dữ liệu nghiệp vụ + auth KHÔNG lưu localStorage (server là
   // nguồn sự thật; session do Supabase quản lý ở key `sb-*` riêng). Mọi STORAGE_KEYS
   // đều thuộc namespace `cale.*` nghiệp vụ nên chặn toàn bộ write ở đây là an toàn.
-  if (isSupabaseMode()) return;
+  // Ngoại lệ DUY NHẤT: lịch cá nhân (bận/rảnh) chưa có bảng server → lưu trên
+  // thiết bị này, nếu không sẽ mất sau mỗi lần tải trang. UI nói rõ điều đó
+  // (`schedule.page.deviceOnlyNote`).
+  if (isSupabaseMode() && key !== STORAGE_KEYS.scheduleBlocks) return;
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
   } catch (err) {
@@ -235,7 +238,11 @@ const CLEANUP_MARKER_KEY = 'cale.cleanupVersion';
  *   - theme/locale/tùy chọn giao diện,
  *   - dữ liệu của website khác.
  */
-const CLEANUP_ALLOWLIST: ReadonlyArray<string> = Object.values(STORAGE_KEYS);
+// Không dọn lịch cá nhân: ở supabase đây là dữ liệu THẬT của người dùng,
+// lưu trên thiết bị (chưa có bảng server) — xoá là mất lịch của họ.
+const CLEANUP_ALLOWLIST: ReadonlyArray<string> = Object.values(STORAGE_KEYS).filter(
+  (k) => k !== STORAGE_KEYS.scheduleBlocks,
+);
 
 /**
  * Xoá dữ liệu nghiệp vụ/seed cũ trong localStorage một cách AN TOÀN.

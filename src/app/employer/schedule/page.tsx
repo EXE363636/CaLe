@@ -16,7 +16,6 @@
  */
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { RoleGuard } from '@/components/layout/RoleGuard';
@@ -24,7 +23,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 
-import { Button, Input, PageHelpButton, TimeFieldVN } from '@/components/ui';
+import { Input, PageHelpButton, TimeFieldVN, ButtonLink } from '@/components/ui';
 import { CalendarShell } from '@/components/calendar/CalendarShell';
 import { MiniMonthCalendar } from '@/components/calendar/MiniMonthCalendar';
 import { CalendarLegend } from '@/components/calendar/CalendarLegend';
@@ -53,6 +52,7 @@ import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { t } from '@/i18n/vi';
 import {
   getShiftLifecycleState,
+  getShiftStatusBadge,
   type ShiftLifecycleState,
 } from '@/domain/shiftLifecycleState';
 import type { Shift } from '@/types';
@@ -172,6 +172,7 @@ function SchedulePageContent() {
             <EscrowStatusBadge status={shift.escrowStatus} />
           </span>
         ),
+        statusLabel: t(getShiftStatusBadge(state).labelKey),
         variant: LIFECYCLE_VARIANT[state],
       };
     });
@@ -215,11 +216,9 @@ function SchedulePageContent() {
           sidebar shortcut to the SAME action is a secondary (outlined)
           affordance so only one solid-orange primary shows at rest —
           which also trims orange fill for the One Orange Rule (Req 2.2). */}
-      <Link href="/employer/shifts/new" className="block">
-        <Button variant="secondary" className="w-full">
+      <ButtonLink href="/employer/shifts/new" variant="secondary" className="w-full">
           {t('btn.postShift')}
-        </Button>
-      </Link>
+        </ButtonLink>
       <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
         <CalendarLegend variant="employer" />
       </div>
@@ -235,11 +234,9 @@ function SchedulePageContent() {
       onNext={handleNext}
       onToday={handleToday}
       actions={
-        <Link href="/employer/shifts/new">
-          <Button variant="primary" size="sm">
+        <ButtonLink href="/employer/shifts/new" variant="primary" size="sm">
             {t('btn.postShift')}
-          </Button>
-        </Link>
+          </ButtonLink>
       }
     />
   );

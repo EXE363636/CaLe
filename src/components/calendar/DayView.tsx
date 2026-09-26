@@ -8,7 +8,7 @@ import {
   type SlotConfig,
 } from '@/domain/week';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
-import { CalendarEventCard } from './CalendarEventCard';
+import { CalendarEventCard, calendarSlotRowHeight } from './CalendarEventCard';
 import type { CalendarEvent } from './WeekView';
 export type { CalendarEvent } from './WeekView';
 
@@ -34,9 +34,9 @@ interface DayViewProps {
  * via `dayViewLayout`) but for one day. No store reads, no router, no
  * new dependencies.
  *
- * Each slot row renders at exactly `60px` tall so pixel math is trivial:
- * `pxPerMinute = 60 / slotConfig.slotMinutes`. With the default 120-min
- * slot that's `0.5 px/min`; with a 60-min slot it's `1 px/min`.
+ * Slot row height comes from `calendarSlotRowHeight` (≥ 44px per hour so a
+ * 1-hour shift card fits its own time band): `pxPerMinute = rowHeight /
+ * slotMinutes`. Default 120-min slot → 88px rows (≈0.73 px/min).
  *
  * Task 20.6 — Phase 8 calendar UI redesign.
  */
@@ -69,7 +69,9 @@ export function DayView({
 }: DayViewProps) {
   const slots = generateSlots(slotConfig);
   const positioned = dayViewLayout(events, dateIso, slotConfig);
-  const pxPerMinute = 60 / slotConfig.slotMinutes;
+  const rowHeight = calendarSlotRowHeight(slotConfig.slotMinutes);
+  const pxPerMinute =
+    slotConfig.slotMinutes > 0 ? rowHeight / slotConfig.slotMinutes : 0;
   const isToday = dateIso === todayIso();
 
   const headerCellClasses = [
@@ -101,7 +103,8 @@ export function DayView({
             {slots.map((slot) => (
               <div
                 key={`gutter-${slot.startTime}-${slot.endTime}`}
-                className="flex h-[60px] items-start whitespace-nowrap border-t border-gray-100 px-2 py-1 font-mono text-[11px] font-medium text-gray-600"
+                style={{ height: rowHeight }}
+                className="flex items-start whitespace-nowrap border-t border-gray-100 px-2 py-1 font-mono text-[11px] font-medium text-gray-600"
               >
                 {formatTimeVN(slot.startTime)}–{formatTimeVN(slot.endTime)}
               </div>
@@ -118,7 +121,8 @@ export function DayView({
                   onCellClick?.(dateIso, slot.startTime, slot.endTime)
                 }
                 aria-label={`${formatTimeVN(slot.startTime)}–${formatTimeVN(slot.endTime)}`}
-                className="block h-[60px] w-full border-t border-gray-100 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50"
+                style={{ height: rowHeight }}
+                className="block w-full border-t border-gray-100 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50"
               />
             ))}
 
@@ -128,7 +132,7 @@ export function DayView({
                 top: `${topMinutes * pxPerMinute}px`,
                 height: `${heightMinutes * pxPerMinute}px`,
               };
-              const timeRange = `${formatTimeVN(event.startTime)} - ${formatTimeVN(event.endTime)}`;
+              const timeRange = `${formatTimeVN(event.startTime)}–${formatTimeVN(event.endTime)}`;
               return (
                 <div
                   key={event.id}
@@ -140,6 +144,7 @@ export function DayView({
                     timeRange={timeRange}
                     subtitle={event.subtitle}
                     statusChip={event.statusChip}
+                    statusLabel={event.statusLabel}
                     variant={event.variant}
                     absolute
                     onClick={

@@ -35,6 +35,10 @@ const workerEntries: LegendEntry[] = [
     swatchClass: 'bg-amber-300',
     labelKey: 'calendar.legend.worker.pendingShift',
   },
+  {
+    swatchClass: 'bg-green-500',
+    labelKey: 'calendar.legend.worker.completedShift',
+  },
 ];
 
 const employerEntries: LegendEntry[] = [
