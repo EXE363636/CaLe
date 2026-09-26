@@ -49,10 +49,10 @@ export function EmployerTrustPanel({
     };
   }, [allFeedback, employer.id]);
 
-  // Production: chưa có hệ thống đánh giá thật và cờ "doanh nghiệp đã xác
-  // minh" là dữ liệu mô phỏng → hiện "Chưa có đánh giá / chưa xác minh" sẽ
-  // là tín hiệu sai về nhà tuyển dụng. Ẩn cả dải; hồ sơ vẫn mở được từ tên.
-  if (!hasCapability('ratings') && isSupabaseEnv()) return null;
+  // Đánh giá thật từ người lao động (0024) → hiện. Cờ "doanh nghiệp đã xác
+  // minh" ở production là dữ liệu mô phỏng → không hiện badge đó.
+  if (!hasCapability('reviews')) return null;
+  const showBusinessBadge = !isSupabaseEnv();
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/40 px-3 py-2">
@@ -63,22 +63,23 @@ export function EmployerTrustPanel({
             <span className="text-sm font-semibold text-gray-900">
               {avg.toFixed(1)} / 5
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-sm text-gray-600">
               ({count} {t('common.reviews')})
             </span>
           </>
         ) : (
-          <span className="text-xs italic text-gray-500">
+          <span className="text-sm text-gray-600">
             {t('employer.trust.noReviews')}
           </span>
         )}
       </div>
 
-      {employer.verifiedBusiness ? (
-        <Badge tone="success">{t('employer.profile.verifiedBusiness')}</Badge>
-      ) : (
-        <Badge tone="neutral">{t('employer.profile.notVerified')}</Badge>
-      )}
+      {showBusinessBadge &&
+        (employer.verifiedBusiness ? (
+          <Badge tone="success">{t('employer.profile.verifiedBusiness')}</Badge>
+        ) : (
+          <Badge tone="neutral">{t('employer.profile.notVerified')}</Badge>
+        ))}
 
       {recent?.comment && (
         <p className="w-full truncate text-xs italic text-gray-600">

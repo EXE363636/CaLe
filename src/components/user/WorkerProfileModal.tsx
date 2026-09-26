@@ -16,7 +16,7 @@
  */
 
 import { useMemo } from 'react';
-import { Modal, StarRating, Badge } from '@/components/ui';
+import { Modal, Badge } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
 import { SkillProgressBar } from './SkillProgressBar';
@@ -26,11 +26,12 @@ import {
 } from '@/stores';
 import { averageRating } from '@/domain/rating';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
-import { formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import { hasCapability } from '@/data/capabilities';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
+import { useWorkerReviews } from '@/lib/useReviews';
+import { ReviewList } from './ReviewList';
 import type { Worker } from '@/types';
 
 interface WorkerProfileModalProps {
@@ -66,10 +67,12 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
     );
   }, [worker?.skillScores]);
   const derivedMap = useDerivedReputationMap();
+  const reviews = useWorkerReviews(worker);
 
   if (!worker) return null;
 
-  const avg = averageRating(worker.ratingsReceived);
+  const avg = averageRating(reviews);
+  const reviewsOn = hasCapability('reviews');
   // Production: không có điểm uy tín / đánh giá / điểm kỹ năng thật và giấy tờ
   // xác minh không có ở client → ẩn thay vì hiện số mặc định như dữ liệu thật.
   // Số ca / vắng mặt đếm từ đơn của các ca mà người xem thấy được ("với bạn").
@@ -101,14 +104,14 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
         <div
           className={[
             'grid gap-2 rounded-xl bg-gray-50 p-3',
-            ratingsOn ? 'grid-cols-3' : 'grid-cols-2',
+            reviewsOn ? 'grid-cols-3' : 'grid-cols-2',
           ].join(' ')}
         >
           <Stat
             value={String(completedValue)}
             label={t(serverMode ? 'workerRow.completedWithYou' : 'employer.applicant.completedShifts')}
           />
-          {ratingsOn && (
+          {reviewsOn && (
             <Stat
               value={avg === null ? '—' : avg.toFixed(1)}
               label={t('employer.applicant.avgRating')}
@@ -203,33 +206,21 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
           </Section>
         )}
 
-        {/* Rating history — không có hệ thống đánh giá ở production. */}
-        {ratingsOn && (
+        {/* Rating history — nhà tuyển dụng đánh giá người lao động (0024). */}
+        {reviewsOn && (
         <Section title={t('employer.applicant.ratingHistory')}>
-          {worker.ratingsReceived.length === 0 ? (
-            <p className="text-sm text-gray-600">{t('reputation.noRatings')}</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {worker.ratingsReceived.slice(0, 5).map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-gray-100 px-3 py-2"
-                >
-                  <div className="flex items-center justify-between">
-                    <StarRating value={r.stars} readOnly size="sm" />
-                    <span className="font-mono text-xs text-gray-400">
-                      {formatLogDateTime(r.createdAt)}
-                    </span>
-                  </div>
-                  {r.feedback && (
-                    <p className="mt-1.5 text-sm text-gray-700">
-                      &ldquo;{r.feedback}&rdquo;
-                    </p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ReviewList
+            items={reviews.map((r) => ({
+              id: r.id,
+              stars: r.stars,
+              comment: r.feedback,
+              createdAt: r.createdAt,
+            }))}
+            reportKind="rating"
+            limit={5}
+            emptyText={t('reputation.noRatings')}
+            showSummary={false}
+          />
         </Section>
         )}
       </div>

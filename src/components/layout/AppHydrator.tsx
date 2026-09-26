@@ -23,6 +23,7 @@ import {
   STORAGE_KEYS,
 } from '@/data/persistence';
 import type { ScheduleBlock } from '@/types';
+import { refetchReviews } from '@/lib/reviewSync';
 import { getDataMode, getSupabaseClient, isSupabaseEnv } from '@/data/supabaseClient';
 import { getUserRepo } from '@/data/repos/userRepo';
 import { syncOverdueSettlements } from '@/data/repos/walletRepo';
@@ -128,6 +129,17 @@ async function refetchPhase2Supabase(): Promise<void> {
     .filter((id) => id !== cur?.id);
   const profs = await getUserRepo().loadPublicProfiles(empIds);
   for (const p of profs) useUserStore.getState().overlayUser(p);
+
+  // Đánh giá hai chiều (0024): của chính mình + nhà tuyển dụng các ca đang
+  // thấy + người lao động trong các đơn đang thấy. Lỗi không chặn boot.
+  if (cur) {
+    const reviewUserIds = [
+      cur.id,
+      ...useShiftStore.getState().shifts.map((sh) => sh.employerId),
+      ...useApplicationStore.getState().applications.map((a) => a.workerId),
+    ];
+    await refetchReviews(reviewUserIds);
+  }
 }
 
 export function AppHydrator({ children }: AppHydratorProps): ReactNode {

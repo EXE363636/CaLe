@@ -12,6 +12,9 @@ import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { hasCapability } from '@/data/capabilities';
 import { hoursBetween } from '@/domain/deposit';
+import { canReviewApplication } from '@/domain/reviewEligibility';
+import { submitReviewAsync, useReviewBackendStore } from '@/lib/reviewSync';
+import { ShiftReviewStatus } from '@/components/shift/ShiftReviewStatus';
 import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
@@ -93,6 +96,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   // dispute (if any) to render the right status copy depending on
   // who initiated it.
   const disputes = useApplicationStore((s) => s.disputes);
+  const allRatings = useApplicationStore((s) => s.ratings);
 
   const [applyError, setApplyError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -127,6 +131,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     null,
   );
 
+  const reviewBackend = useReviewBackendStore((s) => s.available);
   const employerUser = users.find((u) => u.id === shift.employerId);
   const employer = asEmployer(employerUser);
   const employerName = employer?.companyName ?? 'Nhà tuyển dụng';
@@ -645,6 +650,18 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           </div>
         )}
 
+        {/* Tóm tắt đánh giá hai chiều của ca này — chi tiết ở hồ sơ. */}
+        {worker && myApp?.status === 'Confirmed' && (
+          <ShiftReviewStatus
+            className="mt-4 border-t border-gray-100 pt-4"
+            givenStars={submittedFeedbackForApp?.stars}
+            receivedStars={
+              allRatings.find((r) => r.applicationId === myApp.id && r.toUserId === worker.id)?.stars
+            }
+            counterpartName={employerName}
+          />
+        )}
+
         {/* Phase 10C-Stab-1 Batch 4B — post-payment rating banner.
             Renders when wage has been released to the worker but the
             worker hasn't yet rated the employer. The form mounts
@@ -654,16 +671,26 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             on the application atomically. */}
         {worker &&
           myApp &&
-          myApp.paidAwaitingRatingAt &&
-          !myApp.workerRatedEmployerAt &&
-          !submittedFeedbackForApp && (
+          (isSupabaseEnv()
+            ? hasCapability('reviews') &&
+              reviewBackend === 'yes' &&
+              canReviewApplication(myApp, shift, !!submittedFeedbackForApp)
+            : !!myApp.paidAwaitingRatingAt &&
+              !myApp.workerRatedEmployerAt &&
+              !submittedFeedbackForApp) && (
             <div className="mt-4 flex flex-col gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 text-sm text-orange-900">
               <p className="font-semibold">
-                {t('worker.postPaymentRating.banner.title')}
+                {t(
+                  isSupabaseEnv()
+                    ? 'worker.postPaymentRating.banner.title.real'
+                    : 'worker.postPaymentRating.banner.title',
+                )}
               </p>
-              <p className="text-xs leading-relaxed text-orange-900/80">
-                {t('worker.postPaymentRating.banner.body')}
-              </p>
+              {!ratingFormOpen && (
+                <p className="text-sm leading-relaxed text-orange-900">
+                  {t('worker.postPaymentRating.banner.body')}
+                </p>
+              )}
               {!ratingFormOpen ? (
                 <Button
                   size="sm"
@@ -675,9 +702,26 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
               ) : (
                 <EmployerFeedbackForm
                   loading={loading}
-                  onSubmit={(input) => {
+                  onSubmit={async (input) => {
                     if (!worker || !myApp) return;
                     setLoading(true);
+                    if (isSupabaseEnv()) {
+                      // 0024: server tự suy ra chiều + nhà tuyển dụng nhận.
+                      const res = await submitReviewAsync({
+                        applicationId: myApp.id,
+                        stars: input.stars,
+                        comment: input.comment,
+                        tags: input.tags,
+                      });
+                      setLoading(false);
+                      if (res.ok) {
+                        showSuccess(t('review.success'));
+                        setRatingFormOpen(false);
+                      } else {
+                        showError(res.error);
+                      }
+                      return;
+                    }
                     const result = submitEmployerFeedback({
                       shiftId: shift.id,
                       applicationId: myApp.id,
@@ -689,9 +733,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                     });
                     setLoading(false);
                     if (result.ok) {
-                      showSuccess(
-                        t('feedback.dispute.success'),
-                      );
+                      showSuccess(t('review.success'));
                       setRatingFormOpen(false);
                     } else {
                       showError(toastFromStoreError(result.error));

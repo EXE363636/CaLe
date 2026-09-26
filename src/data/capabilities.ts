@@ -42,6 +42,11 @@ export interface Capabilities {
   verifications: boolean;
   /** Đánh giá + điểm uy tín. Chưa migrate. */
   ratings: boolean;
+  /**
+   * Đánh giá sao + nhận xét hai chiều sau ca (0024 shift_reviews). Tách khỏi
+   * `ratings` (điểm uy tín / điểm kỹ năng / hạn mức huỷ — vẫn chưa có server).
+   */
+  reviews: boolean;
   /** Thông báo trong ứng dụng. Chưa migrate. */
   notifications: boolean;
   /** Lượt boost. Chưa có backend. */
@@ -64,6 +69,7 @@ const SUPABASE_CAPABILITIES: Capabilities = {
   disputes: false,
   verifications: false,
   ratings: false,
+  reviews: true,
   notifications: false,
   boost: false,
   schedule: false,
@@ -83,6 +89,7 @@ const LOCAL_CAPABILITIES: Capabilities = {
   disputes: true,
   verifications: true,
   ratings: true,
+  reviews: true,
   notifications: true,
   boost: true,
   schedule: true,

@@ -38,6 +38,7 @@ import { t } from '@/i18n/vi';
 import { hasCapability } from '@/data/capabilities';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
+import { useWorkerReviews } from '@/lib/useReviews';
 import type { ReactNode } from 'react';
 import type { Worker } from '@/types';
 
@@ -47,6 +48,8 @@ interface WorkerSummaryRowProps {
   statusSlot?: ReactNode;
   /** Bottom action area — typically Approve/Reject + actions. */
   actions?: ReactNode;
+  /** Optional in-card row under the actions (e.g. two-way review status). */
+  footerNote?: ReactNode;
   onViewProfile: () => void;
   /**
    * Phase 10A-Fix-9 — when set, the row shows a "Phù hợp công việc:
@@ -65,6 +68,7 @@ export function WorkerSummaryRow({
   worker,
   statusSlot,
   actions,
+  footerNote,
   onViewProfile,
   jobCategory,
   className = '',
@@ -83,7 +87,9 @@ export function WorkerSummaryRow({
     ? getSkillScoreForCategory(worker.skillScores, jobCategory)
     : undefined;
   const skillBadge = jobCategory ? skillBadgeLabel(skillEntry) : undefined;
-  const avg = averageRating(worker.ratingsReceived);
+  const reviews = useWorkerReviews(worker);
+  const avg = averageRating(reviews);
+  const reviewsOn = hasCapability('reviews');
 
   // Production: điểm uy tín / đánh giá / điểm kỹ năng chưa có backend (hồ sơ
   // luôn 100 điểm, 0 ca) và giấy tờ xác minh không nằm ở store client →
@@ -174,13 +180,13 @@ export function WorkerSummaryRow({
       </div>
 
       {/* Stat chips */}
-      <div className={['mt-3 grid gap-2', ratingsOn ? 'grid-cols-3' : 'grid-cols-2'].join(' ')}>
+      <div className={['mt-3 grid gap-2', reviewsOn ? 'grid-cols-3' : 'grid-cols-2'].join(' ')}>
         <StatChip
           value={String(completedValue)}
           label={t(serverMode ? 'workerRow.completedWithYou' : 'employer.applicant.completedShifts')}
           tone="success"
         />
-        {ratingsOn && (
+        {reviewsOn && (
           <StatChip
             value={avg === null ? '—' : avg.toFixed(1)}
             label={t('employer.applicant.avgRating')}
@@ -243,6 +249,7 @@ export function WorkerSummaryRow({
           {t('employer.applicant.viewProfile')}
         </Button>
       </div>
+      {footerNote && <div className="mt-3 border-t border-gray-100 pt-3">{footerNote}</div>}
     </Card>
   );
 }

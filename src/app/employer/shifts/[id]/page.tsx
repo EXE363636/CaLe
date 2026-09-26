@@ -43,6 +43,10 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import { tSettlement } from '@/lib/settlementCopy';
+import { canReviewApplication } from '@/domain/reviewEligibility';
+import { submitReviewAsync, useReviewBackendStore } from '@/lib/reviewSync';
+import { ShiftReviewStatus } from '@/components/shift/ShiftReviewStatus';
+import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { Application, Shift, Worker } from '@/types';
 
 interface Props {
@@ -133,6 +137,12 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const router = useRouter();
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
+  // 0024 — đánh giá người lao động sau ca (production).
+  const allRatings = useApplicationStore((s) => s.ratings);
+  const allEmployerFeedback = useEmployerFeedbackStore((s) => s.feedback);
+  const [reviewForAppId, setReviewForAppId] = useState<string | null>(null);
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const reviewBackend = useReviewBackendStore((s) => s.available);
   const approveAsync = useApplicationStore((s) => s.approveAsync);
   const rejectAsync = useApplicationStore((s) => s.rejectAsync);
   const markNoShowAsync = useApplicationStore((s) => s.markNoShowAsync);
@@ -1007,6 +1017,37 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 'employer',
               );
               const showRating = ratingForAppId === app.id;
+              // 0024 — đánh giá hai chiều của đơn này (production).
+              const reviewsLive =
+                isSupabaseEnv() &&
+                hasCapability('reviews') &&
+                reviewBackend === 'yes' &&
+                app.status === 'Confirmed';
+              const givenReview = allRatings.find(
+                (r) => r.applicationId === app.id && r.fromUserId === shift.employerId,
+              );
+              const receivedReview = allEmployerFeedback.find((f) => f.applicationId === app.id);
+              const canReviewNow =
+                reviewsLive && !givenReview && canReviewApplication(app, shift, false);
+              const reviewFooter =
+                reviewsLive && (givenReview || receivedReview || canReviewNow) ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    {givenReview || receivedReview ? (
+                      <ShiftReviewStatus
+                        givenStars={givenReview?.stars}
+                        receivedStars={receivedReview?.stars}
+                        counterpartName={worker.fullName}
+                      />
+                    ) : (
+                      <span className="text-sm text-gray-600">{t('review.employer.prompt')}</span>
+                    )}
+                    {canReviewNow && reviewForAppId !== app.id && (
+                      <Button size="sm" variant="secondary" onClick={() => setReviewForAppId(app.id)}>
+                        {t('review.employer.open')}
+                      </Button>
+                    )}
+                  </div>
+                ) : undefined;
 
               return (
                 <div key={app.id} className="flex flex-col gap-2">
@@ -1019,6 +1060,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                       </Badge>
                     }
                     onViewProfile={() => setProfileWorker(worker)}
+                    footerNote={reviewFooter}
                     actions={
                       <ApplicationActionButtons
                         application={app}
@@ -1252,6 +1294,34 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                       </div>
                     );
                   })()}
+
+                  {/* Production (0024): đánh giá người lao động sau khi ca đã
+                      xác nhận hoàn thành — tách khỏi bước xác nhận/trả công. */}
+                  {canReviewNow && reviewForAppId === app.id && (
+                    <div className="ml-2 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
+                      <p className="mb-3 text-sm text-gray-700">
+                        {t('review.employer.intro').replace('{name}', worker.fullName)}
+                      </p>
+                      <RatingForm
+                        loading={reviewBusy}
+                        onSubmit={async (rating) => {
+                          setReviewBusy(true);
+                          const res = await submitReviewAsync({
+                            applicationId: app.id,
+                            stars: rating.stars,
+                            comment: rating.feedback,
+                          });
+                          setReviewBusy(false);
+                          if (res.ok) {
+                            showSuccess(t('review.success'));
+                            setReviewForAppId(null);
+                          } else {
+                            showError(res.error);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Rating panel — opens below the summary row */}
                   {showRating && app.status === 'CheckedOut' && (
