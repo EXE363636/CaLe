@@ -35,6 +35,9 @@ import {
 import { averageRating } from '@/domain/rating';
 import { SkillProgressBar } from './SkillProgressBar';
 import { t } from '@/i18n/vi';
+import { hasCapability } from '@/data/capabilities';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import type { ReactNode } from 'react';
 import type { Worker } from '@/types';
 
@@ -82,6 +85,16 @@ export function WorkerSummaryRow({
   const skillBadge = jobCategory ? skillBadgeLabel(skillEntry) : undefined;
   const avg = averageRating(worker.ratingsReceived);
 
+  // Production: điểm uy tín / đánh giá / điểm kỹ năng chưa có backend (hồ sơ
+  // luôn 100 điểm, 0 ca) và giấy tờ xác minh không nằm ở store client →
+  // KHÔNG hiện các tín hiệu đó như dữ liệu thật. Số ca/vắng mặt đếm từ các
+  // đơn mà nhà tuyển dụng này thấy được (ca của chính họ) → ghi rõ "với bạn".
+  const ratingsOn = hasCapability('ratings');
+  const serverMode = isSupabaseEnv();
+  const derived = derivedReputationOf(useDerivedReputationMap(), worker.id);
+  const completedValue = serverMode ? derived.completed : worker.completedShiftCount;
+  const noShowValue = serverMode ? derived.noShows : worker.noShowCount;
+
   return (
     <Card className={className}>
       {/* Header row */}
@@ -96,24 +109,25 @@ export function WorkerSummaryRow({
             >
               {worker.fullName}
             </button>
-            <ReputationBadge score={worker.reputationScore} />
+            {ratingsOn && <ReputationBadge score={worker.reputationScore} />}
           </div>
           {/* Phase 10A-Fix-5 — live verification chips. Phone stays on
               the user record (no dedicated phone-doc store), every
               identity method is derived from the verification store. */}
+          {!serverMode && (
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {worker.verifications.includes('phone') && (
               <Badge tone="info">{t('verification.phone')}</Badge>
             )}
             {summary.identityVerified ? (
-              <Badge tone="success">Đã xác minh danh tính</Badge>
+              <Badge tone="success">{t('workerRow.identityVerified')}</Badge>
             ) : (
-              <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+              <Badge tone="neutral">{t('workerRow.identityNotVerified')}</Badge>
             )}
             {summary.approvedMethods.map((m) => (
               <span
                 key={m.type}
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
               >
                 <span>{m.label}</span>
                 {m.maskedIdentifier && (
@@ -124,18 +138,18 @@ export function WorkerSummaryRow({
               </span>
             ))}
             {summary.pendingCount > 0 && (
-              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                {summary.pendingCount} đang chờ duyệt
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                {t('workerRow.pendingCount').replace('{n}', String(summary.pendingCount))}
               </span>
             )}
             {/* Phase 10A-Fix-9: per-category skill score chip (employer
                 applicant view). Always shows — when the worker has no
                 rating in this category yet, the chip reads "Mới" so
                 the employer doesn't see a missing field. */}
-            {jobCategory && (
+            {jobCategory && ratingsOn && (
               <span
                 className={[
-                  'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                  'rounded-full px-2 py-0.5 text-xs font-medium',
                   skillEntry && skillEntry.completedCount > 0
                     ? 'bg-indigo-50 text-indigo-800'
                     : 'bg-gray-100 text-gray-600',
@@ -147,31 +161,36 @@ export function WorkerSummaryRow({
                 }
               >
                 {skillEntry && skillEntry.completedCount > 0
-                  ? `Phù hợp công việc: ${skillEntry.score} điểm · ${skillBadge}`
-                  : `Phù hợp công việc: ${skillBadge}`}
+                  ? t('workerRow.jobFitScore')
+                      .replace('{score}', String(skillEntry.score))
+                      .replace('{badge}', String(skillBadge))
+                  : t('workerRow.jobFit').replace('{badge}', String(skillBadge))}
               </span>
             )}
           </div>
+          )}
         </div>
         {statusSlot && <div className="shrink-0">{statusSlot}</div>}
       </div>
 
       {/* Stat chips */}
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className={['mt-3 grid gap-2', ratingsOn ? 'grid-cols-3' : 'grid-cols-2'].join(' ')}>
         <StatChip
-          value={String(worker.completedShiftCount)}
-          label={t('employer.applicant.completedShifts')}
+          value={String(completedValue)}
+          label={t(serverMode ? 'workerRow.completedWithYou' : 'employer.applicant.completedShifts')}
           tone="success"
         />
+        {ratingsOn && (
+          <StatChip
+            value={avg === null ? '—' : avg.toFixed(1)}
+            label={t('employer.applicant.avgRating')}
+            tone={avg === null ? 'neutral' : 'info'}
+          />
+        )}
         <StatChip
-          value={avg === null ? '—' : avg.toFixed(1)}
-          label={t('employer.applicant.avgRating')}
-          tone={avg === null ? 'neutral' : 'info'}
-        />
-        <StatChip
-          value={String(worker.noShowCount)}
-          label={t('employer.applicant.noShows')}
-          tone={worker.noShowCount > 0 ? 'danger' : 'neutral'}
+          value={String(noShowValue)}
+          label={t(serverMode ? 'workerRow.noShowsWithYou' : 'employer.applicant.noShows')}
+          tone={noShowValue > 0 ? 'danger' : 'neutral'}
         />
       </div>
 
@@ -200,9 +219,9 @@ export function WorkerSummaryRow({
 
       {/* CORE-STABILITY-9 Part 4 — "Kỹ năng nổi bật": top skills by
           XP level so the employer can scan progression at a glance. */}
-      {(worker.skillScores ?? []).some((s) => (s.xp ?? 0) > 0) && (
+      {ratingsOn && (worker.skillScores ?? []).some((s) => (s.xp ?? 0) > 0) && (
         <div className="mt-3">
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+          <p className="mb-1 text-sm font-medium text-gray-700">
             {t('skill.highlight.title')}
           </p>
           <div className="flex flex-col gap-1.5">
@@ -257,8 +276,8 @@ function StatChip({
         toneClasses[tone],
       ].join(' ')}
     >
-      <span className="text-base font-bold leading-tight">{value}</span>
-      <span className="mt-0.5 text-[10px] uppercase tracking-wide opacity-80 leading-tight">
+      <span className="text-base font-bold leading-tight tabular-nums">{value}</span>
+      <span className="mt-0.5 text-xs leading-tight">
         {label}
       </span>
     </div>

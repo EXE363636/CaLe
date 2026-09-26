@@ -1,5 +1,6 @@
-export { Button } from './Button';
+export { Button, buttonClassName } from './Button';
 export type { ButtonVariant, ButtonSize } from './Button';
+export { ButtonLink } from './ButtonLink';
 
 export { Badge } from './Badge';
 export type { BadgeTone } from './Badge';

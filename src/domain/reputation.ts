@@ -11,7 +11,7 @@
  *  - Workers below `APPLY_THRESHOLD` (50) cannot apply to new shifts.
  */
 
-import type { ApplicationStatus } from '@/types';
+import type { Application, ApplicationStatus, Shift } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -134,4 +134,69 @@ export function classifyCancellation(
   const msUntilStart = shiftStart - now;
   if (msUntilStart >= LATE_CANCEL_WINDOW_MS) return 'OnTime';
   return 'LateCancel';
+}
+
+// ---------------------------------------------------------------------------
+// Derived reputation (supabase — server chưa lưu điểm uy tín)
+// ---------------------------------------------------------------------------
+
+/** Điểm uy tín tạm tính + số liệu gốc đã dùng để tính. */
+export interface DerivedReputation {
+  score: number;
+  completed: number;
+  noShows: number;
+  lateCancels: number;
+  /** Mọi lần người lao động tự huỷ (kể cả huỷ đúng hạn / khi chờ duyệt). */
+  workerCancellations: number;
+}
+
+/**
+ * Tạm tính điểm uy tín của MỘT người lao động từ lịch sử đơn THẬT, dùng ở chế
+ * độ supabase nơi server chưa lưu điểm (migration phase 1: "KHÔNG có
+ * reputation"). Dùng đúng luật của module này:
+ *  - `Confirmed`          → Completed (+5), mốc: confirmedAt ?? checkOutAt ?? giờ kết thúc ca;
+ *  - `NoShow`             → NoShow (−20), mốc: noShowAt ?? giờ bắt đầu ca;
+ *  - `CancelledByWorker`  → LateCancel (−10) CHỈ khi đơn đã từng được duyệt
+ *    (`approvedAt`) và yêu cầu huỷ (cancellationRequestedAt ?? cancelledAt)
+ *    rơi vào cửa sổ 24h trước giờ bắt đầu (`classifyCancellation`); huỷ khi
+ *    còn chờ duyệt hoặc huỷ đúng hạn không bị trừ.
+ * Sự kiện áp theo thứ tự thời gian từ `INITIAL_SCORE`, kẹp `[0, 100]` sau mỗi
+ * bước (giống `applyReputationEvent`), nên kết quả không phụ thuộc thứ tự mảng
+ * đầu vào. Không có điều chỉnh thủ công của admin (chưa có backend).
+ */
+export function deriveReputationFromHistory(
+  applications: readonly Application[],
+  shiftsById: ReadonlyMap<string, Shift>,
+): DerivedReputation {
+  const events: { at: string; event: ReputationEvent }[] = [];
+  let completed = 0;
+  let noShows = 0;
+  let lateCancels = 0;
+  let workerCancellations = 0;
+
+  for (const app of applications) {
+    const shift = shiftsById.get(app.shiftId);
+    const startIso = shift ? `${shift.date}T${shift.startTime}:00` : app.appliedAt;
+    const endIso = shift ? `${shift.date}T${shift.endTime}:00` : app.appliedAt;
+
+    if (app.status === 'Confirmed') {
+      completed += 1;
+      events.push({ at: app.confirmedAt ?? app.checkOutAt ?? endIso, event: { kind: 'Completed' } });
+    } else if (app.status === 'NoShow') {
+      noShows += 1;
+      events.push({ at: app.noShowAt ?? startIso, event: { kind: 'NoShow' } });
+    } else if (app.status === 'CancelledByWorker') {
+      workerCancellations += 1;
+      if (!app.approvedAt) continue;
+      const cancelAt = app.cancellationRequestedAt ?? app.cancelledAt;
+      if (cancelAt && classifyCancellation('Approved', startIso, cancelAt) === 'LateCancel') {
+        lateCancels += 1;
+        events.push({ at: cancelAt, event: { kind: 'LateCancel' } });
+      }
+    }
+  }
+
+  events.sort((a, b) => a.at.localeCompare(b.at));
+  const score = events.reduce((s, e) => applyReputationEvent(s, e.event), INITIAL_SCORE);
+  return { score, completed, noShows, lateCancels, workerCancellations };
 }

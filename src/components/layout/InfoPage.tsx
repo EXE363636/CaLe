@@ -51,7 +51,7 @@ export function InfoPage({
       <header className="info-page-hero relative mb-8 overflow-hidden">
         <RouteBackdrop variant="page" className="opacity-70" />
         <div className="relative">
-          <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
+          <p className="text-sm font-medium text-orange-700">
             {eyebrow}
           </p>
           <h1 className="mt-1 text-3xl font-bold leading-tight text-gray-900 sm:text-4xl">
@@ -63,7 +63,7 @@ export function InfoPage({
         </div>
       </header>
 
-      <div className="info-content text-[15px] leading-relaxed text-gray-700">
+      <div className="info-content text-base leading-relaxed text-gray-700">
         {children}
       </div>
 
@@ -120,7 +120,7 @@ export function InfoSection({
   return (
     <section className="info-section-card">
       <h2>{title}</h2>
-      <div className="text-[15px] leading-relaxed text-gray-700">
+      <div className="text-base leading-relaxed text-gray-700">
         {children}
       </div>
     </section>
@@ -155,7 +155,7 @@ export function InfoStep({
         {n}
       </span>
       <h3>{title}</h3>
-      <div className="text-[15px] leading-relaxed text-gray-700">
+      <div className="text-base leading-relaxed text-gray-700">
         {children}
       </div>
     </section>

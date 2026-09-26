@@ -3,8 +3,6 @@ import { PartnersSection } from '@/components/about/PartnersSection';
 import { t } from '@/i18n/vi';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export const metadata = { title: 'Giới thiệu — CaLẻ' };
-
 export default function AboutPage() {
   return (
     <InfoPage

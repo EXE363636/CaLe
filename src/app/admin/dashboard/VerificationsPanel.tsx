@@ -322,7 +322,7 @@ export function VerificationsPanel() {
                             {doc.fullIdentifier ?? doc.maskedIdentifier}
                           </span>
                           {doc.maskedIdentifier && doc.fullIdentifier && (
-                            <span className="ml-2 text-gray-400">
+                            <span className="ml-2 text-gray-500">
                               (hiển thị công khai: {doc.maskedIdentifier})
                             </span>
                           )}
@@ -410,13 +410,13 @@ export function VerificationsPanel() {
                       </div>
                       {(doc.mockFileName || doc.mockImageUrl) && (
                         <div className="mt-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                             Mô phỏng tài liệu
                           </p>
                           <p className="mt-1 break-all font-mono text-xs text-gray-700">
                             {doc.mockFileName ?? doc.mockImageUrl}
                           </p>
-                          <p className="mt-1 text-[11px] italic text-gray-500">
+                          <p className="mt-1 text-xs italic text-gray-500">
                             (Trong bản MVP, file không được upload thật.)
                           </p>
                         </div>
@@ -746,7 +746,7 @@ function HistoryDetailBody({
   return (
     <div className="flex flex-col gap-3 text-sm text-gray-700">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           Tài khoản
         </p>
         <p className="mt-0.5 font-medium text-gray-900">
@@ -758,7 +758,7 @@ function HistoryDetailBody({
         </p>
       </div>
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           Tài liệu
         </p>
         <p className="mt-0.5">
@@ -815,13 +815,13 @@ function HistoryDetailBody({
         <>
           {(doc as WorkerVerificationDocument).fullIdentifier && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Số đăng ký
               </p>
               <p className="mt-0.5 font-mono text-gray-900">
                 {(doc as WorkerVerificationDocument).fullIdentifier}
                 {(doc as WorkerVerificationDocument).maskedIdentifier && (
-                  <span className="ml-2 text-gray-400">
+                  <span className="ml-2 text-gray-500">
                     (hiển thị công khai:{' '}
                     {(doc as WorkerVerificationDocument).maskedIdentifier})
                   </span>
@@ -840,14 +840,14 @@ function HistoryDetailBody({
         ((doc as EmployerVerificationDocument).mockFileName ||
           (doc as EmployerVerificationDocument).mockImageUrl) && (
           <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
               Mô phỏng tài liệu
             </p>
             <p className="mt-1 break-all font-mono text-xs text-gray-700">
               {(doc as EmployerVerificationDocument).mockFileName ??
                 (doc as EmployerVerificationDocument).mockImageUrl}
             </p>
-            <p className="mt-1 text-[11px] italic text-gray-500">
+            <p className="mt-1 text-xs italic text-gray-500">
               (Trong bản MVP, file không được upload thật.)
             </p>
           </div>

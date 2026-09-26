@@ -252,7 +252,7 @@ export function MockPaymentSession({
                 <span className="min-w-0 flex-1">
                   <span className="font-medium text-gray-900">{channelLabel(ch)}</span>
                 </span>
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
                   Demo
                 </span>
               </label>

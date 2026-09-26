@@ -165,7 +165,7 @@ export function EmployerFeedbackList({
               const c = summary.dist[star - 1];
               const pct = summary.count > 0 ? (c / summary.count) * 100 : 0;
               return (
-                <li key={star} className="flex items-center gap-2 text-[11px]">
+                <li key={star} className="flex items-center gap-2 text-xs">
                   <span className="w-6 text-right text-gray-600">{star}★</span>
                   <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-200">
                     <span
@@ -189,7 +189,7 @@ export function EmployerFeedbackList({
             type="button"
             onClick={() => setSortMode(opt.value)}
             className={[
-              'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
+              'rounded-full px-2.5 py-1 text-xs font-medium transition-colors',
               sortMode === opt.value
                 ? 'bg-orange-500 text-gray-900'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
@@ -207,7 +207,7 @@ export function EmployerFeedbackList({
             <li key={f.id} className="rounded-lg border border-gray-100 px-3 py-2">
               <div className="flex items-center justify-between">
                 <StarRating value={f.stars} readOnly size="sm" />
-                <span className="font-mono text-[11px] text-gray-400">
+                <span className="font-mono text-xs text-gray-400">
                   {formatLogDateTime(f.createdAt)}
                 </span>
               </div>
@@ -233,7 +233,7 @@ export function EmployerFeedbackList({
                   <button
                     type="button"
                     onClick={() => openReport(f.id)}
-                    className="text-[11px] font-medium text-gray-400 hover:text-rose-600 hover:underline"
+                    className="text-xs font-medium text-gray-400 hover:text-rose-600 hover:underline"
                   >
                     {t('review.report.button')}
                   </button>
@@ -300,7 +300,7 @@ export function EmployerFeedbackList({
 
 function TagChip({ tag }: { tag: EmployerFeedbackTag }) {
   return (
-    <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+    <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
       {t(`employerFeedback.tag.${tag}`)}
     </span>
   );

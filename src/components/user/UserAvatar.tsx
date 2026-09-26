@@ -26,13 +26,16 @@ const sizeMap: Record<NonNullable<UserAvatarProps['size']>, string> = {
   lg: 'h-14 w-14 text-base',
 };
 
+// Tinted fill + deep ink of the same hue (DESIGN.md status-pair pattern).
+// White initials on *-400 fills measured 2–2.6:1 (fails WCAG AA); these
+// pairs all clear 4.5:1.
 const bgColors = [
-  'bg-orange-400',
-  'bg-blue-400',
-  'bg-green-400',
-  'bg-purple-400',
-  'bg-pink-400',
-  'bg-teal-400',
+  'bg-orange-100 text-orange-800',
+  'bg-blue-100 text-blue-800',
+  'bg-green-100 text-green-800',
+  'bg-purple-100 text-purple-800',
+  'bg-pink-100 text-pink-800',
+  'bg-teal-100 text-teal-800',
 ];
 
 function getInitials(name: string): string {
@@ -68,7 +71,7 @@ export function UserAvatar({
   const bg = getBgColor(name);
 
   return (
-    <span className={`${base} ${bg} font-semibold text-white select-none`}>
+    <span className={`${base} ${bg} font-semibold select-none`}>
       {initials}
     </span>
   );

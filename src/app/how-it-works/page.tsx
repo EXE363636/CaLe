@@ -1,7 +1,5 @@
 import { InfoPage, InfoSection, InfoList, InfoStep } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Cách hoạt động — CaLẻ' };
-
 export default function HowItWorksPage() {
   return (
     <InfoPage

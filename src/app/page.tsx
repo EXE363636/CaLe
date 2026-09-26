@@ -3,6 +3,7 @@ import { Reveal } from '@/components/ui';
 import { FeaturedJobMockup } from '@/components/landing/FeaturedJobMockup';
 import { t } from '@/i18n/vi';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { hasCapability } from '@/data/capabilities';
 
 // ---------------------------------------------------------------------------
 // Inline icons (no external library). Each icon below maps to a specific,
@@ -89,6 +90,10 @@ export default function LandingPage() {
   // B4/B6 — supabase/production (Beta): tài khoản/ca/đơn là thật; CaLẻ chưa
   // thu/giữ tiền. Dùng microcopy trung thực thay cho "bản demo · mô phỏng".
   const supabase = isSupabaseEnv();
+  // Chỉ hứa những gì môi trường hiện tại thật sự có (PRODUCT.md: trung thực
+  // mặc định). Production chưa có đánh giá / tranh chấp.
+  const ratingsOn = hasCapability('ratings');
+  const disputesOn = hasCapability('disputes');
   return (
     <div className="flex min-w-0 flex-col">
 
@@ -164,7 +169,9 @@ export default function LandingPage() {
             {[
               { icon: <CalendarIcon />, label: t('landing.trust.time'), desc: t('landing.trust.time.desc') },
               { icon: <CheckIcon />, label: t('landing.trust.confirm'), desc: t('landing.trust.confirm.desc') },
-              { icon: <StarIcon />, label: t('landing.trust.reputation'), desc: t('landing.trust.reputation.desc') },
+              ratingsOn
+                ? { icon: <StarIcon />, label: t('landing.trust.reputation'), desc: t('landing.trust.reputation.desc') }
+                : { icon: <ShieldIcon />, label: t('landing.trust.attendance'), desc: t('landing.trust.attendance.desc') },
             ].map((item) => (
               <li key={item.label} className="flex min-w-0 items-start gap-3 sm:px-5 sm:first:pl-0">
                 <span className="mt-0.5 shrink-0">{item.icon}</span>
@@ -200,8 +207,8 @@ export default function LandingPage() {
                   {[
                     t('landing.howItWorks.worker.step1'),
                     t('landing.howItWorks.worker.step2'),
-                    t('landing.howItWorks.worker.step3'),
-                    t('landing.howItWorks.worker.step4'),
+                    t(ratingsOn ? 'landing.howItWorks.worker.step3' : 'landing.howItWorks.worker.step3.noRatings'),
+                    t(ratingsOn ? 'landing.howItWorks.worker.step4' : 'landing.howItWorks.worker.step4.noRatings'),
                   ].map((step, i) => (
                     <li key={i} className="relative flex items-start gap-3">
                       <StepNumber n={i + 1} />
@@ -222,7 +229,7 @@ export default function LandingPage() {
                     t('landing.howItWorks.employer.step1'),
                     t('landing.howItWorks.employer.step2'),
                     t('landing.howItWorks.employer.step3'),
-                    t('landing.howItWorks.employer.step4'),
+                    t(ratingsOn ? 'landing.howItWorks.employer.step4' : 'landing.howItWorks.employer.step4.noRatings'),
                   ].map((step, i) => (
                     <li key={i} className="relative flex items-start gap-3">
                       <StepNumber n={i + 1} />
@@ -259,8 +266,12 @@ export default function LandingPage() {
           <ul className="divide-y divide-gray-100 rounded-2xl border border-gray-100 bg-white">
             {[
               { icon: <ShieldIcon />, title: t('landing.safety.confirm.title'), desc: t('landing.safety.confirm.desc') },
-              { icon: <StarIcon />, title: t('landing.safety.reputation.title'), desc: t('landing.safety.reputation.desc') },
-              { icon: <ScalesIcon />, title: t('landing.safety.dispute.title'), desc: t('landing.safety.dispute.desc') },
+              ratingsOn
+                ? { icon: <StarIcon />, title: t('landing.safety.reputation.title'), desc: t('landing.safety.reputation.desc') }
+                : { icon: <CheckIcon />, title: t('landing.safety.verify.title'), desc: t('landing.safety.verify.desc') },
+              disputesOn
+                ? { icon: <ScalesIcon />, title: t('landing.safety.dispute.title'), desc: t('landing.safety.dispute.desc') }
+                : { icon: <ScalesIcon />, title: t('landing.safety.support.title'), desc: t('landing.safety.support.desc') },
               {
                 icon: <WalletIcon />,
                 title: supabase ? t('landing.safety.finance.title.supabase') : t('landing.safety.finance.title'),

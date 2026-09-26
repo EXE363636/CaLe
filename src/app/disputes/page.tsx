@@ -1,9 +1,5 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = {
-  title: 'Chính sách xử lý tranh chấp — CaLẻ',
-};
-
 export default function DisputesPage() {
   return (
     <InfoPage

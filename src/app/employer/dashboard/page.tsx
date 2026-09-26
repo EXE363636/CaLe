@@ -13,8 +13,8 @@ import {
   getWorkerVerificationSummary,
   useVerificationStore,
 } from '@/stores';
-import { deriveEmployerPaidOut, deriveHeldEscrow, sumDepositBasis } from '@/domain/finance';
-import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
+import { deriveEmployerPaidOut, deriveHeldEscrow } from '@/domain/finance';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { isActiveDashboardShift, getShiftLifecycleState } from '@/domain/shiftLifecycleState';
 import { showSuccess } from '@/lib/toast';
@@ -92,8 +92,8 @@ function EmployerDashboardContent() {
         const refunded = await refundForShiftAsync(sh.id, currentUserId);
         if (refunded) {
           showSuccess(
-            'Đã hoàn cọc',
-            `Ca "${sh.title}" huỷ/hết hạn — phần cọc chưa dùng đã trả về ví.`,
+            t('employer.dashboard.refund.title'),
+            t('employer.dashboard.refund.desc').replace('{title}', sh.title),
           );
         }
       }
@@ -210,8 +210,22 @@ function EmployerDashboardContent() {
     return applications.filter((a) => shiftIds.has(a.shiftId) && a.status === 'Pending');
   }, [applications, myShifts, employer]);
 
-  if (!employer) return null;
+  // Hồ sơ chưa tải xong (supabase cold load) → trạng thái đang tải thay vì trang trắng.
+  if (!employer) {
+    return (
+      <div
+        className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-gray-500"
+        role="status"
+        aria-live="polite"
+      >
+        {t('common.loading')}
+      </div>
+    );
+  }
   const unreadCount = notifications.filter((n) => !n.read).length;
+  // 2 ô tiền chỉ có ở local; số ô quyết định số cột để không có ô lẻ loi
+  // một mình một hàng (4 ô → 4 cột, 6 ô → 3 cột).
+  const showMoneyTiles = hasCapability('wallet') && !isSupabaseEnv();
 
   return (
     <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
@@ -230,7 +244,7 @@ function EmployerDashboardContent() {
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-xl font-bold text-orange-700 ring-1 ring-orange-100">
             {getUserInitials(employer.companyName)}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[14rem] flex-1">
             <p className="text-sm text-gray-500">{t('employer.dashboard.title')}</p>
             <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
               {employer.companyName}
@@ -244,7 +258,7 @@ function EmployerDashboardContent() {
                 : t('employer.dashboard.welcome.idle')}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <PageHelpButton
               title={t('help.employerDashboard.title')}
               intro={t('help.employerDashboard.intro')}
@@ -288,23 +302,9 @@ function EmployerDashboardContent() {
             >
               {t('employer.dashboard.viewSchedule')}
             </Link>
-            <Link
-              href="/employer/shifts/new"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-orange-400 hover:shadow-md active:bg-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
-            >
+            <ButtonLink href="/employer/shifts/new" variant="primary">
               {t('btn.postShift')}
-            </Link>
-            {/* "Xuất dữ liệu" hiện chỉ là mô phỏng (alert CSV), chưa có backend
-                đối soát → ẩn ở supabase/production (mục 4). */}
-            {!isSupabaseEnv() && (
-              <button
-                onClick={() => alert('Đã xuất dữ liệu đối soát ra file CSV!')}
-                className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 focus:outline-none"
-              >
-                <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Xuất dữ liệu
-              </button>
-            )}
+            </ButtonLink>
           </div>
         </div>
       </header>
@@ -312,14 +312,19 @@ function EmployerDashboardContent() {
       {/* Stats — Phase 9H: each tile opens a dedicated detail modal
           (no more scroll-to-section, which was misleading when the
           target section wasn't actually on the dashboard). */}
-      <section className="order-2 mb-8 mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:order-none lg:mt-0 lg:grid-cols-3">
+      <section
+        className={[
+          'order-2 mb-8 mt-8 grid grid-cols-2 gap-4 lg:order-none lg:mt-0',
+          showMoneyTiles ? 'sm:grid-cols-3' : 'lg:grid-cols-4',
+        ].join(' ')}
+      >
         <StatTile
           label={t('employer.dashboard.stats.activeShifts')}
           value={String(activeShifts.length)}
           tone="brand"
           icon="briefcase"
           onClick={() => setStatDetail('active')}
-          ariaLabel="Xem chi tiết ca đang hoạt động"
+          ariaLabel={t('employer.dashboard.stats.activeAria')}
         />
         <StatTile
           label={t('employer.dashboard.applicants')}
@@ -327,7 +332,7 @@ function EmployerDashboardContent() {
           tone={pendingApps.length > 0 ? 'warn' : 'neutral'}
           icon="users"
           onClick={() => setStatDetail('pending')}
-          ariaLabel="Xem chi tiết đơn ứng tuyển chờ duyệt"
+          ariaLabel={t('employer.dashboard.stats.pendingAria')}
         />
         <StatTile
           label={t('employer.dashboard.stats.postedShifts')}
@@ -335,7 +340,7 @@ function EmployerDashboardContent() {
           tone="neutral"
           icon="check"
           onClick={() => setStatDetail('posted')}
-          ariaLabel="Xem chi tiết ca đã đăng"
+          ariaLabel={t('employer.dashboard.stats.postedAria')}
         />
         <StatTile
           label={t('employer.dashboard.stats.completedShifts')}
@@ -343,28 +348,28 @@ function EmployerDashboardContent() {
           tone="good"
           icon="check"
           onClick={() => setStatDetail('completed')}
-          ariaLabel="Xem chi tiết ca đã hoàn thành"
+          ariaLabel={t('employer.dashboard.stats.completedAria')}
         />
         {/* Tổng đã đảm bảo/đã chi (tính từ escrow local) — ở supabase tiền nằm
             trong Ví (WalletPanel) nên ẩn 2 tile này để tránh số liệu lệch. */}
-        {hasCapability('wallet') && !isSupabaseEnv() && (
+        {showMoneyTiles && (
           <StatTile
             label={t('employer.dashboard.stats.totalDeposited')}
             value={formatVND(totalDeposited)}
             tone="neutral"
             icon="wallet"
             onClick={() => setStatDetail('deposits')}
-            ariaLabel="Xem chi tiết tiền chờ thanh toán"
+            ariaLabel={t('employer.dashboard.stats.depositedAria')}
           />
         )}
-        {hasCapability('wallet') && !isSupabaseEnv() && (
+        {showMoneyTiles && (
           <StatTile
             label={t('employer.dashboard.stats.totalPaidOut')}
             value={formatVND(totalPaidOut)}
             tone="brand"
             icon="wallet"
             onClick={() => setStatDetail('payments')}
-            ariaLabel="Xem tóm tắt thanh toán"
+            ariaLabel={t('employer.dashboard.stats.paidOutAria')}
           />
         )}
       </section>
@@ -389,9 +394,21 @@ function EmployerDashboardContent() {
       {/* Mobile-first ordering — the work area (active shifts + pending
           applicants + notifications) leads on small screens (order-1),
           above the stats + wallet. */}
-      <div className="order-1 grid gap-6 lg:order-none lg:grid-cols-3">
+      <div
+        className={[
+          'order-1 grid gap-6 lg:order-none',
+          // Không có cột phụ (thông báo ẩn ở supabase) → cột chính trải hết
+          // chiều rộng, thẳng mép với hàng thống kê + ví phía trên.
+          hasCapability('notifications') ? 'lg:grid-cols-3' : '',
+        ].join(' ')}
+      >
         {/* Main */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
+        <div
+          className={[
+            'flex flex-col gap-6',
+            hasCapability('notifications') ? 'lg:col-span-2' : '',
+          ].join(' ')}
+        >
           {/* Active shifts */}
           <section id="employer-active-shifts">
             <div className="mb-4 flex items-baseline justify-between">
@@ -410,35 +427,33 @@ function EmployerDashboardContent() {
             {activeShifts.length === 0 ? (
               <EmptyState
                 tone="warm"
-                title={t('employer.dashboard.noShifts')}
-                description={t('employer.dashboard.empty.upcoming.descriptionRich')}
+                title={t(
+                  myShifts.length === 0
+                    ? 'employer.dashboard.noShifts'
+                    : 'employer.dashboard.noUpcoming',
+                )}
+                description={t(
+                  myShifts.length === 0
+                    ? 'employer.dashboard.empty.upcoming.descriptionRich'
+                    : 'employer.dashboard.noUpcoming.description',
+                )}
                 action={
-                  <Link href="/employer/shifts/new">
-                    <Button size="sm" variant="primary">
+                  <ButtonLink href="/employer/shifts/new" size="sm" variant="primary">
                       {t('btn.postShift')}
-                    </Button>
-                  </Link>
+                    </ButtonLink>
                 }
               />
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {activeShifts.map((shift) => (
                   <div key={shift.id} className="relative group flex flex-col gap-2">
-                    <Link href={`/employer/shifts/${shift.id}`}>
+                    {/* No-show được đánh dấu thật ở trang chi tiết ca (employer/shifts/[id]). */}
+                    <Link
+                      href={`/employer/shifts/${shift.id}`}
+                      className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                    >
                       <ShiftCard shift={shift} applications={applications} showEscrow={hasCapability('wallet') && !isSupabaseEnv()} />
                     </Link>
-                    {/* Các nút No-show/thay thế hiện chỉ là mô phỏng (alert), chưa
-                        có backend → ẩn ở supabase/production (mục 4). */}
-                    {!isSupabaseEnv() && (
-                      <div className="flex gap-2">
-                        <button onClick={(e) => { e.preventDefault(); alert('Đã đánh dấu No-show. Hệ thống sẽ ghi nhận lịch sử này.'); }} className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition">
-                          Đánh dấu No-show
-                        </button>
-                        <button onClick={(e) => { e.preventDefault(); alert('Đã gửi yêu cầu thay thế nhân sự khẩn cấp!'); }} className="px-3 py-1.5 text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded-md hover:bg-orange-100 transition">
-                          Yêu cầu thay thế
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -455,7 +470,8 @@ function EmployerDashboardContent() {
                 {pendingApps.slice(0, 5).map((a) => {
                   const shift = shifts.find((s) => s.id === a.shiftId);
                   const w = users.find((u) => u.id === a.workerId);
-                  const wName = w?.role === 'worker' ? w.fullName : 'Người lao động';
+                  const wName =
+                    w?.role === 'worker' ? w.fullName : t('employer.dashboard.workerFallback');
                   return (
                     <Card key={a.id}>
                       <div className="flex items-center justify-between gap-2">
@@ -463,9 +479,16 @@ function EmployerDashboardContent() {
                           <p className="truncate text-sm font-medium text-gray-900">{wName}</p>
                           <p className="truncate text-xs text-gray-500">{shift?.title ?? ''}</p>
                         </div>
-                        <Link href={`/employer/shifts/${a.shiftId}`}>
-                          <Badge tone="warning">{t('btn.viewDetail')}</Badge>
-                        </Link>
+                        {/* Hành động thật (đi tới trang duyệt) → nút, không phải
+                            badge trạng thái có thể bấm. */}
+                        <ButtonLink
+                          href={`/employer/shifts/${a.shiftId}`}
+                          size="sm"
+                          variant="secondary"
+                          className="shrink-0"
+                        >
+                          {t('employer.dashboard.reviewApplicant')}
+                        </ButtonLink>
                       </div>
                     </Card>
                   );
@@ -483,8 +506,9 @@ function EmployerDashboardContent() {
               <h2 className="font-semibold text-gray-900">{t('nav.notifications')}</h2>
               {unreadCount > 0 && (
                 <button
+                  type="button"
                   onClick={() => markAllRead(employer.id)}
-                  className="text-xs text-orange-700 hover:underline"
+                  className="-my-2 inline-flex min-h-[44px] items-center rounded px-2 text-xs font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                 >
                   {t('btn.markAllRead')}
                 </button>
@@ -492,7 +516,7 @@ function EmployerDashboardContent() {
             </div>
             <ul className="max-h-96 divide-y divide-gray-50 overflow-y-auto">
               {notifications.length === 0 ? (
-                <li className="px-4 py-6 text-center text-sm text-gray-400">{t('common.noData')}</li>
+                <li className="px-4 py-6 text-center text-sm text-gray-500">{t('common.noData')}</li>
               ) : (
                 notifications.slice(0, 10).map((n) => (
                   <li key={n.id}>
@@ -577,7 +601,7 @@ function EmployerDashboardContent() {
 
           {statDetail === 'deposits' ? (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <p className="text-sm font-medium text-gray-600">
                 CA ĐANG CHỜ THANH TOÁN
               </p>
               {activeShifts.length === 0 ? (
@@ -614,7 +638,7 @@ function EmployerDashboardContent() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <p className="text-sm font-medium text-gray-600">
                 {t('employer.payments.recentTitle')}
               </p>
               {completedShifts.length === 0 ? (
@@ -778,7 +802,7 @@ function EmployerDashboardContent() {
                 const shift = shifts.find((s) => s.id === a.shiftId);
                 const w = users.find((u) => u.id === a.workerId);
                 const worker = w?.role === 'worker' ? w : null;
-                const wName = worker?.fullName ?? 'Người lao động';
+                const wName = worker?.fullName ?? t('employer.dashboard.workerFallback');
                 // Cluster 2 · BUG 3 (Req 2.3): read the applicant's reputation
                 // through the single shared source so this badge matches the
                 // worker's own dashboard / trust chip. Same clamped value.
@@ -806,7 +830,7 @@ function EmployerDashboardContent() {
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <span
                               className={[
-                                'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                                'rounded-full px-2 py-0.5 text-xs font-semibold',
                                 repScore >= 80
                                   ? 'bg-emerald-50 text-emerald-700'
                                   : repScore >= 50
@@ -829,7 +853,7 @@ function EmployerDashboardContent() {
                               worker={worker}
                               workerDocuments={workerDocuments}
                             />
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-xs text-gray-500">
                               {t('employer.detail.pending.completedShifts').replace(
                                 '{count}',
                                 String(worker.completedShiftCount),
@@ -916,14 +940,14 @@ function ShiftListModal({
                       {formatTimeVN(shift.endTime)}
                     </p>
                     {shift.location && (
-                      <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                      <p className="mt-0.5 truncate text-xs text-gray-500">
                         {shift.location}
                       </p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <ShiftLifecycleBadge shift={shift} applications={applications} />
-                    <span className="text-[11px] font-semibold text-orange-700">
+                    <span className="text-xs font-semibold text-orange-700">
                       {['Expired', 'Cancelled'].includes(shift.status)
                         ? '0 đ'
                         : shift.status === 'Completed'
@@ -937,14 +961,14 @@ function ShiftListModal({
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-gray-500">
+                  <span className="text-xs text-gray-500">
                     {shift.positionsFilled}/{shift.positionsTotal}{' '}
                     {t('employer.detail.positionsLabel')}
                   </span>
                   <Link
                     href={`/employer/shifts/${shift.id}`}
                     onClick={onClose}
-                    className="text-[11px] font-medium text-orange-700 hover:underline"
+                    className="text-xs font-medium text-orange-700 hover:underline"
                   >
                     {t('btn.viewDetail')} →
                   </Link>
@@ -954,7 +978,7 @@ function ShiftListModal({
           </ul>
         )}
         {shifts.length > 12 && (
-          <p className="text-[11px] text-gray-500">
+          <p className="text-xs text-gray-500">
             {t('employer.detail.truncated').replace(
               '{count}',
               String(shifts.length - 12),
@@ -1028,7 +1052,7 @@ function StatTile({
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <p className="text-sm font-medium text-gray-600">
           {label}
         </p>
         {icon && (
@@ -1051,9 +1075,9 @@ function StatTile({
         // tile is tappable; calm gray by default, orange on hover/focus.
         <span
           aria-hidden="true"
-          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
         >
-          Xem chi tiết →
+          {t('btn.viewDetail')} →
         </span>
       )}
     </>
@@ -1148,7 +1172,7 @@ function LiveVerificationChips({
   return (
     <>
       {worker.verifications.includes('phone') && (
-        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-medium text-orange-700">
+        <span className="rounded-full bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
           {t('verification.phone')}
         </span>
       )}
@@ -1158,13 +1182,13 @@ function LiveVerificationChips({
       {summary.approvedMethods.map((m) => (
         <span
           key={m.type}
-          className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+          className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
         >
           Đã xác minh · {m.label}
         </span>
       ))}
       {summary.pendingCount > 0 && (
-        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
           {summary.pendingCount} đang chờ duyệt
         </span>
       )}
@@ -1198,7 +1222,7 @@ function EmployerPenaltyLedger({
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+      <p className="text-sm font-semibold text-red-700">
         Phí hủy ca sau khi đã duyệt người
       </p>
       <ul className="flex flex-col gap-2">
@@ -1212,7 +1236,7 @@ function EmployerPenaltyLedger({
                 <p className="truncate text-sm font-medium text-red-900">
                   {shift.title}
                 </p>
-                <p className="mt-0.5 text-[11px] text-red-800/80">
+                <p className="mt-0.5 text-xs text-red-800/80">
                   {shift.cancelledAt &&
                     formatDateVN(shift.cancelledAt.slice(0, 10))}
                 </p>
@@ -1230,11 +1254,11 @@ function EmployerPenaltyLedger({
               </div>
             </div>
             {shift.employerCancellationReason && (
-              <p className="mt-1.5 text-[11px] text-red-800/90">
+              <p className="mt-1.5 text-xs text-red-800/90">
                 Lý do: {shift.employerCancellationReason}
               </p>
             )}
-            <p className="mt-0.5 text-[11px] italic text-red-700/70">
+            <p className="mt-0.5 text-xs italic text-red-700/70">
               Phí hủy do ca đã có người lao động được duyệt.
             </p>
           </li>

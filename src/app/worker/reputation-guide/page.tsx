@@ -1,9 +1,5 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = {
-  title: 'Hồ sơ & điểm uy tín — CaLẻ',
-};
-
 export default function WorkerReputationGuidePage() {
   return (
     <InfoPage

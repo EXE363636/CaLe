@@ -171,7 +171,7 @@ const SAFETY_GROUP: MenuGroup = {
     },
     {
       href: '/handbook',
-      label: 'Cẩm nang làm việc',
+      label: t('nav.label.handbook'),
       description: 'Bí quyết để làm việc suôn sẻ',
     },
   ],
@@ -499,7 +499,7 @@ export function NavBar() {
               white header) to gray-500 (~4.8:1) so the tagline clears
               the WCAG AA 4.5:1 floor (Req 10.1). Purely a color token
               swap; text content is unchanged (Req 12.2). */}
-          <span className="hidden text-[10px] font-medium uppercase tracking-wide text-gray-500 sm:block">
+          <span className="hidden text-xs font-medium uppercase tracking-wide text-gray-500 sm:block">
             by CaLedo Tech
           </span>
         </Link>
@@ -678,7 +678,7 @@ function WorkerNav({
         {t('nav.schedule')}
       </NavLink>
       <NavLink href="/handbook" pathname={pathname}>
-        Cẩm nang làm việc
+        {t('nav.label.handbook')}
       </NavLink>
       <NavLink
         href="/worker/profile"
@@ -754,7 +754,7 @@ function EmployerNav({
         {t('nav.short.publicShifts')}
       </NavLink>
       <NavLink href="/handbook" pathname={pathname}>
-        Cẩm nang làm việc
+        {t('nav.label.handbook')}
       </NavLink>
       <NavLink
         href="/employer/profile"

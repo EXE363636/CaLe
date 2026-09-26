@@ -147,7 +147,7 @@ const WORKER_SECTIONS: DrawerSection[] = [
       { href: '/shifts', label: 'Tìm ca làm' },
       { href: '/worker/dashboard', label: 'Tổng quan' },
       { href: '/worker/schedule', label: 'Lịch cá nhân' },
-      { href: '/handbook', label: 'Cẩm nang làm việc' },
+      { href: '/handbook', label: t('nav.label.handbook') },
       { href: '/worker/profile', label: 'Hồ sơ' },
     ],
   },
@@ -171,7 +171,7 @@ const EMPLOYER_SECTIONS: DrawerSection[] = [
       { href: '/employer/shifts/new', label: 'Đăng ca tuyển' },
       { href: '/employer/dashboard', label: 'Tổng quan' },
       { href: '/employer/schedule', label: 'Lịch tuyển dụng' },
-      { href: '/handbook', label: 'Cẩm nang làm việc' },
+      { href: '/handbook', label: t('nav.label.handbook') },
       { href: '/employer/profile', label: 'Hồ sơ doanh nghiệp' },
     ],
   },
@@ -449,7 +449,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
             <span className="text-base font-bold text-orange-700">
               {t('site.name')}
             </span>
-            <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
               by CaLedo Tech
             </span>
           </div>
@@ -500,7 +500,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
           <Link
             href="/support"
             onClick={() => setOpen(false)}
-            className="mb-3 flex min-h-[40px] items-center gap-2 rounded-lg px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-700"
+            className="mb-3 flex min-h-[44px] items-center gap-2 rounded-lg px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-700"
           >
             <SupportGlyph />
             <span>Cần hỗ trợ? Liên hệ đội CaLẻ</span>
@@ -581,10 +581,10 @@ function UserSummaryCard({ user }: { user: User }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-gray-900">{name}</p>
         <p className="truncate text-xs text-gray-600">{role}</p>
-        <p className="mt-0.5 truncate text-xs text-gray-400">{user.email}</p>
+        <p className="mt-0.5 truncate text-xs text-gray-600">{user.email}</p>
         <span
           className={[
-            'mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
+            'mt-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
             chipClasses(chip.tone),
           ].join(' ')}
         >
@@ -612,7 +612,7 @@ function DrawerSectionView({
 }): ReactNode {
   return (
     <section>
-      <p className="mx-1 mb-1 mt-0 rounded-md bg-orange-50/60 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+      <p className="mx-1 mb-1 mt-0 rounded-md bg-orange-50/60 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700">
         {heading}
       </p>
       <ul className="flex flex-col gap-0.5">

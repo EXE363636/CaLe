@@ -169,7 +169,7 @@ export function EmployerProfileModal({
                       {p.label}
                     </span>
                   </span>
-                  <span className="shrink-0 text-[11px] text-gray-500">
+                  <span className="shrink-0 text-xs text-gray-500">
                     {formatDateVN(p.submittedAt)}
                   </span>
                 </li>
@@ -259,7 +259,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center text-center">
       <span className="text-lg font-bold text-gray-900">{value}</span>
-      <span className="mt-0.5 text-[10px] uppercase tracking-wide text-gray-500">
+      <span className="mt-0.5 text-xs uppercase tracking-wide text-gray-500">
         {label}
       </span>
     </div>

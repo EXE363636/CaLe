@@ -1,7 +1,5 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Chính sách bảo mật — CaLẻ' };
-
 export default function PrivacyPage() {
   return (
     <InfoPage

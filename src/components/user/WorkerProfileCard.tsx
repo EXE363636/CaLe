@@ -68,7 +68,7 @@ export function WorkerProfileCard({ worker, className = '' }: WorkerProfileCardP
         {summary.approvedMethods.map((m) => (
           <span
             key={m.type}
-            className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+            className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
           >
             <span>{m.label}</span>
             {m.maskedIdentifier && (

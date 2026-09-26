@@ -102,13 +102,13 @@ export function EmployerConfirmationPanel({
       {/* Read-only evidence summary. */}
       <dl className="grid grid-cols-1 gap-3 rounded-xl bg-white/80 p-3 ring-1 ring-orange-100 sm:grid-cols-2">
         <div>
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-orange-700">
             {t('employer.confirm.checkOutAt')}
           </dt>
           <dd className="mt-1 text-sm text-gray-900">{checkOutAtLabel}</dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-orange-700">
             {t('employer.confirm.checklist.title')}
           </dt>
           <dd className="mt-1 text-sm text-gray-900">
@@ -150,7 +150,7 @@ export function EmployerConfirmationPanel({
                     <span
                       aria-hidden="true"
                       className={[
-                        'mt-0.5 inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-sm text-[9px] font-bold',
+                        'mt-0.5 inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-sm text-xs font-bold',
                         submitted
                           ? ticked
                             ? 'bg-emerald-500 text-white'
@@ -163,7 +163,7 @@ export function EmployerConfirmationPanel({
                     <span>
                       {label}
                       {!submitted && (
-                        <span className="ml-2 text-[10px] uppercase tracking-wide">
+                        <span className="ml-2 text-xs uppercase tracking-wide">
                           ({t('checklist.row.notSubmitted')})
                         </span>
                       )}
@@ -175,7 +175,7 @@ export function EmployerConfirmationPanel({
           )}
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-orange-700">
             {t('employer.confirm.note.title')}
           </dt>
           <dd
@@ -188,7 +188,7 @@ export function EmployerConfirmationPanel({
           </dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-orange-700">
             {t('employer.confirm.evidenceFile.title')}
           </dt>
           <dd
@@ -210,7 +210,7 @@ export function EmployerConfirmationPanel({
       {autoReleaseAt && (
         <div className="mt-4 rounded-xl bg-white/80 p-3 ring-1 ring-orange-100">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
               {t('employer.confirm.countdown.label')}
             </p>
             <AutoReleaseCountdown

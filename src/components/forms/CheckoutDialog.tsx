@@ -43,6 +43,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { tSettlement } from '@/lib/settlementCopy';
 import { Button, HelpPopover, Modal, Textarea } from '@/components/ui';
 import {
   validateCheckoutPayload,
@@ -183,11 +184,11 @@ export function CheckoutDialog({
             leaving the dialog. */}
         <div className="flex items-start gap-2">
           <p className="flex-1 leading-relaxed text-gray-600">
-            {t('checkout.dialog.intro')}
+            {tSettlement('checkout.dialog.intro')}
           </p>
           <HelpPopover
             title={t('help.checkout.title')}
-            description={t('help.checkout.description')}
+            description={tSettlement('help.checkout.description')}
           />
         </div>
 
@@ -272,7 +273,7 @@ export function CheckoutDialog({
               className={[
                 'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
                 'min-h-[44px] transition-colors duration-150',
-                'placeholder:font-sans placeholder:text-gray-400',
+                'placeholder:font-sans placeholder:text-gray-500',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
                 'border-gray-300 bg-white hover:border-gray-400',
               ].join(' ')}

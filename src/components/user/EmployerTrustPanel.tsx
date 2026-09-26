@@ -17,6 +17,8 @@ import { useMemo } from 'react';
 import { Badge, StarRating } from '@/components/ui';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { t } from '@/i18n/vi';
+import { hasCapability } from '@/data/capabilities';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 import type { Employer } from '@/types';
 
 interface EmployerTrustPanelProps {
@@ -46,6 +48,11 @@ export function EmployerTrustPanel({
       recent: sorted[0],
     };
   }, [allFeedback, employer.id]);
+
+  // Production: chưa có hệ thống đánh giá thật và cờ "doanh nghiệp đã xác
+  // minh" là dữ liệu mô phỏng → hiện "Chưa có đánh giá / chưa xác minh" sẽ
+  // là tín hiệu sai về nhà tuyển dụng. Ẩn cả dải; hồ sơ vẫn mở được từ tên.
+  if (!hasCapability('ratings') && isSupabaseEnv()) return null;
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/40 px-3 py-2">

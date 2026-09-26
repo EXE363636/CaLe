@@ -40,6 +40,21 @@ function errMsg(e: unknown): string {
   return toastFromStoreError(e instanceof Error ? e.message : 'BACKEND_ERROR');
 }
 
+/** Lỗi tải dữ liệu + nút thử lại — khác hẳn trạng thái "không có dữ liệu". */
+function LoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      role="alert"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+    >
+      <span>{t('admin.identity.loadError')}</span>
+      <Button size="sm" variant="secondary" onClick={onRetry}>
+        {t('btn.retry')}
+      </Button>
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Cài đặt
 // ---------------------------------------------------------------------------
@@ -49,6 +64,8 @@ function SettingsCard() {
   const [cap, setCap] = useState('');
   const [saving, setSaving] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // Lỗi của lần tải hiện tại (theo reloadKey) — tránh kẹt "Đang tải..." mãi.
+  const [failedKey, setFailedKey] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -58,7 +75,10 @@ function SettingsCard() {
         setS(v);
         setCap(String(v.otpDailyCap));
       })
-      .catch((e) => showError(errMsg(e)));
+      .catch((e) => {
+        showError(errMsg(e));
+        if (alive) setFailedKey(reloadKey);
+      });
     return () => {
       alive = false;
     };
@@ -80,7 +100,13 @@ function SettingsCard() {
   if (!s) {
     return (
       <Card>
-        <p className="text-sm text-gray-500">{t('common.loading')}</p>
+        {failedKey === reloadKey ? (
+          <LoadError onRetry={() => setReloadKey((k) => k + 1)} />
+        ) : (
+          <p className="text-sm text-gray-500" role="status">
+            {t('common.loading')}
+          </p>
+        )}
       </Card>
     );
   }
@@ -183,6 +209,9 @@ function ReviewQueue() {
   const [filter, setFilter] = useState<Filter>('Pending');
   const [items, setItems] = useState<IdentityReviewItem[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  // Tải thất bại ≠ hàng đợi rỗng: trước đây lỗi mạng hiện "Không có hồ sơ
+  // nào", khiến admin tưởng đã duyệt hết.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -192,7 +221,7 @@ function ReviewQueue() {
       })
       .catch((e) => {
         showError(errMsg(e));
-        if (alive) setItems([]);
+        if (alive) setLoadFailed(true);
       });
     return () => {
       alive = false;
@@ -202,18 +231,24 @@ function ReviewQueue() {
   function changeFilter(f: Filter) {
     if (f === filter) return;
     setItems(null);
+    setLoadFailed(false);
     setFilter(f);
+  }
+
+  function retry() {
+    setItems(null);
+    setLoadFailed(false);
+    setReloadKey((k) => k + 1);
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2" role="tablist">
+      <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
             key={f}
             type="button"
-            role="tab"
-            aria-selected={filter === f}
+            aria-pressed={filter === f}
             onClick={() => changeFilter(f)}
             className={[
               'min-h-[44px] rounded-full border px-4 text-sm font-medium transition-colors',
@@ -228,8 +263,12 @@ function ReviewQueue() {
         ))}
       </div>
 
-      {items === null ? (
-        <p className="text-sm text-gray-500">{t('common.loading')}</p>
+      {loadFailed ? (
+        <LoadError onRetry={retry} />
+      ) : items === null ? (
+        <p className="text-sm text-gray-500" role="status">
+          {t('common.loading')}
+        </p>
       ) : items.length === 0 ? (
         <EmptyState title={t('admin.identity.empty')} />
       ) : (
@@ -274,9 +313,9 @@ function ReviewItem({ item, onDone }: { item: IdentityReviewItem; onDone: () => 
     <Card>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-gray-900">{item.fullName}</p>
-          <p className="text-xs text-gray-500">
-            {item.role === 'employer' ? 'Nhà tuyển dụng' : 'Người lao động'} ·{' '}
+          <p className="break-words font-semibold text-gray-900">{item.fullName}</p>
+          <p className="break-all text-xs text-gray-500">
+            {t(item.role === 'employer' ? 'role.employer' : 'role.worker')} ·{' '}
             {item.displayName || '—'} · {item.email} · {item.phone || '—'}
           </p>
         </div>
@@ -298,7 +337,10 @@ function ReviewItem({ item, onDone }: { item: IdentityReviewItem; onDone: () => 
         </div>
       </dl>
       {item.status === 'Rejected' && item.rejectReason && (
-        <p className="mt-2 text-sm text-red-700">{item.rejectReason}</p>
+        <p className="mt-2 break-words text-sm text-red-700">
+          <span className="font-medium">{t('admin.identity.rejectReasonLabel')}</span>{' '}
+          {item.rejectReason}
+        </p>
       )}
 
       {urls ? (
@@ -320,6 +362,13 @@ function ReviewItem({ item, onDone }: { item: IdentityReviewItem; onDone: () => 
               <span className="mt-1 block text-xs text-gray-500">{label}</span>
             </a>
           ))}
+          {/* URL ký tạm hết hạn sau 10 phút → cho tải lại thay vì ảnh vỡ. */}
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
+            <Button size="sm" variant="ghost" onClick={() => void loadImages()}>
+              {t('admin.identity.reloadImages')}
+            </Button>
+            <span className="text-xs text-gray-500">{t('admin.identity.imagesExpireHint')}</span>
+          </div>
         </div>
       ) : (
         <Button size="sm" variant="secondary" className="mt-3" onClick={() => void loadImages()}>

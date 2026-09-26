@@ -331,7 +331,7 @@ function RegisterForm() {
                           <span className="block text-sm font-semibold">
                             {t(`employerType10A.${et}`)}
                           </span>
-                          <span className="mt-1 block text-[11px] font-normal leading-snug text-gray-600">
+                          <span className="mt-1 block text-xs font-normal leading-snug text-gray-600">
                             {t(`employerType10A.${et}.hint`)}
                           </span>
                         </button>

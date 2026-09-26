@@ -1,7 +1,9 @@
+import Link from 'next/link';
 import { Card, Badge, type BadgeTone } from '@/components/ui';
 import { ShiftLifecycleBadge } from './ShiftLifecycleBadge';
 import { EscrowStatusBadge } from './EscrowStatusBadge';
-import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
+import { formatVND, formatDateVN, formatRelativeDayVN, formatTimeVN } from '@/lib/format';
+import { hoursBetween } from '@/domain/deposit';
 import { t } from '@/i18n/vi';
 import type { Application, ApplicationStatus, Shift } from '@/types';
 
@@ -33,6 +35,12 @@ const applicationToneMap: Record<ApplicationStatus, BadgeTone> = {
 interface ShiftCardProps {
   shift: Shift;
   employerName?: string;
+  /**
+   * Điều hướng tới chi tiết ca. Ưu tiên `href`: cả thẻ thành một liên kết
+   * thật (mở tab mới, xem trước URL, trình đọc màn hình đọc là "liên kết").
+   * `onClick` giữ cho tương thích ngược.
+   */
+  href?: string;
   onClick?: () => void;
   showEscrow?: boolean;
   className?: string;
@@ -125,6 +133,7 @@ function ClockIcon() {
 export function ShiftCard({
   shift,
   employerName,
+  href,
   onClick,
   showEscrow = false,
   className = '',
@@ -135,23 +144,31 @@ export function ShiftCard({
   applications = [],
   nowIso,
 }: ShiftCardProps) {
-  return (
+  // "Rõ tiền": tổng tiền công cả ca (lương/giờ × số giờ) là con số chính;
+  // hoursBetween trả 0 với ca qua đêm / giờ sai → khi đó chỉ hiện lương/giờ.
+  const hours = hoursBetween(shift.startTime, shift.endTime);
+  const perShift = hours > 0 ? Math.round(shift.hourlyWage * hours) : null;
+  const hoursLabel = t('shiftCard.hours').replace(
+    '{n}',
+    new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(hours),
+  );
+  const slotsLeft = Math.max(0, shift.positionsTotal - shift.positionsFilled);
+  const legacyButton = !href && !!onClick;
+
+  const card = (
     <Card
-      clickable={!!onClick}
-      onClick={onClick}
-      // A11y — a clickable card must be keyboard-operable. Card renders a
-      // plain <div>, so when it acts as a navigation target we give it a
-      // button role, make it focusable, add Enter/Space activation, and a
-      // visible focus ring. Only applied when an onClick is provided.
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      clickable={!!onClick || !!href}
+      onClick={legacyButton ? onClick : undefined}
+      // Legacy onClick path: keyboard-operable div. Prefer `href`.
+      role={legacyButton ? 'button' : undefined}
+      tabIndex={legacyButton ? 0 : undefined}
       aria-label={
-        onClick
+        legacyButton
           ? `${shift.title} — ${formatVND(shift.hourlyWage)}${t('common.perHour')}, ${formatDateVN(shift.date)}`
           : undefined
       }
       onKeyDown={
-        onClick
+        legacyButton && onClick
           ? (e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -161,8 +178,8 @@ export function ShiftCard({
           : undefined
       }
       className={[
-        'flex flex-col h-full',
-        onClick
+        'flex h-full flex-col',
+        legacyButton
           ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
           : '',
         className,
@@ -170,13 +187,16 @@ export function ShiftCard({
         .filter(Boolean)
         .join(' ')}
     >
-      {/* Row 1: title + status.
-          When the current worker has an active application on this
-          shift, show their PERSONAL application status as the single
-          primary badge (not the public "Đang tuyển" recruiting
-          status) — Checklist K / old bug class 4. */}
+      {/* Row 1: title + employer (trust signal right under the title) +
+          the single primary status badge (personal application status if
+          the worker applied, otherwise the canonical lifecycle badge). */}
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-gray-900 leading-snug">{shift.title}</h3>
+        <div className="min-w-0">
+          <h3 className="break-words font-semibold leading-snug text-gray-900">{shift.title}</h3>
+          {employerName && (
+            <p className="mt-0.5 truncate text-sm text-gray-600">{employerName}</p>
+          )}
+        </div>
         <div className="shrink-0">
           {workerApplicationStatus ? (
             <Badge tone={applicationToneMap[workerApplicationStatus]}>
@@ -192,98 +212,94 @@ export function ShiftCard({
         </div>
       </div>
 
-      {/* CORE-STABILITY-9 Part 5 — availability-match pills. Only
-          rendered when the listing is sorted by "Phù hợp lịch rảnh". */}
+      {/* Availability-match pills — only in the "Phù hợp lịch rảnh" sort. */}
       {(matchLabel || isConflict || fitsAvailability) && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {/* Conflict Badge: only shown in availability sort when excluded.
-              We hide it if the worker already has this shift approved/active,
-              because the algorithm excludes approved shifts (they conflict with themselves). */}
+          {/* Hidden when the worker already holds this shift: the matcher
+              excludes approved shifts, which "conflict" with themselves. */}
           {isConflict && !['Approved', 'CheckedIn', 'CheckedOut'].includes(workerApplicationStatus || '') && (
-            <Badge tone="danger">Trùng lịch bận</Badge>
+            <Badge tone="danger">{t('shiftCard.conflict')}</Badge>
           )}
-
-          {/* Availability Match Pill */}
           {!isConflict && matchLabel && (
             <Badge tone={matchLabel === t('availability.match.veryGood') ? 'success' : matchLabel === t('availability.match.good') ? 'info' : 'warning'}>
               {matchLabel}
             </Badge>
           )}
           {!isConflict && fitsAvailability && (
-            <Badge tone="success">
-              {t('availability.fitsAvailability')}
-            </Badge>
+            <Badge tone="success">{t('availability.fitsAvailability')}</Badge>
           )}
         </div>
       )}
 
-      {/* Row 2: location, date, time */}
+      {/* Money — the decision number. Total for the whole shift leads;
+          the hourly rate × hours sits under it for verification. */}
+      <div className="mt-3">
+        {perShift !== null ? (
+          <>
+            <p className="tabular-nums">
+              <span className="text-lg font-bold text-gray-900">{formatVND(perShift)}</span>{' '}
+              <span className="text-sm text-gray-600">{t('shiftCard.perShift')}</span>
+            </p>
+            <p className="text-sm tabular-nums text-gray-600">
+              {formatVND(shift.hourlyWage)}
+              {t('common.perHour')} · {hoursLabel}
+            </p>
+          </>
+        ) : (
+          <p className="text-lg font-bold tabular-nums text-gray-900">
+            {formatVND(shift.hourlyWage)}
+            <span className="text-sm font-normal text-gray-600">{t('common.perHour')}</span>
+          </p>
+        )}
+      </div>
+
+      {/* When + where. Relative day ("Hôm nay", "Ngày mai", "T6, 26/09")
+          so a worker on a phone doesn't have to decode full dates. */}
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-1">
-          <LocationIcon />
-          {shift.location}
-        </span>
-        <span className="flex items-center gap-1">
           <CalendarIcon />
-          {formatDateVN(shift.date)}
+          <span className="font-medium text-gray-900">{formatRelativeDayVN(shift.date)}</span>
         </span>
-        <span className="flex items-center gap-1">
+        <span className="flex items-center gap-1 tabular-nums">
           <ClockIcon />
           {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
         </span>
-      </div>
-
-      {/* Row 3: wage + positions
-          Phase 10A-Fix-6 — slot label reads "Còn X/Y vị trí" so users
-          don't confuse "{filled}/{total} người" with "the job is full".
-          Full shifts are filtered out at the listing level
-          (`isShiftAvailableForRecruiting` from
-          `@/domain/shiftAvailability`); the card itself just renders
-          the available count derived from the shift's own
-          `positionsFilled` + `positionsTotal`. */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-        <span className="font-medium text-orange-700">
-          {formatVND(shift.hourlyWage)}{t('common.perHour')}
-        </span>
-        <span className="text-gray-500">
-          Còn {Math.max(0, shift.positionsTotal - shift.positionsFilled)}/
-          {shift.positionsTotal} vị trí
+        <span className="flex min-w-0 items-center gap-1">
+          <LocationIcon />
+          <span className="break-words">{shift.location}</span>
         </span>
       </div>
+      {/* Full shifts are filtered out at listing level; this is the count. */}
+      <p className="mt-1 text-sm tabular-nums text-gray-600">
+        {t('shiftCard.slotsLeft')
+          .replace('{left}', String(slotsLeft))
+          .replace('{total}', String(shift.positionsTotal))}
+      </p>
 
-      {/* Optional: employer name */}
-      {employerName && (
-        <p className="mt-1.5 text-xs text-gray-500">{employerName}</p>
-      )}
-
-      {/* Optional: escrow badge */}
       {showEscrow && (
         <div className="mt-2">
           <EscrowStatusBadge status={shift.escrowStatus} />
         </div>
       )}
 
-      {/* Phase 10C-Stab-1 Batch 3 I — already-applied affordance.
-          Replaces the standard apply CTA with a localized status
-          chip + a "Xem chi tiết" affordance. The card itself remains
-          clickable to /shifts/{id}; this just gives the worker an
-          at-a-glance status pin. */}
-      {workerApplicationStatus ? (
-        // The status is already the single primary badge in row 1, so this
-        // footer is just a "view your application" affordance and no longer
-        // repeats the status text.
-        <div className="mt-auto pt-3 flex items-center justify-end">
-          <div className="flex items-center gap-1 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs font-medium text-orange-700 w-full sm:w-auto justify-center transition-colors hover:bg-orange-100">
-            {t('btn.viewApplication')}
-          </div>
-        </div>
-      ) : (
-        <div className="mt-auto pt-3 flex items-center justify-end">
-          <div className="flex items-center gap-1 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2 text-xs font-medium text-orange-700 w-full sm:w-auto justify-center transition-colors hover:bg-orange-100">
-            {t('btn.viewDetail')} →
-          </div>
-        </div>
-      )}
+      {/* Visual cue only (the whole card is the link/button) — plain text,
+          not a button-shaped box that invites a second, dead click. */}
+      <p className="mt-auto flex justify-end pt-3 text-sm font-medium text-orange-700">
+        {workerApplicationStatus ? t('btn.viewApplication') : t('btn.viewDetail')}
+        <span aria-hidden="true">&nbsp;→</span>
+      </p>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block h-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+      >
+        {card}
+      </Link>
+    );
+  }
+  return card;
 }

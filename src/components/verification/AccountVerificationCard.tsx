@@ -43,7 +43,7 @@ export function AccountVerificationCard({ userId, role, className = '' }: Props)
   return (
     <Card id="verify" className={`scroll-mt-24 ${className}`}>
       <h2 className="font-semibold text-gray-900">{t('verify.card.title')}</h2>
-      <p className="mt-1 text-xs leading-relaxed text-gray-500">{t('verify.card.intro')}</p>
+      <p className="mt-1 text-sm leading-relaxed text-gray-600">{t(`verify.card.intro.${role}`)}</p>
 
       {!status ? (
         <p className="mt-4 text-sm text-gray-500">{t('common.loading')}</p>

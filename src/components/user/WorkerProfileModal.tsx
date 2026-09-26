@@ -28,6 +28,9 @@ import { averageRating } from '@/domain/rating';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
+import { hasCapability } from '@/data/capabilities';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import type { Worker } from '@/types';
 
 interface WorkerProfileModalProps {
@@ -62,10 +65,19 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
       recorded.has(s.category),
     );
   }, [worker?.skillScores]);
+  const derivedMap = useDerivedReputationMap();
 
   if (!worker) return null;
 
   const avg = averageRating(worker.ratingsReceived);
+  // Production: không có điểm uy tín / đánh giá / điểm kỹ năng thật và giấy tờ
+  // xác minh không có ở client → ẩn thay vì hiện số mặc định như dữ liệu thật.
+  // Số ca / vắng mặt đếm từ đơn của các ca mà người xem thấy được ("với bạn").
+  const ratingsOn = hasCapability('ratings');
+  const serverMode = isSupabaseEnv();
+  const derived = derivedReputationOf(derivedMap, worker.id);
+  const completedValue = serverMode ? derived.completed : worker.completedShiftCount;
+  const noShowValue = serverMode ? derived.noShows : worker.noShowCount;
 
   return (
     <Modal
@@ -80,22 +92,32 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
           <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold text-gray-900">{worker.fullName}</p>
-            <p className="mt-0.5 truncate text-xs text-gray-500">{worker.email}</p>
+            <p className="mt-0.5 truncate text-xs text-gray-600">{worker.email}</p>
           </div>
-          <ReputationBadge score={worker.reputationScore} />
+          {ratingsOn && <ReputationBadge score={worker.reputationScore} />}
         </div>
 
         {/* Stats grid */}
-        <div className="grid grid-cols-3 gap-2 rounded-xl bg-gray-50 p-3">
+        <div
+          className={[
+            'grid gap-2 rounded-xl bg-gray-50 p-3',
+            ratingsOn ? 'grid-cols-3' : 'grid-cols-2',
+          ].join(' ')}
+        >
           <Stat
-            value={String(worker.completedShiftCount)}
-            label={t('employer.applicant.completedShifts')}
+            value={String(completedValue)}
+            label={t(serverMode ? 'workerRow.completedWithYou' : 'employer.applicant.completedShifts')}
           />
+          {ratingsOn && (
+            <Stat
+              value={avg === null ? '—' : avg.toFixed(1)}
+              label={t('employer.applicant.avgRating')}
+            />
+          )}
           <Stat
-            value={avg === null ? '—' : avg.toFixed(1)}
-            label={t('employer.applicant.avgRating')}
+            value={String(noShowValue)}
+            label={t(serverMode ? 'workerRow.noShowsWithYou' : 'employer.applicant.noShows')}
           />
-          <Stat value={String(worker.noShowCount)} label={t('employer.applicant.noShows')} />
         </div>
 
         {/* Verification — Phase 10A-Fix-4: live summary, not the
@@ -104,21 +126,22 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
             Phase 10A-Fix-5: render every approved method, not just
             the most-recent primary, so a worker who has CCCD +
             student card + driver license shows all three. */}
-        <Section title="Xác minh">
+        {!serverMode && (
+        <Section title={t('workerRow.verifyTitle')}>
           {verificationSummary ? (
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
               {worker.verifications.includes('phone') && (
                 <Badge tone="info">{t('verification.phone')}</Badge>
               )}
               {verificationSummary.identityVerified ? (
-                <Badge tone="success">Đã xác minh danh tính</Badge>
+                <Badge tone="success">{t('workerRow.identityVerified')}</Badge>
               ) : (
-                <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+                <Badge tone="neutral">{t('workerRow.identityNotVerified')}</Badge>
               )}
               {verificationSummary.approvedMethods.map((m) => (
                 <span
                   key={m.type}
-                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
                 >
                   <span>{m.label}</span>
                   {m.maskedIdentifier && (
@@ -129,22 +152,23 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
                 </span>
               ))}
               {verificationSummary.pendingCount > 0 && (
-                <span className="text-[11px] text-amber-700">
-                  +{verificationSummary.pendingCount} đang chờ duyệt
+                <span className="text-xs text-amber-700">
+                  {t('workerRow.pendingCount').replace('{n}', String(verificationSummary.pendingCount))}
                 </span>
               )}
             </div>
           ) : (
-            <p className="text-xs text-gray-400">—</p>
+            <p className="text-xs text-gray-600">—</p>
           )}
         </Section>
+        )}
 
         {/* Bio */}
         <Section title={t('employer.applicant.bio')}>
           {worker.bio ? (
             <p className="whitespace-pre-line text-sm text-gray-700">{worker.bio}</p>
           ) : (
-            <p className="text-sm italic text-gray-400">
+            <p className="text-sm text-gray-600">
               {t('employer.applicant.noBio')}
             </p>
           )}
@@ -155,7 +179,7 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
             skillScores, not flat identical chips. Only the worker's real
             recorded skills are shown (no fabricated default placeholders); when
             the worker has no skill data the section is omitted (Property 16). */}
-        {recordedSkills.length > 0 && (
+        {ratingsOn && recordedSkills.length > 0 && (
           <Section title={t('employer.applicant.skills')}>
             <ul className="flex flex-col gap-2">
               {recordedSkills.map((entry) => (
@@ -179,10 +203,11 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
           </Section>
         )}
 
-        {/* Rating history */}
+        {/* Rating history — không có hệ thống đánh giá ở production. */}
+        {ratingsOn && (
         <Section title={t('employer.applicant.ratingHistory')}>
           {worker.ratingsReceived.length === 0 ? (
-            <p className="text-sm italic text-gray-400">{t('reputation.noRatings')}</p>
+            <p className="text-sm text-gray-600">{t('reputation.noRatings')}</p>
           ) : (
             <ul className="flex flex-col gap-2">
               {worker.ratingsReceived.slice(0, 5).map((r) => (
@@ -192,7 +217,7 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
                 >
                   <div className="flex items-center justify-between">
                     <StarRating value={r.stars} readOnly size="sm" />
-                    <span className="font-mono text-[11px] text-gray-400">
+                    <span className="font-mono text-xs text-gray-400">
                       {formatLogDateTime(r.createdAt)}
                     </span>
                   </div>
@@ -206,6 +231,7 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
             </ul>
           )}
         </Section>
+        )}
       </div>
     </Modal>
   );
@@ -216,7 +242,7 @@ export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModal
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+      <p className="mb-1.5 text-sm font-semibold text-gray-700">
         {title}
       </p>
       {children}
@@ -227,8 +253,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <span className="text-lg font-bold text-gray-900">{value}</span>
-      <span className="mt-0.5 text-[10px] uppercase tracking-wide text-gray-500">
+      <span className="text-lg font-bold tabular-nums text-gray-900">{value}</span>
+      <span className="mt-0.5 text-xs text-gray-600">
         {label}
       </span>
     </div>

@@ -18,8 +18,8 @@
  * on the row itself.
  */
 
-import { useMemo } from 'react';
-import { Modal, Badge, StarRating } from '@/components/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { Modal, Badge, Button, StarRating } from '@/components/ui';
 import { UserAvatar } from './UserAvatar';
 import { ReputationBadge } from './ReputationBadge';
 import { EmployerFeedbackList } from './EmployerFeedbackList';
@@ -29,8 +29,15 @@ import {
   useVerificationStore,
 } from '@/stores';
 import { quotaUsage } from '@/domain/cancellationQuota';
+import { hasCapability } from '@/data/capabilities';
+import { isSupabaseEnv } from '@/data/supabaseClient';
+import {
+  adminGetUserVerification,
+  type AdminUserVerification,
+} from '@/data/repos/verificationRepo';
 import { averageRating } from '@/domain/rating';
-import { formatDateVN } from '@/lib/format';
+import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
+import { formatDateVN, formatLogDateTime } from '@/lib/format';
 import { t } from '@/i18n/vi';
 import type { Admin, Employer, User, Worker } from '@/types';
 
@@ -76,6 +83,13 @@ function WorkerBody({ worker }: { worker: Worker }) {
     () => getWorkerVerificationSummary(worker, workerDocuments),
     [worker, workerDocuments],
   );
+  // Supabase: hồ sơ không có điểm/bộ đếm thật (repo gán 100 / 0) → dùng số
+  // TẠM TÍNH từ lịch sử đơn thật. Local giữ số trong hồ sơ.
+  const ratingsOn = hasCapability('ratings');
+  const derived = derivedReputationOf(useDerivedReputationMap(), worker.id);
+  const repScore = ratingsOn ? worker.reputationScore : derived.score;
+  const completedCount = ratingsOn ? worker.completedShiftCount : derived.completed;
+  const noShowCount = ratingsOn ? worker.noShowCount : derived.noShows;
 
   // Phase 3 quota — derived in a useMemo so the modal never feeds Zustand
   // a fresh array selector. `cancellationHistory` and `reputationScore`
@@ -111,7 +125,15 @@ function WorkerBody({ worker }: { worker: Worker }) {
           <p className="mt-0.5 truncate text-xs text-gray-500">{worker.phone}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <ReputationBadge score={worker.reputationScore} />
+          <span
+            className="inline-flex items-center gap-1"
+            title={ratingsOn ? undefined : t('admin.reputation.derivedHint')}
+          >
+            <ReputationBadge score={repScore} />
+            {!ratingsOn && (
+              <span className="text-xs text-gray-500">{t('admin.reputation.derivedTag')}</span>
+            )}
+          </span>
           <SuspensionBadge suspended={worker.suspended} />
         </div>
       </div>
@@ -119,7 +141,7 @@ function WorkerBody({ worker }: { worker: Worker }) {
       {/* Lifetime stats */}
       <div className="grid grid-cols-4 gap-2 rounded-xl bg-gray-50 p-3">
         <Stat
-          value={String(worker.completedShiftCount)}
+          value={String(completedCount)}
           label={t('employer.applicant.completedShifts')}
         />
         <Stat
@@ -127,16 +149,28 @@ function WorkerBody({ worker }: { worker: Worker }) {
           label={t('employer.applicant.avgRating')}
         />
         <Stat
-          value={String(worker.noShowCount)}
+          value={String(noShowCount)}
           label={t('employer.applicant.noShows')}
         />
         <Stat
-          value={String(lifetimeCancellations)}
+          value={String(ratingsOn ? lifetimeCancellations : derived.workerCancellations)}
           label={t('employer.applicant.cancellations')}
         />
       </div>
 
+      {/* Supabase: giải thích điểm tạm tính + các sự kiện đã tính vào. */}
+      {!ratingsOn && (
+        <p className="-mt-2 text-xs leading-relaxed text-gray-500">
+          {t('admin.reputation.derivedBreakdown')
+            .replace('{completed}', String(derived.completed))
+            .replace('{noShows}', String(derived.noShows))
+            .replace('{lateCancels}', String(derived.lateCancels))}
+          . {t('admin.reputation.derivedHint')}
+        </p>
+      )}
+
       {/* Cancellation quota — admin-only deep-dive into Phase 3 limits */}
+      {hasCapability('ratings') && (
       <Section title={t('admin.profile.quota.title')}>
         <div className="rounded-lg border border-gray-100 p-3 text-sm">
           <p className="text-gray-700">
@@ -153,22 +187,27 @@ function WorkerBody({ worker }: { worker: Worker }) {
           </p>
         </div>
       </Section>
+      )}
 
-      {/* Verification — Phase 10A-Fix-5 live summary */}
-      <Section title="Xác minh">
+      {/* Verification — supabase: trạng thái THẬT từ server (SĐT OTP + CCCD,
+          migration 0022). Local/demo: tóm tắt từ store xác minh mô phỏng. */}
+      {isSupabaseEnv() ? (
+        <ServerVerificationSection userId={worker.id} />
+      ) : (
+      <Section title={t('admin.profile.verify.title')}>
         <div className="flex flex-wrap items-center gap-1.5">
           {worker.verifications.includes('phone') && (
             <Badge tone="info">{t('verification.phone')}</Badge>
           )}
           {verificationSummary.identityVerified ? (
-            <Badge tone="success">Đã xác minh danh tính</Badge>
+            <Badge tone="success">{t('admin.profile.verify.identityVerified')}</Badge>
           ) : (
-            <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+            <Badge tone="neutral">{t('admin.profile.verify.identityNotVerified')}</Badge>
           )}
           {verificationSummary.approvedMethods.map((m) => (
             <span
               key={m.type}
-              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
             >
               <span>{m.label}</span>
               {m.maskedIdentifier && (
@@ -179,12 +218,16 @@ function WorkerBody({ worker }: { worker: Worker }) {
             </span>
           ))}
           {verificationSummary.pendingCount > 0 && (
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-              {verificationSummary.pendingCount} đang chờ duyệt
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+              {t('admin.profile.verify.pendingCount').replace(
+                '{count}',
+                String(verificationSummary.pendingCount),
+              )}
             </span>
           )}
         </div>
       </Section>
+      )}
 
       {/* Bio */}
       <Section title={t('employer.applicant.bio')}>
@@ -248,9 +291,12 @@ function WorkerBody({ worker }: { worker: Worker }) {
           appends synthetic records prefixed with `[Admin set X → Y]`).
           Read-only — admins use the Users tab inline form to make new
           adjustments. */}
-      <Section title={t('admin.user.adjustmentHistory.title')}>
-        <AdminAdjustmentHistoryList worker={worker} />
-      </Section>
+      {/* Supabase: chưa có chức năng chỉnh điểm → không hiện lịch sử rỗng. */}
+      {ratingsOn && (
+        <Section title={t('admin.user.adjustmentHistory.title')}>
+          <AdminAdjustmentHistoryList worker={worker} />
+        </Section>
+      )}
     </div>
   );
 }
@@ -294,7 +340,7 @@ function AdminAdjustmentHistoryList({ worker }: { worker: Worker }) {
             <span className="text-xs font-semibold text-indigo-800">
               {e.oldScore} → {e.newScore}
             </span>
-            <span className="text-[11px] text-gray-500">
+            <span className="text-xs text-gray-500">
               {formatDateVN(e.at)}
             </span>
           </div>
@@ -358,11 +404,14 @@ function EmployerBody({ employer }: { employer: Employer }) {
           <p className="mt-0.5 truncate text-xs text-gray-500">{employer.phone}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          {employer.verifiedBusiness ? (
-            <Badge tone="success">{t('employer.profile.verifiedBusiness')}</Badge>
-          ) : (
-            <Badge tone="neutral">{t('employer.profile.notVerified')}</Badge>
-          )}
+          {/* Supabase: `verifiedBusiness` không có ở server (repo gán cứng
+              false) → không hiện badge sai; trạng thái thật ở mục Xác minh. */}
+          {!isSupabaseEnv() &&
+            (employer.verifiedBusiness ? (
+              <Badge tone="success">{t('employer.profile.verifiedBusiness')}</Badge>
+            ) : (
+              <Badge tone="neutral">{t('employer.profile.notVerified')}</Badge>
+            ))}
           <SuspensionBadge suspended={employer.suspended} />
         </div>
       </div>
@@ -396,6 +445,8 @@ function EmployerBody({ employer }: { employer: Employer }) {
           )}
         </div>
       )}
+
+      {isSupabaseEnv() && <ServerVerificationSection userId={employer.id} />}
 
       {/* Description */}
       <Section title={t('employer.profile.description')}>
@@ -454,6 +505,98 @@ function AdminBody({ admin, isSelf }: { admin: Admin; isSelf: boolean }) {
 // Shared bits
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Xác minh THẬT (supabase) — SĐT OTP + CCCD (migration 0022)
+// ---------------------------------------------------------------------------
+
+function ServerVerificationSection({ userId }: { userId: string }) {
+  const [data, setData] = useState<{ key: string; value: AdminUserVerification } | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const key = `${userId}#${attempt}`;
+
+  useEffect(() => {
+    let alive = true;
+    adminGetUserVerification(userId)
+      .then((value) => {
+        if (alive) setData({ key, value });
+      })
+      .catch(() => {
+        if (alive) setFailedKey(key);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [userId, key]);
+
+  const v = data?.key === key ? data.value : null;
+
+  return (
+    <Section title={t('admin.profile.verify.title')}>
+      {v ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {v.phoneVerifiedAt ? (
+              <Badge tone="success">{t('admin.profile.verify.phoneVerified')}</Badge>
+            ) : (
+              <Badge tone="neutral">{t('admin.profile.verify.phoneNotVerified')}</Badge>
+            )}
+            <Badge
+              tone={
+                v.identityStatus === 'Approved'
+                  ? 'success'
+                  : v.identityStatus === 'Pending'
+                    ? 'warning'
+                    : v.identityStatus === 'Rejected'
+                      ? 'danger'
+                      : 'neutral'
+              }
+            >
+              {t(`admin.profile.verify.id${v.identityStatus}`)}
+            </Badge>
+          </div>
+          <p className="text-xs text-gray-500">
+            {v.identityStatus === 'Approved' && v.identityVerifiedAt
+              ? t('admin.profile.verify.since').replace(
+                  '{date}',
+                  formatLogDateTime(v.identityVerifiedAt),
+                )
+              : v.identitySubmittedAt
+                ? t('admin.profile.verify.submittedAt').replace(
+                    '{date}',
+                    formatLogDateTime(v.identitySubmittedAt),
+                  )
+                : null}
+            {v.identityStatus === 'Pending' && (
+              <span className="block">{t('admin.profile.verify.reviewHint')}</span>
+            )}
+          </p>
+          {v.identityStatus === 'Rejected' && v.identityRejectReason && (
+            <p className="break-words text-xs text-red-700">
+              <span className="font-medium">{t('admin.identity.rejectReasonLabel')}</span>{' '}
+              {v.identityRejectReason}
+            </p>
+          )}
+        </div>
+      ) : failedKey === key ? (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+        >
+          <span>{t('admin.identity.loadError')}</span>
+          <Button size="sm" variant="secondary" onClick={() => setAttempt((n) => n + 1)}>
+            {t('btn.retry')}
+          </Button>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-500" role="status">
+          {t('common.loading')}
+        </p>
+      )}
+    </Section>
+  );
+}
+
 function SuspensionBadge({ suspended }: { suspended: boolean }) {
   return suspended ? (
     <Badge tone="danger">Tạm khoá</Badge>
@@ -483,7 +626,7 @@ function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col items-center text-center">
       <span className="text-lg font-bold text-gray-900">{value}</span>
-      <span className="mt-0.5 text-[10px] uppercase tracking-wide text-gray-500">
+      <span className="mt-0.5 text-xs uppercase tracking-wide text-gray-500">
         {label}
       </span>
     </div>

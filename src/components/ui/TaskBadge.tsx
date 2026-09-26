@@ -68,7 +68,7 @@ export function TaskBadge({
       className={[
         'pointer-events-none absolute -top-1.5 -right-1.5',
         'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1',
-        'rounded-full bg-red-500 text-[10px] font-bold leading-none text-white',
+        'rounded-full bg-red-500 text-xs font-bold leading-none text-white',
         'ring-2 ring-white shadow-sm',
         className,
       ].join(' ')}

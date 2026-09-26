@@ -150,7 +150,8 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "5. Kết thúc công việc trọn vẹn",
         "paragraphs": [
           "Một ca làm tốt phải được duy trì từ đầu đến cuối. Trước khi rời đi, hãy đảm bảo bạn đã hoàn tất mọi công việc được giao, dọn dẹp sạch sẽ khu vực mình phụ trách. Hãy bàn giao lại công việc cho người ca sau (nếu có) và báo cáo với quản lý trước khi ra về.",
-          "Sự chỉn chu ở phút chót chính là yếu tố quyết định để chủ quán dành tặng bạn mức đánh giá 5 sao tuyệt đối trên hệ thống."
+          "Sự chỉn chu ở phút chót chính là yếu tố quyết định để chủ quán dành tặng bạn mức đánh giá 5 sao tuyệt đối trên hệ thống.",
+          "Hãy nhớ rằng mục tiêu của mỗi ca làm là để nhà tuyển dụng hài lòng và muốn mời bạn quay lại: làm đủ phần việc đã thỏa thuận, giữ thái độ vui vẻ, và nếu có việc đột xuất thì báo sớm qua ứng dụng thay vì im lặng vắng mặt."
         ]
       },
       {
@@ -498,7 +499,8 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "2. Thông tin thù lao: Trực diện và Đủ hấp dẫn",
         "paragraphs": [
           "Thu nhập là động lực số 1 của người lao động ngắn hạn. Việc sử dụng các cụm từ như \"Lương thỏa thuận\" hay \"Theo năng lực\" trong các tin tuyển dụng thời vụ là một sai lầm chết người, khiến ứng viên bỏ qua ngay lập tức.",
-          "Hãy điền chính xác con số: \"30.000đ/giờ\", kèm theo các lợi ích phụ trội nếu có, ví dụ: \"Bao ăn 1 bữa\", \"Hỗ trợ 20k tiền xăng\". Đôi khi, chỉ cần thêm một bữa ăn nhẹ, tin đăng của bạn sẽ vượt trội hoàn toàn so với đối thủ cạnh tranh."
+          "Hãy điền chính xác con số: \"30.000đ/giờ\", kèm theo các lợi ích phụ trội nếu có, ví dụ: \"Bao ăn 1 bữa\", \"Hỗ trợ 20k tiền xăng\". Đôi khi, chỉ cần thêm một bữa ăn nhẹ, tin đăng của bạn sẽ vượt trội hoàn toàn so với đối thủ cạnh tranh.",
+          "Mức lương cũng cần hợp lý so với khối lượng công việc và mặt bằng khu vực: ca đêm, ca cuối tuần hay việc nặng nên được trả tương xứng. Trả thấp hơn mặt bằng có thể tiết kiệm được vài chục nghìn, nhưng thường khiến ít người ứng tuyển và người đã nhận ca cũng dễ bỏ ca hơn."
         ]
       },
       {

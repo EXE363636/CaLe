@@ -345,7 +345,7 @@ export function UserMenu() {
               </p>
               <span
                 className={[
-                  'mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
+                  'mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
                   chipClasses(chip.tone),
                 ].join(' ')}
               >

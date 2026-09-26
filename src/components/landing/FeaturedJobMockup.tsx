@@ -188,7 +188,7 @@ export function FeaturedJobMockup() {
   // Resolve href + aria-label up-front so the JSX stays clean.
   const href = featured ? `/shifts/${featured.id}` : '/shifts';
   const ariaLabel = featured
-    ? `Xem chi tiết ca ${featured.title}`
+    ? t('landing.hero.featured.viewAria').replace('{title}', featured.title)
     : t('landing.hero.featured.exploreAria');
 
   return (
@@ -238,7 +238,7 @@ export function FeaturedJobMockup() {
               </p>
               <p className="text-lg font-bold text-gray-900">{reputationScore}</p>
             </div>
-            <p className="mt-0.5 text-[11px] text-gray-400">
+            <p className="mt-0.5 text-xs text-gray-500">
               {t('landing.hero.featured.repHint')}
             </p>
           </div>
@@ -262,7 +262,7 @@ export function FeaturedJobMockup() {
                 </p>
               </div>
             </div>
-            <p className="mt-0.5 text-[11px] text-gray-500">
+            <p className="mt-0.5 text-xs text-gray-500">
               {formatDateVN(upcomingShift.date)}
             </p>
           </Link>
@@ -270,7 +270,7 @@ export function FeaturedJobMockup() {
 
         {/* Board footer — a plain, honest legend that keeps the board
             visually balanced regardless of who is viewing. */}
-        <div className="border-t border-gray-100 px-4 py-2.5 text-[11px] text-gray-500 sm:px-5">
+        <div className="border-t border-gray-100 px-4 py-2.5 text-xs text-gray-500 sm:px-5">
           {t('landing.hero.featured.boardNote')}
         </div>
       </div>
@@ -318,32 +318,32 @@ function FeaturedCardBody({
             {shift.location}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+        <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
           {t('landing.hero.featured.statusBadge')}
         </span>
       </div>
       {/* Columnar shift data: thời gian · tiền công · chỗ trống. */}
       <dl className="mt-3 grid grid-cols-3 gap-3 text-xs">
         <div className="min-w-0">
-          <dt className="text-[11px] text-gray-400">Thời gian</dt>
+          <dt className="text-xs text-gray-500">{t('landing.hero.featured.timeLabel')}</dt>
           <dd className="mt-0.5 font-medium text-gray-900">{formatDateVN(shift.date)}</dd>
           <dd className="text-gray-600">
             {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-[11px] text-gray-400">Tiền công</dt>
+          <dt className="text-xs text-gray-500">{t('landing.hero.featured.wageLabel')}</dt>
           <dd className="mt-0.5 font-semibold text-orange-700">
             {formatVND(shift.hourlyWage)}
           </dd>
-          <dd className="text-gray-600">mỗi giờ</dd>
+          <dd className="text-gray-600">{t('landing.hero.featured.wageUnit')}</dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-[11px] text-gray-400">Chỗ trống</dt>
+          <dt className="text-xs text-gray-500">{t('landing.hero.featured.slotsLabel')}</dt>
           <dd className="mt-0.5 font-medium text-gray-900">
             {available}/{shift.positionsTotal}
           </dd>
-          <dd className="text-gray-600">vị trí</dd>
+          <dd className="text-gray-600">{t('landing.hero.featured.slotsUnit')}</dd>
         </div>
       </dl>
 
@@ -354,7 +354,7 @@ function FeaturedCardBody({
           {t('landing.hero.featured.viewCta')} <span aria-hidden="true">→</span>
         </span>
         {countdown && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+          <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-semibold text-orange-700 tabular-nums">
             <svg
               className="h-3 w-3"
               viewBox="0 0 20 20"
@@ -388,9 +388,8 @@ function FeaturedFallbackBody() {
             {t('landing.hero.featured.fallbackHint')}
           </p>
         </div>
-        <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
-          {t('landing.hero.featured.statusBadge')}
-        </span>
+        {/* Không gắn badge "Đang tuyển" khi chưa có ca nào — trước đây thẻ
+            trống vẫn hiện badge, tự mâu thuẫn với câu "Chưa có ca nổi bật". */}
       </div>
       <p className="mt-3 text-xs font-semibold text-orange-700">
         {t('landing.hero.featured.exploreCta')} <span aria-hidden="true">→</span>

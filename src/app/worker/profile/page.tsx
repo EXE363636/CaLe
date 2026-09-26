@@ -32,6 +32,7 @@ import { showSuccess, showError } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
+import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import type {
   VerificationFlag,
   Worker,
@@ -56,9 +57,25 @@ function WorkerProfileContent() {
 
   const worker = asWorker(users.find((u) => u.id === currentUserId));
   const [editing, setEditing] = useState(false);
-  const [savedFlash, setSavedFlash] = useState(false);
+  // Supabase: bộ đếm trên hồ sơ (completedShiftCount / noShowCount /
+  // cancellationHistory) KHÔNG được server cập nhật → đếm từ lịch sử đơn thật,
+  // cùng nguồn với dashboard (tránh "0 ca hoàn thành" khi đã làm xong ca).
+  const derivedMap = useDerivedReputationMap();
 
   if (!worker) return null;
+
+  const derived = derivedReputationOf(derivedMap, worker.id);
+  const stats = isSupabaseEnv()
+    ? {
+        completed: derived.completed,
+        noShows: derived.noShows,
+        cancellations: derived.workerCancellations,
+      }
+    : {
+        completed: worker.completedShiftCount,
+        noShows: worker.noShowCount,
+        cancellations: worker.cancellationHistory.length,
+      };
 
   return (
     <PageShell width="6xl">
@@ -78,27 +95,21 @@ function WorkerProfileContent() {
               {/* Điểm uy tín chưa có backend ở supabase → ẩn (không hiện 100 giả). */}
               {hasCapability('ratings') && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                  ⭐ {worker.reputationScore}/100 uy tín
+                  {t('worker.profile.chip.reputation').replace('{score}', String(worker.reputationScore))}
                 </span>
               )}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                ✓ {worker.completedShiftCount} ca hoàn thành
+                {t('worker.profile.chip.completed').replace('{n}', String(stats.completed))}
               </span>
               {hasCapability('verifications') && worker.verifications.includes('phone') && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                  📱 Đã xác minh SĐT
+                  {t('worker.profile.chip.phoneVerified')}
                 </span>
               )}
             </div>
           </div>
         </div>
       </header>
-
-      {savedFlash && (
-        <div className="mb-4 rounded-lg bg-green-50 px-4 py-2 text-sm text-green-700">
-          {t('common.success')}
-        </div>
-      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: profile info */}
@@ -114,12 +125,11 @@ function WorkerProfileContent() {
               const res = await updateProfile(worker.id, patch);
               setSaving(false);
               if (!res.ok) {
-                showError('Không lưu được thay đổi. Vui lòng thử lại.');
+                showError(t('worker.profile.saveFailed'));
                 return;
               }
               setEditing(false);
-              setSavedFlash(true);
-              setTimeout(() => setSavedFlash(false), 2500);
+              showSuccess(t('worker.profile.saved'));
             }}
           />
 
@@ -178,12 +188,12 @@ function WorkerProfileContent() {
           )}
 
           <Card>
-            <h2 className="mb-3 font-semibold text-gray-900">Thống kê</h2>
+            <h2 className="mb-3 font-semibold text-gray-900">{t('worker.profile.stats.title')}</h2>
             <dl className="flex flex-col gap-2 text-sm">
-              <StatRow label={t('worker.dashboard.stats.completedShifts')} value={String(worker.completedShiftCount)} />
-              <StatRow label="Số lần vắng mặt" value={String(worker.noShowCount)} />
-              <StatRow label="Số lần huỷ" value={String(worker.cancellationHistory.length)} />
-              <StatRow label="Tham gia" value={formatDateVN(worker.createdAt)} />
+              <StatRow label={t('worker.dashboard.stats.completedShifts')} value={String(stats.completed)} />
+              <StatRow label={t('worker.profile.stats.noShows')} value={String(stats.noShows)} />
+              <StatRow label={t('worker.profile.stats.cancellations')} value={String(stats.cancellations)} />
+              <StatRow label={t('worker.profile.stats.joined')} value={formatDateVN(worker.createdAt)} />
             </dl>
           </Card>
         </aside>
@@ -212,7 +222,7 @@ function WorkerProfileContent() {
                 <SkillProgressBar key={entry.category} entry={entry} />
               ))}
             </ul>
-            <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
+            <p className="mt-3 text-xs italic leading-relaxed text-gray-500">
               {t('skill.section.footnote')}
             </p>
           </Card>
@@ -259,7 +269,7 @@ function BasicInfoCard({
     return (
       <Card>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Thông tin cá nhân</h2>
+          <h2 className="font-semibold text-gray-900">{t('worker.profile.info.title')}</h2>
           <Button size="sm" variant="secondary" onClick={onEdit}>
             {t('btn.edit')}
           </Button>
@@ -269,7 +279,7 @@ function BasicInfoCard({
           {worker.bio ? (
             <p className="text-sm text-gray-700 whitespace-pre-line">{worker.bio}</p>
           ) : (
-            <p className="text-sm text-gray-400 italic">Chưa có giới thiệu</p>
+            <p className="text-sm text-gray-600">{t('worker.profile.empty.bio')}</p>
           )}
         </ProfileField>
 
@@ -290,7 +300,7 @@ function BasicInfoCard({
 
   return (
     <Card>
-      <h2 className="mb-4 font-semibold text-gray-900">Chỉnh sửa hồ sơ</h2>
+      <h2 className="mb-4 font-semibold text-gray-900">{t('worker.profile.edit.title')}</h2>
       <div className="flex flex-col gap-4">
         <Textarea
           label={t('form.bio')}
@@ -301,21 +311,21 @@ function BasicInfoCard({
         />
         <Input
           label={t('form.skills')}
-          hint="Cách nhau bởi dấu phẩy"
+          hint={t('worker.profile.edit.commaHint')}
           value={skillsText}
           onChange={(e) => setSkillsText(e.target.value)}
           placeholder="phục vụ, pha chế, thu ngân"
         />
         <Input
           label={t('form.preferredJobTypes')}
-          hint="Cách nhau bởi dấu phẩy"
+          hint={t('worker.profile.edit.commaHint')}
           value={jobTypesText}
           onChange={(e) => setJobTypesText(e.target.value)}
           placeholder="Phục vụ, Pha chế"
         />
         <Input
           label={t('form.preferredLocations')}
-          hint="Cách nhau bởi dấu phẩy"
+          hint={t('worker.profile.edit.commaHint')}
           value={locationsText}
           onChange={(e) => setLocationsText(e.target.value)}
           placeholder="Quận 1, Quận 3"
@@ -337,7 +347,7 @@ function RatingsHistory({ worker }: { worker: Worker }) {
   const avg = averageRating(worker.ratingsReceived);
 
   if (worker.ratingsReceived.length === 0) {
-    return <p className="text-sm text-gray-400 italic">{t('reputation.noRatings')}</p>;
+    return <p className="text-sm text-gray-600">{t('reputation.noRatings')}</p>;
   }
 
   return (
@@ -373,14 +383,14 @@ function RatingsHistory({ worker }: { worker: Worker }) {
 function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-3 last:mb-0">
-      <p className="text-xs font-medium text-gray-500">{label}</p>
+      <p className="text-xs font-medium text-gray-600">{label}</p>
       <div className="mt-1">{children}</div>
     </div>
   );
 }
 
 function ChipList({ items }: { items: string[] }) {
-  if (items.length === 0) return <p className="text-sm text-gray-400 italic">Chưa có</p>;
+  if (items.length === 0) return <p className="text-sm text-gray-600">{t('worker.profile.empty.list')}</p>;
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((it, idx) => (
@@ -398,7 +408,7 @@ function ChipList({ items }: { items: string[] }) {
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-gray-500">{label}</dt>
+      <dt className="text-gray-600">{label}</dt>
       <dd className="font-medium text-gray-900">{value}</dd>
     </div>
   );
@@ -574,7 +584,7 @@ function WorkerIdentityVerificationCard({
           );
         })}
       </div>
-      <p className="mt-3 text-[11px] italic leading-relaxed text-gray-500">
+      <p className="mt-3 text-xs italic leading-relaxed text-gray-500">
         Trong bản MVP, tài liệu là mô phỏng — không có upload thật.
         Quản trị viên là người duy nhất xem tài liệu đầy đủ; nhà tuyển dụng
         chỉ thấy huy hiệu và số đăng ký dạng rút gọn.

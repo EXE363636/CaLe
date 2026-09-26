@@ -455,7 +455,7 @@ function EmployerVerificationCard({
         </p>
         {/* Phase 10A-Fix-3 — note that this picker is only a legacy
             fallback. New accounts pick their type at registration. */}
-        <p className="mb-3 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-900 ring-1 ring-amber-200">
+        <p className="mb-3 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs leading-relaxed text-amber-900 ring-1 ring-amber-200">
           {t('employer.profile.firstSet.legacy')}
         </p>
         <div className="mt-1 flex flex-wrap gap-2">
@@ -498,7 +498,7 @@ function EmployerVerificationCard({
       </p>
 
       <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+        <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
           Loại tài khoản hiện tại
         </p>
         <p className="mt-1 text-sm font-bold text-gray-900">
@@ -604,7 +604,7 @@ function EmployerVerificationCard({
         </div>
       )}
 
-      <p className="mt-4 text-[11px] italic leading-relaxed text-gray-500">
+      <p className="mt-4 text-xs italic leading-relaxed text-gray-500">
         Trong bản MVP, tài liệu là mô phỏng — không có upload thật.
       </p>
 

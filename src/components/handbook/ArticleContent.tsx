@@ -44,7 +44,7 @@ export function ArticleContent({ content }: { content: HandbookArticleSection[] 
             </figure>
           )}
           {section.note && (
-            <div className="my-6 rounded-lg bg-orange-50 border-l-4 border-orange-500 p-4">
+            <div className="my-6 rounded-lg border border-orange-200 bg-orange-50 p-4">
               <p className="text-sm font-medium text-orange-900">{section.note}</p>
             </div>
           )}

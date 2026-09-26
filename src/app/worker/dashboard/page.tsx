@@ -11,7 +11,7 @@ import { getDataMode } from '@/data/supabaseClient';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWalletStore } from '@/stores/walletStore';
-import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
@@ -38,6 +38,7 @@ import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { getUserInitials } from '@/lib/initials';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { t } from '@/i18n/vi';
+import { tSettlement } from '@/lib/settlementCopy';
 import type { Application, Shift } from '@/types';
 
 export default function WorkerDashboardPage() {
@@ -464,21 +465,44 @@ function WorkerDashboardContent() {
         delta: rec.reputationPointsRestored,
         label:
           rec.reputationPointsRestored > 0
-            ? `+${rec.reputationPointsRestored} Bảo vệ quyền lợi do nhà tuyển dụng hủy ca`
-            : 'Bảo vệ quyền lợi do nhà tuyển dụng hủy ca',
+            ? `+${rec.reputationPointsRestored} ${t('worker.dashboard.protection.eventLabel')}`
+            : t('worker.dashboard.protection.eventLabel'),
         sublabel:
           rec.reputationPointsRestored > 0
             ? `${rec.shiftTitle} • ${rec.employerName} • ${rec.reason}`
-            : `${rec.shiftTitle} • ${rec.employerName} • Bạn đã đạt 100 điểm nên không cộng thêm uy tín.`,
+            : `${rec.shiftTitle} • ${rec.employerName} • ${t('worker.dashboard.protection.capNote')}`,
       });
     }
     // Sort descending so the most-recent event is first.
     return events.sort((a, b) => b.at.localeCompare(a.at));
   }, [worker, myApps, shifts]);
 
-  if (!worker) return null;
+  // Hồ sơ chưa tải xong (supabase cold load) → trạng thái đang tải có
+  // thông báo cho trình đọc màn hình, thay vì trang trắng.
+  if (!worker) {
+    return (
+      <div
+        className="mx-auto max-w-6xl px-4 py-16 text-center text-sm text-gray-500"
+        role="status"
+        aria-live="polite"
+      >
+        {t('common.loading')}
+      </div>
+    );
+  }
 
   const restricted = worker.reputationScore < 50;
+  // MỘT nguồn cho "số ca đã hoàn thành" trên mọi bề mặt của trang (lời chào,
+  // ô thống kê, modal): supabase đếm từ đơn đã xác nhận thật; local giữ số
+  // hồ sơ seed (có cả ca lịch sử không còn đơn tương ứng).
+  const completedCount = isSupabaseEnv()
+    ? completedShifts.length
+    : worker.completedShiftCount;
+  const completedNoteKey = !hasCapability('wallet')
+    ? 'worker.dashboard.history.completedNoteNoWallet'
+    : isSupabaseEnv()
+      ? 'worker.dashboard.history.completedNoteWalletReal'
+      : 'worker.dashboard.history.completedNoteWalletDemo';
   // Cluster 2 · BUG 3 (Req 2.3): read the displayed reputation through the
   // single shared source so this tile matches every other surface. Returns
   // the same clamped `worker.reputationScore` — no visible change.
@@ -520,7 +544,7 @@ function WorkerDashboardContent() {
     if (result.ok) {
       showSuccess(
         t('feedback.checkOut.success'),
-        t('feedback.checkOut.success.desc'),
+        tSettlement('feedback.checkOut.success.desc'),
       );
       setCheckoutTargetId(null);
       setCheckoutError(null);
@@ -589,6 +613,11 @@ function WorkerDashboardContent() {
     showError(toastFromStoreError(result.error));
   }
 
+  // Ô thống kê hiện thật: "đã hoàn thành" luôn có; uy tín + hạn mức huỷ theo
+  // ratings; thu nhập theo wallet.
+  const statTileCount =
+    1 + (hasCapability('ratings') ? 2 : 0) + (hasCapability('wallet') ? 1 : 0);
+
   return (
     <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
       {/* Phase 9T — subtle decorative warmth anchored to the top-right
@@ -611,21 +640,21 @@ function WorkerDashboardContent() {
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-xl font-bold text-orange-700 ring-1 ring-orange-100">
             {getUserInitials(worker.fullName)}
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-[14rem] flex-1">
             <p className="text-sm text-gray-500">{t('worker.dashboard.welcome')}</p>
             <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
               {worker.fullName}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              {worker.completedShiftCount > 0
+              {completedCount > 0
                 ? t('worker.dashboard.welcome.veteran').replace(
                     '{count}',
-                    String(worker.completedShiftCount),
+                    String(completedCount),
                   )
                 : t('worker.dashboard.welcome.newcomer')}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <PageHelpButton
               title={t('help.workerDashboard.title')}
               intro={t('help.workerDashboard.intro')}
@@ -664,17 +693,11 @@ function WorkerDashboardContent() {
               cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
             {/* THE single page-level primary CTA (One-Orange / Req 2.4,
-                11.3). This inline Link replicates the Button primitive's
-                primary contract exactly — solid bg-orange-500 (#FF9A5F) +
-                dark ink text-gray-900 (#37373B), no gradient, no white
-                text, shared hover/active/focus treatment — so it never
-                drifts from `<Button variant="primary">`. */}
-            <Link
-              href="/shifts"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-orange-400 hover:shadow-md active:bg-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
-            >
+                11.3). `ButtonLink` shares the Button primitive's class list,
+                so it cannot drift from `<Button variant="primary">`. */}
+            <ButtonLink href="/shifts" variant="primary">
               {t('btn.findShift')}
-            </Link>
+            </ButtonLink>
             <Link
               href="/worker/schedule"
               className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
@@ -695,7 +718,14 @@ function WorkerDashboardContent() {
       {/* Stats grid — calm reference metrics. On mobile these sit BELOW
           the actionable work area (order-2) so the worker sees "Ca sắp
           tới" first; on desktop they return to the top strip. */}
-      <section className="order-2 mb-8 mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:order-none lg:mt-0">
+      <section
+        className={[
+          'order-2 mb-8 mt-8 grid grid-cols-2 gap-4 lg:order-none lg:mt-0',
+          // Số cột theo số ô thực sự hiện — không để khoảng trống bên phải
+          // khi ẩn uy tín/hạn mức huỷ (supabase chỉ còn 2 ô).
+          statTileCount >= 4 ? 'sm:grid-cols-4' : statTileCount === 3 ? 'sm:grid-cols-3' : '',
+        ].join(' ')}
+      >
         {/* Điểm uy tín: chưa có backend đánh giá thật → ẩn ở supabase để không
             hiện con số mặc định (100) như dữ liệu thật (mục 5). */}
         {hasCapability('ratings') && (
@@ -712,17 +742,16 @@ function WorkerDashboardContent() {
             }
             icon="star"
             onClick={() => setStatDetail('reputation')}
-            ariaLabel="Xem chi tiết điểm uy tín"
+            ariaLabel={t('worker.dashboard.stats.reputationAria')}
           />
         )}
         <StatTile
           label={t('worker.dashboard.stats.completedShifts')}
-          /* Supabase: đếm từ đơn đã xác nhận thật; local: giữ số hồ sơ seed. */
-          value={String(isSupabaseEnv() ? completedShifts.length : worker.completedShiftCount)}
+          value={String(completedCount)}
           tone="neutral"
           icon="check"
           onClick={() => setStatDetail('completed')}
-          ariaLabel="Xem chi tiết ca đã hoàn thành"
+          ariaLabel={t('worker.dashboard.stats.completedAria')}
         />
         {/* Thu nhập/ví: chưa có backend thanh toán → ẩn ở supabase. */}
         {hasCapability('wallet') && (
@@ -732,7 +761,7 @@ function WorkerDashboardContent() {
             tone="brand"
             icon="wallet"
             onClick={() => setStatDetail('income')}
-            ariaLabel="Xem chi tiết thu nhập"
+            ariaLabel={t('worker.dashboard.stats.incomeAria')}
           />
         )}
         {/* Hạn mức huỷ ca thuộc hệ thống uy tín — CHƯA có backend ở supabase
@@ -756,14 +785,14 @@ function WorkerDashboardContent() {
             }
             icon="calendar"
             onClick={() => setStatDetail('quota')}
-            ariaLabel="Xem chi tiết hạn mức huỷ"
+            ariaLabel={t('worker.dashboard.stats.quotaAria')}
           />
         )}
       </section>
 
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
           this follows the work area + stats (order-3); desktop unchanged. */}
-      <section className="order-3 mb-8 lg:order-none">
+      <section id="wallet" className="order-3 mb-8 scroll-mt-24 lg:order-none">
         {hasCapability('wallet') ? (
           // Ví mô phỏng (server): worker NHẬN lương (tự cộng khi ca hoàn thành)
           // + RÚT. Không nạp (worker không đặt cọc). Không giữ tiền client (#7).
@@ -780,9 +809,21 @@ function WorkerDashboardContent() {
 
       {/* Mobile-first ordering — the work area (upcoming + actions) leads
           on small screens (order-1), above the stats + wallet. */}
-      <div className="order-1 grid gap-6 lg:order-none lg:grid-cols-3">
+      <div
+        className={[
+          'order-1 grid gap-6 lg:order-none',
+          // Không có cột phụ (thông báo ẩn ở supabase) → cột chính trải hết
+          // chiều rộng, thẳng mép với hàng thống kê + ví phía trên.
+          hasCapability('notifications') ? 'lg:grid-cols-3' : '',
+        ].join(' ')}
+      >
         {/* Main column */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
+        <div
+          className={[
+            'flex flex-col gap-6',
+            hasCapability('notifications') ? 'lg:col-span-2' : '',
+          ].join(' ')}
+        >
           {/* Upcoming */}
           <section id="worker-upcoming-section">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">
@@ -794,11 +835,9 @@ function WorkerDashboardContent() {
                 title={t('worker.dashboard.noUpcomingShifts')}
                 description={t('worker.dashboard.empty.upcoming.descriptionRich')}
                 action={
-                  <Link href="/shifts">
-                    <Button size="sm" variant="primary">
+                  <ButtonLink href="/shifts" size="sm" variant="primary">
                       {t('btn.findShift')}
-                    </Button>
-                  </Link>
+                    </ButtonLink>
                 }
               />
             ) : (
@@ -840,11 +879,9 @@ function WorkerDashboardContent() {
                 title={t('worker.dashboard.empty.applications.title')}
                 description={t('worker.dashboard.empty.applications.description')}
                 action={
-                  <Link href="/shifts">
-                    <Button size="sm" variant="primary">
+                  <ButtonLink href="/shifts" size="sm" variant="primary">
                       {t('worker.dashboard.empty.applications.cta')}
-                    </Button>
-                  </Link>
+                    </ButtonLink>
                 }
               />
             ) : (
@@ -870,10 +907,10 @@ function WorkerDashboardContent() {
             0 && (
             <section>
               <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
-                <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2">
                   <span className="text-sm font-semibold text-gray-900">
-                    Lịch sử gần đây
-                    <span className="ml-1 font-normal text-gray-500">
+                    {t('worker.dashboard.history.title')}
+                    <span className="ml-1 font-normal text-gray-500 tabular-nums">
                       (
                       {recentlyRejected.length +
                         recentlyCancelledByEmployer.length +
@@ -883,7 +920,7 @@ function WorkerDashboardContent() {
                     </span>
                   </span>
                   <svg
-                    className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                    className="h-4 w-4 shrink-0 text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     aria-hidden="true"
@@ -920,42 +957,21 @@ function WorkerDashboardContent() {
                   {recentlyCancelledByEmployer.length > 0 && (
                     <div>
                       <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                        Ca làm bị nhà tuyển dụng hủy
+                        {t('worker.dashboard.history.cancelledByEmployer')}
                       </h3>
                       <div className="flex flex-col gap-3">
                         {recentlyCancelledByEmployer.map((a) => {
                           const shift = getShift(a.shiftId);
                           if (!shift) return null;
                           return (
-                            <Link key={a.id} href={`/shifts/${shift.id}`}>
-                              <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-gray-900">
-                                      {shift.title}
-                                    </p>
-                                    <p className="mt-0.5 text-sm text-gray-500">
-                                      {formatDateVN(shift.date)} •{' '}
-                                      {formatTimeVN(shift.startTime)}–
-                                      {formatTimeVN(shift.endTime)}
-                                    </p>
-                                  </div>
-                                  <Badge tone="danger">
-                                    {t('application.status.CancelledByEmployer')}
-                                  </Badge>
-                                </div>
-                                {shift.employerCancellationReason && (
-                                  <p className="mt-2 text-sm text-gray-700">
-                                    <span className="font-medium">Lý do:</span>{' '}
-                                    {shift.employerCancellationReason}
-                                  </p>
-                                )}
-                                <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                                  Bạn không bị trừ điểm uy tín hoặc hạn mức hủy
-                                  vì ca do nhà tuyển dụng hủy.
-                                </p>
-                              </Card>
-                            </Link>
+                            <HistoryShiftCard
+                              key={a.id}
+                              shift={shift}
+                              badgeTone="danger"
+                              badgeLabel={t('application.status.CancelledByEmployer')}
+                              reason={shift.employerCancellationReason}
+                              note={t('worker.dashboard.history.cancelledByEmployerNote')}
+                            />
                           );
                         })}
                       </div>
@@ -965,36 +981,20 @@ function WorkerDashboardContent() {
                   {recentlyExpired.length > 0 && (
                     <div>
                       <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                        Đơn ứng tuyển đã hết hạn
+                        {t('worker.dashboard.history.expired')}
                       </h3>
                       <div className="flex flex-col gap-3">
                         {recentlyExpired.map((a) => {
                           const shift = getShift(a.shiftId);
                           if (!shift) return null;
                           return (
-                            <Link key={a.id} href={`/shifts/${shift.id}`}>
-                              <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-gray-900">
-                                      {shift.title}
-                                    </p>
-                                    <p className="mt-0.5 text-sm text-gray-500">
-                                      {formatDateVN(shift.date)} •{' '}
-                                      {formatTimeVN(shift.startTime)}–
-                                      {formatTimeVN(shift.endTime)}
-                                    </p>
-                                  </div>
-                                  <Badge tone="neutral">
-                                    {t('application.status.Expired')}
-                                  </Badge>
-                                </div>
-                                <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                                  Ca đã bắt đầu trước khi đơn của bạn được duyệt.
-                                  Bạn không bị trừ điểm uy tín hoặc hạn mức hủy.
-                                </p>
-                              </Card>
-                            </Link>
+                            <HistoryShiftCard
+                              key={a.id}
+                              shift={shift}
+                              badgeTone="neutral"
+                              badgeLabel={t('application.status.Expired')}
+                              note={t('worker.dashboard.history.expiredNote')}
+                            />
                           );
                         })}
                       </div>
@@ -1004,35 +1004,21 @@ function WorkerDashboardContent() {
                   {recentlyCompleted.length > 0 && (
                     <div>
                       <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                        Ca làm đã hoàn thành
+                        {t('worker.dashboard.history.completed')}
                       </h3>
                       <div className="flex flex-col gap-3">
                         {recentlyCompleted.map((a) => {
                           const shift = getShift(a.shiftId);
                           if (!shift) return null;
                           return (
-                            <Link key={a.id} href={`/shifts/${shift.id}`}>
-                              <Card className="hover:border-orange-300 hover:shadow-sm transition-colors">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-gray-900">
-                                      {shift.title}
-                                    </p>
-                                    <p className="mt-0.5 text-sm text-gray-500">
-                                      {formatDateVN(shift.date)} •{' '}
-                                      {formatTimeVN(shift.startTime)}–
-                                      {formatTimeVN(shift.endTime)}
-                                    </p>
-                                  </div>
-                                  <Badge tone="success">
-                                    {t('application.status.Confirmed')}
-                                  </Badge>
-                                </div>
-                                <p className="mt-2 text-xs leading-relaxed text-gray-500">
-                                  Ca làm việc đã hoàn thành và tiền công đã được cộng vào ví của bạn.
-                                </p>
-                              </Card>
-                            </Link>
+                            <HistoryShiftCard
+                              key={a.id}
+                              shift={shift}
+                              badgeTone="success"
+                              badgeLabel={t('application.status.Confirmed')}
+                              // Chỉ khẳng định "đã cộng vào ví" khi ví thật sự bật.
+                              note={t(completedNoteKey)}
+                            />
                           );
                         })}
                       </div>
@@ -1121,15 +1107,17 @@ function WorkerDashboardContent() {
                     {t('availability.suggest.subtitle')}
                   </p>
                 </div>
-                <Link href="/shifts">
-                  <Button size="sm" variant="ghost">
+                <ButtonLink href="/shifts" size="sm" variant="ghost">
                     {t('availability.suggest.viewAll')}
-                  </Button>
-                </Link>
+                  </ButtonLink>
               </div>
               <div className="flex flex-col gap-3">
                 {recommendedShifts.map((m) => (
-                  <Link key={m.shift.id} href={`/shifts/${m.shift.id}`}>
+                  <Link
+                    key={m.shift.id}
+                    href={`/shifts/${m.shift.id}`}
+                    className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                  >
                     <Card className="transition-colors hover:border-emerald-300 hover:shadow-sm">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -1160,7 +1148,7 @@ function WorkerDashboardContent() {
                             {m.label}
                           </Badge>
                           {m.fitsAvailability && (
-                            <span className="text-[11px] font-medium text-emerald-700">
+                            <span className="text-xs font-medium text-emerald-700">
                               {t('availability.fitsAvailability')}
                             </span>
                           )}
@@ -1181,12 +1169,12 @@ function WorkerDashboardContent() {
           {hasCapability('ratings') && (
           <section>
             <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
-              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2">
                 <span className="text-sm font-semibold text-gray-900">
-                  Kỹ năng & giữ uy tín
+                  {t('worker.dashboard.skills.title')}
                 </span>
                 <svg
-                  className="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180"
+                  className="h-4 w-4 shrink-0 text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                   aria-hidden="true"
@@ -1212,7 +1200,7 @@ function WorkerDashboardContent() {
                       {t('btn.viewDetail')}
                     </Link>
                   </div>
-                  <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
+                  <p className="mb-3 text-xs leading-relaxed text-gray-500">
                     {t('skill.section.intro')}
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2">
@@ -1254,8 +1242,9 @@ function WorkerDashboardContent() {
               <h2 className="font-semibold text-gray-900">{t('nav.notifications')}</h2>
               {unreadCount > 0 && (
                 <button
+                  type="button"
                   onClick={() => markAllRead(worker.id)}
-                  className="text-xs text-orange-700 hover:underline"
+                  className="-my-2 inline-flex min-h-[44px] items-center rounded px-2 text-xs font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                 >
                   {t('btn.markAllRead')}
                 </button>
@@ -1263,7 +1252,7 @@ function WorkerDashboardContent() {
             </div>
             <ul className="max-h-96 divide-y divide-gray-50 overflow-y-auto">
               {notifications.length === 0 ? (
-                <li className="px-4 py-6 text-center text-sm text-gray-400">{t('common.noData')}</li>
+                <li className="px-4 py-6 text-center text-sm text-gray-500">{t('common.noData')}</li>
               ) : (
                 notifications.slice(0, 10).map((n) => (
                   <li key={n.id}>
@@ -1414,7 +1403,7 @@ function WorkerDashboardContent() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                <p className="text-sm font-medium text-gray-600">
                   {t('worker.dashboard.reputationModal.completedLabel')}
                 </p>
                 <p className="mt-0.5 text-xl font-bold text-emerald-600">
@@ -1422,7 +1411,7 @@ function WorkerDashboardContent() {
                 </p>
               </div>
               <div className="rounded-xl border border-orange-100 bg-white px-3 py-2.5">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                <p className="text-sm font-medium text-gray-600">
                   {t('worker.dashboard.reputationModal.ratingsLabel')}
                 </p>
                 <p className="mt-0.5 text-xl font-bold text-orange-600">
@@ -1434,10 +1423,10 @@ function WorkerDashboardContent() {
 
           {/* Right column — history (scrolls if long) */}
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className="text-sm font-medium text-gray-600">
               {t('worker.dashboard.reputationModal.recentTitle')}
             </p>
-            <p className="rounded-lg bg-gray-50 px-3 py-2 text-[11px] italic text-gray-500">
+            <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs italic text-gray-500">
               {t('worker.dashboard.reputationModal.timelineNote')}
             </p>
             {repTimeline.length === 0 ? (
@@ -1459,7 +1448,7 @@ function WorkerDashboardContent() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         {ev.isAdmin && (
-                          <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+                          <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-700">
                             {t('worker.dashboard.reputationModal.adminBadge')}
                           </span>
                         )}
@@ -1468,19 +1457,19 @@ function WorkerDashboardContent() {
                         </p>
                       </div>
                       {ev.sublabel && (
-                        <p className="mt-0.5 truncate text-[11px] text-gray-500">
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
                           {ev.sublabel}
                         </p>
                       )}
                       {ev.at !== '0000-00-00T00:00:00.000Z' && (
-                        <p className="mt-0.5 text-[11px] text-gray-400">
+                        <p className="mt-0.5 text-xs text-gray-500">
                           {formatDateVN(ev.at.slice(0, 10))}
                         </p>
                       )}
                     </div>
                     <span
                       className={[
-                        'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                        'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold',
                         ev.delta > 0
                           ? 'bg-emerald-50 text-emerald-700'
                           : ev.delta < 0
@@ -1501,11 +1490,11 @@ function WorkerDashboardContent() {
                       <p className="text-xs font-medium text-gray-700">
                         {t('worker.dashboard.reputationModal.baseLabel')}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-gray-500">
+                      <p className="mt-0.5 text-xs text-gray-500">
                         {t('worker.dashboard.reputationModal.baseSublabel')}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
                       100
                     </span>
                   </li>,
@@ -1564,7 +1553,7 @@ function WorkerDashboardContent() {
           )}
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <p className="text-sm font-medium text-gray-600">
               {t('worker.dashboard.quotaModal.recentTitle')}
             </p>
             {worker.cancellationHistory.filter(
@@ -1594,7 +1583,7 @@ function WorkerDashboardContent() {
                           </p>
                           <span
                             className={[
-                              'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                              'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold',
                               rec.type === 'LateCancel'
                                 ? 'bg-red-50 text-red-700'
                                 : 'bg-amber-50 text-amber-700',
@@ -1605,7 +1594,7 @@ function WorkerDashboardContent() {
                               : t('worker.dashboard.reputationModal.onTimeCancel')}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-[11px] text-gray-500">
+                        <p className="mt-0.5 text-xs text-gray-500">
                           {formatDateVN(rec.cancelledAt.slice(0, 10))}
                         </p>
                       </li>
@@ -1625,8 +1614,8 @@ function WorkerDashboardContent() {
               and whether a quota slot was refunded. */}
           {(worker.protections ?? []).length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
-                Bảo vệ quyền lợi
+              <p className="text-sm font-semibold text-emerald-700">
+                {t('worker.dashboard.protection.title')}
               </p>
               <ul className="flex flex-col gap-2">
                 {[...(worker.protections ?? [])]
@@ -1640,17 +1629,21 @@ function WorkerDashboardContent() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-xs font-medium text-emerald-900">
                           {rec.quotaSlotsRefunded > 0
-                            ? `+${rec.quotaSlotsRefunded} lượt hủy được hoàn lại`
-                            : 'Không bị tính lượt hủy'}
+                            ? t('worker.dashboard.protection.quotaRefunded').replace(
+                                '{count}',
+                                String(rec.quotaSlotsRefunded),
+                              )
+                            : t('worker.dashboard.protection.quotaNotCounted')}
                         </p>
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                           {rec.shiftTitle}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[11px] text-emerald-800/80">
-                        {rec.employerName} • Lý do: {rec.reason}
+                      <p className="mt-0.5 text-xs text-emerald-800/80">
+                        {rec.employerName} • {t('worker.dashboard.history.reasonLabel')}{' '}
+                        {rec.reason}
                       </p>
-                      <p className="mt-0.5 text-[11px] text-emerald-700/70">
+                      <p className="mt-0.5 text-xs text-emerald-700/70">
                         {formatDateVN(rec.occurredAt.slice(0, 10))}
                       </p>
                     </li>
@@ -1686,7 +1679,7 @@ function WorkerDashboardContent() {
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <div className="rounded-xl bg-orange-50 px-4 py-3 ring-1 ring-orange-100">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-orange-700">
+            <p className="text-sm font-medium text-orange-700">
               {t('worker.dashboard.incomeModal.totalLabel')}
             </p>
             <p className="mt-1 text-2xl font-extrabold text-orange-700">
@@ -1705,16 +1698,14 @@ function WorkerDashboardContent() {
               title={t('worker.dashboard.empty.income.title')}
               description={t('worker.dashboard.empty.income.description')}
               action={
-                <Link href="/shifts" onClick={() => setStatDetail(null)}>
-                  <Button size="sm" variant="primary">
-                    {t('worker.dashboard.empty.income.cta')}
-                  </Button>
-                </Link>
+                <ButtonLink href="/shifts" size="sm" variant="primary" onClick={() => setStatDetail(null)}>
+                  {t('worker.dashboard.empty.income.cta')}
+                </ButtonLink>
               }
             />
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <p className="text-sm font-medium text-gray-600">
                 {t('worker.dashboard.incomeModal.recentTitle')}
               </p>
               <ul className="flex flex-col gap-2">
@@ -1752,7 +1743,7 @@ function WorkerDashboardContent() {
                               : ''}
                           </p>
                           {shift?.location && (
-                            <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                            <p className="mt-0.5 truncate text-xs text-gray-500">
                               {shift.location}
                             </p>
                           )}
@@ -1796,11 +1787,11 @@ function WorkerDashboardContent() {
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <div className="rounded-xl bg-emerald-50 px-4 py-3 ring-1 ring-emerald-100">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-emerald-700">
+            <p className="text-sm font-medium text-emerald-700">
               {t('worker.dashboard.completedModal.totalLabel')}
             </p>
-            <p className="mt-1 text-2xl font-extrabold text-emerald-700">
-              {worker.completedShiftCount}
+            <p className="mt-1 text-2xl font-extrabold text-emerald-700 tabular-nums">
+              {completedCount}
             </p>
           </div>
           {completedShifts.length === 0 ? (
@@ -1809,20 +1800,18 @@ function WorkerDashboardContent() {
               title={t('worker.dashboard.empty.completed.title')}
               description={t('worker.dashboard.empty.completed.description')}
               action={
-                <Link href="/shifts" onClick={() => setStatDetail(null)}>
-                  <Button size="sm" variant="primary">
-                    {t('worker.dashboard.empty.completed.cta')}
-                  </Button>
-                </Link>
+                <ButtonLink href="/shifts" size="sm" variant="primary" onClick={() => setStatDetail(null)}>
+                  {t('worker.dashboard.empty.completed.cta')}
+                </ButtonLink>
               }
             />
           ) : (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              <p className="text-sm font-medium text-gray-600">
                 {t('worker.dashboard.completedModal.recentTitle').replace(
                   '{shown}',
                   String(Math.min(5, completedShifts.length)),
-                ).replace('{total}', String(worker.completedShiftCount))}
+                ).replace('{total}', String(completedCount))}
               </p>
               <ul className="flex flex-col gap-2">
                 {[...completedShifts]
@@ -1865,28 +1854,28 @@ function WorkerDashboardContent() {
                                 : ''}
                             </p>
                             {shift?.location && (
-                              <p className="mt-0.5 truncate text-[11px] text-gray-400">
+                              <p className="mt-0.5 truncate text-xs text-gray-500">
                                 {shift.location}
                               </p>
                             )}
                           </div>
-                          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                             {t('worker.dashboard.completedModal.confirmedBadge')}
                           </span>
                         </div>
                         <div className="mt-1 flex items-center justify-between gap-2">
                           {myRating ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
                               <span aria-hidden="true">★</span>
                               {myRating.stars}/5
                               {myRating.feedback && (
-                                <span className="ml-1 truncate text-[11px] font-normal text-gray-500">
+                                <span className="ml-1 truncate text-xs font-normal text-gray-500">
                                   · {myRating.feedback}
                                 </span>
                               )}
                             </span>
                           ) : (
-                            <span className="text-[11px] text-gray-400">
+                            <span className="text-xs text-gray-500">
                               {t('worker.dashboard.completedModal.noRating')}
                             </span>
                           )}
@@ -1901,13 +1890,11 @@ function WorkerDashboardContent() {
                     );
                   })}
               </ul>
-              {worker.completedShiftCount > completedShifts.length && (
-                <p className="text-[11px] italic text-gray-500">
+              {completedCount > completedShifts.length && (
+                <p className="text-xs italic text-gray-500">
                   {t('worker.dashboard.completedModal.legacyNote').replace(
                     '{count}',
-                    String(
-                      worker.completedShiftCount - completedShifts.length,
-                    ),
+                    String(completedCount - completedShifts.length),
                   )}
                 </p>
               )}
@@ -1994,7 +1981,7 @@ function StatTile({
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        <p className="text-sm font-medium text-gray-600">
           {label}
         </p>
         {icon && (
@@ -2018,9 +2005,9 @@ function StatTile({
         // hover/focus per the quieter color discipline.
         <span
           aria-hidden="true"
-          className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
+          className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
         >
-          Xem chi tiết →
+          {t('btn.viewDetail')} →
         </span>
       )}
     </>
@@ -2135,10 +2122,10 @@ function UpcomingShiftCard({
   return (
     <Card>
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0 flex-1">
           <Link
             href={`/shifts/${shift.id}`}
-            className="font-semibold text-gray-900 hover:text-orange-700"
+            className="break-words font-semibold text-gray-900 hover:text-orange-700"
           >
             {shift.title}
           </Link>
@@ -2163,7 +2150,10 @@ function UpcomingShiftCard({
         <span>
           {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
         </span>
-        <span className="font-medium text-orange-700">{formatVND(shift.hourlyWage)}/giờ</span>
+        <span className="font-medium text-orange-700 tabular-nums">
+          {formatVND(shift.hourlyWage)}
+          {t('common.perHour')}
+        </span>
       </div>
 
       {attendanceCopy && (
@@ -2233,13 +2223,55 @@ function UpcomingShiftCard({
         {application.status === 'CheckedOut' && (
           <Link
             href={`/shifts/${shift.id}`}
-            className="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-amber-300 bg-white px-3 text-xs font-medium text-amber-800 hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-3 text-sm font-medium text-amber-800 hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
           >
             {t('worker.dispute.openButton')}
           </Link>
         )}
       </div>
     </Card>
+  );
+}
+
+/** Thẻ một dòng trong "Lịch sử gần đây": cả thẻ là liên kết tới ca. */
+function HistoryShiftCard({
+  shift,
+  badgeTone,
+  badgeLabel,
+  reason,
+  note,
+}: {
+  shift: Shift;
+  badgeTone: 'danger' | 'neutral' | 'success';
+  badgeLabel: string;
+  reason?: string;
+  note: string;
+}) {
+  return (
+    <Link
+      href={`/shifts/${shift.id}`}
+      className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+    >
+      <Card className="transition-colors hover:border-orange-300 hover:shadow-sm">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="break-words font-semibold text-gray-900">{shift.title}</p>
+            <p className="mt-0.5 text-sm text-gray-500 tabular-nums">
+              {formatDateVN(shift.date)} • {formatTimeVN(shift.startTime)}–
+              {formatTimeVN(shift.endTime)}
+            </p>
+          </div>
+          <Badge tone={badgeTone}>{badgeLabel}</Badge>
+        </div>
+        {reason && (
+          <p className="mt-2 break-words text-sm text-gray-700">
+            <span className="font-medium">{t('worker.dashboard.history.reasonLabel')}</span>{' '}
+            {reason}
+          </p>
+        )}
+        <p className="mt-2 text-xs leading-relaxed text-gray-500">{note}</p>
+      </Card>
+    </Link>
   );
 }
 
@@ -2253,10 +2285,10 @@ function PendingApplicationCard({
   return (
     <Card>
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0 flex-1">
           <Link
             href={`/shifts/${shift.id}`}
-            className="font-semibold text-gray-900 hover:text-orange-700"
+            className="break-words font-semibold text-gray-900 hover:text-orange-700"
           >
             {shift.title}
           </Link>
@@ -2269,7 +2301,10 @@ function PendingApplicationCard({
         <span>
           {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
         </span>
-        <span className="font-medium text-orange-700">{formatVND(shift.hourlyWage)}/giờ</span>
+        <span className="font-medium text-orange-700 tabular-nums">
+          {formatVND(shift.hourlyWage)}
+          {t('common.perHour')}
+        </span>
       </div>
     </Card>
   );
@@ -2288,7 +2323,7 @@ function RejectedApplicationCard({
         <div className="min-w-0 flex-1">
           <Link
             href={`/shifts/${shift.id}`}
-            className="font-semibold text-gray-900 hover:text-orange-700"
+            className="break-words font-semibold text-gray-900 hover:text-orange-700"
           >
             {shift.title}
           </Link>

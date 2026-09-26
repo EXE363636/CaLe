@@ -182,7 +182,7 @@ function FormSection({
         className,
       ].join(' ')}
     >
-      <h3 className="mb-4 text-sm font-semibold text-gray-900">{title}</h3>
+      <h2 className="mb-4 text-sm font-semibold text-gray-900">{title}</h2>
       {children}
     </section>
   );
@@ -498,8 +498,8 @@ export function ShiftForm({
             type="text"
             inputMode="numeric"
             autoComplete="off"
-            placeholder="0"
-            value={formatNumberVNInput(values.hourlyWage)}
+            placeholder="35.000"
+            value={values.hourlyWage > 0 ? formatNumberVNInput(values.hourlyWage) : ''}
             onChange={(e) => {
               // Phase 10C-Stab-1 Batch 2 — wage input must accept
               // numbers only. Strip every non-digit before parsing
@@ -523,7 +523,7 @@ export function ShiftForm({
             className={[
               'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
               'min-h-[44px] transition-colors duration-150',
-              'placeholder:font-sans placeholder:text-gray-400',
+              'placeholder:font-sans placeholder:text-gray-500',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
               errors.hourlyWage
                 ? 'border-red-400 bg-red-50 focus-visible:ring-red-400'
@@ -886,7 +886,7 @@ function EvidenceFieldset({
                       {t(`evidence.requirement.${option}`)}
                     </span>
                     {isSuggested && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
                         {t('evidence.suggestedChip')}
                       </span>
                     )}
@@ -909,22 +909,21 @@ function EvidenceFieldset({
       {/* Privacy warning — Vietnamese reminder so employers don't ask
           for photos of customers, ID documents, sensitive invoices, or
           confidential goods. */}
-      <p
-        className="mt-3 rounded-md bg-white px-3 py-2 text-xs leading-relaxed text-orange-900 ring-1 ring-orange-200"
-        role="note"
-      >
-        {t('evidence.privacy.warning')}
-      </p>
-      <p className="mt-1 text-[11px] leading-relaxed text-orange-800/80">
-        {t('evidence.privacy.warning.detailed')}
-      </p>
+      <div role="note" className="mt-4 border-t border-orange-200/70 pt-3">
+        <p className="text-sm font-medium leading-relaxed text-orange-950">
+          {t('evidence.privacy.warning')}
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-orange-900">
+          {t('evidence.privacy.warning.detailed')}
+        </p>
+      </div>
 
       {/* Phase 10C-Stab-1 Batch 2 — concrete examples for the
           chosen requirement so employers and workers see the same
           guidance from both sides. */}
       {(value === 'ChecklistOnly' ||
         value === 'RequiredHandoverChecklist') && (
-        <div className="mt-3 rounded-md bg-white px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+        <div className="mt-3 text-sm text-orange-900">
           <p className="font-semibold">{t('evidence.examples.checklist.title')}</p>
           <ul className="mt-1 list-disc pl-5">
             <li>{t('evidence.examples.checklist.item1')}</li>
@@ -936,7 +935,7 @@ function EvidenceFieldset({
       {(value === 'OptionalPhoto' ||
         value === 'RequiredPhoto' ||
         value === 'RequiredHandoverChecklist') && (
-        <div className="mt-3 rounded-md bg-white px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+        <div className="mt-3 text-sm text-orange-900">
           <p className="font-semibold">{t('evidence.examples.photo.title')}</p>
           <ul className="mt-1 list-disc pl-5">
             <li>{t('evidence.examples.photo.item1')}</li>

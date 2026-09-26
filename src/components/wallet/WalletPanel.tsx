@@ -126,7 +126,7 @@ function LedgerRow({ entry }: { entry: WalletLedgerEntry }) {
         <span className="block font-medium text-gray-900">
           {t(`wallet.kind.${entry.kind}`)}
         </span>
-        <span className="mt-0.5 block font-mono text-[11px] text-gray-500">
+        <span className="mt-0.5 block text-xs tabular-nums text-gray-600">
           {formatOccurredAt(entry.occurredAt)}
         </span>
         {entry.note && (
@@ -239,6 +239,9 @@ export function WalletPanel({
   const [checkingId, setCheckingId] = useState<string | null>(null);
 
   /** Mở form rút tiền: key idempotency mới + điền sẵn tài khoản của lệnh rút gần nhất. */
+  // Rút tối thiểu: PayOS (production) không chi dưới 2.000 đ; demo cho mọi số > 0.
+  const withdrawMin = supabase ? PAYOS_MIN_AMOUNT : 1;
+
   function openWithdraw() {
     setWithdrawText('');
     setWithdrawNote('');
@@ -272,7 +275,7 @@ export function WalletPanel({
     // PayOS xác nhận đã nhận tiền (webhook, server-side).
     if (supabase) {
       if (amount < PAYOS_MIN_AMOUNT) {
-        setTopUpError(`Số tiền nạp tối thiểu là ${formatVND(PAYOS_MIN_AMOUNT)}.`);
+        setTopUpError(t('wallet.topUp.real.errorMin').replace('{min}', formatVND(PAYOS_MIN_AMOUNT)));
         return;
       }
       if (busy) return;
@@ -453,19 +456,18 @@ export function WalletPanel({
           <p className="mt-1 text-xs text-gray-500">
             {t('wallet.balance.label')}
           </p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
             {formatVND(balance)}
           </p>
+          {allowWithdraw && balance > 0 && balance < withdrawMin && (
+            <p className="mt-1 text-xs text-gray-600">
+              {t('wallet.withdraw.belowMin').replace('{min}', formatVND(withdrawMin))}
+            </p>
+          )}
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setModalOpen(true)}
-            disabled={userLedger.length === 0}
-          >
-            {t('wallet.ledger.openButton')}
-          </Button>
+        {/* Một hàng hành động (tự xuống dòng khi hẹp): nạp/rút trước, xem
+            lịch sử sau — thay cho cột dọc lệch hàng trước đây. */}
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {allowTopUp && (
             <Button
               size="sm"
@@ -480,11 +482,19 @@ export function WalletPanel({
               {t('wallet.topUp.button')}
             </Button>
           )}
-          {allowWithdraw && balance > 0 && (
+          {allowWithdraw && balance >= withdrawMin && (
             <Button size="sm" variant="ghost" onClick={openWithdraw}>
               {t('wallet.withdraw.button')}
             </Button>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setModalOpen(true)}
+            disabled={userLedger.length === 0}
+          >
+            {t('wallet.ledger.openButton')}
+          </Button>
         </div>
       </div>
 
@@ -508,21 +518,27 @@ export function WalletPanel({
                     </span>
                     <span className="mt-0.5 block text-gray-600">
                       {bankByBin(w.toBin)?.shortName ?? w.toBin} · *{w.toAccountNumber.slice(-4)} ·{' '}
-                      <span className="font-mono text-[11px] text-gray-500">
+                      <span className="text-xs tabular-nums text-gray-600">
                         {formatOccurredAt(w.createdAt)}
                       </span>
                     </span>
                     {w.status === 'FAILED' && w.failReason && (
-                      <span className="mt-0.5 block text-[11px] leading-relaxed text-rose-700">
+                      // Không hiện nguyên văn lỗi kỹ thuật của cổng chi (vd.
+                      // "signature không hợp lệ") — người dùng không xử lý được.
+                      // Giữ lỗi gốc ở `title` cho hỗ trợ tra cứu.
+                      <span
+                        className="mt-0.5 block text-xs leading-relaxed text-rose-700"
+                        title={w.failReason}
+                      >
                         {/không đủ|insufficient/i.test(w.failReason)
                           ? t('wallet.withdraw.real.failPayoutFunds')
-                          : `Lý do: ${w.failReason}`}
+                          : t('wallet.withdraw.real.failGeneric')}
                       </span>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${withdrawalTone(w.status)}`}
+                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${withdrawalTone(w.status)}`}
                     >
                       {t(`wallet.withdraw.real.status.${w.status}`)}
                     </span>
@@ -546,7 +562,7 @@ export function WalletPanel({
       )}
 
       {userLedger.length === 0 ? (
-        <p className="mt-3 text-xs italic text-gray-500">
+        <p className="mt-3 text-sm text-gray-600">
           {t('wallet.balance.empty')}
         </p>
       ) : (
@@ -570,7 +586,7 @@ export function WalletPanel({
       >
         <div className="flex flex-col gap-3 text-sm">
           {userLedger.length === 0 ? (
-            <p className="italic text-gray-500">
+            <p className="text-gray-600">
               {t('wallet.balance.empty')}
             </p>
           ) : (
@@ -599,9 +615,9 @@ export function WalletPanel({
         onClose={closeTopUp}
         title={
           supabase && topUpStep === 'qr'
-            ? 'Nạp tiền — quét QR chuyển khoản'
+            ? t('wallet.topUp.real.qrTitle')
             : supabase
-              ? 'Nạp tiền vào ví'
+              ? t('wallet.topUp.real.title')
               : t('wallet.topUp.modal.title')
         }
       >
@@ -619,19 +635,29 @@ export function WalletPanel({
         ) : (
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex flex-wrap gap-2">
-              {TOP_UP_PRESETS.map((preset) => (
-                <Button
-                  key={preset}
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => {
-                    setTopUpText(formatNumberVNInput(preset));
-                    setTopUpError(null);
-                  }}
-                >
-                  {formatVND(preset)}
-                </Button>
-              ))}
+              {TOP_UP_PRESETS.map((preset) => {
+                const selected = topUpText === formatNumberVNInput(preset);
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setTopUpText(formatNumberVNInput(preset));
+                      setTopUpError(null);
+                    }}
+                    className={[
+                      'min-h-[44px] rounded-lg border px-4 text-sm font-semibold tabular-nums transition-colors',
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
+                      selected
+                        ? 'border-orange-500 bg-orange-50 text-orange-800'
+                        : 'border-gray-300 bg-white text-gray-900 hover:border-gray-400',
+                    ].join(' ')}
+                  >
+                    {formatVND(preset)}
+                  </button>
+                );
+              })}
             </div>
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-gray-700">
@@ -651,7 +677,7 @@ export function WalletPanel({
                 }}
                 aria-invalid={!!topUpError}
                 className={[
-                  'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
+                  'w-full rounded-lg border px-3 py-2 text-base tabular-nums text-gray-900',
                   'min-h-[44px] transition-colors',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
                   topUpError
@@ -661,9 +687,8 @@ export function WalletPanel({
               />
             </label>
             {supabase && (
-              <p className="text-xs text-gray-500">
-                Bước sau: quét mã QR bằng app ngân hàng để chuyển khoản qua PayOS. Tối
-                thiểu {formatVND(PAYOS_MIN_AMOUNT)}.
+              <p className="text-xs text-gray-600">
+                {t('wallet.topUp.real.nextStep').replace('{min}', formatVND(PAYOS_MIN_AMOUNT))}
               </p>
             )}
             {topUpError && (
@@ -676,7 +701,7 @@ export function WalletPanel({
                 {t('wallet.topUp.modal.cancel')}
               </Button>
               <Button size="sm" variant="primary" onClick={submitTopUp} loading={busy}>
-                {supabase ? 'Tiếp tục' : t('wallet.topUp.modal.submit')}
+                {supabase ? t('wallet.topUp.real.continue') : t('wallet.topUp.modal.submit')}
               </Button>
             </div>
           </div>
@@ -690,12 +715,31 @@ export function WalletPanel({
         title={supabase ? t('wallet.withdraw.real.title') : t('wallet.withdraw.modal.title')}
       >
         <div className="flex flex-col gap-3 text-sm">
-          <p className="text-xs text-gray-600">
-            {t('wallet.withdraw.modal.available')}:{' '}
-            <span className="font-semibold text-gray-900">
-              {formatVND(balance)}
-            </span>
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-gray-600">
+              {t('wallet.withdraw.modal.available')}:{' '}
+              <span className="font-semibold tabular-nums text-gray-900">
+                {formatVND(balance)}
+              </span>
+              {supabase && (
+                <span className="text-gray-600">
+                  {' '}· {t('wallet.withdraw.minHint').replace('{min}', formatVND(withdrawMin))}
+                </span>
+              )}
+            </p>
+            {balance >= withdrawMin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setWithdrawText(formatNumberVNInput(balance));
+                  if (withdrawError) setWithdrawError(null);
+                }}
+                className="min-h-[44px] rounded-lg px-2 text-sm font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                {t('wallet.withdraw.all')}
+              </button>
+            )}
+          </div>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-gray-700">
               {t('wallet.withdraw.modal.label')}
@@ -713,7 +757,7 @@ export function WalletPanel({
               }}
               aria-invalid={!!withdrawError}
               className={[
-                'w-full rounded-lg border px-3 py-2 text-sm font-mono text-gray-900',
+                'w-full rounded-lg border px-3 py-2 text-base tabular-nums text-gray-900',
                 'min-h-[44px] transition-colors',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
                 withdrawError
@@ -758,7 +802,7 @@ export function WalletPanel({
                     setWithdrawAccount(e.target.value.replace(/[^\d]/g, ''));
                     if (withdrawError) setWithdrawError(null);
                   }}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-mono text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-base tabular-nums tracking-wide text-gray-900 min-h-[44px] hover:border-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                 />
               </label>
               <label className="flex flex-col gap-1">

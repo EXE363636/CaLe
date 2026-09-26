@@ -1,7 +1,5 @@
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 
-export const metadata = { title: 'Liên hệ hỗ trợ — CaLẻ' };
-
 export default function SupportPage() {
   return (
     <InfoPage

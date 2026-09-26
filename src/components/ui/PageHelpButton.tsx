@@ -125,7 +125,7 @@ export function PageHelpButton({
                           aria-hidden="true"
                           className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500"
                         />
-                        <span className="text-[13px] leading-relaxed text-gray-700">
+                        <span className="text-sm leading-relaxed text-gray-700">
                           {item}
                         </span>
                       </li>

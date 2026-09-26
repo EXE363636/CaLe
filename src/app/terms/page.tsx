@@ -1,8 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export const metadata = { title: 'Điều khoản sử dụng — CaLẻ' };
-
 export default function TermsPage() {
   return (
     <InfoPage

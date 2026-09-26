@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -13,7 +12,7 @@ import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
 import { DepositWalletConfirm } from '@/components/payment/DepositWalletConfirm';
 import { toPublishPayload } from '@/data/repos/shiftRepo';
 import { calculateDepositWithFee } from '@/domain/deposit';
-import { Badge, Button, Card, Modal, PageHelpButton } from '@/components/ui';
+import { Badge, Button, Card, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
   trustForEmployer,
@@ -237,6 +236,7 @@ function NewShiftContent() {
     [shifts, currentUserId],
   );
   const trust = employer ? trustForEmployer(employer, completedCount) : 'low';
+  const serverMode = getDataMode() === 'supabase';
   const ratio = DEPOSIT_RATIO[trust];
 
   // Phase 10A-Fix-2: posting guard. A truly-new employer (no
@@ -526,7 +526,7 @@ function NewShiftContent() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-6">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             {t('employer.dashboard.title')}
           </p>
           <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
@@ -542,11 +542,9 @@ function NewShiftContent() {
             Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đảm bảo
             thanh toán và quy tắc an toàn cho người lao động.
           </p>
-          <Link href="/employer/profile">
-            <Button variant="primary" size="md">
+          <ButtonLink href="/employer/profile" variant="primary" size="md">
               {t('posting.readiness.cta.profile')}
-            </Button>
-          </Link>
+            </ButtonLink>
         </Card>
       </div>
     );
@@ -558,14 +556,14 @@ function NewShiftContent() {
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-600">
               {t('employer.dashboard.title')}
             </p>
             <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
               {t('btn.postShift')}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              {t('shifts.new.subtitle')}
+            <p className="mt-1 text-sm text-gray-600">
+              {t(serverMode ? 'shifts.new.subtitle.real' : 'shifts.new.subtitle')}
             </p>
           </div>
           <PageHelpButton
@@ -598,15 +596,22 @@ function NewShiftContent() {
       {/* Phase 6: trust tier + deposit ratio explainer. Visible from the
           first paint so the employer sees what they'll be charged before
           they finish filling out the form. */}
-      {!createdShiftId && (
-        <TrustExplainerCard trust={trust} ratio={ratio} />
+      {/* Production: cọc = 100% tiền công + 10% phí (server
+          create_deposit_session), KHÔNG theo cấp uy tín, và không có "ưu tiên
+          hiển thị theo uy tín" → thẻ cấp uy tín là sai. Nói đúng luồng thật. */}
+      {!createdShiftId && !depositPayload && (
+        serverMode ? <RealDepositExplainerCard /> : <TrustExplainerCard trust={trust} ratio={ratio} />
       )}
 
       {/* Phase 10A-Fix-3 — verification + workplace readiness checklist.
           Always shown before creation so the employer sees what's
           missing. Hidden after creation since at that point readiness
           was already enforced. */}
-      {!createdShiftId && readiness && readiness.resolvedType && (
+      {/* Checklist này dựa trên giấy tờ / ảnh MÔ PHỎNG (chỉ có ở local). Ở
+          production nó không chặn gì nhưng lại ghi "cần hoàn tất xác minh
+          trước khi đăng ca" → ẩn; yêu cầu thật (SĐT/CCCD theo cờ admin) do
+          VerificationGateNotice ở trên hiển thị. */}
+      {!serverMode && !createdShiftId && readiness && readiness.resolvedType && (
         <ReadinessChecklist
           resolvedType={readiness.resolvedType}
           ready={readiness.ready}
@@ -627,9 +632,7 @@ function NewShiftContent() {
       {depositPayload && (
         <div className="mb-2">
           <p className="mb-3 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200">
-            Để đăng ca, hệ thống <strong>giữ cọc từ số dư ví</strong> của bạn. Ca chỉ được
-            đăng sau khi giữ cọc. Tiền cọc trả cho người lao động khi ca hoàn thành; phần
-            không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.
+            {t('deposit.real.confirmNote')}
           </p>
           <DepositWalletConfirm
             shiftPayload={depositPayload}
@@ -692,7 +695,7 @@ function NewShiftContent() {
                   <p className="text-xs text-gray-500">
                     {d.date ? `${d.date}${d.startTime ? ` ${d.startTime}` : ''}` : t('shiftForm.draft.noDate')}
                   </p>
-                  <p className="font-mono text-[11px] text-gray-500">
+                  <p className="font-mono text-xs text-gray-500">
                     {t('shiftForm.draft.savedAt')}: {formatLogDateTime(d.updatedAt)}
                   </p>
                 </div>
@@ -829,7 +832,7 @@ function NewShiftContent() {
             </p>
           )}
           {/* Honesty — top-up is simulated (no real payment gateway). */}
-          <p className="text-[11px] italic leading-relaxed text-gray-500">
+          <p className="text-xs italic leading-relaxed text-gray-500">
             {t('employer.payments.disclaimer')}
           </p>
           <div className="flex justify-end gap-2 pt-1">
@@ -941,7 +944,7 @@ function ReadinessChecklist({
             <span
               aria-hidden="true"
               className={[
-                'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white',
+                'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
                 it.ok ? 'bg-emerald-500' : 'bg-amber-500',
               ].join(' ')}
             >
@@ -958,18 +961,16 @@ function ReadinessChecklist({
           <p className="text-xs font-medium text-amber-900">
             {blockers[0]}
           </p>
-          <p className="text-[11px] text-amber-800/80">
+          <p className="text-xs text-amber-800/80">
             {t('posting.readiness.depositLocked')}
           </p>
-          <Link href="/employer/profile">
-            <Button size="sm" variant="secondary">
+          <ButtonLink href="/employer/profile" size="sm" variant="secondary">
               {t('posting.readiness.cta.profile')}
-            </Button>
-          </Link>
+            </ButtonLink>
         </div>
       )}
       {resolvedType === 'Individual' && (
-        <p className="mt-3 text-[11px] italic leading-relaxed text-gray-600">
+        <p className="mt-3 text-xs italic leading-relaxed text-gray-600">
           {t('posting.readiness.individualNote')}
         </p>
       )}
@@ -980,6 +981,19 @@ function ReadinessChecklist({
 // ---------------------------------------------------------------------------
 // Trust explainer
 // ---------------------------------------------------------------------------
+
+function RealDepositExplainerCard() {
+  return (
+    <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50 p-5">
+      <p className="text-sm font-semibold text-orange-900">{t('deposit.real.title')}</p>
+      <ul className="mt-2 flex flex-col gap-1.5 text-sm leading-relaxed text-orange-950">
+        <li>{t('deposit.real.formula')}</li>
+        <li>{t('deposit.real.when')}</li>
+        <li>{t('deposit.real.refund')}</li>
+      </ul>
+    </div>
+  );
+}
 
 function TrustExplainerCard({
   trust,
@@ -1084,7 +1098,7 @@ function DepositConfirmCard({
       {/* Honesty — this is a simulated deposit in the demo; make it
           explicit at the confirm moment so no one thinks real money
           moves or a payment backend exists. */}
-      <p className="mt-2 text-center text-[11px] italic leading-relaxed text-gray-500">
+      <p className="mt-2 text-center text-xs italic leading-relaxed text-gray-500">
         {t('employer.payments.disclaimer')}
       </p>
     </div>

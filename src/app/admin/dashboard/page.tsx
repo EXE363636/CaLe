@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
@@ -13,7 +14,7 @@ import { useVerificationStore } from '@/stores';
 import { useReviewReportStore } from '@/stores/reviewReportStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { adminVerificationTaskCount, adminDisputeTaskCount } from '@/domain/taskBadges';
-import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge, Modal, Select } from '@/components/ui';
+import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge, Modal, Select, ButtonLink } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
@@ -268,7 +269,10 @@ function AdminDashboardContent() {
             badgeCount={disputeTaskCount}
             badgeAriaLabel={
               disputeTaskCount > 0
-                ? `${disputeTaskCount} tranh chấp cần xử lý`
+                ? t('admin.dashboard.tabs.disputesBadge').replace(
+                    '{count}',
+                    String(disputeTaskCount),
+                  )
                 : undefined
             }
           >
@@ -282,7 +286,10 @@ function AdminDashboardContent() {
             badgeCount={verificationTaskCount}
             badgeAriaLabel={
               verificationTaskCount > 0
-                ? `${verificationTaskCount} mục chờ xác minh`
+                ? t('admin.dashboard.tabs.verificationsBadge').replace(
+                    '{count}',
+                    String(verificationTaskCount),
+                  )
                 : undefined
             }
           >
@@ -327,7 +334,9 @@ function TabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={[
         'relative min-h-[44px] flex-1 rounded-md px-4 text-sm font-medium transition-colors',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
@@ -379,51 +388,59 @@ function AnalyticsPanel({
           allowTopUp={false}
         />
       )}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* 6 ô (supabase) → 3 cột; 8 ô (local) → 4 cột — không để hàng lẻ. */}
+      <div
+        className={[
+          'grid grid-cols-2 gap-4',
+          hasCapability('payments') && hasCapability('disputes')
+            ? 'sm:grid-cols-4'
+            : 'sm:grid-cols-3',
+        ].join(' ')}
+      >
         <StatCard
-          label="Tổng người dùng"
+          label={t('admin.analytics.totalUsers')}
           value={String(users.length)}
           onClick={() => onJumpToUsers('all')}
-          ariaLabel="Xem toàn bộ người dùng"
+          ariaLabel={t('admin.analytics.aria.allUsers')}
         />
         <StatCard
           label={t('admin.analytics.totalWorkers')}
           value={String(workerCount)}
           onClick={() => onJumpToUsers('worker')}
-          ariaLabel="Lọc người lao động trong tab Người dùng"
+          ariaLabel={t('admin.analytics.aria.workers')}
         />
         <StatCard
           label={t('admin.analytics.totalEmployers')}
           value={String(employerCount)}
           onClick={() => onJumpToUsers('employer')}
-          ariaLabel="Lọc nhà tuyển dụng trong tab Người dùng"
+          ariaLabel={t('admin.analytics.aria.employers')}
         />
         <StatCard
           label={t('admin.analytics.totalShifts')}
           value={String(shifts.length)}
           onClick={() => onJumpToShifts('all')}
-          ariaLabel="Xem toàn bộ ca làm trong tab Ca làm"
+          ariaLabel={t('admin.analytics.aria.allShifts')}
         />
         <StatCard
-          label="Ca đang hoạt động"
+          label={t('admin.analytics.activeShifts')}
           value={String(activeShifts)}
           onClick={() => onJumpToShifts('active')}
-          ariaLabel="Lọc ca đang hoạt động"
+          ariaLabel={t('admin.analytics.aria.activeShifts')}
         />
         <StatCard
           label={t('admin.analytics.completedShifts')}
           value={String(completedShifts)}
           onClick={() => onJumpToShifts('completed')}
-          ariaLabel="Lọc ca đã hoàn thành"
+          ariaLabel={t('admin.analytics.aria.completedShifts')}
         />
         {/* Thanh toán/tranh chấp: chỉ hiện khi có backend thật (ẩn ở supabase). */}
         {hasCapability('payments') && (
           <StatCard
-            label="Thanh toán đang tranh chấp"
+            label={t('admin.analytics.disputedPayments')}
             value={String(disputedPayments)}
             highlight
             onClick={() => onJumpToShifts('disputed')}
-            ariaLabel="Lọc ca có thanh toán tranh chấp"
+            ariaLabel={t('admin.analytics.aria.disputedPayments')}
           />
         )}
         {hasCapability('disputes') && (
@@ -431,7 +448,7 @@ function AnalyticsPanel({
             label={t('admin.analytics.activeDisputes')}
             value={String(openDisputes)}
             onClick={onJumpToDisputes}
-            ariaLabel="Mở tab Tranh chấp"
+            ariaLabel={t('admin.analytics.aria.disputes')}
           />
         )}
       </div>
@@ -464,21 +481,23 @@ function StatCard({
 
   const body = (
     <>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
       <p
         className={[
-          'mt-2 text-3xl font-extrabold leading-none',
+          'mt-2 text-3xl font-extrabold leading-none tabular-nums',
           highlight ? 'text-red-600' : 'text-gray-900',
         ].join(' ')}
       >
         {value}
       </p>
       {onClick && (
+        // Luôn hiện (không chỉ khi hover) để người dùng cảm ứng biết ô bấm
+        // được — cùng quy ước với ô thống kê ở dashboard worker/employer.
         <span
           aria-hidden="true"
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
         >
-          Xem chi tiết →
+          {t('btn.viewDetail')} →
         </span>
       )}
     </>
@@ -564,6 +583,19 @@ function UsersPanel({
   // `id` because the user record has no createdAt; the id ordering is
   // stable across reloads since seed data uses zero-padded suffixes.
   type SortField = 'name' | 'role' | 'reputation' | 'status' | 'joined';
+  // Uy tín: local lưu trong hồ sơ; supabase chưa có backend (capability
+  // `ratings` tắt) → TẠM TÍNH từ lịch sử ca thật (chỉ xem, không sửa).
+  const ratingsOn = hasCapability('ratings');
+  const derivedRep = useDerivedReputationMap();
+  const reputationOf = useCallback(
+    (u: User): number | null =>
+      u.role !== 'worker'
+        ? null
+        : ratingsOn
+          ? u.reputationScore
+          : derivedReputationOf(derivedRep, u.id).score,
+    [ratingsOn, derivedRep],
+  );
   const [sortField, setSortField] = useState<SortField>('reputation');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -583,8 +615,8 @@ function UsersPanel({
           return w(a.role) - w(b.role);
         }
         case 'reputation': {
-          const ra = a.role === 'worker' ? a.reputationScore : -1;
-          const rb = b.role === 'worker' ? b.reputationScore : -1;
+          const ra = reputationOf(a) ?? -1;
+          const rb = reputationOf(b) ?? -1;
           return ra - rb;
         }
         case 'status': {
@@ -603,7 +635,7 @@ function UsersPanel({
       return a.id.localeCompare(b.id);
     });
     return sorted;
-  }, [users, filter, sortField, sortDir]);
+  }, [users, filter, sortField, sortDir, reputationOf]);
 
   // Profile modal subject — resolved from the live user list so suspend /
   // reactivate / reputation-adjust actions taken from the row are
@@ -700,9 +732,10 @@ function UsersPanel({
             key={r}
             size="sm"
             variant={filter === r ? 'primary' : 'ghost'}
+            aria-pressed={filter === r}
             onClick={() => setFilter(r)}
           >
-            {r === 'all' ? 'Tất cả' : t(`role.${r}`)}
+            {r === 'all' ? t('admin.users.filter.all') : t(`role.${r}`)}
           </Button>
         ))}
         {supabase && (
@@ -771,12 +804,19 @@ function UsersPanel({
         </Button>
       </div>
 
+      {!loadingUsers && filtered.length === 0 && (
+        <Card>
+          <p className="py-6 text-center text-sm text-gray-500">{t('admin.users.empty')}</p>
+        </Card>
+      )}
       <ul className="flex flex-col gap-2">
         {filtered.map((user) => (
           <UserRow
             key={user.id}
             user={user}
             isSelf={user.id === currentAdminId}
+            reputationScore={reputationOf(user)}
+            reputationDerived={!ratingsOn}
             isLastActiveAdmin={
               user.role === 'admin' && !user.suspended && activeAdminCount <= 1
             }
@@ -1000,6 +1040,8 @@ function DeleteAccountModal({
 function UserRow({
   user,
   isSelf,
+  reputationScore,
+  reputationDerived,
   isLastActiveAdmin,
   adjusting,
   onAdjust,
@@ -1012,6 +1054,10 @@ function UserRow({
 }: {
   user: User;
   isSelf: boolean;
+  /** null với người không phải người lao động. */
+  reputationScore: number | null;
+  /** true khi điểm là tạm tính (supabase, server chưa lưu điểm). */
+  reputationDerived: boolean;
   isLastActiveAdmin: boolean;
   adjusting: boolean;
   onAdjust: () => void;
@@ -1024,6 +1070,7 @@ function UserRow({
   onDelete?: () => void;
 }) {
   const adjustReputation = useAdminStore((s) => s.adjustReputation);
+  const ratingsOn = hasCapability('ratings');
   // Worker-only row state. For non-workers `currentScore` is always 0; the
   // adjust UI is hidden anyway so the value is unused.
   const currentScore = user.role === 'worker' ? user.reputationScore : 0;
@@ -1089,7 +1136,7 @@ function UserRow({
   const canSuspend = !isSelf && !isLastActiveAdmin;
 
   return (
-    <Card>
+    <Card as="li">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-gray-900">
@@ -1112,16 +1159,28 @@ function UserRow({
           <p className="truncate text-xs text-gray-500">{user.email}</p>
         </div>
 
-        {user.role === 'worker' && <ReputationBadge score={user.reputationScore} />}
-
-        {user.suspended ? (
-          <Badge tone="danger">Tạm khoá</Badge>
-        ) : (
-          <Badge tone="success">Hoạt động</Badge>
+        {/* Supabase: điểm TẠM TÍNH từ lịch sử ca thật (có nhãn); nút điều
+            chỉnh vẫn ẩn vì server chưa lưu điểm (sửa chỉ đổi RAM client). */}
+        {reputationScore !== null && (
+          <span
+            className="inline-flex items-center gap-1"
+            title={reputationDerived ? t('admin.reputation.derivedHint') : undefined}
+          >
+            <ReputationBadge score={reputationScore} />
+            {reputationDerived && (
+              <span className="text-xs text-gray-500">{t('admin.reputation.derivedTag')}</span>
+            )}
+          </span>
         )}
 
-        <div className="flex gap-2">
-          {user.role === 'worker' && !adjusting && (
+        {user.suspended ? (
+          <Badge tone="danger">{t('admin.user.status.suspended')}</Badge>
+        ) : (
+          <Badge tone="success">{t('admin.user.status.active')}</Badge>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {ratingsOn && user.role === 'worker' && !adjusting && (
             <Button size="sm" variant="ghost" onClick={handleStartAdjust}>
               {t('btn.adjustReputation')}
             </Button>
@@ -1158,7 +1217,7 @@ function UserRow({
             * sm+     (`grid-cols-2`) — side-by-side, balanced
           Both inputs carry hint text so the columns feel symmetric.
           The submit/cancel buttons live in a separate row below. */}
-      {adjusting && user.role === 'worker' && (
+      {ratingsOn && adjusting && user.role === 'worker' && (
         <div className="mt-4 flex flex-col gap-3 rounded-lg border border-gray-100 p-4">
           <p className="text-xs text-gray-500">
             {t('admin.user.currentScore')}: <strong>{currentScore}</strong>
@@ -1244,7 +1303,9 @@ function ShiftsPanel({
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
 
-  const [filter, setFilter] = useState<typeof initialFilter>(initialFilter);
+  const [filter, setFilter] = useState<typeof initialFilter>(
+    initialFilter === 'disputed' && !hasCapability('payments') ? 'all' : initialFilter,
+  );
 
   // Phase 9F — filter the visible list according to the active chip.
   // Sort by createdAt desc (recent first) within the filtered slice.
@@ -1271,22 +1332,28 @@ function ShiftsPanel({
     <div className="flex flex-col gap-3">
       {/* Filter chips — Phase 9F */}
       <div className="flex flex-wrap gap-2">
-        {(['all', 'active', 'completed', 'disputed'] as const).map((f) => (
-          <Button
-            key={f}
-            size="sm"
-            variant={filter === f ? 'primary' : 'ghost'}
-            onClick={() => setFilter(f)}
-          >
-            {t(`admin.shifts.filter.${f}`)}
-          </Button>
-        ))}
+        {(['all', 'active', 'completed', 'disputed'] as const)
+          // "Tranh chấp" lọc theo escrow — chỉ có nghĩa khi có backend thanh toán.
+          .filter((f) => f !== 'disputed' || hasCapability('payments'))
+          .map((f) => (
+            <Button
+              key={f}
+              size="sm"
+              variant={filter === f ? 'primary' : 'ghost'}
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+            >
+              {t(`admin.shifts.filter.${f}`)}
+            </Button>
+          ))}
       </div>
 
       {/* Phase 7: explainer banner — clarifies that statuses move
           automatically and that Override is for exceptional cases. */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-        <p>{t('admin.shifts.autoNote')}</p>
+        <p>
+          {t(hasCapability('payments') ? 'admin.shifts.autoNote' : 'admin.shifts.autoNoteReal')}
+        </p>
         {lastSyncAt && (
           <p className="mt-1 text-xs text-blue-700">
             {t('admin.shifts.lastSync').replace(
@@ -1297,10 +1364,25 @@ function ShiftsPanel({
         )}
       </div>
 
+      {sorted.length === 0 && (
+        <Card>
+          <p className="py-6 text-center text-sm text-gray-500">{t('admin.shifts.empty')}</p>
+        </Card>
+      )}
+      {sorted.length > 50 && (
+        <p className="text-xs text-gray-500 tabular-nums">
+          {t('admin.shifts.showingFirst')
+            .replace('{shown}', '50')
+            .replace('{total}', String(sorted.length))}
+        </p>
+      )}
       <ul className="flex flex-col gap-2">
         {sorted.slice(0, 50).map((shift) => {
           const employer = users.find((u) => u.id === shift.employerId);
-          const employerName = employer?.role === 'employer' ? employer.companyName : 'Unknown';
+          const employerName =
+            employer?.role === 'employer'
+              ? employer.companyName
+              : t('admin.shifts.unknownEmployer');
           return (
             <ShiftRow
               key={shift.id}
@@ -1369,6 +1451,7 @@ function ShiftRow({
   applications?: Application[];
 }) {
   const overrideEscrow = useAdminStore((s) => s.overrideEscrow);
+  const escrowOn = hasCapability('payments');
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState<EscrowStatus>(shift.escrowStatus);
   const [note, setNote] = useState('');
@@ -1386,7 +1469,7 @@ function ShiftRow({
   }
 
   return (
-    <Card>
+    <Card as="li">
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-0 flex-1">
           {/* Phase 9P — title is now a link to the public shift detail
@@ -1406,30 +1489,35 @@ function ShiftRow({
           </p>
         </div>
         <ShiftLifecycleBadge shift={shift} applications={applications} />
-        <EscrowStatusBadge status={shift.escrowStatus} />
+        {/* Escrow + override chỉ ở local: ở supabase `overrideEscrow` chỉ sửa
+            store/localStorage phía client, server KHÔNG đổi → admin tưởng đã
+            đổi trạng thái tiền thật (CLAUDE.md #7: escrow không ở client). */}
+        {escrowOn && <EscrowStatusBadge status={shift.escrowStatus} />}
         {!editing && (
           <>
-            <Link href={`/shifts/${shift.id}`}>
-              <Button size="sm" variant="ghost">
-                {t('btn.viewDetail')}
-              </Button>
-            </Link>
-            <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-              {t('admin.shifts.override')}
-            </Button>
-            <HelpPopover
-              title={t('admin.shifts.override')}
-              description={t('hint.admin.override')}
-            />
+            <ButtonLink href={`/shifts/${shift.id}`} size="sm" variant="ghost">
+              {t('btn.viewDetail')}
+            </ButtonLink>
+            {escrowOn && (
+              <>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+                  {t('admin.shifts.override')}
+                </Button>
+                <HelpPopover
+                  title={t('admin.shifts.override')}
+                  description={t('hint.admin.override')}
+                />
+              </>
+            )}
           </>
         )}
       </div>
 
-      {editing && (
+      {escrowOn && editing && (
         <div className="mt-3 flex flex-col gap-2 rounded-lg border border-gray-100 p-3">
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-xs">
-              <span className="font-medium text-gray-700">Trạng thái mới</span>
+              <span className="font-medium text-gray-700">{t('admin.shifts.newStatus')}</span>
               <select
                 value={target}
                 onChange={(e) => setTarget(e.target.value as EscrowStatus)}
@@ -1495,8 +1583,8 @@ function DisputesPanel() {
 
       {sorted.length === 0 ? (
         <Card>
-          <p className="py-6 text-center text-sm text-gray-400">
-            Chưa có tranh chấp nào.
+          <p className="py-6 text-center text-sm text-gray-500">
+            {t('admin.disputes.empty')}
           </p>
         </Card>
       ) : (
@@ -1590,7 +1678,7 @@ function ReportedReviewsCard() {
                   {review.stars}★ — &ldquo;{review.comment ?? '—'}&rdquo;
                 </p>
               )}
-              <p className="mt-1.5 font-mono text-[10px] text-gray-500">
+              <p className="mt-1.5 font-mono text-xs text-gray-500">
                 {formatLogDateTime(r.createdAt)}
               </p>
               <div className="mt-2 flex gap-2">
@@ -1684,16 +1772,16 @@ function DisputeRow({
   const VN_DT = (iso?: string) =>
     iso ? formatLogDateTime(iso) : '—';
 
-  // UI-REFRESH Batch 4 — status-toned left accent so open disputes pop
-  // in the queue and resolved ones recede. Pure presentation.
-  const accentClass = isOpen
-    ? 'border-l-4 border-l-amber-400'
-    : dispute.status === 'ResolvedReleased'
-      ? 'border-l-4 border-l-emerald-400'
-      : 'border-l-4 border-l-gray-300';
-
+  // Open disputes pop in the queue (amber 1px ring over the card border);
+  // resolved ones recede onto the subtle surface. Replaces the former
+  // 4px coloured side stripe (impeccable craft-floor: no side-tab accents)
+  // — the status badge in the row still carries the label.
   return (
-    <Card className={accentClass}>
+    <Card
+      as="li"
+      tone={isOpen ? 'default' : 'subtle'}
+      className={isOpen ? 'ring-1 ring-amber-300' : ''}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button
           type="button"
@@ -1794,7 +1882,7 @@ function DisputeRow({
                     key={r.id}
                     className="rounded-md border border-gray-200 bg-white px-2 py-1.5"
                   >
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                       {r.side === 'worker'
                         ? t('admin.dispute.initiator.worker')
                         : t('admin.dispute.initiator.employer')}
@@ -1806,7 +1894,7 @@ function DisputeRow({
                       <p className="mt-1 italic">{r.evidenceDescription}</p>
                     )}
                     {r.evidenceFileName && (
-                      <p className="mt-1 break-all font-mono text-[11px]">
+                      <p className="mt-1 break-all font-mono text-xs">
                         {r.evidenceFileName}
                       </p>
                     )}

@@ -1,72 +1,41 @@
 /**
- * Cluster 5 · Task 16 — EXPLORATION (bug-condition) test.
- *
- * Property 7 (Bug Condition) — "Practical handbook content + menu label".
+ * Cluster 5 · Property 7 — "Practical handbook content + menu label".
  *
  * Validates: Requirements 1.7, 2.7
  *
  * ---------------------------------------------------------------------------
- * WHAT THIS TEST ENCODES (the correct, post-fix behavior)
+ * HISTORY — why this test targets /handbook (not /user-guide)
  * ---------------------------------------------------------------------------
- * Per design.md "Cluster 5 — Handbook / footer" (BUG 7) and bugfix.md req 2.7,
- * the guide/handbook and its menu entry must, after the fix:
+ * The original exploration test (task 16) encoded req 2.7 against
+ * `/user-guide`: rename `nav.label.userGuide` to "Cẩm nang" and rewrite that
+ * page as a practical handbook. Commit 9705a53 ("Update Handbook") later made
+ * a deliberate product split instead:
  *
- *   (1) name the menu entry "Cẩm nang" (or "Cẩm nang đi ca") — NOT the current
- *       "Bắt đầu nhanh" and NOT the trust/safety framing ("Tin cậy & An toàn"),
- *       and
- *   (2) present ORIGINAL, short, PRACTICAL handbook content for BOTH audiences:
- *         - workers  — satisfying employers, arriving on time (punctuality),
- *                      communicating schedule conflicts, cancelling well;
- *         - employers — attracting staff, writing clear shift descriptions,
- *                       setting appropriate pay, reducing no-shows.
+ *   • `/user-guide` — "Hướng dẫn sử dụng": the procedural app walkthrough.
+ *   • `/handbook`   — "Cẩm nang làm việc": the practical, article-based
+ *                     handbook for workers and employers.
  *
- * Because the exact final prose is not pinned, this test keys on stable,
- * meaningful, requirement-2.7-derived concept anchors rather than exact
- * sentences, and on the i18n label VALUE + the rendered page structure — the
- * two signals the task calls out ("Prefer asserting on the i18n label value +
- * rendered page structure").
+ * Req 2.7's intent is unchanged — a menu entry named as a handbook ("Cẩm
+ * nang", not the trust/safety framing) leading to ORIGINAL, PRACTICAL content
+ * for BOTH audiences — so this test now asserts it where it lives today:
  *
- * The label check accepts any label CONTAINING "cẩm nang" (so both "Cẩm nang"
- * and "Cẩm nang đi ca" satisfy it) and rejects the trust/safety framing.
+ *   (1) the handbook menu label `nav.label.handbook` contains "cẩm nang" and
+ *       is not framed as trust/safety; the usage-guide label is no longer the
+ *       old "Bắt đầu nhanh";
+ *   (2) the handbook articles, per audience, carry the practical topics:
+ *         - workers   — satisfying employers ("hài lòng" | "vừa lòng") and
+ *                       punctuality ("đúng giờ");
+ *         - employers — attracting staff ("thu hút" | "giữ chân") and
+ *                       appropriate pay ("hợp lý" | "tương xứng").
  *
- * For the page, each audience is required to carry practical guidance via a
- * small OR-set of natural Vietnamese phrasings per topic (so the fix is not
- * over-fit to one wording):
- *   - worker "satisfy employers"  → "hài lòng" | "vừa lòng"
- *   - worker "punctuality"        → "đúng giờ"
- *   - employer "attract staff"    → "thu hút" | "giữ chân"
- *   - employer "appropriate pay"  → "hợp lý" | "tương xứng"
- *
- * ---------------------------------------------------------------------------
- * WHY IT IS EXPECTED TO FAIL ON THE CURRENT (UNFIXED) CODE
- * ---------------------------------------------------------------------------
- * CURRENT STATE recorded from source:
- *
- *   • Menu label — src/i18n/vi.ts: `'nav.label.userGuide': 'Bắt đầu nhanh'`.
- *     (The parent NavBar dropdown group is labelled "Tin cậy & cẩm nang" and
- *     `'nav.label.safety': 'An toàn & Tin cậy'` — the trust/safety framing.)
- *     So `t('nav.label.userGuide')` does NOT contain "cẩm nang" → label
- *     assertion FAILS.
- *
- *   • Page framing — src/app/user-guide/page.tsx: the page is an app USAGE
- *     walkthrough (InfoPage eyebrow "Hướng dẫn sử dụng", title "Cách dùng
- *     CaLẻ"): 9-step worker timeline + 9-step employer timeline +
- *     feature-anchor cards + FAQ — all PROCEDURAL ("how to use the app"),
- *     not a practical behavioral handbook. None of the practical-topic
- *     anchors above appear anywhere in the page (verified by grep: "hài
- *     lòng", "vừa lòng", "đúng giờ", "thu hút", "giữ chân", "hợp lý",
- *     "tương xứng" are all absent) → both page assertions FAIL.
- *
- * Each assertion below therefore FAILS on current code. That FAILURE is the
- * counterexample proving the bug exists. This test is NOT fixed here — the
- * SAME test later validates the fix (task 19.1 / 19.3).
+ * Topic anchors are small OR-sets of natural Vietnamese phrasings so the
+ * content is not pinned to one sentence.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 
 import { t } from '@/i18n/vi';
-import UserGuidePage from '@/app/user-guide/page';
+import { handbookArticles, type HandbookAudience } from '@/data/mock/handbookArticles';
 
 // ---------------------------------------------------------------------------
 // Normalization helpers — Vietnamese diacritics compare reliably in NFC.
@@ -81,79 +50,81 @@ const lc = (s: string | null | undefined): string => nfc(s).toLowerCase();
 const includesAny = (haystack: string, needles: string[]): boolean =>
   needles.some((n) => haystack.includes(lc(n)));
 
+/** All reader-visible text of one audience's handbook articles, lower-cased. */
+function audienceText(audience: HandbookAudience): string {
+  return lc(
+    handbookArticles
+      .filter((a) => a.audience === audience)
+      .map((a) =>
+        [
+          a.title,
+          a.excerpt,
+          ...a.content.flatMap((s) => [
+            s.heading ?? '',
+            ...(s.paragraphs ?? []),
+            ...(s.bullets ?? []),
+            s.note ?? '',
+          ]),
+        ].join(' '),
+      )
+      .join(' '),
+  );
+}
+
 // ---------------------------------------------------------------------------
-// The exact strings the assertions key on (documented per the task's
-// requirement to record what the test matches against).
+// The exact strings the assertions key on.
 // ---------------------------------------------------------------------------
 
-/** The required handbook marker in the menu label (accepts "Cẩm nang" + "Cẩm nang đi ca"). */
+/** The required handbook marker in the menu label. */
 const HANDBOOK_LABEL_MARKER = 'cẩm nang';
-/** The current (buggy) menu label the fix must replace. */
-const CURRENT_LABEL = 'Bắt đầu nhanh';
+/** The old quick-start label that must not come back. */
+const OLD_QUICK_START_LABEL = 'Bắt đầu nhanh';
 /** The trust/safety framing words the handbook label must NOT use. */
 const TRUST_SAFETY_MARKERS = ['tin cậy', 'an toàn'];
 
-/**
- * Practical-handbook topic anchors (req 2.7). Each topic is an OR-set of
- * natural Vietnamese phrasings so the fix isn't pinned to one sentence. All
- * of these are ABSENT from the current page (grep-verified).
- */
 const WORKER_SATISFY = ['hài lòng', 'vừa lòng']; // satisfying employers
 const WORKER_PUNCTUAL = ['đúng giờ']; //             arriving on time
 const EMPLOYER_ATTRACT = ['thu hút', 'giữ chân']; // attracting staff
 const EMPLOYER_FAIR_PAY = ['hợp lý', 'tương xứng']; // setting appropriate pay
 
-afterEach(() => {
-  cleanup();
-});
-
 // ---------------------------------------------------------------------------
-// Surface 1 — the guide menu label (asserted via the i18n VALUE)
+// Surface 1 — the handbook menu label (asserted via the i18n VALUE)
 // ---------------------------------------------------------------------------
 
-describe('Property 7 (Bug Condition): guide menu label is a practical handbook label', () => {
-  it('reads "Cẩm nang" (not "Bắt đầu nhanh" / "Tin cậy & An toàn")', () => {
-    const label = t('nav.label.userGuide');
+describe('Property 7: handbook menu label', () => {
+  it('names the handbook "Cẩm nang…" without trust/safety framing', () => {
+    const label = t('nav.label.handbook');
 
-    // EXPECTED (post-fix): the label names a handbook ("Cẩm nang" / "Cẩm nang
-    // đi ca"). CURRENT (unfixed): the label is "Bắt đầu nhanh" → FAILS.
     expect(lc(label)).toContain(HANDBOOK_LABEL_MARKER);
-
-    // EXPECTED (post-fix): the old quick-start wording is gone.
-    // CURRENT (unfixed): the label IS "Bắt đầu nhanh" → FAILS.
-    expect(nfc(label)).not.toBe(nfc(CURRENT_LABEL));
-
-    // EXPECTED (post-fix): the label is NOT framed as trust/safety.
     for (const marker of TRUST_SAFETY_MARKERS) {
       expect(lc(label)).not.toContain(marker);
     }
   });
+
+  it('no longer labels the usage guide "Bắt đầu nhanh"', () => {
+    expect(nfc(t('nav.label.userGuide'))).not.toBe(nfc(OLD_QUICK_START_LABEL));
+  });
 });
 
 // ---------------------------------------------------------------------------
-// Surface 2 — the /user-guide page (rendered)
+// Surface 2 — the /handbook articles (per audience)
 // ---------------------------------------------------------------------------
 
-describe('Property 7 (Bug Condition): /user-guide is a practical dual-audience handbook', () => {
-  it('renders practical WORKER guidance (satisfying employers + punctuality)', () => {
-    const { container } = render(<UserGuidePage />);
-    const pageText = lc(container.textContent);
-
-    // EXPECTED (post-fix): the handbook coaches workers on satisfying
-    // employers and arriving on time. CURRENT (unfixed): the page is a
-    // procedural usage walkthrough — none of these anchors appear → FAILS.
-    expect(includesAny(pageText, WORKER_SATISFY)).toBe(true);
-    expect(includesAny(pageText, WORKER_PUNCTUAL)).toBe(true);
+describe('Property 7: /handbook is a practical dual-audience handbook', () => {
+  it('has articles for both workers and employers', () => {
+    expect(handbookArticles.some((a) => a.audience === 'worker')).toBe(true);
+    expect(handbookArticles.some((a) => a.audience === 'employer')).toBe(true);
   });
 
-  it('renders practical EMPLOYER guidance (attracting staff + appropriate pay)', () => {
-    const { container } = render(<UserGuidePage />);
-    const pageText = lc(container.textContent);
+  it('gives WORKERS practical guidance (satisfying employers + punctuality)', () => {
+    const text = audienceText('worker');
+    expect(includesAny(text, WORKER_SATISFY)).toBe(true);
+    expect(includesAny(text, WORKER_PUNCTUAL)).toBe(true);
+  });
 
-    // EXPECTED (post-fix): the handbook coaches employers on attracting staff
-    // and setting appropriate pay. CURRENT (unfixed): the page is a procedural
-    // usage walkthrough — none of these anchors appear → FAILS.
-    expect(includesAny(pageText, EMPLOYER_ATTRACT)).toBe(true);
-    expect(includesAny(pageText, EMPLOYER_FAIR_PAY)).toBe(true);
+  it('gives EMPLOYERS practical guidance (attracting staff + appropriate pay)', () => {
+    const text = audienceText('employer');
+    expect(includesAny(text, EMPLOYER_ATTRACT)).toBe(true);
+    expect(includesAny(text, EMPLOYER_FAIR_PAY)).toBe(true);
   });
 });

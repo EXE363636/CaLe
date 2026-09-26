@@ -1,8 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export const metadata = { title: 'Bảo vệ người dùng — CaLẻ' };
-
 export default function SafetyPage() {
   return (
     <InfoPage

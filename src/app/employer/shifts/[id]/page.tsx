@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
+import { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
@@ -10,7 +10,7 @@ import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
 import { useUserStore, asWorker } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
-import { Badge, Button, EmptyState, Modal, Textarea } from '@/components/ui';
+import { Badge, Button, ButtonLink, EmptyState, Modal, Textarea } from '@/components/ui';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { hasCapability } from '@/data/capabilities';
 import { EmployerConfirmationPanel } from '@/components/shift/EmployerConfirmationPanel';
@@ -42,6 +42,7 @@ import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { t } from '@/i18n/vi';
+import { tSettlement } from '@/lib/settlementCopy';
 import type { Application, Shift, Worker } from '@/types';
 
 interface Props {
@@ -61,12 +62,37 @@ function EmployerShiftDetailInner({ params }: Props) {
   const shift = useShiftStore((s) => s.shifts.find((sh) => sh.id === id));
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const hydrated = useHydrationStore((s) => s.hydrated);
+  // Supabase: store sau hydrate có thể chưa chứa ca này (deep-link từ thông
+  // báo, ca cũ ngoài danh sách đã tải) → tra server MỘT lần trước khi kết
+  // luận 404. Lỗi mạng hiện màn hình thử lại thay vì 404 sai.
+  const [lookup, setLookup] = useState<{ key: string; status: 'missing' | 'error' } | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const lookupKey = `${id}#${attempt}`;
+  const needsServerLookup = !shift && hydrated && isSupabaseEnv();
+
+  useEffect(() => {
+    if (!needsServerLookup) return;
+    let cancelled = false;
+    useShiftStore
+      .getState()
+      .refetchOne(id)
+      .then(() => {
+        if (!cancelled) setLookup({ key: lookupKey, status: 'missing' });
+      })
+      .catch(() => {
+        if (!cancelled) setLookup({ key: lookupKey, status: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [needsServerLookup, id, lookupKey]);
 
   // Wait for hydration before deciding the shift is missing — a cold
   // load / refresh / deep-link renders against the still-empty store
   // otherwise, producing a permanent 404.
   if (!shift) {
-    if (!hydrated) {
+    const lookupDone = lookup?.key === lookupKey ? lookup.status : null;
+    if (!hydrated || (needsServerLookup && lookupDone === null)) {
       return (
         <div
           className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-gray-500"
@@ -74,6 +100,24 @@ function EmployerShiftDetailInner({ params }: Props) {
           aria-live="polite"
         >
           {t('common.loading')}
+        </div>
+      );
+    }
+    if (lookupDone === 'error') {
+      return (
+        <div className="mx-auto max-w-md px-4 py-16 text-center" role="alert">
+          <h1 className="text-lg font-semibold text-gray-900">
+            {t('employer.manageShift.loadError.title')}
+          </h1>
+          <p className="mt-2 text-sm text-gray-600">{t('employer.manageShift.loadError.body')}</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Button variant="primary" onClick={() => setAttempt((n) => n + 1)}>
+              {t('btn.retry')}
+            </Button>
+            <ButtonLink href="/employer/dashboard" variant="ghost">
+              {t('employer.manageShift.backToDashboard')}
+            </ButtonLink>
+          </div>
         </div>
       );
     }
@@ -114,6 +158,8 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const repostFromShift = useShiftStore((s) => s.repostFromShift);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // Đơn đang chờ xác nhận "vắng mặt" (chỉ supabase — thao tác không hoàn tác).
+  const [noShowConfirmAppId, setNoShowConfirmAppId] = useState<string | null>(null);
   // Phase 10A-Fix-7: cancellation now goes through a modal that
   // captures a required reason. The legacy inline confirm has been
   // replaced; `cancelOpen` controls modal visibility.
@@ -149,7 +195,9 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const [revertError, setRevertError] = useState<string | null>(null);
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
-  const positionsLeft = shift.positionsTotal - shift.positionsFilled;
+  // Kẹp ≥ 0: dữ liệu lệch (vd. duyệt vượt số vị trí trước khi server chặn)
+  // không được hiện "-1 vị trí còn trống".
+  const positionsLeft = Math.max(0, shift.positionsTotal - shift.positionsFilled);
 
   // Phase 10A-Fix-9: lock applicant approve/reject after the shift
   // start datetime, in addition to the more obvious terminal states
@@ -208,11 +256,19 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     setRejectingAppId(null);
   }
 
-  async function handleMarkNoShow(appId: string) {
+  function handleMarkNoShow(appId: string) {
     if (actionLoading) return; // khóa double-click
     // Supabase: vắng mặt là KHÔNG hoàn tác được (server chốt cọc, hoàn phần dư
-    // về ví khi người cuối cùng được xử lý) → hỏi lại trước khi gửi.
-    if (isSupabaseEnv() && !window.confirm(t('attendance.markNoShow.confirm'))) return;
+    // về ví khi người cuối cùng được xử lý) → hỏi lại qua Modal trước khi gửi.
+    if (isSupabaseEnv()) {
+      setNoShowConfirmAppId(appId);
+      return;
+    }
+    void performMarkNoShow(appId);
+  }
+
+  async function performMarkNoShow(appId: string) {
+    setNoShowConfirmAppId(null);
     setActionLoading(appId);
     // Wrapper tự dispatch: supabase → RPC + refetch server; local → sync cũ.
     const result = await markNoShowAsync(appId);
@@ -396,7 +452,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
     const trimmed = cancelReason.trim();
     if (trimmed === '') {
-      setCancelError('Vui lòng nhập lý do hủy.');
+      setCancelError(t('employer.manageShift.cancel.reasonRequired'));
       setCancelLoading(false);
       return;
     }
@@ -414,9 +470,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
       setCancelLoading(false);
       setCancelOpen(false);
       setCancelReason('');
+      // Production: tiền là THẬT (PayOS) → không dùng mô tả "(mô phỏng)".
       showSuccess(
         t('feedback.shift.cancel.success'),
-        t('feedback.shift.cancel.success.desc'),
+        t('feedback.shift.cancel.success.descReal'),
       );
       router.push('/employer/dashboard');
       return;
@@ -447,9 +504,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
     if (result.value.employerCancelledAfterApproval) {
       showSuccess(
         t('feedback.shift.cancel.success'),
-        `Hệ thống đã thông báo cho người lao động và áp dụng phí hủy ${Math.round(
-          (result.value.employerCancellationPenaltyRate ?? 0) * 100,
-        )}% khoản đảm bảo thanh toán.`,
+        t('employer.manageShift.cancel.successPenalty').replace(
+          '{rate}',
+          String(Math.round((result.value.employerCancellationPenaltyRate ?? 0) * 100)),
+        ),
       );
     } else {
       showSuccess(
@@ -500,27 +558,37 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           <h1 className="text-balance break-words text-2xl font-bold text-gray-900">
             {shift.title}
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-gray-600 tabular-nums">
             {formatDateVN(shift.date)} • {formatTimeVN(shift.startTime)}–
-            {formatTimeVN(shift.endTime)} • {formatVND(shift.hourlyWage)}/giờ
+            {formatTimeVN(shift.endTime)} • {formatVND(shift.hourlyWage)}
+            {t('common.perHour')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* CORE-STABILITY-10 — single unified lifecycle badge,
               identical label + colour to every other surface. Escrow
               is a distinct money concept and stays separate. */}
           <ShiftLifecycleBadge shift={shift} applications={applications} />
           {/* Escrow/cọc chưa có backend ở supabase → ẩn badge tiền (mục 4/5). */}
-          {hasCapability('wallet') && <EscrowStatusBadge status={shift.escrowStatus} />}
+          {/* Server không cập nhật escrow_status khi chốt tiền (0018/0019) →
+              với ca đã hoàn thành / hết hạn, nhãn cọc là trạng thái cũ. Ví +
+              lịch sử giao dịch là nơi thể hiện tiền đã chốt. */}
+          {hasCapability('wallet') &&
+            !(isSupabaseEnv() && (shift.status === 'Completed' || shift.status === 'Expired')) && (
+              <EscrowStatusBadge status={shift.escrowStatus} />
+            )}
         </div>
       </div>
 
       {/* Positions summary */}
-      <div className="mt-4 flex items-center gap-4 text-sm text-gray-600">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 tabular-nums">
         <span>
-          {shift.positionsFilled}/{shift.positionsTotal} người đã duyệt
+          {shift.positionsFilled}/{shift.positionsTotal}{' '}
+          {t('employer.manageShift.positionsApproved')}
         </span>
-        <span>{positionsLeft} vị trí còn trống</span>
+        <span>
+          {positionsLeft} {t('employer.manageShift.positionsLeft')}
+        </span>
       </div>
 
       {/* Cancel shift — only available while the shift is in a state that
@@ -559,7 +627,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           className="mt-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900"
         >
           <p className="font-medium text-orange-900">
-            {t('employer.repost.banner.title')}
+            {t(`employer.repost.banner.title.${shift.status}`)}
           </p>
           <p className="mt-1 text-xs text-orange-900/80">
             {t('employer.repost.banner.body')}
@@ -590,20 +658,20 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
             {t('shift.cancelled.banner')}
           </p>
           {shift.employerCancellationReason && (
-            <p className="mt-1 text-xs text-gray-600">
-              <span className="font-medium">Lý do:</span>{' '}
+            <p className="mt-1 break-words text-xs text-gray-600">
+              <span className="font-medium">
+                {t('employer.manageShift.cancelled.reasonLabel')}
+              </span>{' '}
               {shift.employerCancellationReason}
             </p>
           )}
           {shift.employerCancelledAfterApproval &&
             (shift.employerCancellationPenaltyAmount ?? 0) > 0 && (
-              <p className="mt-1 text-xs text-amber-700">
-                Phí hủy sau khi đã duyệt người:{' '}
-                {Math.round(
-                  (shift.employerCancellationPenaltyRate ?? 0) * 100,
-                )}
-                % khoản đảm bảo thanh toán ({formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
-                ).
+              <p className="mt-1 text-xs text-amber-700 tabular-nums">
+                {t('employer.manageShift.cancelled.penaltyPrefix')}{' '}
+                {Math.round((shift.employerCancellationPenaltyRate ?? 0) * 100)}
+                {t('employer.manageShift.cancelled.penaltyUnit')} (
+                {formatVND(shift.employerCancellationPenaltyAmount ?? 0)}).
               </p>
             )}
           {/* Phase 10A-Fix-8 — surface the affected approved-worker
@@ -620,7 +688,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               if (affectedCount === 0) return null;
               return (
                 <p className="mt-1 text-xs text-gray-600">
-                  Số người lao động đã được duyệt bị ảnh hưởng:{' '}
+                  {t('employer.manageShift.cancelled.affectedLabel')}{' '}
                   <span className="font-semibold text-gray-900">
                     {affectedCount}
                   </span>
@@ -636,6 +704,31 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           employer can audit the lineage. */}
       <ShiftTimelineSection timeline={shift.timeline} />
 
+      {/* Xác nhận đánh dấu vắng mặt (supabase) — thay window.confirm. */}
+      <Modal
+        open={noShowConfirmAppId !== null}
+        onClose={() => setNoShowConfirmAppId(null)}
+        title={t('attendance.markNoShow.title')}
+      >
+        <div className="flex flex-col gap-3 text-sm text-gray-700">
+          <p>{t('attendance.markNoShow.confirm')}</p>
+          <div className="mt-1 flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setNoShowConfirmAppId(null)}>
+              {t('btn.back')}
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => {
+                if (noShowConfirmAppId) void performMarkNoShow(noShowConfirmAppId);
+              }}
+            >
+              {t('attendance.markNoShow.submit')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Phase 10A-Fix-7 — employer cancellation modal. */}
       <Modal
         open={cancelOpen}
@@ -644,45 +737,45 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           setCancelOpen(false);
           setCancelError(null);
         }}
-        title="Hủy ca làm"
+        title={t('employer.manageShift.cancel.title')}
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           {hasApprovedWorkers ? (
             <p className="rounded-md bg-amber-50 px-3 py-2 text-amber-900 ring-1 ring-amber-200">
-              Ca này đã có người lao động được duyệt. Khi hủy, người lao
-              động sẽ không bị phạt và hệ thống sẽ ghi nhận ảnh hưởng đến
-              uy tín nhà tuyển dụng.
+              {t('employer.manageShift.cancel.warnApproved')}
             </p>
           ) : (
-            <p className="text-gray-600">
-              Vui lòng nhập lý do hủy. Người lao động đang chờ duyệt sẽ
-              nhận thông báo ca không còn áp dụng.
-            </p>
+            <p className="text-gray-600">{t('employer.manageShift.cancel.intro')}</p>
           )}
 
           <Textarea
-            label="Lý do hủy (bắt buộc)"
+            label={t('employer.manageShift.cancel.reasonLabel')}
             value={cancelReason}
             onChange={(e) => {
               setCancelReason(e.target.value);
               if (cancelError) setCancelError(null);
             }}
-            placeholder="Ví dụ: Lịch đột xuất thay đổi, không thể tổ chức ca."
+            placeholder={t('employer.manageShift.cancel.reasonPlaceholder')}
             rows={3}
+            maxLength={500}
           />
 
           {cancelPreview.afterApproval && cancelPreview.amount > 0 && (
             <div className="rounded-md bg-orange-50 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-200">
-              <p className="font-medium">
-                Phí hủy: {Math.round(cancelPreview.rate * 100)}% khoản đảm bảo thanh toán
-                ({formatVND(cancelPreview.amount)})
+              <p className="font-medium tabular-nums">
+                {t('employer.manageShift.cancel.penaltyPrefix')}{' '}
+                {Math.round(cancelPreview.rate * 100)}
+                {t('employer.manageShift.cancelled.penaltyUnit')} (
+                {formatVND(cancelPreview.amount)})
               </p>
               <p className="mt-0.5 text-orange-800/80">
-                {cancelPreview.rate >= 0.15
-                  ? 'Bạn đang hủy trong vòng 6 giờ trước giờ bắt đầu.'
-                  : cancelPreview.rate >= 0.1
-                    ? 'Bạn đang hủy trong vòng 24 giờ trước giờ bắt đầu.'
-                    : 'Bạn đang hủy hơn 24 giờ trước giờ bắt đầu.'}
+                {t(
+                  cancelPreview.rate >= 0.15
+                    ? 'employer.manageShift.cancel.within6h'
+                    : cancelPreview.rate >= 0.1
+                      ? 'employer.manageShift.cancel.within24h'
+                      : 'employer.manageShift.cancel.over24h',
+                )}
               </p>
             </div>
           )}
@@ -703,7 +796,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               }}
               disabled={cancelLoading}
             >
-              Không
+              {t('employer.manageShift.cancel.keep')}
             </Button>
             <Button
               size="sm"
@@ -712,7 +805,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
               loading={cancelLoading}
               disabled={cancelReason.trim() === ''}
             >
-              Xác nhận hủy ca
+              {t('employer.manageShift.cancel.confirm')}
             </Button>
           </div>
         </div>
@@ -743,12 +836,30 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
 
               {/* Phase 10A-Fix-9: high-risk-job soft warning. */}
               {riskLevel === 'High' && (
-                <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  <p className="font-medium">⚠ Công việc rủi ro cao</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
-                    Công việc này có rủi ro cao. Nên chọn người đã xác minh
-                    danh tính, có uy tín cao và có lịch sử làm việc phù hợp.
-                  </p>
+                <div
+                  role="note"
+                  className="mb-4 flex gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                >
+                  <svg
+                    className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="font-medium">{t('employer.manageShift.risk.title')}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-900/90">
+                      {t('employer.manageShift.risk.body')}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -783,13 +894,29 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                       </span>
                     </h3>
                     <p className="text-xs leading-relaxed text-gray-500">
-                      {t(`applicantBucket.${bucket.bucket}.hint`)}
+                      {bucket.bucket === 'AwaitingConfirmation'
+                        ? tSettlement('applicantBucket.AwaitingConfirmation.hint')
+                        : t(`applicantBucket.${bucket.bucket}.hint`)}
                     </p>
                   </header>
                   <div className="flex flex-col gap-3">
                     {bucket.applications.map((app) => {
               const worker = asWorker(users.find((u) => u.id === app.workerId));
-              if (!worker) return null;
+              // Hồ sơ chưa tải (supabase, RLS/mạng) → vẫn hiện đơn để số đếm ở
+              // tiêu đề khớp với số dòng, thay vì lặng lẽ biến mất.
+              if (!worker) {
+                return (
+                  <div
+                    key={app.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3 text-sm text-gray-600"
+                  >
+                    <span>{t('employer.manageShift.workerMissing')}</span>
+                    <Badge tone={badgeToneForApp(app.status)}>
+                      {t(`application.status.${app.status}`)}
+                    </Badge>
+                  </div>
+                );
+              }
 
               const nowIso = new Date().toISOString();
               // CORE-STABILITY-9 Parts 1 & 3 · demo-logic-data-consistency
@@ -985,11 +1112,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                   {canManualComplete && (
                     <div className="ml-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3">
                       <p className="text-sm font-semibold text-amber-900">
-                        Ca đã kết thúc nhưng người lao động chưa check-out
+                        {t('employer.manageShift.manual.title')}
                       </p>
                       <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                        Bạn đã xác nhận người lao động có mặt. Nếu họ đã hoàn thành ca,
-                        bạn có thể xác nhận thủ công.
+                        {t('employer.manageShift.manual.body')}
                       </p>
                       <Button
                         size="sm"
@@ -998,7 +1124,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         loading={actionLoading === app.id}
                         onClick={() => setManualCompleteAppId(app.id)}
                       >
-                        Xác nhận người lao động đã hoàn thành
+                        {t('employer.manageShift.manual.button')}
                       </Button>
                     </div>
                   )}
@@ -1036,25 +1162,33 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                               {t('employer.dispute.workerStatement.title')}
                             </p>
                             <dl className="mt-2 grid grid-cols-1 gap-1 sm:grid-cols-[max-content_1fr] sm:gap-x-3">
-                              <dt className="font-medium">Loại:</dt>
+                              <dt className="font-medium">
+                                {t('employer.manageShift.dispute.category')}
+                              </dt>
                               <dd>
                                 {ourDispute.category
                                   ? t(`dispute.category.${ourDispute.category}`)
-                                  : 'Không có'}
+                                  : t('employer.manageShift.dispute.none')}
                               </dd>
-                              <dt className="font-medium">Lý do:</dt>
-                              <dd className="whitespace-pre-line">
+                              <dt className="font-medium">
+                                {t('employer.manageShift.dispute.reason')}
+                              </dt>
+                              <dd className="whitespace-pre-line break-words">
                                 {ourDispute.reason}
                               </dd>
                               <dt className="font-medium">
-                                Mô tả bằng chứng:
+                                {t('employer.manageShift.dispute.evidence')}
                               </dt>
-                              <dd className="whitespace-pre-line">
-                                {ourDispute.evidenceDescription || 'Không có'}
+                              <dd className="whitespace-pre-line break-words">
+                                {ourDispute.evidenceDescription ||
+                                  t('employer.manageShift.dispute.none')}
                               </dd>
-                              <dt className="font-medium">Tệp đính kèm:</dt>
+                              <dt className="font-medium">
+                                {t('employer.manageShift.dispute.file')}
+                              </dt>
                               <dd className="break-all font-mono">
-                                {ourDispute.evidenceFileName || 'Không có'}
+                                {ourDispute.evidenceFileName ||
+                                  t('employer.manageShift.dispute.none')}
                               </dd>
                             </dl>
                             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1084,10 +1218,10 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                                     key={r.id}
                                     className="rounded-md border border-amber-200 bg-white/70 px-2 py-1.5"
                                   >
-                                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
                                       {r.side === 'worker'
-                                        ? 'Người lao động'
-                                        : 'Nhà tuyển dụng'}
+                                        ? t('employer.manageShift.dispute.sideWorker')
+                                        : t('employer.manageShift.dispute.sideEmployer')}
                                       {' · '}
                                       {new Intl.DateTimeFormat('vi-VN', {
                                         day: '2-digit',
@@ -1098,16 +1232,16 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                                         second: '2-digit',
                                       }).format(new Date(r.createdAt))}
                                     </p>
-                                    <p className="mt-1 whitespace-pre-line">
+                                    <p className="mt-1 whitespace-pre-line break-words">
                                       {r.reason}
                                     </p>
                                     {r.evidenceDescription && (
-                                      <p className="mt-1 italic">
+                                      <p className="mt-1 break-words italic">
                                         {r.evidenceDescription}
                                       </p>
                                     )}
                                     {r.evidenceFileName && (
-                                      <p className="mt-1 break-all font-mono text-[11px]">
+                                      <p className="mt-1 break-all font-mono text-xs">
                                         {r.evidenceFileName}
                                       </p>
                                     )}
@@ -1166,7 +1300,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                 setRejectingAppId(null);
                 setRejectError(null);
               }}
-              workerName={targetWorker?.fullName ?? 'Người lao động'}
+              workerName={targetWorker?.fullName ?? t('employer.manageShift.dispute.sideWorker')}
               shiftTitle={shift.title}
               onConfirm={handleConfirmReject}
               loading={actionLoading === rejectingAppId}
@@ -1302,13 +1436,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         <Modal
           open={true}
           onClose={() => setManualCompleteAppId(null)}
-          title="Xác nhận hoàn thành thủ công"
+          title={t('employer.manageShift.manual.modalTitle')}
         >
           <div className="flex flex-col gap-3 text-sm">
             <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
-              Người lao động <strong>chưa bấm check-out</strong>. Bạn đang xác nhận hoàn thành
-              <strong> thủ công</strong> vì đã xác nhận họ có mặt và ca đã kết thúc. Thao tác này
-              được ghi nhận là xác nhận thủ công.
+              {t('employer.manageShift.manual.modalBody')}
             </div>
             <div className="flex justify-end gap-2 pt-1">
               <Button size="sm" variant="ghost" onClick={() => setManualCompleteAppId(null)}>
@@ -1324,7 +1456,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                   if (completed) setManualCompleteAppId(null);
                 }}
               >
-                Xác nhận người lao động đã hoàn thành
+                {t('employer.manageShift.manual.button')}
               </Button>
             </div>
           </div>
@@ -1413,9 +1545,9 @@ function ApplicationActionButtons({
       // Pending applicants can no longer be processed.
       return (
         <div className="flex flex-col gap-1">
-          <Badge tone="neutral">Đơn đã hết hạn xử lý</Badge>
-          <p className="text-[11px] text-gray-500">
-            Ca đã bắt đầu nên không thể duyệt thêm ứng viên.
+          <Badge tone="neutral">{t('employer.manageShift.pendingExpired')}</Badge>
+          <p className="text-xs text-gray-500">
+            {t('employer.manageShift.pendingExpiredHint')}
           </p>
         </div>
       );
@@ -1472,7 +1604,7 @@ function ApplicationActionButtons({
             >
               {t('lifecycle.btn.employerMarkAbsent')}
             </Button>
-            <span className="mt-0.5 max-w-[14rem] text-[10px] leading-tight text-gray-500">
+            <span className="mt-0.5 max-w-[14rem] text-xs leading-tight text-gray-500">
               {absentDisabledReason}
             </span>
           </span>
@@ -1493,19 +1625,34 @@ function ApplicationActionButtons({
   if (application.status === 'Disputed') {
     return (
       <span className="text-sm text-amber-700">
-        Đang khiếu nại — chờ quản trị viên xử lý
+        {t('employer.manageShift.status.disputed')}
       </span>
     );
   }
 
   if (application.status === 'Confirmed') {
-    return <span className="text-sm text-green-600">✓ Đã xác nhận & thanh toán</span>;
+    return (
+      <span className="inline-flex items-center gap-1 text-sm text-green-700">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+        {t('employer.manageShift.status.confirmed')}
+      </span>
+    );
   }
 
   if (application.status === 'NoShow') {
     return (
       <div className="flex flex-col items-end gap-1">
-        <span className="text-sm text-red-600">Vắng mặt — đã hoàn tiền & tặng boost</span>
+        {/* Production: cọc chỉ hoàn khi ca chốt, không có "boost" → nhãn
+            khác bản demo để không khẳng định sai về tiền. */}
+        <span className="text-right text-sm text-red-700">
+          {t(
+            isSupabaseEnv()
+              ? 'employer.manageShift.status.noShowReal'
+              : 'employer.manageShift.status.noShowLocal',
+          )}
+        </span>
         {/* CORE-STABILITY-7 Part 5.4 — late-arrival correction. */}
         {canRevertToPresent && (
           <Button
@@ -1606,7 +1753,7 @@ function ShiftTimelineSection({
               <span className="font-medium text-gray-900">
                 {t(`shift.timeline.kind.${entry.kind}`)}
               </span>
-              <span className="font-mono text-[11px] text-gray-500">{when}</span>
+              <span className="font-mono text-xs text-gray-500">{when}</span>
               <span className="leading-relaxed">{entry.note}</span>
             </li>
           );

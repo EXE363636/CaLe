@@ -11,6 +11,7 @@ import { useHydrationStore } from '@/stores/hydrationStore';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { hasCapability } from '@/data/capabilities';
+import { hoursBetween } from '@/domain/deposit';
 import { PaymentEvidenceCard } from '@/components/shift/PaymentEvidenceCard';
 import { ApplicationActions } from '@/components/forms/ApplicationActions';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
@@ -24,13 +25,14 @@ import {
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
-import { Button } from '@/components/ui';
+import { Button, ButtonLink } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { canCheckIn, canCheckOut, isLateCheckout } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { t } from '@/i18n/vi';
+import { tSettlement } from '@/lib/settlementCopy';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { Shift, VerificationFlag } from '@/types';
@@ -293,7 +295,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     if (result.ok) {
       showSuccess(
         t('feedback.checkOut.success'),
-        t('feedback.checkOut.success.desc'),
+        tSettlement('feedback.checkOut.success.desc'),
       );
       setCheckoutDialogOpen(false);
       setCheckoutError(null);
@@ -306,7 +308,14 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     showError(message);
   }
 
-  const positionsLeft = shift.positionsTotal - shift.positionsFilled;
+  const positionsLeft = Math.max(0, shift.positionsTotal - shift.positionsFilled);
+  const isRecruiting = shift.status === 'Published' || shift.status === 'FullyBooked';
+  const isClosed =
+    shift.status === 'Completed' || shift.status === 'Cancelled' || shift.status === 'Expired';
+  // Tổng tiền công cả ca (lương/giờ × số giờ); ca qua đêm → chỉ hiện lương/giờ.
+  const shiftHours = hoursBetween(shift.startTime, shift.endTime);
+  const totalPay = shiftHours > 0 ? Math.round(shift.hourlyWage * shiftHours) : null;
+  const hoursLabel = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(shiftHours);
 
   // Cluster 1 (Property 2, Req 2.4) — gate the check-in/check-out CTA with
   // the SAME time-gate predicates the dashboard uses. `myApp` is already
@@ -356,7 +365,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       )}
 
       {/* Employer — clickable when we can resolve to an Employer record */}
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-gray-600">
         {t('shifts.detail.employer')}:{' '}
         {employer ? (
           <button
@@ -383,22 +392,43 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       )}
 
       {/* Key info grid */}
-      <div className="mt-5 grid grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 sm:grid-cols-4">
-        <InfoItem label="Ngày làm" value={formatDateVN(shift.date)} />
+      <div
+        className={[
+          'mt-5 grid grid-cols-2 gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4',
+          isRecruiting ? 'sm:grid-cols-4' : 'sm:grid-cols-3',
+        ].join(' ')}
+      >
+        <InfoItem label={t('shifts.detail.date')} value={formatDateVN(shift.date)} />
         <InfoItem
-          label="Giờ làm"
+          label={t('shifts.detail.time')}
           value={`${formatTimeVN(shift.startTime)} – ${formatTimeVN(shift.endTime)}`}
         />
-        <InfoItem
-          label={t('shifts.detail.wage')}
-          value={`${formatVND(shift.hourlyWage)}/giờ`}
-          highlight
-        />
-        <InfoItem
-          label={t('shifts.detail.positionsLeft')}
-          value={`${positionsLeft} / ${shift.positionsTotal}`}
-          highlight={positionsLeft > 0}
-        />
+        {totalPay !== null ? (
+          <InfoItem
+            label={t('shifts.detail.totalPay')}
+            value={formatVND(totalPay)}
+            hint={t('shifts.detail.totalPayHint')
+              .replace('{hourly}', formatVND(shift.hourlyWage))
+              .replace('{hours}', hoursLabel)}
+            highlight
+            // 3 ô trên lưới 2 cột (mobile) → ô tiền trải cả hàng, không đứng lẻ.
+            className={isRecruiting ? undefined : 'col-span-2 sm:col-span-1'}
+          />
+        ) : (
+          <InfoItem
+            label={t('shifts.detail.hourlyOnly')}
+            value={`${formatVND(shift.hourlyWage)}/giờ`}
+            highlight
+            className={isRecruiting ? undefined : 'col-span-2 sm:col-span-1'}
+          />
+        )}
+        {isRecruiting && (
+          <InfoItem
+            label={t('shifts.detail.positionsLeft')}
+            value={`${positionsLeft} / ${shift.positionsTotal}`}
+            highlight={positionsLeft > 0}
+          />
+        )}
       </div>
 
       {/* Location */}
@@ -419,7 +449,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       </div>
 
       {/* Payment status — cọc/ký quỹ chưa có backend ở supabase → ẩn (mục 4/5). */}
-      {hasCapability('wallet') && (
+      {hasCapability('wallet') && !isClosed && (
         <div className="mt-4 flex items-center gap-2">
           <span className="text-sm text-gray-500">{t('shifts.detail.depositStatus')}:</span>
           <EscrowStatusBadge status={shift.escrowStatus} />
@@ -497,7 +527,9 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           need to prepare and the 12-hour payment release rules
           before deciding to apply. Read-only card — Wave 2 does not
           change checkout validation, escrow flows, or dispute UI. */}
-      <PaymentEvidenceCard shift={shift} />
+      {/* Pre-work education only — once the shift is closed the outcome
+          block below says what actually happened. */}
+      {!isClosed && <PaymentEvidenceCard shift={shift} />}
 
       {/* Apply section */}
       <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-card">
@@ -505,12 +537,8 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           <div className="flex flex-col gap-3">
             <p className="text-sm text-gray-600">Đăng nhập để ứng tuyển ca làm này.</p>
             <div className="flex gap-3">
-              <Link href="/login">
-                <Button variant="primary">{t('btn.login')}</Button>
-              </Link>
-              <Link href="/register?role=worker">
-                <Button variant="secondary">{t('btn.register')}</Button>
-              </Link>
+              <ButtonLink href="/login" variant="primary">{t('btn.login')}</ButtonLink>
+              <ButtonLink href="/register?role=worker" variant="secondary">{t('btn.register')}</ButtonLink>
             </div>
           </div>
         )}
@@ -542,6 +570,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             }
             workerReputationScore={worker.reputationScore}
             shiftStatus={shift.status}
+            payoutAmount={myApp?.payoutAmount}
             onApply={handleApply}
             onRequestCancel={() => setCancelDialogOpen(true)}
             loading={loading}
@@ -777,7 +806,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                             key={r.id}
                             className="rounded-md border border-red-200 bg-white/70 px-2 py-1.5"
                           >
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-red-700">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
                               {r.side === 'worker'
                                 ? 'Người lao động'
                                 : 'Nhà tuyển dụng'}
@@ -798,7 +827,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                               </p>
                             )}
                             {r.evidenceFileName && (
-                              <p className="mt-1 break-all font-mono text-[11px]">
+                              <p className="mt-1 break-all font-mono text-xs">
                                 {r.evidenceFileName}
                               </p>
                             )}
@@ -995,23 +1024,28 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 function InfoItem({
   label,
   value,
+  hint,
   highlight,
+  className,
 }: {
   label: string;
   value: string;
+  hint?: string;
   highlight?: boolean;
+  className?: string;
 }) {
   return (
-    <div>
-      <p className="text-xs text-gray-500">{label}</p>
+    <div className={['min-w-0', className].filter(Boolean).join(' ')}>
+      <p className="text-xs text-gray-600">{label}</p>
       <p
         className={[
-          'mt-0.5 text-sm font-semibold',
+          'mt-0.5 text-sm font-semibold tabular-nums',
           highlight ? 'text-orange-700' : 'text-gray-900',
         ].join(' ')}
       >
         {value}
       </p>
+      {hint && <p className="mt-0.5 text-xs tabular-nums text-gray-600">{hint}</p>}
     </div>
   );
 }
@@ -1075,41 +1109,41 @@ function WorkplaceCard({ shift }: { shift: Shift }) {
               <p className="text-sm font-medium text-orange-900">
                 {shift.workplaceImageLabel}
               </p>
-              <p className="mt-0.5 text-[11px] italic text-orange-800/80">
+              <p className="mt-0.5 text-xs italic text-orange-800/80">
                 Ảnh mô phỏng — bản MVP không có upload thật.
               </p>
             </div>
           </div>
         ) : (
-          <p className="text-xs text-gray-600">
+          <p className="text-sm text-orange-900">
             {t('shifts.detail.workplace.empty')}
           </p>
         )}
 
         {hasNotes && (
-          <div className="mt-3 rounded-lg bg-white/70 px-3 py-2 ring-1 ring-orange-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+          <div className="mt-3 border-t border-orange-200/70 pt-3">
+            <p className="text-sm font-semibold text-orange-900">
               {t('shifts.detail.workplace.notes')}
             </p>
-            <p className="mt-1 whitespace-pre-line text-xs text-gray-700">
+            <p className="mt-1 whitespace-pre-line text-sm text-orange-950">
               {shift.workplaceNotes}
             </p>
           </div>
         )}
 
         {hasContact && (
-          <div className="mt-3 rounded-lg bg-white/70 px-3 py-2 ring-1 ring-orange-100">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+          <div className="mt-3 border-t border-orange-200/70 pt-3">
+            <p className="text-sm font-semibold text-orange-900">
               {t('shifts.detail.onSiteContact')}
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-700">
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-orange-950">
               {shift.onSiteContactName && (
                 <span className="font-medium">{shift.onSiteContactName}</span>
               )}
               {shift.onSiteContactPhone && (
                 <a
                   href={`tel:${shift.onSiteContactPhone}`}
-                  className="font-medium text-orange-700 hover:underline"
+                  className="inline-flex min-h-[44px] items-center rounded font-medium text-orange-700 tabular-nums hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                 >
                   {shift.onSiteContactPhone}
                 </a>
@@ -1119,7 +1153,7 @@ function WorkplaceCard({ shift }: { shift: Shift }) {
         )}
 
         {shift.requiresVerifiedDocumentOnArrival && (
-          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900 ring-1 ring-amber-200">
+          <p className="mt-3 border-t border-orange-200/70 pt-3 text-sm font-medium text-amber-900">
             {t('shifts.detail.requiresVerifiedDocument')}
           </p>
         )}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
@@ -26,7 +25,6 @@ const JOB_TYPE_OPTIONS = [
 
 export default function ShiftsPage() {
   useLifecycleSync();
-  const router = useRouter();
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);
   const applications = useApplicationStore((s) => s.applications);
@@ -261,8 +259,8 @@ export default function ShiftsPage() {
       {displayShifts.length === 0 ? (
         <EmptyState
           tone="warm"
-          title={t('shifts.listing.empty')}
-          description={t('shifts.listing.emptyHint')}
+          title={t(hasActiveFilters ? 'shifts.listing.empty' : 'shifts.listing.emptyNone')}
+          description={t(hasActiveFilters ? 'shifts.listing.emptyHint' : 'shifts.listing.emptyNoneHint')}
           action={
             hasActiveFilters ? (
               <Button
@@ -277,6 +275,12 @@ export default function ShiftsPage() {
           }
         />
       ) : (
+        <>
+        {/* Số kết quả — trạng thái hệ thống sau khi lọc; aria-live để trình
+            đọc màn hình biết danh sách vừa thay đổi. */}
+        <p className="mb-3 text-sm text-gray-600 tabular-nums" aria-live="polite">
+          {t('shifts.listing.resultCount').replace('{count}', String(displayShifts.length))}
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {displayShifts.map((shift) => {
             const match =
@@ -293,11 +297,12 @@ export default function ShiftsPage() {
                 matchLabel={match?.label}
                 fitsAvailability={match?.fitsAvailability ?? false}
                 isConflict={sortMode === 'availability' && !matchByShift.has(shift.id)}
-                onClick={() => router.push(`/shifts/${shift.id}`)}
+                href={`/shifts/${shift.id}`}
               />
             );
           })}
         </div>
+        </>
       )}
     </PageShell>
   );

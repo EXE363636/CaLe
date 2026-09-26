@@ -8,12 +8,10 @@
  *   1. The evidence requirement label for THIS shift (so they know
  *      what to prepare before applying).
  *   2. The per-level "what you'll need to do at check-out" copy.
- *   3. The 12-hour confirmation rule:
- *      "Sau khi bạn check-out, nhà tuyển dụng có tối đa 12 giờ để
- *      xác nhận hoặc khiếu nại."
- *   4. The 12-hour auto-release rule:
- *      "Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống sẽ
- *      tự động giải ngân tiền công."
+ *   3. The confirmation rule, and
+ *   4. The auto-release rule — both via `tSettlement`: local/demo keeps
+ *      the simulated 12-hour rule; production states the server rule
+ *      (auto-confirm + pay 24 h after the shift END, migration 0019).
  *   5. A `<HelpPopover>` titled "Khi nào cần bằng chứng?" with a
  *      friendly explainer.
  *   6. A privacy warning telling workers what NOT to capture.
@@ -29,6 +27,7 @@
 import { EVIDENCE_REQUIREMENT_VALUES } from '@/domain/evidence';
 import { evidenceRequirementLabel, t } from '@/i18n/vi';
 import { HelpPopover } from '@/components/ui';
+import { tSettlement } from '@/lib/settlementCopy';
 import type { EvidenceRequirement, Shift } from '@/types';
 
 interface PaymentEvidenceCardProps {
@@ -86,7 +85,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
         </h2>
         <HelpPopover
           title={t('help.paymentEvidence.title')}
-          description={t('help.paymentEvidence.description')}
+          description={tSettlement('help.paymentEvidence.description')}
           learnMoreHref="/handbook/muc-bang-chung-thanh-toan"
         />
       </div>
@@ -118,14 +117,14 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
       {/* Evidence requirement label + per-level "what to prepare"
           line. Reads from the Wave 0 i18n dictionary so the wording
           stays in one place. */}
-      <dl className="mt-4 rounded-xl bg-white/80 px-4 py-3 ring-1 ring-orange-100">
-        <dt className="text-[11px] font-semibold uppercase tracking-wide text-orange-700">
+      <dl className="mt-4 border-t border-orange-200/70 pt-4">
+        <dt className="text-sm font-semibold text-orange-900">
           {t('shifts.detail.paymentEvidence.evidenceLabel')}
         </dt>
-        <dd className="mt-1 text-sm font-medium text-gray-900">
+        <dd className="mt-1 text-sm font-medium text-orange-950">
           {evidenceRequirementLabel(requirement)}
         </dd>
-        <dd className="mt-1 text-xs leading-relaxed text-gray-600">
+        <dd className="mt-1 text-sm leading-relaxed text-orange-900">
           {t(prepareKey)}
         </dd>
       </dl>
@@ -138,29 +137,28 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
             aria-hidden="true"
             className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500"
           />
-          <span>{t('shifts.detail.paymentEvidence.confirmRule')}</span>
+          <span>{tSettlement('shifts.detail.paymentEvidence.confirmRule')}</span>
         </li>
         <li className="flex items-start gap-2">
           <span
             aria-hidden="true"
             className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
           />
-          <span>{t('shifts.detail.paymentEvidence.autoReleaseRule')}</span>
+          <span>{tSettlement('shifts.detail.paymentEvidence.autoReleaseRule')}</span>
         </li>
       </ul>
 
       {/* Privacy warning — same Vietnamese text used inside the
           employer ShiftForm so workers and employers see the same
           rules from both sides. */}
-      <p
-        role="note"
-        className="mt-4 rounded-md bg-white px-3 py-2 text-xs leading-relaxed text-orange-900 ring-1 ring-orange-200"
-      >
-        {t('evidence.privacy.warning')}
-      </p>
-      <p className="mt-1 text-[11px] leading-relaxed text-orange-800/80">
-        {t('evidence.privacy.warning.detailed')}
-      </p>
+      <div role="note" className="mt-4 border-t border-orange-200/70 pt-4">
+        <p className="text-sm font-medium leading-relaxed text-orange-950">
+          {t('evidence.privacy.warning')}
+        </p>
+        <p className="mt-1 text-sm leading-relaxed text-orange-900">
+          {t('evidence.privacy.warning.detailed')}
+        </p>
+      </div>
 
       {/* Phase 10C-Stab-1 Batch 2 — concrete checklist + photo
           examples. Renders only when the requirement actually asks
@@ -168,7 +166,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
           relevant to their next check-out. */}
       {(requirement === 'ChecklistOnly' ||
         requirement === 'RequiredHandoverChecklist') && (
-        <div className="mt-3 rounded-md bg-white/80 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+        <div className="mt-3 text-sm text-orange-900">
           <p className="font-semibold">{t('evidence.examples.checklist.title')}</p>
           <ul className="mt-1 list-disc pl-5">
             <li>{t('evidence.examples.checklist.item1')}</li>
@@ -180,7 +178,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
       {(requirement === 'OptionalPhoto' ||
         requirement === 'RequiredPhoto' ||
         requirement === 'RequiredHandoverChecklist') && (
-        <div className="mt-3 rounded-md bg-white/80 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-100">
+        <div className="mt-3 text-sm text-orange-900">
           <p className="font-semibold">{t('evidence.examples.photo.title')}</p>
           <ul className="mt-1 list-disc pl-5">
             <li>{t('evidence.examples.photo.item1')}</li>

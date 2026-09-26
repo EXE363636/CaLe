@@ -1,9 +1,5 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = {
-  title: 'Đánh giá sau ca — CaLẻ',
-};
-
 export default function EmployerReviewsPage() {
   return (
     <InfoPage

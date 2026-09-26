@@ -105,7 +105,7 @@ export function NotificationBell() {
       >
         <BellIcon className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
@@ -186,7 +186,7 @@ function NotificationItem({
         <p className="font-medium text-gray-900">{notification.title}</p>
         <p className="mt-0.5 text-gray-600">{notification.body}</p>
         {/* CORE-STABILITY-6 Part 2 — show when the notification fired. */}
-        <p className="mt-1 font-mono text-[11px] text-gray-400">
+        <p className="mt-1 font-mono text-xs text-gray-400">
           {formatLogDateTime(notification.createdAt)}
         </p>
       </div>

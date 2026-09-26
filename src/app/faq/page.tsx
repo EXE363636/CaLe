@@ -1,8 +1,6 @@
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export const metadata = { title: 'Câu hỏi thường gặp — CaLẻ' };
-
 export default function FaqPage() {
   return (
     <InfoPage

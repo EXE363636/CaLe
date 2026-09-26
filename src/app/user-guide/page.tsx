@@ -185,7 +185,7 @@ function RoleColumn({
 }) {
   return (
     <div className="rounded-2xl border border-orange-100 bg-orange-50/40 p-5 sm:p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-700">
+      <p className="text-xs font-semibold uppercase tracking-wider text-orange-700">
         {eyebrow}
       </p>
       <h2 className="mt-1 text-lg font-bold text-gray-900">{title}</h2>
@@ -267,7 +267,7 @@ function FeatureGuide({
       // is comfortably visible after a deep-link jump.
       className="scroll-mt-24 rounded-2xl border border-orange-100 bg-orange-50/30 p-5 shadow-sm sm:p-6"
     >
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-700">
+      <p className="text-xs font-semibold uppercase tracking-wider text-orange-700">
         {eyebrow}
       </p>
       <h2 className="mt-1 text-lg font-bold text-gray-900">{title}</h2>
@@ -342,7 +342,7 @@ function GuideGroup({
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-orange-700">
+        <p className="text-xs font-semibold uppercase tracking-wider text-orange-700">
           {eyebrow}
         </p>
         <h2 className="mt-1 text-xl font-bold text-gray-900">{title}</h2>

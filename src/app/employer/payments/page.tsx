@@ -1,10 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export const metadata = {
-  title: 'Thanh toán — CaLẻ',
-};
-
 export default function EmployerPaymentsPage() {
   // Supabase/production: giữ cọc + trả công + hoàn cọc là tiền THẬT (0016–0019).
   // Mô tả đúng luồng server; quy định huỷ ca do server enforce.

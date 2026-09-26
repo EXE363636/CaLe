@@ -14,6 +14,8 @@
  *   - Session expiration uses a fixed 24-hour idle window (Req 30.2).
  */
 
+import { t } from '@/i18n/vi';
+
 const VND_FORMATTER = new Intl.NumberFormat('vi-VN', {
   // Phase 9Z-Fix-2: switched from `style: 'currency', currency: 'VND'`
   // (which renders the `₫` symbol via Intl) to a plain decimal
@@ -101,6 +103,31 @@ export function formatDateVN(iso: string): string {
 export function formatTimeVN(hhmm: string): string {
   if (typeof hhmm !== 'string') return '';
   return hhmm;
+}
+
+const WEEKDAY_VN = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+function localYmd(d: Date): string {
+  const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Ngày của ca theo cách người lao động đọc nhanh trên điện thoại:
+ * "Hôm nay" / "Ngày mai" / "T6, 26/09" (thêm năm nếu khác năm hiện tại).
+ * `date` là `YYYY-MM-DD` (giờ địa phương); `now` cho phép test xác định.
+ */
+export function formatRelativeDayVN(date: string, now: Date = new Date()): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return formatDateVN(date);
+  const d = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  const today = localYmd(now);
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  if (date === today) return t('common.today');
+  if (date === localYmd(tomorrow)) return t('common.tomorrow');
+  const [y, m, dd] = date.split('-');
+  const sameYear = Number(y) === now.getFullYear();
+  return `${WEEKDAY_VN[d.getDay()]}, ${dd}/${m}${sameYear ? '' : `/${y}`}`;
 }
 
 /**

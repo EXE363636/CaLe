@@ -1,9 +1,5 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 
-export const metadata = {
-  title: 'Quy định huỷ ca — CaLẻ',
-};
-
 export default function WorkerCancellationPolicyPage() {
   return (
     <InfoPage

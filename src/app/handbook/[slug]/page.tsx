@@ -10,10 +10,10 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
   const article = handbookArticles.find((item) => item.slug === resolvedParams.slug);
-  if (!article) return { title: 'Không tìm thấy bài viết' };
+  // Tên tab giữ nguyên "CaLẻ" (title ở layout gốc); chỉ đặt mô tả cho SEO.
+  if (!article) return {};
 
   return {
-    title: `${article.title} | Cẩm nang làm việc`,
     description: article.excerpt,
   };
 }

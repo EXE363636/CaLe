@@ -45,6 +45,59 @@ export async function getMyVerification(): Promise<MyVerification> {
   };
 }
 
+/** Trạng thái xác thực của MỘT user, nhìn từ phía admin. */
+export interface AdminUserVerification {
+  phone: string;
+  phoneVerifiedAt: string | null;
+  identityVerifiedAt: string | null;
+  identityStatus: IdentityStatus;
+  identityRejectReason: string | null;
+  /** Thời điểm nộp hồ sơ CCCD gần nhất (null nếu chưa nộp). */
+  identitySubmittedAt: string | null;
+}
+
+/**
+ * Admin đọc trạng thái xác thực của một user bất kỳ. Đọc thẳng bảng qua RLS
+ * (`users_self_or_admin_select`, `identity_verifications_sel` đều cho
+ * `is_admin()`), không cần Edge Function. Suy ra `identityStatus` ĐÚNG như
+ * RPC `get_my_verification` (0022): đã có `identity_verified_at` → Approved,
+ * ngược lại lấy trạng thái hồ sơ mới nhất, không có hồ sơ → None.
+ */
+export async function adminGetUserVerification(userId: string): Promise<AdminUserVerification> {
+  const sb = getSupabaseClient();
+  const [userRes, idvRes] = await Promise.all([
+    sb
+      .from('users')
+      .select('phone, phone_verified_at, identity_verified_at')
+      .eq('id', userId)
+      .maybeSingle(),
+    sb
+      .from('identity_verifications')
+      .select('status, reject_reason, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (userRes.error) throw new Error(userRes.error.message);
+  if (idvRes.error) throw new Error(idvRes.error.message);
+  const u = (userRes.data ?? {}) as Row;
+  const v = (idvRes.data ?? null) as Row | null;
+  const identityVerifiedAt = sOpt(u.identity_verified_at);
+  const latest = v ? s(v.status) : '';
+  const identityStatus: IdentityStatus = identityVerifiedAt
+    ? 'Approved'
+    : (['Pending', 'Approved', 'Rejected'].includes(latest) ? latest : 'None') as IdentityStatus;
+  return {
+    phone: s(u.phone),
+    phoneVerifiedAt: sOpt(u.phone_verified_at),
+    identityVerifiedAt,
+    identityStatus,
+    identityRejectReason: v && latest === 'Rejected' ? sOpt(v.reject_reason) : null,
+    identitySubmittedAt: v ? sOpt(v.created_at) : null,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // OTP số điện thoại
 // ---------------------------------------------------------------------------

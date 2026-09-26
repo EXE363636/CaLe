@@ -60,13 +60,13 @@ export function DashboardNotificationCard({
       <p className="font-medium text-gray-900">{notification.title}</p>
       <p className="mt-0.5 text-xs text-gray-600">{notification.body}</p>
       {/* CORE-STABILITY-6 Part 2 — timestamp so the user knows when it fired. */}
-      <p className="mt-1 font-mono text-[11px] text-gray-400">
+      <p className="mt-1 font-mono text-xs text-gray-400">
         {formatLogDateTime(notification.createdAt)}
       </p>
       {isActionable && (
         <span
           aria-hidden="true"
-          className="mt-1 inline-flex items-center text-[11px] font-medium text-orange-700 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          className="mt-1 inline-flex items-center text-xs font-medium text-orange-700 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
         >
           {t('notification.viewDetail')} →
         </span>

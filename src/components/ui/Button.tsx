@@ -64,6 +64,30 @@ const sizeClasses: Record<ButtonSize, string> = {
   lg: 'px-6 py-3 text-base min-h-[52px]',
 };
 
+/**
+ * Shared class list for anything that should LOOK like a Button — used by
+ * `Button` itself and by `ButtonLink` (navigation styled as a button), so
+ * the two never drift apart.
+ */
+export function buttonClassName(
+  variant: ButtonVariant = 'primary',
+  size: ButtonSize = 'md',
+  className = '',
+): string {
+  return [
+    'inline-flex items-center justify-center gap-2 rounded-lg font-medium',
+    // Smoother multi-property transition than colors-only — subtle
+    // press affordance via `motion-press` (defined in globals.css,
+    // motion-reduce safe).
+    'motion-press transition focus:outline-none focus-visible:ring-2',
+    'focus-visible:ring-orange-400 focus-visible:ring-offset-2',
+    'disabled:cursor-not-allowed',
+    variantClasses[variant],
+    sizeClasses[size],
+    className,
+  ].join(' ');
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -81,18 +105,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={[
-          'inline-flex items-center justify-center gap-2 rounded-lg font-medium',
-          // Smoother multi-property transition than colors-only — subtle
-          // press affordance via `motion-press` (defined in globals.css,
-          // motion-reduce safe).
-          'motion-press transition focus:outline-none focus-visible:ring-2',
-          'focus-visible:ring-orange-400 focus-visible:ring-offset-2',
-          'disabled:cursor-not-allowed',
-          variantClasses[variant],
-          sizeClasses[size],
-          className,
-        ].join(' ')}
+        className={buttonClassName(variant, size, className)}
         {...rest}
       >
         {loading && (

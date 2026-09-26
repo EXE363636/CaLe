@@ -1,10 +1,6 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export const metadata = {
-  title: 'Bảng giá — CaLẻ',
-};
-
 /**
  * Trang bảng giá công khai. KHÔNG có gói cũ trong code/Git history nên KHÔNG bịa
  * con số: hiển thị trung thực giai đoạn thử nghiệm (0đ, miễn phí), liệt kê các
