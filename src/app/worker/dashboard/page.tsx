@@ -38,6 +38,9 @@ import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { getUserInitials } from '@/lib/initials';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
 import { t } from '@/i18n/vi';
+import { canReviewApplication } from '@/domain/reviewEligibility';
+import { submitReviewAsync, useReviewBackendStore } from '@/lib/reviewSync';
+import { ShiftReviewStatus } from '@/components/shift/ShiftReviewStatus';
 import { tSettlement } from '@/lib/settlementCopy';
 import type { Application, Shift } from '@/types';
 
@@ -62,6 +65,7 @@ function WorkerDashboardContent() {
   const cancelByWorker = useApplicationStore((s) => s.cancelByWorker);
   const withdrawAsync = useApplicationStore((s) => s.withdrawAsync);
   const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
+  const allRatings = useApplicationStore((s) => s.ratings);
   const submitFeedback = useEmployerFeedbackStore((s) => s.submit);
   const allNotifications = useNotificationStore((s) => s.notifications);
   const scheduleBlocks = useScheduleStore((s) => s.blocks);
@@ -256,6 +260,8 @@ function WorkerDashboardContent() {
     });
 
   const pending = myApps.filter((a) => a.status === 'Pending');
+  // Đã từng ứng tuyển (bất kỳ trạng thái nào) → khối trống chỉ cần một dòng gọn.
+  const isReturningWorker = myApps.length > 0;
   // Phase 6: keep recently-rejected applications visible so the worker
   // can read the rejection reason. Limit to 5 to avoid dashboard sprawl.
   const recentlyRejected = useMemo(
@@ -298,20 +304,10 @@ function WorkerDashboardContent() {
     [myApps],
   );
 
-  const recentlyCompleted = useMemo(
-    () =>
-      myApps
-        .filter((a) => a.status === 'Confirmed')
-        .sort((a, b) =>
-          (b.confirmedAt ?? b.checkOutAt ?? '').localeCompare(a.confirmedAt ?? a.checkOutAt ?? ''),
-        )
-        .slice(0, 5),
-    [myApps],
-  );
-
   // Feedback pending: completed shifts that haven't received employer
   // feedback from this worker. The feedback store is the source of truth
   // for "already submitted" — guards against double-submission.
+  const reviewBackend = useReviewBackendStore((s) => s.available);
   const feedbackPending = useMemo(() => {
     if (!worker) return [] as Application[];
     const submittedIds = new Set(
@@ -321,8 +317,15 @@ function WorkerDashboardContent() {
     );
     return myApps
       .filter((a) => a.status === 'Confirmed' && !submittedIds.has(a.id))
+      // Production: server chỉ nhận đánh giá trong 14 ngày sau ca (0024).
+      .filter((a) => {
+        if (!isSupabaseEnv()) return true;
+        if (reviewBackend !== 'yes') return false;
+        const sh = shifts.find((s) => s.id === a.shiftId);
+        return !!sh && canReviewApplication(a, sh, false);
+      })
       .sort((a, b) => (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''));
-  }, [myApps, allFeedback, worker]);
+  }, [myApps, allFeedback, worker, shifts, reviewBackend]);
 
   // CORE-STABILITY-9 Part 5 — recommended shifts ranked by the worker's
   // declared free time + skills. Pure scorer (`suggestShiftsForWorker`);
@@ -498,11 +501,6 @@ function WorkerDashboardContent() {
   const completedCount = isSupabaseEnv()
     ? completedShifts.length
     : worker.completedShiftCount;
-  const completedNoteKey = !hasCapability('wallet')
-    ? 'worker.dashboard.history.completedNoteNoWallet'
-    : isSupabaseEnv()
-      ? 'worker.dashboard.history.completedNoteWalletReal'
-      : 'worker.dashboard.history.completedNoteWalletDemo';
   // Cluster 2 · BUG 3 (Req 2.3): read the displayed reputation through the
   // single shared source so this tile matches every other surface. Returns
   // the same clamped `worker.reputationScore` — no visible change.
@@ -616,7 +614,7 @@ function WorkerDashboardContent() {
   // Ô thống kê hiện thật: "đã hoàn thành" luôn có; uy tín + hạn mức huỷ theo
   // ratings; thu nhập theo wallet.
   const statTileCount =
-    1 + (hasCapability('ratings') ? 2 : 0) + (hasCapability('wallet') ? 1 : 0);
+    3 + (hasCapability('ratings') ? 2 : 0) + (hasCapability('wallet') ? 1 : 0);
 
   return (
     <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
@@ -641,11 +639,10 @@ function WorkerDashboardContent() {
             {getUserInitials(worker.fullName)}
           </div>
           <div className="min-w-[14rem] flex-1">
-            <p className="text-sm text-gray-500">{t('worker.dashboard.welcome')}</p>
             <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
-              {worker.fullName}
+              {t('worker.dashboard.greeting').replace('{name}', worker.fullName)}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-600">
               {completedCount > 0
                 ? t('worker.dashboard.welcome.veteran').replace(
                     '{count}',
@@ -723,7 +720,11 @@ function WorkerDashboardContent() {
           'order-2 mb-8 mt-8 grid grid-cols-2 gap-4 lg:order-none lg:mt-0',
           // Số cột theo số ô thực sự hiện — không để khoảng trống bên phải
           // khi ẩn uy tín/hạn mức huỷ (supabase chỉ còn 2 ô).
-          statTileCount >= 4 ? 'sm:grid-cols-4' : statTileCount === 3 ? 'sm:grid-cols-3' : '',
+          statTileCount === 4
+            ? 'lg:grid-cols-4'
+            : statTileCount === 5
+              ? 'sm:grid-cols-3 lg:grid-cols-5'
+              : 'sm:grid-cols-3',
         ].join(' ')}
       >
         {/* Điểm uy tín: chưa có backend đánh giá thật → ẩn ở supabase để không
@@ -745,6 +746,32 @@ function WorkerDashboardContent() {
             ariaLabel={t('worker.dashboard.stats.reputationAria')}
           />
         )}
+        {/* Hai ô "việc sắp làm" — ngang hàng với dashboard nhà tuyển dụng
+            (ca đang hoạt động / đơn chờ duyệt). Bấm để cuộn tới danh sách. */}
+        <StatTile
+          label={t('worker.dashboard.stats.upcoming')}
+          value={String(upcoming.length)}
+          tone={upcoming.length > 0 ? 'brand' : 'neutral'}
+          icon="calendar"
+          onClick={() =>
+            document
+              .getElementById('worker-upcoming-section')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+          ariaLabel={t('worker.dashboard.stats.upcomingAria')}
+        />
+        <StatTile
+          label={t('worker.dashboard.stats.pending')}
+          value={String(pending.length)}
+          tone={pending.length > 0 ? 'warn' : 'neutral'}
+          icon="users"
+          onClick={() =>
+            document
+              .getElementById('worker-applications-section')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+          ariaLabel={t('worker.dashboard.stats.pendingAria')}
+        />
         <StatTile
           label={t('worker.dashboard.stats.completedShifts')}
           value={String(completedCount)}
@@ -829,7 +856,17 @@ function WorkerDashboardContent() {
             <h2 className="mb-3 text-lg font-semibold text-gray-900">
               {t('worker.dashboard.upcomingShifts')}
             </h2>
-            {upcoming.length === 0 ? (
+            {upcoming.length === 0 && isReturningWorker ? (
+              <p className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-600 shadow-card">
+                {t('worker.dashboard.noUpcomingShifts')}{' '}
+                <Link
+                  href="/shifts"
+                  className="rounded font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  {t('worker.dashboard.findMore')}
+                </Link>
+              </p>
+            ) : upcoming.length === 0 ? (
               <EmptyState
                 tone="warm"
                 title={t('worker.dashboard.noUpcomingShifts')}
@@ -871,19 +908,24 @@ function WorkerDashboardContent() {
             ].join(' ')}
           >
             <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              {t('worker.dashboard.appliedShifts')}
+              {t('worker.dashboard.pendingApplications')}
             </h2>
             {pending.length === 0 ? (
-              <EmptyState
-                tone="warm"
-                title={t('worker.dashboard.empty.applications.title')}
-                description={t('worker.dashboard.empty.applications.description')}
-                action={
-                  <ButtonLink href="/shifts" size="sm" variant="primary">
-                      {t('worker.dashboard.empty.applications.cta')}
-                    </ButtonLink>
-                }
-              />
+              // Chỉ là "không có đơn đang chờ" — một dòng gọn; câu "chưa ứng
+              // tuyển ca nào" chỉ đúng với người chưa từng ứng tuyển.
+              <p className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-600 shadow-card">
+                {t(
+                  isReturningWorker
+                    ? 'worker.dashboard.noPendingApplications'
+                    : 'worker.dashboard.empty.applications.title',
+                )}{' '}
+                <Link
+                  href="/shifts"
+                  className="rounded font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  {t('worker.dashboard.findMore')}
+                </Link>
+              </p>
             ) : (
               <div className="flex flex-col gap-3">
                 {pending.map((a) => {
@@ -902,8 +944,7 @@ function WorkerDashboardContent() {
               (progressive disclosure), collapsed by default. */}
           {recentlyRejected.length +
             recentlyCancelledByEmployer.length +
-            recentlyExpired.length +
-            recentlyCompleted.length >
+            recentlyExpired.length >
             0 && (
             <section>
               <details className="group rounded-2xl border border-gray-200 bg-white shadow-card">
@@ -914,8 +955,7 @@ function WorkerDashboardContent() {
                       (
                       {recentlyRejected.length +
                         recentlyCancelledByEmployer.length +
-                        recentlyExpired.length +
-                        recentlyCompleted.length}
+                        recentlyExpired.length}
                       )
                     </span>
                   </span>
@@ -1001,29 +1041,6 @@ function WorkerDashboardContent() {
                     </div>
                   )}
 
-                  {recentlyCompleted.length > 0 && (
-                    <div>
-                      <h3 className="mb-2 text-sm font-semibold text-gray-700">
-                        {t('worker.dashboard.history.completed')}
-                      </h3>
-                      <div className="flex flex-col gap-3">
-                        {recentlyCompleted.map((a) => {
-                          const shift = getShift(a.shiftId);
-                          if (!shift) return null;
-                          return (
-                            <HistoryShiftCard
-                              key={a.id}
-                              shift={shift}
-                              badgeTone="success"
-                              badgeLabel={t('application.status.Confirmed')}
-                              // Chỉ khẳng định "đã cộng vào ví" khi ví thật sự bật.
-                              note={t(completedNoteKey)}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </details>
             </section>
@@ -1031,7 +1048,7 @@ function WorkerDashboardContent() {
 
           {/* Phase 6: confirmed shifts awaiting worker → employer feedback.
               Đánh giá chưa có backend ở supabase → ẩn. */}
-          {hasCapability('ratings') && feedbackPending.length > 0 && (
+          {hasCapability('reviews') && feedbackPending.length > 0 && (
             <section>
               <h2 className="mb-3 text-lg font-semibold text-gray-900">
                 {t('worker.dashboard.feedbackPending')}
@@ -1069,7 +1086,22 @@ function WorkerDashboardContent() {
                       {showForm && (
                         <div className="mt-3">
                           <EmployerFeedbackForm
-                            onSubmit={(input) => {
+                            onSubmit={async (input) => {
+                              if (isSupabaseEnv()) {
+                                const res = await submitReviewAsync({
+                                  applicationId: a.id,
+                                  stars: input.stars,
+                                  comment: input.comment,
+                                  tags: input.tags,
+                                });
+                                if (res.ok) {
+                                  showSuccess(t('review.success'));
+                                  setFeedbackForAppId(null);
+                                } else {
+                                  showError(res.error);
+                                }
+                                return;
+                              }
                               const result = submitFeedback({
                                 shiftId: shift.id,
                                 applicationId: a.id,
@@ -1828,11 +1860,17 @@ function WorkerDashboardContent() {
                       employer?.role === 'employer'
                         ? employer.companyName
                         : undefined;
-                    const myRating = shift
-                      ? worker.ratingsReceived.find(
-                          (r) => r.shiftId === shift.id,
-                        )
-                      : undefined;
+                    // Đánh giá thật (0024): nhà tuyển dụng → bạn, bạn → nhà tuyển dụng.
+                    const received =
+                      allRatings.find(
+                        (r) => r.applicationId === app.id && r.toUserId === worker.id,
+                      ) ??
+                      (shift
+                        ? worker.ratingsReceived.find((r) => r.shiftId === shift.id)
+                        : undefined);
+                    const given = allFeedback.find(
+                      (f) => f.applicationId === app.id && f.fromUserId === worker.id,
+                    );
                     return (
                       <li
                         key={app.id}
@@ -1848,13 +1886,13 @@ function WorkerDashboardContent() {
                                 {employerName}
                               </p>
                             )}
-                            <p className="mt-0.5 truncate text-xs text-gray-500">
+                            <p className="mt-0.5 truncate text-xs text-gray-600">
                               {shift
                                 ? `${formatDateVN(shift.date)} • ${formatTimeVN(shift.startTime)}–${formatTimeVN(shift.endTime)}`
                                 : ''}
                             </p>
                             {shift?.location && (
-                              <p className="mt-0.5 truncate text-xs text-gray-500">
+                              <p className="mt-0.5 truncate text-xs text-gray-600">
                                 {shift.location}
                               </p>
                             )}
@@ -1863,19 +1901,15 @@ function WorkerDashboardContent() {
                             {t('worker.dashboard.completedModal.confirmedBadge')}
                           </span>
                         </div>
-                        <div className="mt-1 flex items-center justify-between gap-2">
-                          {myRating ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
-                              <span aria-hidden="true">★</span>
-                              {myRating.stars}/5
-                              {myRating.feedback && (
-                                <span className="ml-1 truncate text-xs font-normal text-gray-500">
-                                  · {myRating.feedback}
-                                </span>
-                              )}
-                            </span>
+                        <div className="mt-2 flex items-end justify-between gap-2">
+                          {received || given ? (
+                            <ShiftReviewStatus
+                              givenStars={given?.stars}
+                              receivedStars={received?.stars}
+                              counterpartName={employerName ?? t('common.employer')}
+                            />
                           ) : (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-sm text-gray-600">
                               {t('worker.dashboard.completedModal.noRating')}
                             </span>
                           )}

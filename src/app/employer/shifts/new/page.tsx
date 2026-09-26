@@ -526,10 +526,7 @@ function NewShiftContent() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="mb-6">
-          <p className="text-sm text-gray-600">
-            {t('employer.dashboard.title')}
-          </p>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
             {t('btn.postShift')}
           </h1>
         </header>
@@ -556,10 +553,7 @@ function NewShiftContent() {
       <header className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm text-gray-600">
-              {t('employer.dashboard.title')}
-            </p>
-            <h1 className="mt-1 text-2xl font-bold text-gray-900 sm:text-3xl">
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
               {t('btn.postShift')}
             </h1>
             <p className="mt-1 text-sm text-gray-600">

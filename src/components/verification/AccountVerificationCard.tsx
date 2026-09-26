@@ -210,11 +210,11 @@ function PhoneSection({
       ) : (
         <div className="mt-3 flex flex-col gap-3">
           {sentTo === null ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
               <div className="flex-1">
                 <Input
                   id="verify-phone-input"
-                  label={t('verify.phone.label')}
+                  aria-label={t('verify.phone.label')}
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel"
@@ -326,6 +326,9 @@ function IdentitySection({
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Form CCCD dài (3 ảnh + nhiều trường): thu gọn cho tới khi người dùng chủ
+  // động bắt đầu; hồ sơ bị từ chối thì mở sẵn để sửa.
+  const [formOpen, setFormOpen] = useState(status === 'Rejected');
 
   const previewUrls = useRef<Partial<Record<IdentityImageKind, string>>>({});
 
@@ -406,14 +409,23 @@ function IdentitySection({
         <p className="mt-2 text-sm text-gray-600">{t('verify.id.pendingBody')}</p>
       )}
 
-      {(status === 'None' || status === 'Rejected') && (
+      {status === 'None' && !formOpen && (
+        <div className="mt-2 flex flex-col items-start gap-3">
+          <p className="text-sm text-gray-600">{t('verify.id.collapsedHint')}</p>
+          <Button variant="secondary" size="sm" onClick={() => setFormOpen(true)}>
+            {t('verify.id.start')}
+          </Button>
+        </div>
+      )}
+
+      {(status === 'Rejected' || (status === 'None' && formOpen)) && (
         <form onSubmit={handleSubmit} noValidate className="mt-3 flex flex-col gap-3">
           {status === 'Rejected' && (
             <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
               {t('verify.id.rejectedBody').replace('{reason}', rejectReason ?? '—')}
             </p>
           )}
-          <p className="text-xs leading-relaxed text-gray-500">{t('verify.id.intro')}</p>
+          <p className="text-sm leading-relaxed text-gray-600">{t('verify.id.intro')}</p>
           <Input
             id="verify-id-name"
             label={t('verify.id.fullName')}

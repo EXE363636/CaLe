@@ -171,7 +171,7 @@ function chipClasses(tone: 'good' | 'warn' | 'neutral'): string {
     case 'warn':
       return 'bg-amber-100 text-amber-700';
     default:
-      return 'bg-orange-100 text-orange-700';
+      return 'bg-orange-100 text-orange-800';
   }
 }
 

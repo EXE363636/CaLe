@@ -245,11 +245,10 @@ function EmployerDashboardContent() {
             {getUserInitials(employer.companyName)}
           </div>
           <div className="min-w-[14rem] flex-1">
-            <p className="text-sm text-gray-500">{t('employer.dashboard.title')}</p>
             <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
               {employer.companyName}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-gray-600">
               {activeShifts.length > 0
                 ? t('employer.dashboard.welcome.active').replace(
                     '{count}',

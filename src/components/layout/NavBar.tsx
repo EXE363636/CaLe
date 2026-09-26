@@ -835,7 +835,7 @@ function navLinkClasses(active: boolean): string {
     'whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-h-[44px] flex items-center 2xl:px-3',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
     active
-      ? 'bg-orange-50 text-orange-700'
+      ? 'bg-orange-50 text-orange-800'
       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   ].join(' ');
 }

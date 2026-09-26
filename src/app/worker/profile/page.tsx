@@ -18,12 +18,10 @@ import {
   Button,
   Input,
   Textarea,
-  StarRating,
   PageShell,
   SectionHeader,
 } from '@/components/ui';
 import { UserAvatar } from '@/components/user/UserAvatar';
-import { averageRating } from '@/domain/rating';
 import { hasCapability } from '@/data/capabilities';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
@@ -33,6 +31,8 @@ import { t } from '@/i18n/vi';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
+import { useWorkerReviews } from '@/lib/useReviews';
+import { ReviewList } from '@/components/user/ReviewList';
 import type {
   VerificationFlag,
   Worker,
@@ -61,6 +61,7 @@ function WorkerProfileContent() {
   // cancellationHistory) KHÔNG được server cập nhật → đếm từ lịch sử đơn thật,
   // cùng nguồn với dashboard (tránh "0 ca hoàn thành" khi đã làm xong ca).
   const derivedMap = useDerivedReputationMap();
+  const reviews = useWorkerReviews(worker);
 
   if (!worker) return null;
 
@@ -78,42 +79,53 @@ function WorkerProfileContent() {
       };
 
   return (
-    <PageShell width="6xl">
-      {/* Quieter — compact white profile header consistent with the
-          dashboards: white surface, soft border, ink text, orange only as
-          a small avatar accent; quick-stat chips are calm (verified = a
-          semantic emerald chip). No gradient, no eyebrow. */}
+    <PageShell width="3xl">
+      {/* Identity + track record in one calm band: who you are on the left,
+          the three numbers an employer judges you by on the right. */}
       <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="rounded-2xl bg-orange-50 p-1 ring-1 ring-orange-100">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
             <UserAvatar name={worker.fullName} avatarUrl={worker.avatarUrl} size="lg" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{worker.fullName}</h1>
-            <p className="truncate text-sm text-gray-500">{worker.email}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {/* Điểm uy tín chưa có backend ở supabase → ẩn (không hiện 100 giả). */}
-              {hasCapability('ratings') && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                  {t('worker.profile.chip.reputation').replace('{score}', String(worker.reputationScore))}
-                </span>
-              )}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                {t('worker.profile.chip.completed').replace('{n}', String(stats.completed))}
-              </span>
-              {hasCapability('verifications') && worker.verifications.includes('phone') && (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                  {t('worker.profile.chip.phoneVerified')}
-                </span>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-bold text-gray-900">{worker.fullName}</h1>
+              <p className="mt-0.5 truncate text-sm text-gray-600">{worker.email}</p>
+              <p className="mt-0.5 text-sm text-gray-600">
+                {t('worker.profile.joinedSince').replace('{date}', formatDateVN(worker.createdAt))}
+              </p>
+              {(hasCapability('ratings') ||
+                (hasCapability('verifications') && worker.verifications.includes('phone'))) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {/* Điểm uy tín chưa có backend ở supabase → ẩn (không hiện 100 giả). */}
+                  {hasCapability('ratings') && (
+                    <Badge tone="neutral">
+                      {t('worker.profile.chip.reputation').replace('{score}', String(worker.reputationScore))}
+                    </Badge>
+                  )}
+                  {hasCapability('verifications') && worker.verifications.includes('phone') && (
+                    <Badge tone="success">{t('worker.profile.chip.phoneVerified')}</Badge>
+                  )}
+                </div>
               )}
             </div>
           </div>
+
+          <dl className="grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-100 pt-4 md:min-w-[22rem] md:border-t-0 md:pt-0">
+            <ProfileMetric label={t('worker.profile.metric.completed')} value={stats.completed} />
+            <ProfileMetric
+              label={t('worker.profile.metric.noShows')}
+              value={stats.noShows}
+              alert={stats.noShows > 0}
+            />
+            <ProfileMetric
+              label={t('worker.profile.metric.cancellations')}
+              value={stats.cancellations}
+            />
+          </dl>
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left: profile info */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
           <BasicInfoCard
             worker={worker}
             editing={editing}
@@ -133,11 +145,22 @@ function WorkerProfileContent() {
             }}
           />
 
-          {/* Ratings history — chưa có backend đánh giá ở supabase → ẩn. */}
-          {hasCapability('ratings') && (
+          {/* Đánh giá nhà tuyển dụng dành cho bạn (0024 ở production). */}
+          {hasCapability('reviews') && (
             <Card>
-              <h2 className="mb-3 font-semibold text-gray-900">Đánh giá đã nhận</h2>
-              <RatingsHistory worker={worker} />
+              <h2 className="text-lg font-semibold text-gray-900">{t('worker.profile.reviews.title')}</h2>
+              <p className="mb-4 mt-0.5 text-sm text-gray-600">{t('worker.profile.reviews.intro')}</p>
+              <ReviewList
+                items={reviews.map((r) => ({
+                  id: r.id,
+                  stars: r.stars,
+                  comment: r.feedback,
+                  createdAt: r.createdAt,
+                }))}
+                reportKind="rating"
+                limit={10}
+                emptyText={t('worker.profile.reviews.empty')}
+              />
             </Card>
           )}
 
@@ -164,8 +187,8 @@ function WorkerProfileContent() {
           )}
         </div>
 
-        {/* Right: stats + verifications */}
-        <aside className="flex flex-col gap-4">
+        {/* Verification — same column, below the profile. */}
+        <div className="flex flex-col gap-6">
           {/* Phase 10A canonical verification card. Phase 10A-Fix-6 —
               the older "Xác minh" card with `<VerificationBadge>` +
               upload toggles was removed; phone verification is now a
@@ -186,17 +209,7 @@ function WorkerProfileContent() {
               }}
             />
           )}
-
-          <Card>
-            <h2 className="mb-3 font-semibold text-gray-900">{t('worker.profile.stats.title')}</h2>
-            <dl className="flex flex-col gap-2 text-sm">
-              <StatRow label={t('worker.dashboard.stats.completedShifts')} value={String(stats.completed)} />
-              <StatRow label={t('worker.profile.stats.noShows')} value={String(stats.noShows)} />
-              <StatRow label={t('worker.profile.stats.cancellations')} value={String(stats.cancellations)} />
-              <StatRow label={t('worker.profile.stats.joined')} value={formatDateVN(worker.createdAt)} />
-            </dl>
-          </Card>
-        </aside>
+        </div>
       </div>
 
       {/* Phase 10A-Fix-9 / CORE-STABILITY-9 Part 4 /
@@ -266,34 +279,80 @@ function BasicInfoCard({
   }
 
   if (!editing) {
+    const filledCount = [
+      !!worker.bio,
+      worker.skills.length > 0,
+      worker.preferredJobTypes.length > 0,
+      worker.preferredLocations.length > 0,
+    ].filter(Boolean).length;
+
+    // Chưa điền gì: thay 4 dòng "Chưa có" bằng một lời mời cụ thể — nói rõ
+    // mục nào nhà tuyển dụng thấy (public_profiles: giới thiệu, kỹ năng, loại
+    // việc) và mục nào chỉ mình bạn thấy (khu vực).
+    if (filledCount === 0) {
+      return (
+        <Card>
+          <h2 className="text-lg font-semibold text-gray-900">{t('worker.profile.info.title')}</h2>
+          <p className="mt-1 text-sm text-gray-600">{t('worker.profile.empty.lead')}</p>
+          <ul className="mt-4 flex flex-col divide-y divide-gray-100">
+            {PROFILE_PROMPTS.map((key) => (
+              <li key={key} className="flex items-start gap-3 py-3">
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-700"
+                >
+                  <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+                    <path d="M10 4.5v11M4.5 10h11" />
+                  </svg>
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{t(`worker.profile.prompt.${key}.title`)}</p>
+                  <p className="mt-0.5 text-sm text-gray-600">{t(`worker.profile.prompt.${key}.hint`)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Button variant="primary" onClick={onEdit} className="mt-4">
+            {t('worker.profile.empty.cta')}
+          </Button>
+        </Card>
+      );
+    }
+
     return (
       <Card>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">{t('worker.profile.info.title')}</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">{t('worker.profile.info.title')}</h2>
+            <p className="mt-0.5 text-sm text-gray-600">
+              {t('worker.profile.info.progress').replace('{n}', String(filledCount))}
+            </p>
+          </div>
           <Button size="sm" variant="secondary" onClick={onEdit}>
             {t('btn.edit')}
           </Button>
         </div>
 
-        <ProfileField label={t('form.bio')}>
-          {worker.bio ? (
-            <p className="text-sm text-gray-700 whitespace-pre-line">{worker.bio}</p>
-          ) : (
-            <p className="text-sm text-gray-600">{t('worker.profile.empty.bio')}</p>
-          )}
-        </ProfileField>
-
-        <ProfileField label={t('form.skills')}>
-          <ChipList items={worker.skills} />
-        </ProfileField>
-
-        <ProfileField label={t('form.preferredJobTypes')}>
-          <ChipList items={worker.preferredJobTypes} />
-        </ProfileField>
-
-        <ProfileField label={t('form.preferredLocations')}>
-          <ChipList items={worker.preferredLocations} />
-        </ProfileField>
+        <div className="mt-5 flex flex-col gap-5">
+          <ProfileField label={t('form.bio')}>
+            {worker.bio ? (
+              <p className="max-w-prose whitespace-pre-line text-sm leading-relaxed text-gray-800">{worker.bio}</p>
+            ) : (
+              <MissingValue onAdd={onEdit} />
+            )}
+          </ProfileField>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ProfileField label={t('form.skills')}>
+              <ChipList items={worker.skills} onAdd={onEdit} />
+            </ProfileField>
+            <ProfileField label={t('form.preferredJobTypes')}>
+              <ChipList items={worker.preferredJobTypes} onAdd={onEdit} />
+            </ProfileField>
+          </div>
+          <ProfileField label={t('form.preferredLocations')} note={t('worker.profile.privateNote')}>
+            <ChipList items={worker.preferredLocations} onAdd={onEdit} />
+          </ProfileField>
+        </div>
       </Card>
     );
   }
@@ -343,60 +402,48 @@ function BasicInfoCard({
   );
 }
 
-function RatingsHistory({ worker }: { worker: Worker }) {
-  const avg = averageRating(worker.ratingsReceived);
+const PROFILE_PROMPTS = ['bio', 'skills', 'jobTypes', 'locations'] as const;
 
-  if (worker.ratingsReceived.length === 0) {
-    return <p className="text-sm text-gray-600">{t('reputation.noRatings')}</p>;
-  }
-
+function ProfileField({
+  label,
+  note,
+  children,
+}: {
+  label: string;
+  note?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      {avg !== null && (
-        <div className="mb-3 flex items-center gap-2">
-          <StarRating value={avg} readOnly size="sm" />
-          <span className="text-sm font-medium text-gray-900">
-            {avg.toFixed(1)} / 5
-          </span>
-          <span className="text-xs text-gray-500">
-            ({worker.ratingsReceived.length} đánh giá)
-          </span>
-        </div>
-      )}
-      <ul className="flex flex-col gap-2">
-        {worker.ratingsReceived.slice(0, 10).map((r) => (
-          <li key={r.id} className="rounded-lg border border-gray-100 p-3">
-            <div className="flex items-center justify-between">
-              <StarRating value={r.stars} readOnly size="sm" />
-              <span className="text-xs text-gray-500">{formatDateVN(r.createdAt)}</span>
-            </div>
-            {r.feedback && (
-              <p className="mt-1.5 text-sm text-gray-700">&ldquo;{r.feedback}&rdquo;</p>
-            )}
-          </li>
-        ))}
-      </ul>
+      <p className="text-sm font-medium text-gray-700">
+        {label}
+        {note && <span className="ml-2 text-xs font-normal text-gray-600">{note}</span>}
+      </p>
+      <div className="mt-1.5">{children}</div>
     </div>
   );
 }
 
-function ProfileField({ label, children }: { label: string; children: React.ReactNode }) {
+function MissingValue({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="mb-3 last:mb-0">
-      <p className="text-xs font-medium text-gray-600">{label}</p>
-      <div className="mt-1">{children}</div>
-    </div>
+    <button
+      type="button"
+      onClick={onAdd}
+      className="inline-flex min-h-[44px] items-center gap-1 rounded text-sm font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+    >
+      {t('worker.profile.addMissing')}
+    </button>
   );
 }
 
-function ChipList({ items }: { items: string[] }) {
-  if (items.length === 0) return <p className="text-sm text-gray-600">{t('worker.profile.empty.list')}</p>;
+function ChipList({ items, onAdd }: { items: string[]; onAdd: () => void }) {
+  if (items.length === 0) return <MissingValue onAdd={onAdd} />;
   return (
     <div className="flex flex-wrap gap-1.5">
       {items.map((it, idx) => (
         <span
           key={`${it}-${idx}`}
-          className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700"
+          className="inline-flex items-center rounded-full bg-orange-50 px-3 py-1 text-sm font-medium text-orange-900 ring-1 ring-orange-100"
         >
           {it}
         </span>
@@ -405,11 +452,26 @@ function ChipList({ items }: { items: string[] }) {
   );
 }
 
-function StatRow({ label, value }: { label: string; value: string }) {
+function ProfileMetric({
+  label,
+  value,
+  alert = false,
+}: {
+  label: string;
+  value: number;
+  alert?: boolean;
+}) {
   return (
-    <div className="flex items-center justify-between">
-      <dt className="text-gray-600">{label}</dt>
-      <dd className="font-medium text-gray-900">{value}</dd>
+    <div className="flex flex-col-reverse items-center px-3 text-center">
+      <dt className="mt-0.5 whitespace-nowrap text-xs text-gray-600 sm:text-sm">{label}</dt>
+      <dd
+        className={[
+          'text-2xl font-bold tabular-nums',
+          alert ? 'text-red-700' : 'text-gray-900',
+        ].join(' ')}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

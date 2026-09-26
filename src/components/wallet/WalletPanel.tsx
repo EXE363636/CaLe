@@ -239,6 +239,10 @@ export function WalletPanel({
   const [checkingId, setCheckingId] = useState<string | null>(null);
 
   /** Mở form rút tiền: key idempotency mới + điền sẵn tài khoản của lệnh rút gần nhất. */
+  // Lệnh rút THÀNH CÔNG đã hiện trong "Giao dịch gần đây" (sổ cái) → khu này
+  // chỉ giữ lệnh đang xử lý / thất bại (cần theo dõi hoặc đã hoàn tiền).
+  const openWithdrawals = withdrawals.filter((w) => w.status !== 'SUCCEEDED');
+
   // Rút tối thiểu: PayOS (production) không chi dưới 2.000 đ; demo cho mọi số > 0.
   const withdrawMin = supabase ? PAYOS_MIN_AMOUNT : 1;
 
@@ -459,6 +463,9 @@ export function WalletPanel({
           <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
             {formatVND(balance)}
           </p>
+          {role === 'worker' && balance === 0 && (
+            <p className="mt-1 text-xs text-gray-600">{t('wallet.worker.emptyHint')}</p>
+          )}
           {allowWithdraw && balance > 0 && balance < withdrawMin && (
             <p className="mt-1 text-xs text-gray-600">
               {t('wallet.withdraw.belowMin').replace('{min}', formatVND(withdrawMin))}
@@ -499,13 +506,13 @@ export function WalletPanel({
       </div>
 
       {/* Supabase: lệnh rút tiền thật gần đây + nút tra lại lệnh đang xử lý. */}
-      {supabase && withdrawals.length > 0 && (
+      {supabase && openWithdrawals.length > 0 && (
         <div className="mt-3">
           <p className="mb-1 text-xs font-medium text-gray-700">
             {t('wallet.withdraw.real.history')}
           </p>
           <ul className="flex flex-col gap-2">
-            {withdrawals.slice(0, 3).map((w) => {
+            {openWithdrawals.slice(0, 3).map((w) => {
               const pending = w.status === 'PENDING' || w.status === 'PROCESSING';
               return (
                 <li
