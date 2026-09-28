@@ -2,6 +2,9 @@
 
 > Đọc kèm `CLAUDE.md`, `HANDOFF.md`, `docs/SETUP_AUTH_OTP_CCCD.md` (hướng dẫn cấu hình
 > dashboard từng bước).
+>
+> **Tiếp theo:** kế hoạch sửa theo feedback khách hàng ở
+> `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md`.
 
 ## 0. Partner cần làm sau khi pull
 1. `git pull` (main = `feat/payos-real-payment`). Không đụng file local nào.
