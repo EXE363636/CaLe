@@ -3,6 +3,11 @@
 > Hướng dẫn cho AI agent làm việc trên repo này. Đọc file này + `HANDOFF.md`
 > trước khi động vào code. Không cần scan lại toàn bộ repository.
 
+> ⛔ **CHẶN (từ 28/09/2026):** trước khi sửa bất kỳ code nào, đọc mục ⛔ ở đầu
+> `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md`. Nếu mục A (migration 0023/0024)
+> hoặc B (7 câu trả lời ở mục 5) chưa có kết quả → HỎI người dùng, không tự suy
+> đoán, không tự `db push` 0023/0024. Xoá dòng chặn này khi A + B đã xong.
+
 ---
 
 ## 1. Sản phẩm là gì

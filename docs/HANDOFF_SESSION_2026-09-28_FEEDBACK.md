@@ -4,6 +4,27 @@
 > File này mới là **PLAN**, chưa sửa code. Làm theo thứ tự P0 → P3. Mục có dấu
 > **[QUYẾT]** cần chủ dự án chốt trước khi code (xem mục 5).
 
+## ⛔ BẮT BUỘC TRƯỚC KHI LÀM BẤT CỨ VIỆC GÌ (kể cả P0)
+Ai pull về (người hay AI agent) phải xong **cả 2 việc** dưới đây, ghi kết quả vào
+file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG và hỏi chủ dự án.
+
+- [ ] **A. Migration 0023/0024.** Hỏi người viết (partner, commit `a44dc82`,
+      `f7a20a7`) đã định chạy `npx supabase db push` chưa.
+  - Người viết tự chạy. Người khác **KHÔNG chạy hộ**.
+  - Kiểm tra bằng `npx supabase migration list`: 0023 và 0024 phải có cả cột local lẫn
+    remote.
+  - Ghi kết quả: `____` (vd "đã apply 29/09 bởi …" / "chưa, lý do …").
+- [ ] **B. Trả lời đủ 7 câu ở mục 5.** Điền vào dòng **Trả lời:** dưới từng câu.
+  - Phải có **đủ 7 câu trả lời** mới bắt đầu, kể cả P0.
+  - Câu nào bị trả lời "chưa biết" thì ghi rõ, và KHÔNG làm phần phụ thuộc câu đó:
+    - Câu 1 → P0 bước 6.
+    - Câu 2, 3, 7 → P1.
+    - Câu 4, 5 → P2.
+    - Câu 6 → P3.
+
+> AI agent: đọc tới đây mà A hoặc B chưa có kết quả → hỏi người dùng 2 việc này
+> trước, không tự suy đoán câu trả lời, không tự chạy `db push` 0023/0024.
+
 ## 0. Trạng thái repo lúc lập plan
 - `main` = `feat/payos-real-payment` = `adbef85` (partner: lịch lưu server 0023, đánh
   giá hai chiều 0024, rà soát UI, hồ sơ worker, `PAYOS_MOCK`).
@@ -246,24 +267,31 @@ nên làm, nhưng cách ly khỏi luồng ca/escrow.
 - [ ] **Nguyên tắc:** không đưa SĐT hai bên cho nhau (tránh đi đường riêng), áp dụng
       cho parttime (P3).
 
-## 5. Cần chủ dự án chốt trước khi code
+## 5. Cần chủ dự án chốt trước khi code (BẮT BUỘC — xem mục ⛔ ở đầu file)
 1. **F6:** "Lịch tuyển đủ chỗ thì ghi lịch tuyển dụng" nghĩa là gì? (plan đang hiểu:
    ca đủ người hiện "Đã tuyển đủ" + đổi tên mục "Lịch" → "Lịch tuyển dụng").
+   **Trả lời:** ____
 2. **F2:** "chỉ 3 màu" áp dụng cho cả badge trạng thái ca không? (Nếu có thì phải bỏ
    bất biến "Đang diễn ra = xanh dương".)
+   **Trả lời:** ____
 3. **F4:** trang chủ `/` mặc định cho người lao động, nhà tuyển dụng ở `/tuyen-dung`,
    đúng không?
+   **Trả lời:** ____
 4. **F9:** cọc worker bao nhiêu (số cố định hay % tiền công)? Làm đủ mấy ca thì miễn?
    Worker vắng mặt thì tiền cọc về đâu (nhà tuyển dụng / CaLẻ / chia)?
+   **Trả lời:** ____
 5. **F10:** giảm cọc từ lần 2, hay thưởng nạp ví (nạp 500 được 600)? Tiền thưởng chỉ
    trừ phí dịch vụ, hay trừ được cả tiền công?
+   **Trả lời:** ____
 6. **F11:** giá giới thiệu parttime: 200.000đ/lượt không bảo hành, và gói bảo hành
    bao nhiêu, bảo hành mấy ngày? Bản đầu có cho nhà tuyển dụng tự đăng không, hay
    chỉ admin đăng hộ?
+   **Trả lời:** ____
 7. Ảnh cho trang chủ: team tự chụp hay dùng ảnh stock?
+   **Trả lời:** ____
 
 ## 6. Thứ tự đề xuất
-P0 (làm ngay, không phụ thuộc quyết định) → trả lời mục 5 → P1 → P2 → P3. Mỗi phần
+Xong mục ⛔ (A + B) → P0 → P1 → P2 → P3. Mỗi phần
 một commit/nhánh riêng. Không push `main` khi chưa được chủ dự án đồng ý.
 
 ## 7. Việc ngày mai (29/09) — checklist P0
@@ -271,7 +299,8 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
 
 - [ ] **Chuẩn bị**
   - `git pull`, `graphify update .`
-  - Hỏi người viết 0023/0024 đã `db push` chưa. Chưa thì để họ chạy, không tự chạy hộ.
+  - Hoàn thành mục ⛔ ở đầu file (A: 0023/0024; B: đủ 7 câu trả lời). Chưa xong →
+    dừng, không làm các bước dưới.
 - [ ] **Bước 1: Admin Back** (`NavBar.tsx`)
   - Admin bấm logo hoặc "Trang chủ" thì về `/admin/dashboard`.
   - Link quay lại từ trang con giữ nguyên `?tab=`.
@@ -299,4 +328,3 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
 - [ ] **Kết thúc:**
   - Cập nhật mục 0 và mục 3 của file này (đánh dấu ✅).
   - Push nhánh; chỉ merge `main` khi chủ dự án đồng ý.
-- [ ] **Song song:** chủ dự án trả lời 7 câu ở mục 5 để làm tiếp P1–P3.

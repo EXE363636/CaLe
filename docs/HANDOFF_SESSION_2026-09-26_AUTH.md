@@ -4,7 +4,8 @@
 > dashboard từng bước).
 >
 > **Tiếp theo:** kế hoạch sửa theo feedback khách hàng ở
-> `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md`.
+> `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md` — BẮT BUỘC làm mục ⛔ (0023/0024 +
+> 7 câu trả lời) trước khi code.
 
 ## 0. Partner cần làm sau khi pull
 1. `git pull` (main = `feat/payos-real-payment`). Không đụng file local nào.
