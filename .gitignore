@@ -55,3 +55,7 @@ next-env.d.ts
 /graphify-out/
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Log tạm của /verify, build-error-resolver và /checkpoint (chỉ trên máy)
+.tmp-*.log
+.claude/checkpoints.log
