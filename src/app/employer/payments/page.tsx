@@ -44,7 +44,7 @@ export default function EmployerPaymentsPage() {
     <InfoPage
       eyebrow="Dành cho nhà tuyển dụng"
       title="Giữ tiền ca làm (mô phỏng)"
-      intro="CaLẻ áp dụng mô hình giữ tiền ca làm: nhà tuyển dụng nạp trước tiền công vào ví, tiền chỉ được trả khi ca hoàn thành thực tế. Đây là cam kết chất lượng cho người lao động. Trong MVP/demo không có giao dịch thật."
+      intro="Nhà tuyển dụng giữ cọc tiền công trước; tiền chỉ trả cho người lao động khi ca hoàn thành. Trong MVP/demo không có giao dịch thật."
       ctas={[
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
         { label: 'Quản lý người ứng tuyển', href: '/employer/dashboard', variant: 'secondary' },

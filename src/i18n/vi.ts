@@ -179,12 +179,12 @@ export const vi: Record<string, string> = {
     'Cả hai bên đã xác nhận có mặt. Đợi đến hết ca.',
   'applicantBucket.AwaitingCheckout': 'Chờ check-out',
   'applicantBucket.AwaitingCheckout.hint':
-    'Ca đã hết giờ nhưng người lao động chưa check-out. Bạn có thể nhắc nhở hoặc đánh dấu vắng mặt nếu không liên lạc được.',
+    'Hết giờ nhưng chưa check-out. Nhắc người lao động, hoặc đánh dấu vắng mặt nếu không liên lạc được.',
   'applicantBucket.AwaitingConfirmation': 'Chờ xác nhận hoàn thành',
   'applicantBucket.AwaitingConfirmation.hint':
-    'Người lao động đã check-out. Hãy xác nhận hoàn thành để trả tiền công, hoặc khiếu nại nếu có vấn đề. Tự động xác nhận sau 12 giờ.',
+    'Đã check-out: xác nhận để trả tiền công, hoặc khiếu nại nếu có vấn đề. Tự xác nhận sau 12 giờ.',
   'applicantBucket.AwaitingConfirmation.hint.real':
-    'Người lao động đã check-out. Hãy xác nhận hoàn thành để trả công hoặc khiếu nại nếu có vấn đề. Nếu bạn không thao tác, hệ thống tự xác nhận và trả công sau 24 giờ kể từ giờ kết thúc ca.',
+    'Đã check-out: xác nhận để trả công, hoặc khiếu nại nếu có vấn đề. Không thao tác thì hệ thống tự xác nhận sau 24 giờ.',
   'applicantBucket.Disputed': 'Đang khiếu nại',
   'applicantBucket.Disputed.hint':
     'Quản trị viên đang xử lý tranh chấp. Bạn có thể bổ sung phản hồi nếu cần.',
@@ -562,7 +562,7 @@ export const vi: Record<string, string> = {
   'admin.accounts.delete.button': 'Xoá vĩnh viễn',
   'admin.accounts.delete.modal.title': 'Xoá vĩnh viễn tài khoản',
   'admin.accounts.delete.modal.warning':
-    'Hành động này KHÔNG THỂ hoàn tác. Tài khoản sẽ bị xoá khỏi hệ thống đăng nhập và cơ sở dữ liệu. Chỉ áp dụng cho tài khoản chưa có ca làm hoặc đơn ứng tuyển nào.',
+    'KHÔNG THỂ hoàn tác: tài khoản bị xoá khỏi đăng nhập và cơ sở dữ liệu. Chỉ áp dụng cho tài khoản chưa có ca hay đơn ứng tuyển.',
   'admin.accounts.delete.modal.retype': 'Nhập lại email để xác nhận',
   'admin.accounts.delete.modal.retypePlaceholder': 'Nhập chính xác email tài khoản',
   'admin.accounts.delete.modal.confirm': 'Tôi hiểu, xoá vĩnh viễn',
@@ -993,7 +993,7 @@ export const vi: Record<string, string> = {
   'auth.side.disclaimer':
     'Phiên bản MVP - toàn bộ thanh toán & xác minh đều giả lập, không có giao dịch thật.',
   'auth.side.disclaimer.supabase':
-    'Giai đoạn thử nghiệm giới hạn (Beta). Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. Nạp, rút tiền qua cổng thanh toán PayOS; tiền công được giữ cọc cho tới khi ca hoàn thành.',
+    'Giai đoạn thử nghiệm (Beta). Nạp, rút tiền qua PayOS; tiền công được giữ cọc tới khi ca hoàn thành.',
 
   // -------------------------------------------------------------------------
   // Worker dashboard
@@ -1395,10 +1395,10 @@ export const vi: Record<string, string> = {
   // Worker dashboard sections
   'help.workerDashboard.section.purpose.heading': 'Trang này dùng để',
   'help.workerDashboard.section.purpose.item1':
-    'Trang Tổng quan hiển thị toàn bộ hoạt động của bạn - ca sắp tới, đơn ứng tuyển, điểm uy tín, hạn mức huỷ và thông báo.',
+    'Trang Tổng quan gom mọi việc của bạn: ca sắp tới, đơn ứng tuyển, điểm uy tín và thông báo.',
   'help.workerDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
   'help.workerDashboard.section.numbers.item1':
-    'Điểm uy tín 0–100. Bắt đầu 100. Mỗi ca hoàn thành +5. Vắng mặt không báo trước −20. Huỷ trong 24 giờ −10. Dưới 50 bị hạn chế ứng tuyển.',
+    'Điểm uy tín 0–100, bắt đầu từ 100: hoàn thành ca +5, vắng mặt không báo −20, huỷ trong 24 giờ trước ca −10.',
   'help.workerDashboard.section.numbers.item2':
     'Hạn mức huỷ tuần: 3 lượt mặc định. Đạt điểm uy tín cao thì được nâng (4–5 lượt/tuần).',
   'help.workerDashboard.section.numbers.item3':
@@ -1428,7 +1428,7 @@ export const vi: Record<string, string> = {
     'Đánh dấu thời gian bận để tránh ứng tuyển trùng giờ. Có thể là giờ học, ca làm khác, hoặc việc cá nhân.',
   'help.workerSchedule.section.numbers.heading': 'Các con số / trạng thái quan trọng',
   'help.workerSchedule.section.numbers.item1':
-    'Mỗi khung bận có ngày + giờ bắt đầu + giờ kết thúc. Hệ thống không cho ứng tuyển ca trùng giờ với khung bận trong cùng ngày.',
+    'Mỗi khung bận gồm ngày, giờ bắt đầu và kết thúc. Ca trùng khung bận sẽ không ứng tuyển được.',
   'help.workerSchedule.section.numbers.item2':
     'Ca làm đã được duyệt cũng tự động tính là khung bận.',
   'help.workerSchedule.section.actions.heading': 'Thao tác chính',
@@ -1447,7 +1447,7 @@ export const vi: Record<string, string> = {
   // Employer dashboard sections
   'help.employerDashboard.section.purpose.heading': 'Trang này dùng để',
   'help.employerDashboard.section.purpose.item1':
-    'Trang Tổng quan hiển thị toàn bộ ca bạn đã đăng - ca đang tuyển, đơn chờ duyệt, ca đã hoàn thành và thanh toán giả lập.',
+    'Trang Tổng quan gom mọi ca bạn đã đăng: ca đang tuyển, đơn chờ duyệt, ca đã xong và tiền công.',
   'help.employerDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
   'help.employerDashboard.section.numbers.item1':
     'Ca đang hoạt động: ca có trạng thái "Đang tuyển", "Đã đủ người", "Đang diễn ra", "Chờ xác nhận".',
@@ -1613,7 +1613,7 @@ export const vi: Record<string, string> = {
   'employer.manageShift.manual.button': 'Xác nhận người lao động đã hoàn thành',
   'employer.manageShift.manual.modalTitle': 'Xác nhận hoàn thành thủ công',
   'employer.manageShift.manual.modalBody':
-    'Người lao động chưa bấm check-out. Bạn đang xác nhận hoàn thành thủ công vì đã xác nhận họ có mặt và ca đã kết thúc. Thao tác này được ghi nhận là xác nhận thủ công.',
+    'Người lao động chưa check-out. Bạn đang xác nhận hoàn thành thủ công vì họ đã có mặt và ca đã kết thúc.',
   'employer.manageShift.dispute.category': 'Loại:',
   'employer.manageShift.dispute.reason': 'Lý do:',
   'employer.manageShift.dispute.evidence': 'Mô tả bằng chứng:',
@@ -1666,7 +1666,7 @@ export const vi: Record<string, string> = {
 
   // HelpPopover description - admin override button
   'hint.admin.override':
-    'Chỉ dùng khi cần xử lý ngoại lệ. Thao tác này có thể ảnh hưởng trực tiếp đến trạng thái ca hoặc người dùng. Bản demo: thay đổi chỉ lưu trên trình duyệt này, chưa có nhật ký phía máy chủ.',
+    'Chỉ dùng cho trường hợp ngoại lệ. Bản demo: thay đổi chỉ lưu trên trình duyệt này.',
 
   // -------------------------------------------------------------------------
   // Phase 6 - employer types
@@ -1686,11 +1686,11 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'deposit.trust.title': 'Cọc 100% tiền công',
   'deposit.trust.low':
-    'Độ uy tín: Thấp. Nhà tuyển dụng mới hoặc chưa xác minh. Cọc 100% tiền công; cấp độ tin cậy vẫn ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
+    'Độ uy tín: Thấp (tài khoản mới hoặc chưa xác minh). Cọc 100% tiền công.',
   'deposit.trust.medium':
-    'Độ uy tín: Trung bình. Đã xác minh hoặc đã hoàn thành ít nhất 3 ca. Cọc 100% tiền công; cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
+    'Độ uy tín: Trung bình (đã xác minh hoặc xong ít nhất 3 ca). Cọc 100% tiền công.',
   'deposit.trust.high':
-    'Độ uy tín: Cao. Đã xác minh và hoàn thành ít nhất 5 ca. Cọc 100% tiền công; cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
+    'Độ uy tín: Cao (đã xác minh và xong ít nhất 5 ca). Cọc 100% tiền công.',
   'deposit.trust.label.low': 'Thấp',
   'deposit.trust.label.medium': 'Trung bình',
   'deposit.trust.label.high': 'Cao',
@@ -2091,7 +2091,7 @@ export const vi: Record<string, string> = {
   // CORE-STABILITY-7 Part 2 - insufficient-balance draft modal.
   'deposit.insufficient.title': 'Số dư ví không đủ để giữ cọc',
   'deposit.insufficient.body':
-    'Số dư ví của bạn không đủ để giữ cọc cho ca này. Bạn có muốn nạp tiền vào ví không? Bản nháp ca làm vẫn được giữ nguyên.',
+    'Ví không đủ để giữ cọc ca này; bản nháp vẫn được giữ. Bạn có muốn nạp thêm tiền không?',
   'deposit.insufficient.required': 'Cần giữ cọc',
   'deposit.insufficient.balance': 'Số dư hiện tại',
   'deposit.insufficient.shortfall': 'Còn thiếu',
@@ -2443,7 +2443,7 @@ export const vi: Record<string, string> = {
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',
   'attendance.revert.title': 'Chuyển sang có mặt (đến muộn)',
   'attendance.revert.body':
-    'Người lao động đã đến muộn? Bạn có thể chuyển trạng thái từ vắng mặt sang có mặt. Điểm uy tín của người lao động sẽ được hoàn lại và ca tiếp tục bình thường.',
+    'Người lao động đến muộn? Chuyển từ vắng mặt sang có mặt để hoàn lại điểm uy tín và tiếp tục ca.',
   'attendance.revert.reasonLabel': 'Lý do chuyển trạng thái',
   'attendance.revert.reasonPlaceholder': 'Ví dụ: người lao động đến muộn 20 phút do kẹt xe.',
   'attendance.revert.confirm': 'Xác nhận có mặt',
@@ -2560,7 +2560,7 @@ export const vi: Record<string, string> = {
     'Công việc rủi ro cao chỉ cho phép mức “Bắt buộc checklist + ghi chú bàn giao” trở lên.',
   'help.evidence.title': 'Cách chọn mức bằng chứng',
   'help.evidence.description':
-    'Bạn có thể chọn 1 trong 5 mức bằng chứng sau ca. Mức cao hơn yêu cầu người lao động gửi nhiều minh chứng hơn (checklist, ảnh bàn giao, ghi chú), giúp giảm tranh chấp nhưng tăng công sức cho cả hai bên. Việc làm rủi ro thấp như phát tờ rơi thường chỉ cần checklist; việc tiền mặt hoặc kho hàng nên yêu cầu ảnh bàn giao và ghi chú đầy đủ. Hệ thống đã đề xuất một mức phù hợp dựa trên loại công việc bạn chọn - bạn có thể giữ nguyên hoặc đổi sang mức khác.',
+    'Mức càng cao, người lao động càng phải gửi nhiều bằng chứng (checklist, ảnh, ghi chú). Hệ thống đã gợi ý mức hợp với loại việc, bạn có thể đổi.',
 
   // Phase 10C - Worker shift detail "Quy trình thanh toán & bằng chứng" card
   'shifts.detail.paymentEvidence.title': 'Quy trình thanh toán & bằng chứng',
@@ -2593,9 +2593,9 @@ export const vi: Record<string, string> = {
     'Bạn cần tích đầy đủ checklist và viết ghi chú bàn giao đầy đủ khi check-out.',
   'help.paymentEvidence.title': 'Khi nào cần bằng chứng?',
   'help.paymentEvidence.description':
-    'Mức bằng chứng tuỳ thuộc độ rủi ro công việc. Việc nhẹ như phát tờ rơi hoặc hỗ trợ sự kiện thường chỉ cần checklist hoàn thành. Việc liên quan tiền mặt, kho hàng hoặc bàn giao thường yêu cầu ảnh bàn giao và ghi chú để hai bên cùng yên tâm. Sau khi bạn check-out, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động trả tiền công cho bạn. Bằng chứng chỉ là minh chứng công việc - đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật.',
+    'Việc nhẹ chỉ cần checklist; việc có tiền mặt hay kho hàng cần thêm ảnh bàn giao và ghi chú. Đừng chụp khách hàng, giấy tờ cá nhân hay hoá đơn nhạy cảm.',
   'help.paymentEvidence.description.real':
-    'Mức bằng chứng tuỳ thuộc độ rủi ro công việc. Việc nhẹ như phát tờ rơi hoặc hỗ trợ sự kiện thường chỉ cần checklist hoàn thành. Việc liên quan tiền mặt, kho hàng hoặc bàn giao thường yêu cầu ảnh bàn giao và ghi chú để hai bên cùng yên tâm. Sau khi bạn check-out, nhà tuyển dụng xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự xác nhận và trả tiền công cho bạn sau 24 giờ kể từ giờ kết thúc ca. Bằng chứng chỉ là minh chứng công việc - đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật.',
+    'Việc nhẹ chỉ cần checklist; việc có tiền mặt hay kho hàng cần thêm ảnh bàn giao và ghi chú. Đừng chụp khách hàng, giấy tờ cá nhân hay hoá đơn nhạy cảm.',
 
   // Phase 10C - Worker check-out dialog
   'checkout.dialog.title': 'Hoàn tất ca làm',
@@ -2628,9 +2628,9 @@ export const vi: Record<string, string> = {
     'Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công vào ví của bạn sau 24 giờ kể từ giờ kết thúc ca.',
   'help.checkout.title': 'Vì sao cần bằng chứng?',
   'help.checkout.description':
-    'Bằng chứng giúp nhà tuyển dụng xác nhận ca nhanh hơn và tránh hiểu lầm. Hệ thống chỉ yêu cầu các mục thực sự cần thiết theo loại công việc - bạn không cần chuẩn bị quá nhiều. Đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật. Sau khi bạn gửi, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động trả tiền công cho bạn.',
+    'Chỉ gửi các mục được yêu cầu; đừng chụp khách hàng hay giấy tờ cá nhân. Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống tự trả tiền công cho bạn.',
   'help.checkout.description.real':
-    'Bằng chứng giúp nhà tuyển dụng xác nhận ca nhanh hơn và tránh hiểu lầm. Hệ thống chỉ yêu cầu các mục thực sự cần thiết theo loại công việc - bạn không cần chuẩn bị quá nhiều. Đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật. Sau khi bạn gửi, nhà tuyển dụng xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự xác nhận và trả tiền công cho bạn sau 24 giờ kể từ giờ kết thúc ca.',
+    'Chỉ gửi các mục được yêu cầu; đừng chụp khách hàng hay giấy tờ cá nhân. Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công khoảng 24 giờ sau ca.',
 
   // Phase 10C - Employer confirmation panel + AutoReleaseCountdown
   'employer.confirm.panel.title': 'Xác nhận hoàn thành ca',
@@ -2654,7 +2654,7 @@ export const vi: Record<string, string> = {
   'employer.confirm.btn.dispute': 'Khiếu nại',
   'help.autoRelease.title': 'Đếm ngược 12 giờ',
   'help.autoRelease.description':
-    'Đếm ngược cho biết bạn còn bao nhiêu thời gian để xác nhận hoặc khiếu nại trước khi hệ thống tự động trả tiền công cho người lao động. Đồng hồ tính từ lúc người lao động check-out. Khi đếm ngược về 00:00:00, hệ thống sẽ tự động xác nhận hoàn thành ở lần đồng bộ kế tiếp; nếu bạn đã khiếu nại, đếm ngược không có hiệu lực và quản trị viên sẽ xử lý.',
+    'Thời gian còn lại để bạn xác nhận hoặc khiếu nại, tính từ lúc người lao động check-out. Hết giờ thì hệ thống tự xác nhận; nếu bạn đã khiếu nại, quản trị viên sẽ xử lý.',
 
   // Phase 10C - Employer DisputeDialog
   'dispute.dialog.title': 'Khiếu nại ca làm',
