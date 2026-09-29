@@ -63,7 +63,7 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
     ignore 2 thư mục này. Không phải lỗi code.
 - **Cập nhật 29/09 — P1 phần lớn xong**, 3 nhánh nối tiếp nhau (mỗi nhánh tách từ
   nhánh trước — merge theo thứ tự `fix/p0-feedback` → `feat/p1-homepage` →
-  `feat/p1-colors` → `feat/p1-copy`). Chưa merge, không đổi DB.
+  `feat/p1-colors` → `feat/p1-copy` → `feat/p1-copy-app`). Chưa merge, không đổi DB.
   - `feat/p1-homepage`: `29cf204` tách trang chủ (`/` chọn vai trò, `/viec-lam`,
     `/tuyen-dung`, E2E 29; build 33 route); `5675d83` 6 ảnh stock Unsplash
     (`docs/IMAGE_CREDITS.md`).
@@ -76,8 +76,10 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
     toán", bắt buộc SĐT, "giảm phí tương lai").
   - Gate mỗi nhánh: tsc 0, eslint `src`+`e2e` 0 lỗi, `test:run` 778/778, build OK;
     e2e toàn bộ 123 qua, chỉ còn 7 test ví hỏng sẵn trên `main`.
-  - Còn lại của P1-4: rà nốt các mô tả dài trong `vi.ts` (≤2 câu, hint ≤1 dòng) ở
-    các màn app (dashboard, form); chưa làm hết.
+  - `feat/p1-copy-app` (tách từ `feat/p1-copy`): `300ca50` rút gọn 22 chuỗi `vi.ts`
+    + 4 trang app còn ≤2 câu; bỏ "thanh toán giả lập" (sai ở production) và lời hứa
+    "cấp độ ảnh hưởng phí". → **P1 xong** (trừ "quán đang dùng" và ảnh cho bước ở
+    trang thông tin).
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
@@ -226,7 +228,7 @@ _Thực tế khác plan: `/` là trang chọn vai trò (câu 3), trang người 
    - Đặt ở `public/images/landing/`, dùng `next/image`, có `alt` tiếng Việt, nén WebP
      ≤150KB.
    - Thẻ ca đã có `workplaceImage`; hiện ảnh đó ở danh sách ca.
-4. 🟡 **Bớt chữ + câu dễ hiểu (F3).** _(thuật ngữ + 4 trang thông tin xong; còn rà mô tả dài trong màn app)_
+4. ✅ **Bớt chữ + câu dễ hiểu (F3).** _(thuật ngữ "cọc" + 4 trang thông tin + mô tả dài trong app)_
    - Rà `src/i18n/vi.ts` theo danh sách từ khó, đổi ra lời thường. Ví dụ:
      - "escrow/giữ cọc" → "tiền giữ lại".
      - "đối soát" → "kiểm tra tiền".
@@ -400,10 +402,11 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
 
 ### Tiếp theo (sau P0)
 - [ ] Merge lần lượt: `fix/p0-feedback` → `feat/p1-homepage` → `feat/p1-colors` →
-      `feat/p1-copy` (mỗi nhánh tách từ nhánh trước). Cần chủ dự án đồng ý.
+      `feat/p1-copy` → `feat/p1-copy-app` (mỗi nhánh tách từ nhánh trước). Cần chủ
+      dự án đồng ý.
 - [ ] Chụp production bằng tài khoản employer: trang Đăng ca (P0-4), Tổng quan admin
       + dashboard (màu P1-2).
-- [ ] P1-4 còn lại: mô tả dài trong màn app (≤2 câu, hint ≤1 dòng).
+- [x] P1-4 còn lại: mô tả dài trong màn app (`300ca50`).
 - [ ] P2 chờ chốt 3 điểm mở ở câu 4 (cọc worker khi vắng mặt về đâu; "1 tháng"
       tính thế nào; đã xác thực CCCD có miễn cọc không).
 - [ ] Task riêng: 7 e2e ví hỏng sẵn trên `main`; eslint bỏ qua `playwright-report/`.
