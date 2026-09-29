@@ -121,7 +121,7 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       // lands on the right feature explanation.
       { href: '/tuyen-dung', label: 'Dành cho nhà tuyển dụng' },
       { href: '/user-guide#employer-post-shift', label: 'Đăng ca tuyển' },
-      { href: '/user-guide#employer-applicants', label: 'Quản lý ứng viên' },
+      { href: '/user-guide#employer-applicants', label: 'Quản lý người ứng tuyển' },
       { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
     ],

@@ -1245,7 +1245,7 @@ function EmployerPenaltyLedger({
                   {Math.round(
                     (shift.employerCancellationPenaltyRate ?? 0) * 100,
                   )}
-                  % khoản đảm bảo thanh toán
+                  % tiền cọc
                 </p>
                 <p className="text-sm font-bold text-red-800">
                   -{formatVND(shift.employerCancellationPenaltyAmount ?? 0)}

@@ -332,7 +332,7 @@ mặt (worker/employer/admin/list/detail/deeplink). Một hàm thuần
 | Trạng thái | Nhãn | Tông |
 |---|---|---|
 | Draft | Nháp | neutral |
-| PendingDeposit | Chờ đặt cọc | neutral |
+| PendingDeposit | Chờ giữ cọc | neutral |
 | Published | Đã đăng | info (blue) |
 | StartingSoon | Sắp bắt đầu | warning (amber) |
 | InProgress | Đang diễn ra | info (blue) |
@@ -355,7 +355,7 @@ lifecycle chỉ theo đồng hồ.
 - **Do** dùng nhãn tiếng Việt rõ ràng trong app ("Ca đang chờ duyệt", "Cần xác nhận", "Đối soát") thay cho kiểu chữ trang trí.
 - **Do** neo mỗi màn hình bằng nền kem/trắng và dùng cam (`#FF9A5F`) chỉ cho hành động + điểm nhấn (≤10% bề mặt app).
 - **Do** hiển thị trạng thái ca qua `ShiftLifecycleBadge` — luôn nhãn chữ + tông nhất quán; cùng trạng thái = cùng màu ở mọi nơi.
-- **Do** cho mỗi màn một hành động chính rõ ràng ("Ứng tuyển ca", "Duyệt ứng viên", "Xác nhận hoàn thành", "Xuất đối soát").
+- **Do** cho mỗi màn một hành động chính rõ ràng ("Ứng tuyển ca", "Duyệt người ứng tuyển", "Xác nhận hoàn thành", "Xuất bảng kiểm tra tiền").
 - **Do** dùng bóng mềm hai lớp (`shadow-card`) cho thẻ; nâng (`.motion-lift`) chỉ khi clickable.
 - **Do** giữ mọi phần tử tương tác ≥44px và body text ≥4.5:1 tương phản, kể cả trên nền kem.
 - **Do** gắn nhãn phần mô phỏng đúng sự thật: "đặt cọc mô phỏng", "trạng thái thanh toán", "sổ cái mô phỏng", "check-in (prototype)".

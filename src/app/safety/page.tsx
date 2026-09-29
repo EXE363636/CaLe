@@ -13,13 +13,13 @@ export default function SafetyPage() {
         đăng ca. Người lao động có thể bổ sung CMND/CCCD và thẻ sinh viên
         để mở khoá nhiều ca hơn. Nhà tuyển dụng có thể đăng ký xác minh
         doanh nghiệp để được ưu tiên hiển thị và giảm phí dịch vụ trong
-        tương lai. Mọi nhà tuyển dụng đều đảm bảo thanh toán 100% tổng tiền công.
+        tương lai. Mọi nhà tuyển dụng đều giữ cọc 100% tổng tiền công.
       </InfoSection>
 
-      <InfoSection title="Đảm bảo thanh toán trước khi công khai ca">
+      <InfoSection title="Giữ cọc trước khi công khai ca">
         {isSupabaseEnv()
           ? 'Nhà tuyển dụng phải giữ cọc đủ tiền công trước khi ca được công khai. Khoản cọc được giữ trên hệ thống CaLẻ, chỉ trả cho người lao động khi ca hoàn thành, và được hoàn cho nhà tuyển dụng nếu ca bị huỷ hoặc vị trí không có người làm.'
-          : 'Nhà tuyển dụng phải đảm bảo thanh toán đủ tiền công trước khi ca được công khai. Khoản này được giữ trong ví ký quỹ mô phỏng và chỉ được giải ngân sau khi ca hoàn thành hoặc hoàn lại nếu ca bị huỷ đúng quy định.'}
+          : 'Nhà tuyển dụng phải giữ cọc đủ tiền công trước khi ca được công khai. Khoản này được giữ trong ví mô phỏng và chỉ được trả sau khi ca hoàn thành hoặc hoàn lại nếu ca bị huỷ đúng quy định.'}
       </InfoSection>
 
       <InfoSection title="Điểm uy tín hai chiều">

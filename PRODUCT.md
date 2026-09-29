@@ -17,7 +17,7 @@ trọng tâm là các luồng nghiệp vụ sau đăng nhập.
   xem tiền công, theo dõi điểm uy tín và kỹ năng.
 - **Nhà tuyển dụng (Employer).** Doanh nghiệp nhỏ, cửa hàng, quán, đơn vị có
   nhu cầu người làm tạm thời. Việc cần làm: đăng ca, đặt cọc (mô phỏng), duyệt
-  ứng viên, quản lý trạng thái làm việc, xử lý no-show, xác nhận hoàn thành,
+  người ứng tuyển, quản lý trạng thái làm việc, xử lý no-show, xác nhận hoàn thành,
   đánh giá và đối soát giờ/tiền công.
 - **Quản trị viên (Admin).** Vận hành nền tảng. Việc cần làm: xác minh giấy
   tờ, xử lý tranh chấp, override trạng thái khi cần, điều chỉnh điểm uy tín.
@@ -102,7 +102,7 @@ Những gì CaLẻ **không** nên trông giống:
 2. **Trung thực mặc định.** Không bao giờ ngụ ý một hệ thống tài chính hay chống
    gian lận thật khi nó chỉ là mô phỏng. Gắn nhãn rõ phần mô phỏng/prototype.
 3. **Rõ ràng hơn hoa mỹ.** Mỗi màn hình có một hành động chính rõ ràng ("Ứng
-   tuyển ca", "Duyệt ứng viên", "Xác nhận hoàn thành", "Xuất đối soát"). Trạng
+   tuyển ca", "Duyệt người ứng tuyển", "Xác nhận hoàn thành", "Xuất bảng kiểm tra tiền"). Trạng
    thái quan trọng không chỉ dựa vào màu — kèm nhãn chữ và/hoặc icon.
 4. **Nhanh gọn theo ngữ cảnh.** Thiết kế mobile-first, thao tác ít bước, hoạt
    động tốt trên màn nhỏ và mạng không ổn định — vì người dùng thường quyết định

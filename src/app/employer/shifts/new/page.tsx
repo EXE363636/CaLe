@@ -536,8 +536,8 @@ function NewShiftContent() {
           </h2>
           <p className="mb-3 text-sm leading-relaxed text-gray-600">
             Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.
-            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đảm bảo
-            thanh toán và quy tắc an toàn cho người lao động.
+            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức cọc
+            và quy tắc an toàn cho người lao động.
           </p>
           <ButtonLink href="/employer/profile" variant="primary" size="md">
               {t('posting.readiness.cta.profile')}
@@ -591,7 +591,7 @@ function NewShiftContent() {
       {!createdShiftId && sourceShift && (
         <Card className="mb-4 border-orange-200 bg-orange-50">
           <p className="text-sm text-orange-900">
-            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi đảm bảo thanh toán.
+            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi giữ cọc.
           </p>
         </Card>
       )}

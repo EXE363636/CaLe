@@ -33,6 +33,11 @@
  * here means a naive global find-replace of "đảm bảo thanh toán" (which would
  * corrupt the state-machine labels) is caught as a regression.
  *
+ * P1 feedback F3 (29/09/2026) — chủ dự án chốt MỘT thuật ngữ "cọc" cho khoản
+ * tiền nhà tuyển dụng giữ trước; "đảm bảo thanh toán" bị bỏ khỏi toàn app
+ * (nghe như cam kết trả tiền). Hai nhãn trạng thái được đổi CÓ CHỦ Ý thành
+ * "Chờ giữ cọc" / "Đã giữ cọc"; ghim bên dưới vẫn chặn đổi vô tình về sau.
+ *
  * This test deliberately does NOT pin the payment-guarantee marketing label
  * (that is exactly what the fix changes) — for the route surfaces it asserts
  * only the `/employer/payments` HREF, never the label text.
@@ -63,8 +68,8 @@ const nfc = (s: string | null | undefined): string => (s ?? '').normalize('NFC')
  * baseline can never silently drift out of sync with the enum.
  */
 const PINNED_ESCROW_LABELS: Record<EscrowStatus, string> = {
-  PendingDeposit: 'Chờ đảm bảo thanh toán',
-  Deposited: 'Đã đảm bảo thanh toán',
+  PendingDeposit: 'Chờ giữ cọc',
+  Deposited: 'Đã giữ cọc',
   InProgress: 'Đang xử lý',
   Completed: 'Đã hoàn tất',
   Released: 'Đã thanh toán',

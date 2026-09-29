@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   CREATED: 'Đã khởi tạo',
   PENDING: 'Đang chờ thanh toán mô phỏng',
   HELD: 'Đã giữ tiền (mô phỏng)',
-  RELEASED: 'Đã giải ngân (mô phỏng)',
+  RELEASED: 'Đã trả (mô phỏng)',
   CANCELLED: 'Đã hủy phiên mô phỏng',
   EXPIRED: 'Phiên đã hết hạn',
   FAILED: 'Thất bại',

@@ -102,7 +102,7 @@ test.describe('Part 2: insufficient-deposit draft modal', () => {
     await page.getByRole('button', { name: 'Đăng ca cần tuyển' }).click();
 
     const depositBtn = page.getByRole('button', {
-      name: 'Mô phỏng đảm bảo thanh toán',
+      name: 'Mô phỏng giữ cọc',
     });
     await expect(depositBtn).toBeVisible();
     await depositBtn.click();
@@ -111,7 +111,7 @@ test.describe('Part 2: insufficient-deposit draft modal', () => {
     // three actions.
     const modal = page.getByRole('dialog');
     await expect(
-      modal.getByText('Số dư ví không đủ để đặt cọc').first(),
+      modal.getByText('Số dư ví không đủ để giữ cọc').first(),
     ).toBeVisible();
     await expect(modal.getByRole('button', { name: 'Nạp tiền ngay' })).toBeVisible();
     await expect(modal.getByRole('button', { name: 'Lưu nháp' })).toBeVisible();
@@ -135,12 +135,12 @@ test.describe('Part 2: insufficient-deposit draft modal', () => {
     // The deposit-confirm card is still mounted — confirm again, this
     // time it succeeds (no insufficient-balance error).
     const depositBtn2 = page.getByRole('button', {
-      name: 'Mô phỏng đảm bảo thanh toán',
+      name: 'Mô phỏng giữ cọc',
     });
     await expect(depositBtn2).toBeVisible();
     await depositBtn2.click();
     await expect(
-      page.getByText('Số dư ví không đủ để đặt cọc').first(),
+      page.getByText('Số dư ví không đủ để giữ cọc').first(),
     ).toHaveCount(0);
   });
 });

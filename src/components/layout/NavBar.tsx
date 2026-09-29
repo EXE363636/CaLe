@@ -118,7 +118,7 @@ const EMPLOYER_GROUP: MenuGroup = {
     },
     {
       href: '/employer/dashboard',
-      label: 'Quản lý ứng viên',
+      label: 'Quản lý người ứng tuyển',
       description: 'Duyệt đơn và xác nhận ca hoàn thành',
     },
     {
@@ -248,7 +248,7 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
     },
     {
       href: '/user-guide#employer-applicants',
-      label: 'Quản lý ứng viên',
+      label: 'Quản lý người ứng tuyển',
       description: 'Cách duyệt và xác nhận ca làm',
     },
     {
@@ -753,7 +753,7 @@ function EmployerNav({
         pathname={pathname}
         badgeCount={dashboardCount}
         badgeAriaLabel={
-          dashboardCount > 0 ? `${dashboardCount} ứng viên cần xử lý` : undefined
+          dashboardCount > 0 ? `${dashboardCount} người ứng tuyển cần xử lý` : undefined
         }
       >
         {t('nav.dashboard')}

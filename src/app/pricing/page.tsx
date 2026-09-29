@@ -9,7 +9,7 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  * (Người lao động / Nhà tuyển dụng) + 1 ví dụ + FAQ ngắn. Bỏ mục VIP/Boost
  * "dự kiến" cho tới khi chủ dự án chốt giá.
  *
- * Supabase/production: phí nền tảng 10% ĐANG được thu thật (giữ cùng cọc, chỉ
+ * Supabase/production: phí dịch vụ 10% ĐANG được thu thật (giữ cùng cọc, chỉ
  * tính trên phần ca có người làm — khớp _finalize_shift_deposit, 0018; tự chốt
  * sau 24 giờ — 0019). Local/demo: mọi số tiền là mô phỏng, chưa thu phí.
  * Không có nút mua thật; CTA chỉ dẫn tới đăng ký / đăng ca.

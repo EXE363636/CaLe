@@ -480,7 +480,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
       // 2. Simulate Deposit Held
       apply(shift.employerId, -shift.depositAmount, 'EmployerDepositHeld', {
         shiftId: shift.id,
-        note: `Đảm bảo thanh toán ca "${title}"`,
+        note: `Giữ cọc ca "${title}"`,
         occurredAt: depositTime,
       });
 

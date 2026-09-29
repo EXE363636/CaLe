@@ -34,7 +34,7 @@ async function openUserMenu(page: import('@playwright/test').Page) {
 }
 
 test.describe('Employer same-route intents', () => {
-  test('UserMenu "Quản lý ứng viên" opens the pending modal while already on the dashboard (and again on repeat click)', async ({
+  test('UserMenu "Quản lý người ứng tuyển" opens the pending modal while already on the dashboard (and again on repeat click)', async ({
     page,
     seedState,
     loginAs,
@@ -60,7 +60,7 @@ test.describe('Employer same-route intents', () => {
 
     // Already on the dashboard — open the menu and click the shortcut.
     await openUserMenu(page);
-    await page.getByRole('menuitem', { name: 'Quản lý ứng viên' }).click();
+    await page.getByRole('menuitem', { name: 'Quản lý người ứng tuyển' }).click();
 
     // The pending modal opens in-place (no navigation away). Scope to
     // the dialog so the assertion is unambiguous.
@@ -78,7 +78,7 @@ test.describe('Employer same-route intents', () => {
     await expect(page.getByRole('dialog')).toHaveCount(0);
 
     await openUserMenu(page);
-    await page.getByRole('menuitem', { name: 'Quản lý ứng viên' }).click();
+    await page.getByRole('menuitem', { name: 'Quản lý người ứng tuyển' }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(
       page

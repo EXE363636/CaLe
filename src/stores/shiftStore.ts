@@ -391,7 +391,7 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
 
     // Phase 10C-Stab-1 Batch 2 H — store-side employer verification
     // gate. The UI's `<ReadinessChecklist/>` already prevents
-    // unverified employers from clicking "Mô phỏng đặt cọc", but
+    // unverified employers from clicking "Mô phỏng giữ cọc", but
     // the gate must fire on the store action itself so a stale UI
     // state or a programmatic call site cannot bypass it.
     const employerCandidate = useUserStore.getState().findById(shift.employerId);
@@ -458,7 +458,7 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
       .getState()
       .debit(updated.employerId, updated.depositAmount, 'EmployerDepositHeld', {
         shiftId: updated.id,
-        note: `Đặt cọc cho ca "${updated.title}"`,
+        note: `Giữ cọc cho ca "${updated.title}"`,
       });
     // Phase 10C-Stab-1 Batch 4B — append timeline entries directly.
     // Done inline (not via `appendShiftTimelineEntry`) because we
@@ -497,7 +497,7 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
     useNotificationStore.getState().push({
       userId: updated.employerId,
       kind: 'EmployerDepositPaid',
-      title: 'Đã đặt cọc cho ca làm',
+      title: 'Đã giữ cọc cho ca làm',
       body: `Đã giữ cọc ${updated.depositAmount.toLocaleString('vi-VN')} đồng cho ca "${updated.title}". Ca đã được công bố.`,
       link: '/employer/dashboard?modal=wallet',
       dedupeKey: `EmployerDepositPaid:${updated.id}`,

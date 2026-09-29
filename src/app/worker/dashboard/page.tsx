@@ -822,7 +822,7 @@ function WorkerDashboardContent() {
       <section id="wallet" className="order-3 mb-8 scroll-mt-24 lg:order-none">
         {hasCapability('wallet') ? (
           // Ví mô phỏng (server): worker NHẬN lương (tự cộng khi ca hoàn thành)
-          // + RÚT. Không nạp (worker không đặt cọc). Không giữ tiền client (#7).
+          // + RÚT. Không nạp (worker không giữ cọc). Không giữ tiền client (#7).
           <WalletPanel
             userId={worker.id}
             role="worker"

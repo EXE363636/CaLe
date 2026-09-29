@@ -29,8 +29,8 @@ export default function EmployerReviewsPage() {
           <>
             Sau khi người lao động check-out, ứng dụng nhắc bạn xác nhận hoàn
             thành ca. Tại bước đó, bạn có thể chấm 1–5 sao và viết nhận xét
-            ngắn. Trong bản demo, đánh giá là bắt buộc để khoản đảm bảo thanh
-            toán mô phỏng được giải ngân thành tiền công cho người lao động.
+            ngắn. Trong bản demo, đánh giá là bắt buộc để tiền cọc
+            mô phỏng được chuyển thành tiền công cho người lao động.
           </>
         )}
       </InfoSection>

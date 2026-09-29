@@ -352,7 +352,7 @@ export const useAdminStore = create<AdminStore>(() => ({
           title: 'Tranh chấp đã được giải quyết',
           body:
             `Quản trị viên đã thanh toán cho bạn cho ca "${shiftTitle}".` +
-            (amountVN ? ` Tiền công ${amountVN} đã được giải ngân.` : ''),
+            (amountVN ? ` Tiền công ${amountVN} đã được trả.` : ''),
           link: `/shifts/${dispute.shiftId}`,
         });
         if (shift) {
@@ -373,7 +373,7 @@ export const useAdminStore = create<AdminStore>(() => ({
           kind,
           title: 'Tranh chấp đã được giải quyết',
           body:
-            `Quản trị viên đã hoàn tiền đặt cọc cho nhà tuyển dụng cho ca "${shiftTitle}".` +
+            `Quản trị viên đã hoàn tiền cọc cho nhà tuyển dụng cho ca "${shiftTitle}".` +
             (amountVN ? ` Số tiền hoàn: ${amountVN}.` : ''),
           link: `/shifts/${dispute.shiftId}`,
         });
@@ -383,7 +383,7 @@ export const useAdminStore = create<AdminStore>(() => ({
             kind,
             title: 'Tranh chấp đã được giải quyết',
             body:
-              `Quản trị viên đã hoàn tiền đặt cọc cho bạn cho ca "${shiftTitle}".` +
+              `Quản trị viên đã hoàn tiền cọc cho bạn cho ca "${shiftTitle}".` +
               (amountVN ? ` Số tiền hoàn: ${amountVN}.` : ''),
             link: `/employer/shifts/${dispute.shiftId}`,
           });
@@ -442,7 +442,7 @@ export const useAdminStore = create<AdminStore>(() => ({
           shiftFinal.id,
           outcome === 'ResolvedReleased' ? 'WageReleased' : 'WageRefunded',
           outcome === 'ResolvedReleased'
-            ? `Đã giải ngân tiền công sau khiếu nại.`
+            ? `Đã trả tiền công sau khiếu nại.`
             : `Đã hoàn cọc cho nhà tuyển dụng sau khiếu nại.`,
         );
       }

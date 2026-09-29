@@ -165,7 +165,7 @@ npx tsc --noEmit     # type-check
 | State | Nhãn | Tông |
 |---|---|---|
 | Draft | Nháp | neutral |
-| PendingDeposit | Chờ đặt cọc | neutral |
+| PendingDeposit | Chờ giữ cọc | neutral |
 | Published | Đã đăng | info |
 | StartingSoon | Sắp bắt đầu | warning |
 | InProgress | Đang diễn ra | info |

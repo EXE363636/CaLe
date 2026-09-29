@@ -13,7 +13,7 @@ export default function FaqPage() {
     >
       <InfoSection title="Tôi có phải trả trước khoản nào khi đăng ký người lao động không?">
         Không. Người lao động hoàn toàn không phải nộp phí đăng ký, khoản
-        trả trước hoặc phí ẩn nào. Mọi khoản đảm bảo thanh toán trên hệ
+        trả trước hoặc phí ẩn nào. Mọi tiền cọc trên hệ
         thống đều do nhà tuyển dụng thực hiện trước khi ca được công khai.
       </InfoSection>
 
@@ -34,11 +34,11 @@ export default function FaqPage() {
       <InfoSection title="Khi nào tôi nhận được tiền công?">
         {isSupabaseEnv()
           ? 'Ngay khi nhà tuyển dụng xác nhận bạn hoàn thành ca, tiền công được chuyển vào ví của bạn trên CaLẻ và bạn có thể rút về tài khoản ngân hàng bất cứ lúc nào. Nếu nhà tuyển dụng không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'
-          : 'Sau khi bạn check-out và nhà tuyển dụng xác nhận hoàn thành, tiền công được giải ngân vào hệ thống và phản ánh ngay trong mục "Tổng thu nhập" trên dashboard người lao động. Trong bản dùng thử hiện tại, mọi giao dịch tiền tệ đều là mô phỏng.'}
+          : 'Sau khi bạn check-out và nhà tuyển dụng xác nhận hoàn thành, tiền công được trả vào hệ thống và phản ánh ngay trong mục "Tổng thu nhập" trên dashboard người lao động. Trong bản dùng thử hiện tại, mọi giao dịch tiền tệ đều là mô phỏng.'}
       </InfoSection>
 
       <InfoSection title="Tôi đăng ca xong nhưng chưa ai ứng tuyển, làm sao bây giờ?">
-        Hãy đảm bảo ca đã được đảm bảo thanh toán và công khai (kiểm tra trạng thái
+        Hãy đảm bảo ca đã được giữ cọc và công khai (kiểm tra trạng thái
         hiển thị &quot;Đang tuyển&quot;). Mô tả ca rõ ràng, mức lương theo thị
         trường khu vực, và sử dụng lượt boost (nếu có) để ưu tiên hiển
         thị. Nếu cần thay đổi mô tả, dùng nút Chỉnh sửa trước 24h.
@@ -46,8 +46,8 @@ export default function FaqPage() {
 
       <InfoSection title="Tôi gặp tranh chấp với người lao động/nhà tuyển dụng — phải làm sao?">
         Mở chi tiết ca làm và bấm &quot;Báo cáo sự cố&quot;. Quản trị viên sẽ xem
-        xét hồ sơ, đánh giá từ cả hai bên và đưa ra quyết định giải
-        ngân hoặc hoàn khoản đảm bảo thanh toán. Vui lòng tham khảo &quot;Chính sách xử lý tranh
+        xét hồ sơ, đánh giá từ cả hai bên và quyết định trả tiền cọc cho người
+        lao động hoặc hoàn lại cho nhà tuyển dụng. Vui lòng tham khảo &quot;Chính sách xử lý tranh
         chấp&quot; để biết quy trình.
       </InfoSection>
     </InfoPage>
