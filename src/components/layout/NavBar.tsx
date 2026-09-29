@@ -194,8 +194,14 @@ const SAFETY_GROUP: MenuGroup = {
 
 const WORKER_GROUP_PUBLIC: MenuGroup = {
   label: 'Người lao động',
-  activePrefixes: ['/worker'],
+  activePrefixes: ['/worker', '/viec-lam'],
   items: [
+    {
+      // P1 feedback F4 — trang giới thiệu riêng cho người lao động.
+      href: '/viec-lam',
+      label: 'Dành cho người lao động',
+      description: 'Lợi ích và các ca mới đăng',
+    },
     {
       href: '/shifts',
       label: 'Tìm ca làm',
@@ -224,8 +230,14 @@ const WORKER_GROUP_PUBLIC: MenuGroup = {
 
 const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
   label: 'Nhà tuyển dụng',
-  activePrefixes: ['/employer'],
+  activePrefixes: ['/employer', '/tuyen-dung'],
   items: [
+    {
+      // P1 feedback F4 — trang giới thiệu riêng cho nhà tuyển dụng.
+      href: '/tuyen-dung',
+      label: 'Dành cho nhà tuyển dụng',
+      description: 'Lợi ích, phí dịch vụ và cách đăng ca',
+    },
     {
       // Phase 9Z-Fix-4: deep-link to the Đăng ca tuyển anchor on
       // /user-guide so logged-out visitors land directly on the
@@ -488,9 +500,19 @@ export function NavBar() {
       <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-4">
         {/* Brand block — LEFT zone */}
         {/* P0 feedback F7 — admin không có trang chủ riêng: logo đưa về
-            Tổng quan admin thay vì landing công khai. */}
+            Tổng quan admin thay vì landing công khai.
+            P1 feedback F4 — đã đăng nhập thì logo về nơi làm việc chính:
+            worker → danh sách ca, employer → tổng quan; khách → `/`. */}
         <Link
-          href={role === 'admin' ? '/admin/dashboard' : '/'}
+          href={
+            role === 'admin'
+              ? '/admin/dashboard'
+              : role === 'employer'
+                ? '/employer/dashboard'
+                : role === 'worker'
+                  ? '/shifts'
+                  : '/'
+          }
           className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:rounded xl:justify-self-start"
         >
           <img
@@ -668,7 +690,7 @@ function WorkerNav({
   );
   return (
     <>
-      <NavLink href="/" pathname={pathname} exact>
+      <NavLink href="/viec-lam" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
       <NavLink href="/shifts" pathname={pathname}>
@@ -716,7 +738,7 @@ function EmployerNav({
   }, [shifts, applications, employerId]);
   return (
     <>
-      <NavLink href="/" pathname={pathname} exact>
+      <NavLink href="/tuyen-dung" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
       <NavLink

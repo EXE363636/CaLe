@@ -64,8 +64,9 @@ dependency backend nào.
 
 ```
 src/
-  app/                    # App Router — 28 route (page.tsx)
-    page.tsx              # landing
+  app/                    # App Router — 33 route (page.tsx)
+    page.tsx              # chọn vai trò (→ viec-lam / tuyen-dung)
+    viec-lam, tuyen-dung  # trang giới thiệu theo vai trò (P1 F4)
     login, register
     shifts/, shifts/[id]/
     worker/dashboard, worker/profile, worker/schedule, worker/reputation-guide, worker/cancellation-policy
@@ -103,7 +104,7 @@ docs/                    # tài liệu handoff, backend plan, security note
 
 ```bash
 npm run dev          # dev server (port 3000)
-npm run build        # build production — BẤT BIẾN: đúng 28 route
+npm run build        # build production — BẤT BIẾN: đúng 33 route (29/09: +/viec-lam, /tuyen-dung)
 npm run test:run     # unit test (Vitest, chạy 1 lần)
 npm run test:time    # bộ time-travel lifecycle
 npm run test:e2e     # Playwright (cần dev server ở 3000)

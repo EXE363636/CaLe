@@ -66,7 +66,7 @@ test.describe('Admin header: logo + nav', () => {
     await expect(nav.locator('a[href="/"]')).toHaveCount(0);
   });
 
-  test('non-admin logo still links to the landing page', async ({
+  test('worker logo links to the shift list', async ({
     page,
     seedState,
     loginAs,
@@ -77,7 +77,8 @@ test.describe('Admin header: logo + nav', () => {
     await loginAs(ACCOUNTS.worker.id);
     await gotoApp('/worker/dashboard');
 
-    await expect(logoLink(page)).toHaveAttribute('href', '/');
+    // P1 feedback F4 — worker đã đăng nhập: logo về danh sách ca.
+    await expect(logoLink(page)).toHaveAttribute('href', '/shifts');
   });
 });
 
