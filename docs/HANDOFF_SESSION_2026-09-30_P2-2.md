@@ -94,10 +94,37 @@ thêm phần túi thưởng (đã diff, và md5 thân cũ trên remote khớp fi
   3. Đăng ca → bước giữ cọc hiện "Trả phí bằng tiền thưởng −…".
   4. Huỷ ca đó → tiền thưởng quay lại; tiền mặt quay lại.
   5. Bấm "Tắt thưởng".
-- [ ] **Lỗ hổng có từ trước (tách task riêng):** webhook PayOS
-  (`supabase/functions/payos-webhook/index.ts`) không so `data.amount` với
-  `payment_orders.amount` trước khi cộng ví (+ thưởng). Cần xác minh với PayOS và
-  thêm kiểm.
+- [x] **Webhook PayOS so số tiền** — nhánh `fix/payos-webhook-amount`, migration
+  `20260930000027_payos_webhook_amount_check.sql` (30/09):
+  - `payos-webhook` gọi `credit_wallet_from_payos(order_code, data.amount,
+    data.reference, data.paymentLinkId)` (chỉ service_role). Chỉ cộng ví khi đơn
+    PENDING, số tiền khớp, có mã giao dịch, đúng payment link. PayOS gửi lại cùng
+    giao dịch → không cộng lần hai.
+  - Còn lại KHÔNG cộng, đặt `payment_orders.needs_review = true` +
+    `review_reason` (AMOUNT_MISMATCH / MISSING_REFERENCE / LINK_MISMATCH /
+    ORDER_NOT_PAYABLE / EXTRA_PAYMENT / ALREADY_FLAGGED); webhook vẫn trả 200.
+  - Cột mới: `paid_amount`, `provider_txn_ref` (unique, = `data.reference`),
+    `needs_review`, `review_reason`. `provider_ref` vẫn là paymentLinkId.
+  - `credit_wallet_from_payment` (thân 0026 giữ nguyên) chặn `ORDER_NEEDS_REVIEW`.
+  - Chạy thử trên DB thật (transaction + rollback): 16 kịch bản đúng.
+    security-reviewer 2 lượt: lượt 1 có 2 mục Trung bình → đã sửa; lượt 2 không
+    còn mục Trung bình trở lên.
+  - **Triển khai đúng thứ tự:** `npx supabase db push` (0027) TRƯỚC, rồi
+    `npx supabase functions deploy payos-webhook`. Ngược lại thì webhook báo 500
+    (PayOS gửi lại, không mất tiền) tới khi push.
+  - **Sau lần nạp thật đầu tiên:** kiểm đơn đó có `provider_txn_ref` và
+    `paid_amount`, `needs_review = false`. Nếu bị `LINK_MISMATCH` /
+    `MISSING_REFERENCE` hàng loạt → PayOS gửi khác tài liệu, báo lại để sửa.
+  - **Admin xử lý đơn bị đánh dấu (chưa có UI):** xem bằng SQL
+    `select order_code, user_id, amount, paid_amount, review_reason, created_at
+    from payment_orders where needs_review order by created_at desc;` rồi đối
+    chiếu giao dịch trên PayOS. KHÔNG tự đặt `needs_review = false` rồi gọi
+    `credit_wallet_from_payment`: hàm đó cộng `amount` của đơn (kèm thưởng), không
+    phải `paid_amount`. Hoàn tiền cho khách ngoài hệ thống, hoặc làm RPC admin
+    riêng (việc sau).
+  - Việc sau (Thấp): hiện "Đang kiểm tra giao dịch" cho người nạp khi đơn
+    `needs_review` (`get_payment_order_status` chưa trả trường này); RPC + UI
+    admin cho đơn cần xem.
 - [ ] (tuỳ chọn) Dải "Đang miễn phí dịch vụ đến hết …" ở Bảng giá / `/tuyen-dung`.
 - [ ] **P2-1 cọc worker** — ĐÃ CHỐT (30/09), làm được SAU khi xong task webhook
       PayOS ở trên. Chi tiết: `HANDOFF_SESSION_2026-09-28_FEEDBACK.md` mục 3 (P2-1)
