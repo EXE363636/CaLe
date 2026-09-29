@@ -4,8 +4,8 @@
  *
  * PayOS (server, KHÔNG có JWT người dùng) gọi endpoint này khi có biến động
  * thanh toán. Xác thực bằng CHỮ KÝ (HMAC-SHA256 checksum key), không phải JWT.
- * Nếu hợp lệ + đã trả -> gọi RPC credit_wallet_from_payment (idempotent) cộng
- * ví thật cho người nạp.
+ * Nếu hợp lệ + đã trả -> gọi RPC credit_wallet_from_payos (idempotent; 0027)
+ * cộng ví thật cho người nạp khi `data.amount` khớp số tiền đơn.
  *
  * Trả 200 cho cả webhook test lúc đăng ký URL (order không tồn tại) để PayOS
  * chấp nhận endpoint. Chỉ verify chữ ký rồi mới tin `data`.
@@ -60,13 +60,22 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, note: 'not-paid (ack)' });
   }
 
-  // 3) Cộng ví thật qua RPC idempotent. Order không tồn tại (webhook test) -> ack 200.
-  const { data: rpcData, error } = await admin.rpc('credit_wallet_from_payment', {
+  // 3) Cộng ví thật qua RPC idempotent, CHỈ khi số tiền PayOS báo nhận khớp đơn
+  //    (0027). Lệch số tiền / đơn không còn chờ trả -> RPC đánh dấu cần admin xem,
+  //    không cộng ví; vẫn ack 200 vì PayOS gửi lại cũng không đổi kết quả.
+  //    Order không tồn tại (webhook test) -> ack 200.
+  const paidAmount = Number(data.amount);
+  const { data: rpcData, error } = await admin.rpc('credit_wallet_from_payos', {
     p_order_code: orderCode,
+    p_paid_amount: Number.isInteger(paidAmount) ? paidAmount : null,
+    p_reference: String(data.reference ?? ''),
   });
   if (error) {
     if (error.message.includes('ORDER_NOT_FOUND')) return json({ ok: true, note: 'unknown-order (ack)' });
     return fail('CREDIT_FAILED', 500, error.message);
+  }
+  if ((rpcData as any)?.status === 'NEEDS_REVIEW') {
+    console.error('[payos-webhook] NEEDS_REVIEW', JSON.stringify(rpcData));
   }
 
   return json({ ok: true, result: rpcData });
