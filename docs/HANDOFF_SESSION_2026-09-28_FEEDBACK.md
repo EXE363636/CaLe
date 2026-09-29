@@ -21,7 +21,7 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
     - Đã so hàm/constraint/cột/policy/index/quyền trên remote với file local (chạy
       lại trong transaction + rollback): **khớp 100%**. Sau push so lại: schema không
       đổi, dữ liệu giữ nguyên (2 dòng đánh giá). Push thực chất chỉ ghi lịch sử.
-- [ ] **B. Trả lời đủ 7 câu ở mục 5.** Điền vào dòng **Trả lời:** dưới từng câu.
+- [x] **B. Trả lời đủ 7 câu ở mục 5.** _(xong 29/09 — P3 hoãn theo câu 6; P2-1 còn 3 điểm mở ở câu 4)_ Điền vào dòng **Trả lời:** dưới từng câu.
   - Phải có **đủ 7 câu trả lời** mới bắt đầu, kể cả P0.
   - Câu nào bị trả lời "chưa biết" thì ghi rõ, và KHÔNG làm phần phụ thuộc câu đó:
     - Câu 1 → P0 bước 6.
@@ -279,25 +279,26 @@ nên làm, nhưng cách ly khỏi luồng ca/escrow.
 ## 5. Cần chủ dự án chốt trước khi code (BẮT BUỘC — xem mục ⛔ ở đầu file)
 1. **F6:** "Lịch tuyển đủ chỗ thì ghi lịch tuyển dụng" nghĩa là gì? (plan đang hiểu:
    ca đủ người hiện "Đã tuyển đủ" + đổi tên mục "Lịch" → "Lịch tuyển dụng").
-   **Trả lời:** ____
+   **Trả lời:** Không làm nhãn "Đã tuyển đủ". Chỉ thay nhãn **"Lịch tuyển" → "Lịch tuyển dụng"** (mục điều hướng/tiêu đề lịch employer). _(29/09)_
 2. **F2:** "chỉ 3 màu" áp dụng cho cả badge trạng thái ca không? (Nếu có thì phải bỏ
    bất biến "Đang diễn ra = xanh dương".)
-   **Trả lời:** ____
+   **Trả lời:** **Không**, badge trạng thái ca giữ nguyên ("Đang diễn ra" vẫn xanh dương `info`). "3 màu" chỉ áp cho giao diện chung/trang marketing. _(29/09)_
 3. **F4:** trang chủ `/` mặc định cho người lao động, nhà tuyển dụng ở `/tuyen-dung`,
    đúng không?
-   **Trả lời:** ____
+   **Trả lời:** **Trang chủ riêng** cho người lao động và nhà tuyển dụng; **`/` là trang chọn vai trò** (2 nút "Tôi cần việc" / "Tôi cần tuyển" dẫn sang 2 trang riêng). Đường dẫn 2 trang con chốt khi làm P1. _(29/09)_
 4. **F9:** cọc worker bao nhiêu (số cố định hay % tiền công)? Làm đủ mấy ca thì miễn?
    Worker vắng mặt thì tiền cọc về đâu (nhà tuyển dụng / CaLẻ / chia)?
-   **Trả lời:** ____
+   **Trả lời:** Nguyên văn: "worker tính cọc bằng 50% số tiền sau khi hoàn thành ca, trong 1 tháng nếu hoàn thành đủ 5 ca trở lên thì không cần cọc". Tức cọc = **50% tiền công của ca**; **≥5 ca hoàn thành trong 1 tháng** thì miễn cọc. _(29/09)_
+   ⚠️ **Còn chưa chốt** (hỏi lại trước khi làm P2-1): worker vắng mặt thì cọc về đâu (NTD / CaLẻ / chia); "1 tháng" là 30 ngày gần nhất hay tháng dương lịch; worker đã xác thực CCCD có được miễn cọc không.
 5. **F10:** giảm cọc từ lần 2, hay thưởng nạp ví (nạp 500 được 600)? Tiền thưởng chỉ
    trừ phí dịch vụ, hay trừ được cả tiền công?
-   **Trả lời:** ____
+   **Trả lời:** **Thưởng nạp ví** (vd nạp 500.000đ được thêm 100.000đ); tiền thưởng **chỉ trừ phí dịch vụ**, không trả tiền công, không rút được. _(29/09)_
 6. **F11:** giá giới thiệu parttime: 200.000đ/lượt không bảo hành, và gói bảo hành
    bao nhiêu, bảo hành mấy ngày? Bản đầu có cho nhà tuyển dụng tự đăng không, hay
    chỉ admin đăng hộ?
-   **Trả lời:** ____
+   **Trả lời:** **Tạm thời chưa triển khai** parttime → **không làm P3**. _(29/09)_
 7. Ảnh cho trang chủ: team tự chụp hay dùng ảnh stock?
-   **Trả lời:** ____
+   **Trả lời:** **Ảnh stock trước** (Unsplash/Pexels, giấy phép miễn phí), thay dần bằng ảnh team tự chụp. _(29/09)_
 
 ## 6. Thứ tự đề xuất
 Xong mục ⛔ (A + B) → P0 → P1 → P2 → P3. Mỗi phần
