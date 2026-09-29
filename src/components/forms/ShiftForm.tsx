@@ -720,19 +720,38 @@ export function ShiftForm({
       </div>
       </FormSection>
 
-      {/* Live deposit total. Khi có phí (supabase) → hiển thị breakdown +
-          note để employer hiểu số dư cần đảm bảo đã gồm 10% phí dịch vụ. */}
+      {/* Live deposit total. P0 feedback F5 — đây là khối tóm tắt tiền DUY
+          NHẤT của trang đăng ca (supabase): tiền công, phí 10%, tổng giữ từ
+          ví + một dòng khi nào đăng / hoàn. Thẻ giải thích cọc ở đầu trang và
+          ghi chú lặp ở bước xác nhận đã bỏ. */}
       {liveDeposit > 0 && (
-        <div className="rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-800">
-          <div>
-            <span className="font-medium">{t('shifts.deposit.amount')}:</span>{' '}
-            <span className="font-semibold">{formatVND(liveDeposit)}</span>
-          </div>
-          {liveDepositFee > 0 && (
-            <p className="mt-1 text-xs text-orange-700">
-              Gồm {formatVND(liveDepositBase)} tiền công + {formatVND(liveDepositFee)} phí
-              dịch vụ 10%. Đây là số dư ví sẽ bị giữ khi đăng ca.
-            </p>
+        <div
+          className="rounded-xl bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200"
+          data-testid="shift-form-deposit-summary"
+        >
+          {liveDepositFee > 0 ? (
+            <>
+              <dl className="flex flex-col gap-1 tabular-nums">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-orange-800">{t('shiftForm.depositSummary.wage')}</dt>
+                  <dd>{formatVND(liveDepositBase)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-orange-800">{t('shiftForm.depositSummary.fee')}</dt>
+                  <dd>{formatVND(liveDepositFee)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-orange-200 pt-1 font-semibold">
+                  <dt>{t('shiftForm.depositSummary.total')}</dt>
+                  <dd>{formatVND(liveDeposit)}</dd>
+                </div>
+              </dl>
+              <p className="mt-2 text-xs text-orange-800">{t('shiftForm.depositSummary.note')}</p>
+            </>
+          ) : (
+            <div>
+              <span className="font-medium">{t('shifts.deposit.amount')}:</span>{' '}
+              <span className="font-semibold">{formatVND(liveDeposit)}</span>
+            </div>
           )}
         </div>
       )}

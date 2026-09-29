@@ -1183,6 +1183,12 @@ export const vi: Record<string, string> = {
   'shifts.new.subtitle':
     'Hoàn thành thông tin ca làm. Hệ thống sẽ tự động tính khoản đảm bảo thanh toán dựa trên độ uy tín nhà tuyển dụng.',
   'shifts.deposit.amount': 'Số dư tuyển dụng cần đảm bảo',
+  // P0 feedback F5 — khối tóm tắt tiền duy nhất dưới form đăng ca (production).
+  'shiftForm.depositSummary.wage': 'Tiền công',
+  'shiftForm.depositSummary.fee': 'Phí dịch vụ 10%',
+  'shiftForm.depositSummary.total': 'Tổng giữ từ ví',
+  'shiftForm.depositSummary.note':
+    'Ca được đăng ngay sau khi giữ đủ số tiền này. Phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
   'shifts.deposit.description':
     'Nhà tuyển dụng cần thanh toán trước toàn bộ tiền công vào ví doanh nghiệp trước khi ca được đăng công khai.',
   'shifts.deposit.success': 'Đảm bảo thanh toán thành công! Ca làm đã được đăng.',
@@ -1296,10 +1302,14 @@ export const vi: Record<string, string> = {
     'Hoàn thành thông tin ca làm; ca chỉ được đăng sau khi giữ cọc tiền công.',
   'help.shiftCreate.item1':
     'Lương theo giờ nhập số nguyên - hệ thống tự đọc thành chữ Việt.',
-  'help.shiftCreate.item2':
-    'Mọi nhà tuyển dụng đều thanh toán trước 100% tổng tiền công. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai, không ảnh hưởng đến tỷ lệ đảm bảo thanh toán.',
   'help.shiftCreate.item3':
     'Bấm "Xác nhận đã thanh toán" để hoàn tất đảm bảo thanh toán - không có giao dịch thật.',
+  // P0 feedback F5 — popover production: 3 ý, đúng luồng tiền thật.
+  'help.shiftCreate.real.item1':
+    'Lương theo giờ nhập số nguyên, hệ thống tự đọc thành chữ.',
+  'help.shiftCreate.real.item2':
+    'Khi bấm Đăng, hệ thống giữ tiền công + 10% phí từ ví. Ví thiếu thì nạp qua QR PayOS.',
+  'help.shiftCreate.real.item3': 'Ca hiện công khai ngay sau khi giữ đủ tiền.',
   'help.shiftCreate.item4':
     'Sau khi hoàn tất đảm bảo thanh toán, ca sẽ chuyển sang trạng thái "Đã đăng" công khai.',
 
@@ -1618,15 +1628,6 @@ export const vi: Record<string, string> = {
   // Phase 10C-Stab-1 Batch 3: every employer deposits 100% tiền công.
   // Trust tier still matters for visibility / priority / fees in future.
   // -------------------------------------------------------------------------
-  'deposit.real.title': 'Giữ cọc từ ví trước khi đăng ca',
-  'deposit.real.formula':
-    'Số tiền giữ = lương/giờ × số giờ × số người cần + 10% phí dịch vụ. Tổng cụ thể hiện ngay dưới form khi bạn nhập.',
-  'deposit.real.when':
-    'Ca chỉ được đăng sau khi hệ thống giữ đủ số tiền này từ số dư ví của bạn. Thiếu số dư thì nạp thêm qua PayOS.',
-  'deposit.real.refund':
-    'Tiền công được trả cho người lao động khi ca hoàn thành; phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
-  'deposit.real.confirmNote':
-    'Để đăng ca, hệ thống giữ cọc từ số dư ví của bạn. Ca chỉ được đăng sau khi giữ cọc. Tiền cọc trả cho người lao động khi ca hoàn thành; phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
   'deposit.trust.title': 'Đảm bảo thanh toán 100% tiền công',
   'deposit.trust.low':
     'Độ uy tín: Thấp. Nhà tuyển dụng mới hoặc chưa xác minh. Đảm bảo thanh toán 100% tiền công; cấp độ tin cậy vẫn ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
