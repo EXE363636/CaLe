@@ -7,6 +7,8 @@ import { Footer } from "@/components/layout/Footer";
 import { ToastHost } from "@/components/layout/ToastHost";
 import { OAuthOnboardingRedirect } from "@/components/auth/OAuthOnboardingRedirect";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { LocaleProvider } from "@/i18n/LocaleProvider";
+import { getLocale } from "@/i18n/server";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -23,11 +25,13 @@ export const metadata: Metadata = {
   manifest: "/site.webmanifest",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Ngôn ngữ hiển thị (cookie `cale.lang`, mặc định tiếng Việt) — xem src/i18n/locale.ts.
+  const locale = await getLocale();
   return (
     // Phase 9Y-Fix-4 — `suppressHydrationWarning` defensively on
     // `<html>` and `<body>`. Browser extensions such as Dark Reader,
@@ -42,7 +46,7 @@ export default function RootLayout({
     // suppresses warnings for the element it sits on (one level deep),
     // not recursively, so legitimate child mismatches still warn.
     <html
-      lang="vi"
+      lang={locale}
       className={`${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -58,15 +62,17 @@ export default function RootLayout({
         className="min-w-0 min-h-full flex flex-col font-sans text-gray-900"
         suppressHydrationWarning
       >
-        <AppHydrator>
-          <NavBar />
-          <main className="min-w-0 flex-1">
-            {children}
-          </main>
-          <Footer />
-          <ToastHost />
-          <OAuthOnboardingRedirect />
-        </AppHydrator>
+        <LocaleProvider locale={locale}>
+          <AppHydrator>
+            <NavBar />
+            <main className="min-w-0 flex-1">
+              {children}
+            </main>
+            <Footer />
+            <ToastHost />
+            <OAuthOnboardingRedirect />
+          </AppHydrator>
+        </LocaleProvider>
         {/* Google Analytics 4 — nạp gtag.js một lần cho toàn app. */}
         <GoogleAnalytics />
       </body>

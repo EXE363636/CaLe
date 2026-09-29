@@ -8,16 +8,17 @@ import { useUserStore } from '@/stores/userStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
 import { isShiftAvailableForRecruiting } from '@/domain/shiftAvailability';
 import { ShiftCard } from '@/components/shift/ShiftCard';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 /**
- * P1 feedback F4 — "6 ca mới nhất" trên trang người lao động (`/viec-lam`).
+ * P1 feedback F4 — "6 ca mới nhất" trên trang người lao động (`/for-workers`).
  *
  * Chỉ đọc store (AppHydrator đã nạp), lọc bằng helper chuẩn
  * `isShiftAvailableForRecruiting` (cùng luật với `/shifts`), rồi lấy ca đăng
  * gần nhất. Không có ca → lời mời xem danh sách, không bịa dữ liệu mẫu.
  */
 export function LatestShifts({ limit = 6 }: { limit?: number }) {
+  const t = useT();
   const shifts = useShiftStore((s) => s.shifts);
   const applications = useApplicationStore((s) => s.applications);
   const users = useUserStore((s) => s.users);

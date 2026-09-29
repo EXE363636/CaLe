@@ -2,18 +2,19 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
 import { LatestShifts } from '@/components/landing/LatestShifts';
-import { t } from '@/i18n/vi';
+import { getT } from '@/i18n/server';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
  * Trang cho người lao động — P1 feedback F4. Tối đa 4 khối:
- *   1. Hero: 1 câu + nút "Tìm ca gần bạn" (→ /shifts).
+ *   1. Hero: 1 câu + "Đăng ký để nhận ca" (chính) + "Xem ca đang tuyển" + đăng nhập.
  *   2. 3 lợi ích có ảnh (F3 — ảnh stock Unsplash, xem docs/IMAGE_CREDITS.md).
  *   3. 6 ca mới nhất (thật, cùng luật lọc với /shifts).
  *   4. Dải chuyển sang trang nhà tuyển dụng.
  * Khách chủ lực là sinh viên → câu ngắn, lời thường.
  */
-export default function WorkerHomePage() {
+export default async function WorkerHomePage() {
+  const t = await getT();
   const supabase = isSupabaseEnv();
   const benefits = [
     {
@@ -49,12 +50,30 @@ export default function WorkerHomePage() {
             <p className="mx-auto mt-4 max-w-xl text-base text-gray-600 sm:text-lg">
               {t('workerHome.hero.lead')}
             </p>
-            <Link
-              href="/shifts"
-              className="cta-arrow-nudge motion-press mt-8 inline-flex min-h-[52px] items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-8 text-base font-semibold text-gray-900 shadow-md hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
-            >
-              {t('workerHome.hero.cta')} <span className="cta-arrow" aria-hidden="true">→</span>
-            </Link>
+            {/* Menu khách không còn mục "Tìm ca làm" → trang này là lối vào của
+                người lao động: đăng ký là hành động chính (giống /for-employers). */}
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-3 sm:flex-row">
+                <Link
+                  href="/register?role=worker"
+                  className="cta-arrow-nudge motion-press inline-flex min-h-[52px] items-center justify-center gap-1.5 rounded-xl bg-orange-500 px-8 text-base font-semibold text-gray-900 shadow-md hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                >
+                  {t('workerHome.hero.cta')} <span className="cta-arrow" aria-hidden="true">→</span>
+                </Link>
+                <Link
+                  href="/shifts"
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-xl border border-gray-300 bg-white px-6 text-base font-semibold text-gray-900 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                >
+                  {t('workerHome.hero.browse')}
+                </Link>
+              </div>
+              <p className="text-sm text-gray-600">
+                {t('workerHome.hero.haveAccount')}{' '}
+                <Link href="/login" className="font-semibold text-orange-700 hover:underline">
+                  {t('nav.login')}
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -109,7 +128,7 @@ export default function WorkerHomePage() {
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <p className="text-lg font-semibold">{t('workerHome.switch.text')}</p>
           <Link
-            href="/tuyen-dung"
+            href="/for-employers"
             className="cta-arrow-nudge inline-flex min-h-[48px] items-center gap-1.5 rounded-xl bg-white px-5 text-sm font-semibold text-gray-900 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
           >
             {t('workerHome.switch.cta')} <span className="cta-arrow" aria-hidden="true">→</span>

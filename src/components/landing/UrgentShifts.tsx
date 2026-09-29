@@ -9,7 +9,7 @@ import { useHydrationStore } from '@/stores/hydrationStore';
 import { isShiftAvailableForRecruiting } from '@/domain/shiftAvailability';
 import { isUnfilledUrgent, UNFILLED_URGENT_HOURS } from '@/domain/adminShiftFilter';
 import { ShiftCard } from '@/components/shift/ShiftCard';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 /**
  * Trang chủ `/` — "Ca gấp cần người": ca đang tuyển THẬT, bắt đầu trong
@@ -21,6 +21,7 @@ import { t } from '@/i18n/vi';
  * = false). Khi có boost trả phí, ca đã boost có thể được đưa lên đầu khối này.
  */
 export function UrgentShifts({ limit = 3 }: { limit?: number }) {
+  const t = useT();
   const shifts = useShiftStore((s) => s.shifts);
   const applications = useApplicationStore((s) => s.applications);
   const users = useUserStore((s) => s.users);

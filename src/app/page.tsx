@@ -1,19 +1,20 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { UrgentShifts } from '@/components/landing/UrgentShifts';
-import { t } from '@/i18n/vi';
+import { getT } from '@/i18n/server';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
  * Trang chủ — P1 feedback F4: tách theo vai trò.
  *
- * `/` chỉ có một việc: cho khách chọn "Tôi cần việc" (→ `/viec-lam`) hay
- * "Tôi cần tuyển" (→ `/tuyen-dung`). Chi tiết từng bên nằm ở trang riêng.
+ * `/` chỉ có một việc: cho khách chọn "Tôi cần việc" (→ `/for-workers`) hay
+ * "Tôi cần tuyển" (→ `/for-employers`). Chi tiết từng bên nằm ở trang riêng.
  * Mỗi thẻ vai trò có ảnh + 3 lợi ích ngắn (F3 "thêm hình", tránh trống trải mà
  * không thêm khối chữ). Dưới 2 thẻ: "Ca gấp cần người" — dữ liệu thật, tự ẩn
  * khi không có ca gấp. Lợi ích về tiền nói đúng theo chế độ (CLAUDE.md §5).
  */
-export default function RoleChooserPage() {
+export default async function RoleChooserPage() {
+  const t = await getT();
   const supabase = isSupabaseEnv();
   return (
     <div className="hero-decor relative flex min-w-0 flex-col px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
@@ -31,7 +32,7 @@ export default function RoleChooserPage() {
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 sm:gap-6">
           <li>
             <RoleCard
-              href="/viec-lam"
+              href="/for-workers"
               tone="brand"
               img="/images/landing/worker-phuc-vu.webp"
               imgAlt={t('workerHome.benefit.fast.alt')}
@@ -47,7 +48,7 @@ export default function RoleChooserPage() {
           </li>
           <li>
             <RoleCard
-              href="/tuyen-dung"
+              href="/for-employers"
               tone="ink"
               img="/images/landing/employer-su-kien.webp"
               imgAlt={t('employerHome.benefit.attendance.alt')}

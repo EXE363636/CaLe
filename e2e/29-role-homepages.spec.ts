@@ -5,9 +5,9 @@ import { ACCOUNTS, ANCHOR_ISO } from './fixtures/constants';
 /**
  * P1 feedback F4 — trang chủ tách theo vai trò.
  *
- *   - `/` chỉ có 2 lựa chọn: "Tôi cần việc" → /viec-lam, "Tôi cần tuyển" → /tuyen-dung.
+ *   - `/` chỉ có 2 lựa chọn: "Tôi cần việc" → /for-workers, "Tôi cần tuyển" → /for-employers.
  *   - Hai trang vai trò có công tắc chung (aria-current đúng trang).
- *   - /viec-lam hiện tối đa 6 ca đang tuyển THẬT, mới đăng trước.
+ *   - /for-workers hiện tối đa 6 ca đang tuyển THẬT, mới đăng trước.
  *   - Đã đăng nhập: logo về nơi làm việc (worker → /shifts, employer → dashboard).
  */
 
@@ -36,8 +36,8 @@ test.describe('Role homepages', () => {
     await gotoApp('/');
 
     const main = page.locator('main');
-    await expect(main.getByRole('link', { name: /Tôi cần việc/ })).toHaveAttribute('href', '/viec-lam');
-    await expect(main.getByRole('link', { name: /Tôi cần tuyển/ })).toHaveAttribute('href', '/tuyen-dung');
+    await expect(main.getByRole('link', { name: /Tôi cần việc/ })).toHaveAttribute('href', '/for-workers');
+    await expect(main.getByRole('link', { name: /Tôi cần tuyển/ })).toHaveAttribute('href', '/for-employers');
 
     // Thẻ có ảnh + 3 lợi ích ngắn; bản demo nói rõ ví mô phỏng / chưa thu phí.
     await expect(main.locator('ul > li > a img')).toHaveCount(2);
@@ -45,7 +45,7 @@ test.describe('Role homepages', () => {
     await expect(main.getByText('Chưa thu phí', { exact: true })).toBeVisible();
 
     await main.getByRole('link', { name: /Tôi cần việc/ }).click();
-    await page.waitForURL('**/viec-lam');
+    await page.waitForURL('**/for-workers');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
   });
 
@@ -92,7 +92,7 @@ test.describe('Role homepages', () => {
     await expect(page.locator('#home-urgent')).toHaveCount(0);
   });
 
-  test('/viec-lam: switch marks worker, shows newest 6 open shifts, links to /tuyen-dung', async ({
+  test('/for-workers: switch marks worker, shows newest 6 open shifts, links to /for-employers', async ({
     page,
     seedState,
     gotoApp,
@@ -102,7 +102,7 @@ test.describe('Role homepages', () => {
     // Ca đã huỷ không được hiện.
     shifts.push({ ...openShift(9), id: 'e2e-home-cancelled', title: 'E2E Ca đã huỷ', status: 'Cancelled' });
     await seedState(buildSnapshot({ shifts }));
-    await gotoApp('/viec-lam');
+    await gotoApp('/for-workers');
 
     const sw = page.getByRole('navigation', { name: 'Chọn trang theo vai trò' });
     await expect(sw.getByRole('link', { name: 'Tôi cần việc' })).toHaveAttribute('aria-current', 'page');
@@ -114,28 +114,46 @@ test.describe('Role homepages', () => {
     await expect(page.getByText('E2E Ca mới 1', { exact: true })).toHaveCount(0);
     await expect(page.getByText('E2E Ca đã huỷ')).toHaveCount(0);
 
+    // Menu khách không còn "Tìm ca làm" → hero có đăng ký (chính) + xem ca + đăng nhập.
+    const hero = page.locator('main section').first();
+    await expect(hero.getByRole('link', { name: /Đăng ký để nhận ca/ })).toHaveAttribute('href', '/register?role=worker');
+    await expect(hero.getByRole('link', { name: 'Xem ca đang tuyển' })).toHaveAttribute('href', '/shifts');
+    await expect(hero.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login');
+
     // Local/demo: lợi ích tiền nói rõ là mô phỏng.
     await expect(page.getByText('Ca hoàn thành, tiền công vào ví (mô phỏng trong bản demo).')).toBeVisible();
 
     await page.getByRole('link', { name: /Xem trang tuyển dụng/ }).click();
-    await page.waitForURL('**/tuyen-dung');
+    await page.waitForURL('**/for-employers');
   });
 
-  test('/viec-lam: no open shift → honest empty state', async ({ page, seedState, gotoApp }) => {
-    await page.setViewportSize(DESKTOP);
+  test('đường dẫn cũ /viec-lam, /tuyen-dung chuyển sang /for-workers, /for-employers', async ({
+    page,
+    seedState,
+    gotoApp,
+  }) => {
     await seedState(buildSnapshot());
     await gotoApp('/viec-lam');
+    await page.waitForURL('**/for-workers');
+    await gotoApp('/tuyen-dung');
+    await page.waitForURL('**/for-employers');
+  });
+
+  test('/for-workers: no open shift → honest empty state', async ({ page, seedState, gotoApp }) => {
+    await page.setViewportSize(DESKTOP);
+    await seedState(buildSnapshot());
+    await gotoApp('/for-workers');
     await expect(page.getByText('Chưa có ca nào đang tuyển. Quay lại sau nhé.')).toBeVisible();
   });
 
-  test('/tuyen-dung: switch marks employer, CTA goes to employer register, demo pricing is 0đ', async ({
+  test('/for-employers: switch marks employer, CTA goes to employer register, demo pricing is 0đ', async ({
     page,
     seedState,
     gotoApp,
   }) => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
-    await gotoApp('/tuyen-dung');
+    await gotoApp('/for-employers');
 
     const sw = page.getByRole('navigation', { name: 'Chọn trang theo vai trò' });
     await expect(sw.getByRole('link', { name: 'Tôi cần tuyển' })).toHaveAttribute('aria-current', 'page');
@@ -158,5 +176,31 @@ test.describe('Role homepages', () => {
       'href',
       '/employer/dashboard',
     );
+  });
+});
+
+test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
+  test('chuyển sang English rồi về Tiếng Việt, nhớ lựa chọn khi tải lại', async ({
+    page,
+    seedState,
+    gotoApp,
+  }) => {
+    await page.setViewportSize(DESKTOP);
+    await seedState(buildSnapshot());
+    await gotoApp('/for-workers');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
+
+    await page.getByRole('button', { name: 'Switch to English' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find short shifts near you');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(nav.getByRole('button', { name: 'Workers' })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find short shifts near you');
+
+    await page.getByRole('button', { name: 'Chuyển sang Tiếng Việt' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   });
 });

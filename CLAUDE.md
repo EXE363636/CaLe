@@ -65,8 +65,8 @@ dependency backend nào.
 ```
 src/
   app/                    # App Router — 33 route (page.tsx)
-    page.tsx              # chọn vai trò (→ viec-lam / tuyen-dung)
-    viec-lam, tuyen-dung  # trang giới thiệu theo vai trò (P1 F4)
+    page.tsx              # chọn vai trò (→ for-workers / for-employers)
+    for-workers, for-employers  # trang giới thiệu theo vai trò (P1 F4; 30/09 đổi từ viec-lam / tuyen-dung, có redirect)
     login, register
     shifts/, shifts/[id]/
     worker/dashboard, worker/profile, worker/schedule, worker/reputation-guide, worker/cancellation-policy
@@ -104,7 +104,7 @@ docs/                    # tài liệu handoff, backend plan, security note
 
 ```bash
 npm run dev          # dev server (port 3000)
-npm run build        # build production — BẤT BIẾN: đúng 33 route (29/09: +/viec-lam, /tuyen-dung)
+npm run build        # build production — BẤT BIẾN: đúng 33 route (29/09: +/for-workers, /for-employers)
 npm run test:run     # unit test (Vitest, chạy 1 lần)
 npm run test:time    # bộ time-travel lifecycle
 npm run test:e2e     # Playwright (cần dev server ở 3000)
@@ -148,6 +148,11 @@ npx tsc --noEmit     # type-check
 - **Không viết lại app từ đầu.** Code đã ổn định, có test.
 - **Không thêm tính năng mới** (chat, staff-supply/agency, AI matching) trước khi backend/core ổn định — đã quyết định hoãn.
 - Khi đổi shape dữ liệu persistence → **bump `SCHEMA_VERSION`** trong `persistence.ts` (hiện là 19) để tự reseed.
+- **Song ngữ VI / EN (từ 30/09, đợt 1 = trang công khai):** cookie `cale.lang`, xem
+  `src/i18n/locale.ts`. Màn đã dịch dùng `useT()`/`useTx()` (client) hoặc `await getT()`/
+  `await getTx()` (server) thay cho `t` của `vi.ts`. Thêm/sửa chữ trên các màn này → thêm
+  bản tiếng Anh vào `src/i18n/en.ts` (`en` theo khoá, `enText` theo câu Việt viết cứng);
+  test `i18nEnglish.test.ts` sẽ báo nếu thiếu. Màn chưa chuyển vẫn dùng `t` (luôn tiếng Việt).
 - **Palette:** `src/app/globals.css` là nguồn chuẩn DUY NHẤT. `DESIGN.md` cập nhật để KHỚP globals.css, không ngược lại.
 - Mục tiêu **WCAG 2.1 AA**, mobile-first, chạm tối thiểu 44×44px, tôn trọng `prefers-reduced-motion`.
 

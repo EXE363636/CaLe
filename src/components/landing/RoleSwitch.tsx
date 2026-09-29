@@ -1,15 +1,16 @@
 import Link from 'next/link';
-import { t } from '@/i18n/vi';
+import { getT } from '@/i18n/server';
 
 /**
  * P1 feedback F4 — công tắc "Tôi cần việc / Tôi cần tuyển" ở đầu 2 trang
- * marketing theo vai trò (`/viec-lam`, `/tuyen-dung`). Là 2 liên kết thật
+ * marketing theo vai trò (`/for-workers`, `/for-employers`). Là 2 liên kết thật
  * (không phải tab JS) để mỗi vai trò có URL riêng, chia sẻ được.
  */
-export function RoleSwitch({ active }: { active: 'worker' | 'employer' }) {
+export async function RoleSwitch({ active }: { active: 'worker' | 'employer' }) {
+  const t = await getT();
   const items = [
-    { key: 'worker', href: '/viec-lam', label: t('home.role.worker') },
-    { key: 'employer', href: '/tuyen-dung', label: t('home.role.employer') },
+    { key: 'worker', href: '/for-workers', label: t('home.role.worker') },
+    { key: 'employer', href: '/for-employers', label: t('home.role.employer') },
   ] as const;
   return (
     <nav aria-label={t('home.role.switchAria')} className="flex justify-center">

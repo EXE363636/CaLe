@@ -125,7 +125,7 @@ thêm phần túi thưởng (đã diff, và md5 thân cũ trên remote khớp fi
   - Việc sau (Thấp): hiện "Đang kiểm tra giao dịch" cho người nạp khi đơn
     `needs_review` (`get_payment_order_status` chưa trả trường này); RPC + UI
     admin cho đơn cần xem.
-- [ ] (tuỳ chọn) Dải "Đang miễn phí dịch vụ đến hết …" ở Bảng giá / `/tuyen-dung`.
+- [ ] (tuỳ chọn) Dải "Đang miễn phí dịch vụ đến hết …" ở Bảng giá / `/for-employers`.
 - [ ] **P2-1 cọc worker** — ĐÃ CHỐT (30/09), làm được SAU khi xong task webhook
       PayOS ở trên. Chi tiết: `HANDOFF_SESSION_2026-09-28_FEEDBACK.md` mục 3 (P2-1)
       và mục 5 câu 4. Tóm tắt:
@@ -134,6 +134,26 @@ thêm phần túi thưởng (đã diff, và md5 thân cũ trên remote khớp fi
         (cửa sổ trượt).
       - Vắng mặt không báo → 100% cọc về NTD sau 24h (khiếu nại → admin quyết), và
         mất quyền miễn cọc 30 ngày. Tự huỷ trước ca → hoàn đủ.
+
+## 3b. Đường dẫn tiếng Anh + nút đăng ký worker + nút VI/EN đợt 1 (30/09, nhánh `feat/en-paths-worker-signup`)
+- `/viec-lam` → `/for-workers`, `/tuyen-dung` → `/for-employers`; redirect vĩnh viễn
+  trong `next.config.ts` (link/QR cũ vẫn chạy).
+- `/for-workers` hero: "Đăng ký để nhận ca" (chính) + "Xem ca đang tuyển" + "Đã có tài
+  khoản? Đăng nhập" (menu khách đã bỏ "Tìm ca làm").
+- **Nút VI / EN** (🌐 góc phải menu, cả mobile): cookie `cale.lang`, `router.refresh()`.
+  - Đợt 1 đã dịch: menu (desktop + mobile), footer, `/`, `/for-workers`,
+    `/for-employers`, `/pricing`, `/login`, `/register`, `/forgot-password`.
+  - Chỗ chưa dịch tự hiện tiếng Việt. Thẻ ca (`ShiftCard`), lỗi từ server
+    (`errorMap`), toast, dashboard, ví, admin, cẩm nang, trang thông tin khác: đợt 2.
+  - Đánh đổi: root layout đọc cookie → mọi route render theo request (ƒ), không
+    còn trang tĩnh (○). Chấp nhận được (dữ liệu vốn tải ở client).
+  - Cách làm tiếp một màn: đổi `import { t } from '@/i18n/vi'` → `const t = useT()` (client)
+    hoặc `const t = await getT()` (server, component async); chữ viết cứng → `tx('...')`;
+    thêm bản dịch vào `en.ts`; thêm file vào `PHASE1_FILES` trong `i18nEnglish.test.ts`.
+  - Test render server component async: `render(await Page())` + mock `@/i18n/server`
+    (xem `mockPayment.test.tsx`).
+- Kiểm: tsc 0 · lint 0 lỗi · test 810/810 · build OK · e2e 135/135 (thêm test nút VI/EN
+  + redirect + nút đăng ký worker).
 
 ## 4. Lưu ý môi trường
 Như `HANDOFF_SESSION_2026-09-29_P2-3.md` mục 4. Thêm: kịch bản chạy thử luồng tiền

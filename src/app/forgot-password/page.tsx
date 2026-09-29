@@ -18,7 +18,7 @@ import { getSupabaseClient, isSupabaseEnv } from '@/data/supabaseClient';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { showSuccess } from '@/lib/toast';
 import { isRequired, isValidEmail, isValidPassword } from '@/lib/validate';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { useAuthStore } from '@/stores/authStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
 
@@ -32,6 +32,8 @@ const LINK_CLASS =
   'rounded font-medium text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2';
 
 function ForgotPasswordContent() {
+  const t = useT();
+  const tx = useTx();
   const searchParams = useSearchParams();
   const resetMode = searchParams.get('mode') === 'reset';
 
@@ -43,7 +45,7 @@ function ForgotPasswordContent() {
           <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
             {!isSupabaseEnv() ? (
               <p className="text-sm text-gray-600">
-                Bản demo không hỗ trợ đặt lại mật khẩu. Dùng tài khoản demo ở trang đăng nhập.
+                {tx('Bản demo không hỗ trợ đặt lại mật khẩu. Dùng tài khoản demo ở trang đăng nhập.')}
               </p>
             ) : resetMode ? (
               <ResetForm />
@@ -63,6 +65,7 @@ function ForgotPasswordContent() {
 }
 
 function RequestForm() {
+  const t = useT();
   const requestPasswordReset = useAuthStore((s) => s.requestPasswordReset);
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +124,8 @@ function RequestForm() {
 }
 
 function ResetForm() {
+  const t = useT();
+  const tx = useTx();
   const router = useRouter();
   const hydrated = useHydrationStore((s) => s.hydrated);
   const updatePassword = useAuthStore((s) => s.updatePassword);
@@ -201,7 +206,7 @@ function ResetForm() {
           label={t('auth.reset.newPassword')}
           type="password"
           autoComplete="new-password"
-          hint="Ít nhất 8 ký tự"
+          hint={tx('Ít nhất 8 ký tự')}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}

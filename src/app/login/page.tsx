@@ -8,7 +8,7 @@ import { Input, Button } from '@/components/ui';
 import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { isValidEmail, isRequired } from '@/lib/validate';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AuthDivider, GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
@@ -20,6 +20,8 @@ const DASHBOARD: Record<string, string> = {
 };
 
 export default function LoginPage() {
+  const t = useT();
+  const tx = useTx();
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
   const pendingOAuth = useAuthStore((s) => s.pendingOAuth);
@@ -98,12 +100,12 @@ export default function LoginPage() {
             {!isSupabaseEnv() && (
             <details className="group mb-5 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
               <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between font-semibold text-gray-700 marker:hidden">
-                <span>Tài khoản demo</span>
+                <span>{tx('Tài khoản demo')}</span>
                 <span className="transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true">▾</span>
               </summary>
               <div className="mt-2 flex flex-col gap-1">
-                <p>Người lao động: <span className="font-mono">an.nguyen@gmail.com</span> / <span className="font-mono">demo</span></p>
-                <p>Nhà tuyển dụng: <span className="font-mono">lien@quanphoha.vn</span> / <span className="font-mono">demo</span></p>
+                <p>{tx('Người lao động')}: <span className="font-mono">an.nguyen@gmail.com</span> / <span className="font-mono">demo</span></p>
+                <p>{tx('Nhà tuyển dụng')}: <span className="font-mono">lien@quanphoha.vn</span> / <span className="font-mono">demo</span></p>
                 <p>Admin: <span className="font-mono">admin@cale.vn</span> / <span className="font-mono">demo</span></p>
               </div>
             </details>
