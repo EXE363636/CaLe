@@ -14,6 +14,15 @@ import { useVerificationStore } from '@/stores';
 import { useReviewReportStore } from '@/stores/reviewReportStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { adminVerificationTaskCount, adminDisputeTaskCount } from '@/domain/taskBadges';
+import {
+  ADMIN_SHIFT_FILTERS,
+  countAdminShifts,
+  isAdminShiftFilter,
+  isUnfilledUrgent,
+  matchesAdminShiftFilter,
+  type AdminShiftFilter,
+} from '@/domain/adminShiftFilter';
+import { effectiveFilledCount } from '@/domain/shiftAvailability';
 import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge, Modal, Select, ButtonLink } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
@@ -95,9 +104,7 @@ function AdminDashboardContent() {
   const [usersInitialFilter, setUsersInitialFilter] = useState<
     'all' | 'worker' | 'employer' | 'admin'
   >('all');
-  const [shiftsInitialFilter, setShiftsInitialFilter] = useState<
-    'all' | 'active' | 'completed' | 'disputed'
-  >('all');
+  const [shiftsInitialFilter, setShiftsInitialFilter] = useState<AdminShiftFilter>('all');
 
   // Phase 9L — notification deep links may arrive with `?tab=...` and
   // optionally `?filter=...`. Apply once on mount.
@@ -135,10 +142,7 @@ function AdminDashboardContent() {
           setUsersInitialFilter(qFilter as (typeof allowed)[number]);
         }
       } else if (qTab === 'shifts') {
-        const allowed = ['all', 'active', 'completed', 'disputed'] as const;
-        if ((allowed as readonly string[]).includes(qFilter)) {
-          setShiftsInitialFilter(qFilter as (typeof allowed)[number]);
-        }
+        if (isAdminShiftFilter(qFilter)) setShiftsInitialFilter(qFilter);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -164,10 +168,7 @@ function AdminDashboardContent() {
             setUsersInitialFilter(detail.filter as (typeof allowed)[number]);
           }
         } else if (detail.tab === 'shifts') {
-          const allowed = ['all', 'active', 'completed', 'disputed'] as const;
-          if ((allowed as readonly string[]).includes(detail.filter)) {
-            setShiftsInitialFilter(detail.filter as (typeof allowed)[number]);
-          }
+          if (isAdminShiftFilter(detail.filter)) setShiftsInitialFilter(detail.filter);
         }
       }
     }
@@ -373,7 +374,7 @@ function AnalyticsPanel({
   onJumpToDisputes,
 }: {
   onJumpToUsers: (filter: 'all' | 'worker' | 'employer' | 'admin') => void;
-  onJumpToShifts: (filter: 'all' | 'active' | 'completed' | 'disputed') => void;
+  onJumpToShifts: (filter: AdminShiftFilter) => void;
   onJumpToDisputes: () => void;
 }) {
   const users = useUserStore((s) => s.users);
@@ -387,6 +388,10 @@ function AnalyticsPanel({
   ).length;
   const completedShifts = shifts.filter((s) => s.status === 'Completed').length;
   const disputedPayments = shifts.filter((s) => s.escrowStatus === 'Disputed').length;
+  // P0 feedback F7 — ca chưa khớp (kèm số gấp) và ca huỷ, cùng định nghĩa
+  // với bộ lọc tab Ca làm (src/domain/adminShiftFilter.ts).
+  const applications = useApplicationStore((s) => s.applications);
+  const shiftCounts = countAdminShifts(shifts, applications, new Date().toISOString());
   const openDisputes = disputes.filter((d) => d.status === 'Open').length;
   const currentAdminId = useAuthStore((s) => s.currentUserId);
 
@@ -402,13 +407,11 @@ function AnalyticsPanel({
           allowTopUp={false}
         />
       )}
-      {/* 6 ô (supabase) → 3 cột; 8 ô (local) → 4 cột — không để hàng lẻ. */}
+      {/* 8 ô (supabase) → 4 cột; 10 ô (local) → 5 cột ở màn rộng — không để hàng lẻ. */}
       <div
         className={[
-          'grid grid-cols-2 gap-4',
-          hasCapability('payments') && hasCapability('disputes')
-            ? 'sm:grid-cols-4'
-            : 'sm:grid-cols-3',
+          'grid grid-cols-2 gap-4 sm:grid-cols-4',
+          hasCapability('payments') && hasCapability('disputes') ? 'lg:grid-cols-5' : '',
         ].join(' ')}
       >
         <StatCard
@@ -447,12 +450,33 @@ function AnalyticsPanel({
           onClick={() => onJumpToShifts('completed')}
           ariaLabel={t('admin.analytics.aria.completedShifts')}
         />
+        <StatCard
+          label={t('admin.analytics.unfilledShifts')}
+          value={String(shiftCounts.unfilled)}
+          hint={
+            shiftCounts.unfilledUrgent > 0
+              ? t('admin.analytics.unfilledUrgent').replace(
+                  '{count}',
+                  String(shiftCounts.unfilledUrgent),
+                )
+              : undefined
+          }
+          highlight={shiftCounts.unfilledUrgent > 0}
+          onClick={() => onJumpToShifts('unfilled')}
+          ariaLabel={t('admin.analytics.aria.unfilledShifts')}
+        />
+        <StatCard
+          label={t('admin.analytics.cancelledShifts')}
+          value={String(shiftCounts.cancelled)}
+          onClick={() => onJumpToShifts('cancelled')}
+          ariaLabel={t('admin.analytics.aria.cancelledShifts')}
+        />
         {/* Thanh toán/tranh chấp: chỉ hiện khi có backend thật (ẩn ở supabase). */}
         {hasCapability('payments') && (
           <StatCard
             label={t('admin.analytics.disputedPayments')}
             value={String(disputedPayments)}
-            highlight
+            highlight={disputedPayments > 0}
             onClick={() => onJumpToShifts('disputed')}
             ariaLabel={t('admin.analytics.aria.disputedPayments')}
           />
@@ -473,12 +497,15 @@ function AnalyticsPanel({
 function StatCard({
   label,
   value,
+  hint,
   highlight,
   onClick,
   ariaLabel,
 }: {
   label: string;
   value: string;
+  /** Dòng phụ ngắn dưới con số (vd "2 ca bắt đầu trong 24 giờ"). */
+  hint?: string;
   highlight?: boolean;
   onClick?: () => void;
   ariaLabel?: string;
@@ -504,6 +531,11 @@ function StatCard({
       >
         {value}
       </p>
+      {hint && (
+        <p className={['mt-1 text-xs font-medium', highlight ? 'text-red-700' : 'text-gray-600'].join(' ')}>
+          {hint}
+        </p>
+      )}
       {onClick && (
         // Luôn hiện (không chỉ khi hover) để người dùng cảm ứng biết ô bấm
         // được — cùng quy ước với ô thống kê ở dashboard worker/employer.
@@ -1311,9 +1343,9 @@ function ShiftsPanel({
   initialFilter = 'all',
   onFilterChange,
 }: {
-  initialFilter?: 'all' | 'active' | 'completed' | 'disputed';
+  initialFilter?: AdminShiftFilter;
   /** Báo bộ lọc lên dashboard để giữ trong URL (Back về đúng bộ lọc). */
-  onFilterChange?: (filter: 'all' | 'active' | 'completed' | 'disputed') => void;
+  onFilterChange?: (filter: AdminShiftFilter) => void;
 }) {
   const shifts = useShiftStore((s) => s.shifts);
   const lastSyncAt = useShiftStore((s) => s.lastLifecycleSyncAt);
@@ -1326,30 +1358,27 @@ function ShiftsPanel({
 
   // Phase 9F — filter the visible list according to the active chip.
   // Sort by createdAt desc (recent first) within the filtered slice.
+  // P0 feedback F7 — định nghĩa lọc nằm ở src/domain/adminShiftFilter.ts
+  // (thuần, có test). "Chưa khớp" xếp theo giờ bắt đầu gần nhất trước để
+  // admin xử lý ca gấp trước.
+  const nowIso = new Date().toISOString();
   const sorted = useMemo(() => {
-    const filtered = shifts.filter((s) => {
-      switch (filter) {
-        case 'active':
-          return ['Published', 'FullyBooked', 'InProgress', 'AwaitingConfirmation'].includes(
-            s.status,
-          );
-        case 'completed':
-          return s.status === 'Completed';
-        case 'disputed':
-          return s.escrowStatus === 'Disputed';
-        case 'all':
-        default:
-          return true;
-      }
-    });
+    const filtered = shifts.filter((s) => matchesAdminShiftFilter(s, applications, filter, nowIso));
+    if (filter === 'unfilled') {
+      return [...filtered].sort((a, b) =>
+        `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
+      );
+    }
     return [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [shifts, filter]);
+    // nowIso đổi mỗi render; chỉ tính lại khi dữ liệu / bộ lọc đổi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shifts, applications, filter]);
 
   return (
     <div className="flex flex-col gap-3">
       {/* Filter chips — Phase 9F */}
       <div className="flex flex-wrap gap-2">
-        {(['all', 'active', 'completed', 'disputed'] as const)
+        {ADMIN_SHIFT_FILTERS
           // "Tranh chấp" lọc theo escrow — chỉ có nghĩa khi có backend thanh toán.
           .filter((f) => f !== 'disputed' || hasCapability('payments'))
           .map((f) => (
@@ -1367,6 +1396,10 @@ function ShiftsPanel({
             </Button>
           ))}
       </div>
+
+      {(filter === 'unfilled' || filter === 'cancelled') && (
+        <p className="text-sm text-gray-600">{t(`admin.shifts.filterHint.${filter}`)}</p>
+      )}
 
       {/* Phase 7: explainer banner — clarifies that statuses move
           automatically and that Override is for exceptional cases. */}
@@ -1409,6 +1442,14 @@ function ShiftsPanel({
               shift={shift}
               employerName={employerName}
               applications={applications}
+              unfilledInfo={
+                filter === 'unfilled'
+                  ? {
+                      missing: shift.positionsTotal - effectiveFilledCount(shift, applications),
+                      urgent: isUnfilledUrgent(shift, applications, nowIso),
+                    }
+                  : undefined
+              }
             />
           );
         })}
@@ -1465,10 +1506,13 @@ function ShiftRow({
   shift,
   employerName,
   applications = [],
+  unfilledInfo,
 }: {
   shift: Shift;
   employerName: string;
   applications?: Application[];
+  /** Chỉ có khi đang lọc "Chưa khớp": số người còn thiếu + có gấp không. */
+  unfilledInfo?: { missing: number; urgent: boolean };
 }) {
   const overrideEscrow = useAdminStore((s) => s.overrideEscrow);
   const escrowOn = hasCapability('payments');
@@ -1504,10 +1548,16 @@ function ShiftRow({
           </Link>
           <p className="truncate text-xs text-gray-500">
             {employerName} • {formatDateVN(shift.date)} •{' '}
-            {shift.positionsFilled}/{shift.positionsTotal} •{' '}
+            {effectiveFilledCount(shift, applications)}/{shift.positionsTotal} •{' '}
             {formatVND(shift.depositAmount)}
           </p>
         </div>
+        {unfilledInfo && (
+          <Badge tone={unfilledInfo.urgent ? 'danger' : 'warning'}>
+            {unfilledInfo.urgent ? `${t('admin.shifts.urgentBadge')} · ` : ''}
+            {t('admin.shifts.unfilledBadge').replace('{missing}', String(unfilledInfo.missing))}
+          </Badge>
+        )}
         <ShiftLifecycleBadge shift={shift} applications={applications} />
         {/* Escrow + override chỉ ở local: ở supabase `overrideEscrow` chỉ sửa
             store/localStorage phía client, server KHÔNG đổi → admin tưởng đã
