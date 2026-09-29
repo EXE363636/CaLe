@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures/test';
 import { buildSnapshot, buildShift } from './fixtures/seed';
-import { ACCOUNTS } from './fixtures/constants';
+import { ACCOUNTS, ANCHOR_ISO } from './fixtures/constants';
 
 /**
  * P1 feedback F4 — trang chủ tách theo vai trò.
@@ -39,9 +39,57 @@ test.describe('Role homepages', () => {
     await expect(main.getByRole('link', { name: /Tôi cần việc/ })).toHaveAttribute('href', '/viec-lam');
     await expect(main.getByRole('link', { name: /Tôi cần tuyển/ })).toHaveAttribute('href', '/tuyen-dung');
 
+    // Thẻ có ảnh + 3 lợi ích ngắn; bản demo nói rõ ví mô phỏng / chưa thu phí.
+    await expect(main.locator('ul > li > a img')).toHaveCount(2);
+    await expect(main.getByText('Ví mô phỏng', { exact: true })).toBeVisible();
+    await expect(main.getByText('Chưa thu phí', { exact: true })).toBeVisible();
+
     await main.getByRole('link', { name: /Tôi cần việc/ }).click();
     await page.waitForURL('**/viec-lam');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
+  });
+
+  // Ca gấp = đang tuyển, bắt đầu trong 24 giờ tới, còn thiếu người.
+  // Đồng hồ ghim ở ANCHOR_ISO (2027-06-02 12:00 ICT).
+  test('"/" shows "Ca gấp cần người" with only urgent unfilled shifts', async ({
+    page,
+    seedState,
+    gotoApp,
+  }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.clock.install({ time: new Date(ANCHOR_ISO) });
+    const base = { status: 'Published', escrowStatus: 'Deposited', positionsTotal: 2, startTime: '08:00', endTime: '12:00' };
+    await seedState(
+      buildSnapshot({
+        shifts: [
+          buildShift({ ...base, id: 'e2e-urgent-1', title: 'E2E Ca gấp', date: '2027-06-03', positionsFilled: 0 }),
+          buildShift({ ...base, id: 'e2e-urgent-full', title: 'E2E Ca gấp đủ người', date: '2027-06-03', positionsFilled: 2 }),
+          buildShift({ ...base, id: 'e2e-far', title: 'E2E Ca còn xa', date: '2027-06-20', positionsFilled: 0 }),
+        ],
+      }),
+    );
+    await gotoApp('/');
+
+    const block = page.locator('section[aria-labelledby="home-urgent"]');
+    await expect(block.getByRole('heading', { name: 'Ca gấp cần người' })).toBeVisible();
+    const cards = block.locator('a[href^="/shifts/e2e-"]');
+    await expect(cards).toHaveCount(1);
+    await expect(cards.first()).toHaveAttribute('href', '/shifts/e2e-urgent-1');
+  });
+
+  test('"/" hides the urgent block when no shift is urgent', async ({ page, seedState, gotoApp }) => {
+    await page.setViewportSize(DESKTOP);
+    await page.clock.install({ time: new Date(ANCHOR_ISO) });
+    await seedState(
+      buildSnapshot({
+        shifts: [
+          buildShift({ id: 'e2e-far', title: 'E2E Ca còn xa', date: '2027-06-20', status: 'Published', escrowStatus: 'Deposited', positionsTotal: 2, positionsFilled: 0 }),
+        ],
+      }),
+    );
+    await gotoApp('/');
+    await expect(page.getByRole('link', { name: /Tôi cần việc/ })).toBeVisible();
+    await expect(page.locator('#home-urgent')).toHaveCount(0);
   });
 
   test('/viec-lam: switch marks worker, shows newest 6 open shifts, links to /tuyen-dung', async ({

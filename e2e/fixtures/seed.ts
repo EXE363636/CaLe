@@ -179,6 +179,22 @@ export function buildScheduleBlock(over: Json = {}): Json {
   };
 }
 
+/**
+ * Seed a starting wallet balance for `userId` (wallet + one matching ledger
+ * credit so balance and history agree). Workers cannot top up in the app
+ * (WalletPanel `allowTopUp={false}` — they only receive wages and withdraw),
+ * so withdrawal tests start from a seeded balance instead of a top-up.
+ */
+export function buildFunds(userId: string, amount: number): Pick<SeedSnapshot, 'wallets' | 'walletLedger'> {
+  const at = '2026-05-01T00:00:00.000Z';
+  return {
+    wallets: [{ userId, balance: amount, updatedAt: at }],
+    walletLedger: [
+      { id: `e2e-funds-${userId}`, occurredAt: at, userId, kind: 'WorkerWageReleased', amount, note: 'E2E seed' },
+    ],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Snapshot assembly
 // ---------------------------------------------------------------------------
