@@ -2846,40 +2846,28 @@ export const vi: Record<string, string> = {
   // R5.3). All partner groups are presented as potential/directional only
   // (R6.2/R6.3/R6.4) - no real brand names or logos.
   // -------------------------------------------------------------------------
+  // P1 feedback F3 — trang Giới thiệu rút gọn: gộp Tầm nhìn + Sứ mệnh, gộp
+  // Giá trị + Niềm tin; mỗi đoạn tối đa 2 câu.
   'about.intro':
-    'CaLẻ là sản phẩm của CaLedo Tech - đội ngũ Việt Nam mong muốn xây dựng một nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương.',
+    'CaLẻ là sàn việc làm theo ca ngắn hạn của CaLedo Tech, một đội ngũ tại Việt Nam.',
 
-  'about.vision.title': 'Tầm nhìn',
-  'about.vision.body':
-    'CaLẻ hướng tới một thị trường ca làm ngắn hạn nơi mỗi giờ làm việc đều minh bạch và đáng tin. Chúng tôi mong muốn người lao động linh hoạt và nhà tuyển dụng địa phương có thể tìm thấy nhau một cách rõ ràng về giờ giấc, mức lương và kỳ vọng - thay vì dựa vào các kênh tin nhắn rời rạc.',
-
-  'about.mission.title': 'Sứ mệnh',
+  'about.mission.title': 'Chúng tôi làm gì',
   'about.mission.body':
-    'CaLẻ được xây dựng để giúp người lao động nhận ca minh bạch về giờ giấc, mức lương, địa điểm, và giúp nhà tuyển dụng tìm được người phù hợp một cách an toàn. Chúng tôi mong muốn giảm bớt rủi ro cho cả hai phía trong mỗi ca làm ngắn hạn.',
+    'Giúp sinh viên và người làm tự do tìm ca rõ giờ, rõ lương, rõ địa điểm. Giúp chủ quán tìm đủ người đúng giờ mà không phải nhắn tin rời rạc.',
 
-  'about.values.title': 'Giá trị cốt lõi',
+  'about.values.title': 'Điều chúng tôi giữ',
   'about.values.item.transparency':
-    'Minh bạch: thông tin ca làm, mức lương và kỳ vọng được nêu rõ trước khi nhận ca.',
+    'Rõ ràng: giờ làm, tiền công và yêu cầu ghi rõ trước khi nhận ca.',
+  'about.values.item.payment':
+    'Tiền công được giữ cọc trước khi ca hiện ra.',
   'about.values.item.twoWayTrust':
-    'Tin cậy hai chiều: cả người lao động và nhà tuyển dụng đều có hồ sơ và điểm uy tín.',
-  'about.values.item.safety':
-    'An toàn: quy trình huỷ ca, xác minh và xử lý tranh chấp được thiết kế để bảo vệ cả hai bên.',
-  'about.values.item.userCentric':
-    'Lấy người dùng làm trung tâm: hỗ trợ tiếng Việt, phù hợp với nhịp làm việc linh hoạt tại Việt Nam.',
+    'Tin cậy hai chiều: cả hai bên đều có hồ sơ và điểm uy tín.',
+  'about.values.item.support':
+    'Hỗ trợ bằng tiếng Việt từ đội ngũ tại Hà Nội.',
 
-  'about.trust.title': 'Cách chúng tôi xây dựng niềm tin',
-  'about.trust.item.payment':
-    'Giữ cọc trước khi ca được công khai để đảm bảo người lao động nhận đúng tiền công.',
-  'about.trust.item.reputation':
-    'Điểm uy tín hai chiều: cả người lao động và nhà tuyển dụng đều có hồ sơ minh bạch.',
-  'about.trust.item.cancellation':
-    'Quy trình huỷ ca rõ ràng để hạn chế rủi ro cho cả hai bên.',
-  'about.trust.item.support':
-    'Hỗ trợ tiếng Việt từ đội ngũ tại Hà Nội.',
-
-  'about.team.title': 'Đội ngũ sáng lập',
+  'about.team.title': 'Đội ngũ',
   'about.team.body':
-    'CaLẻ được phát triển bởi CaLedo Tech - một đội ngũ tại Việt Nam mong muốn đưa các công cụ làm việc ngắn hạn đến gần hơn với thị trường lao động trong nước. Chúng tôi đặc biệt hướng tới các bạn cần ca linh hoạt theo lịch học hoặc lịch cá nhân, và các chủ quán/cửa hàng cần người lao động bù trong giờ cao điểm.',
+    'CaLẻ do CaLedo Tech phát triển. Chúng tôi làm cho các bạn cần ca theo lịch học và các quán cần người bù giờ cao điểm.',
 
   'about.version.title': 'Phiên bản hiện tại',
   'about.version.body.supabase':

@@ -1,41 +1,42 @@
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
+/**
+ * P1 feedback F3 — bớt chữ: mỗi mục tối đa 2 câu, chỉ nói điều hệ thống
+ * đang làm thật. Production: cờ bắt buộc SĐT/CCCD mặc định tắt, server không
+ * chặn ứng tuyển theo điểm uy tín → không hứa các điều đó.
+ */
 export default function SafetyPage() {
+  const live = isSupabaseEnv();
   return (
     <InfoPage
       eyebrow="Bảo vệ"
       title="Bảo vệ người dùng"
-      intro="An toàn của người lao động và nhà tuyển dụng là ưu tiên đầu tiên của CaLẻ. Chúng tôi xây dựng nhiều lớp kiểm tra trước khi một ca làm được công khai."
+      intro="CaLẻ giữ tiền công trước và ghi lại từng bước của ca để hai bên yên tâm."
     >
+      <InfoSection title="Tiền công được giữ trước">
+        {live
+          ? 'Nhà tuyển dụng giữ cọc đủ tiền công trước khi ca hiện ra. Tiền chỉ trả cho người lao động khi ca xong; phần không dùng hoàn về ví nhà tuyển dụng.'
+          : 'Nhà tuyển dụng giữ cọc đủ tiền công trước khi ca hiện ra (mô phỏng). Tiền chỉ trả khi ca xong; phần không dùng được hoàn lại.'}
+      </InfoSection>
+
       <InfoSection title="Xác minh tài khoản">
-        Mọi người dùng cần xác minh số điện thoại để có thể ứng tuyển hoặc
-        đăng ca. Người lao động có thể bổ sung CMND/CCCD và thẻ sinh viên
-        để mở khoá nhiều ca hơn. Nhà tuyển dụng có thể đăng ký xác minh
-        doanh nghiệp để được ưu tiên hiển thị và giảm phí dịch vụ trong
-        tương lai. Mọi nhà tuyển dụng đều giữ cọc 100% tổng tiền công.
+        Bạn có thể xác minh số điện thoại và giấy tờ tuỳ thân trong trang hồ sơ.
+        Hồ sơ đã xác minh giúp bên kia yên tâm hơn khi nhận việc hoặc duyệt người.
       </InfoSection>
 
-      <InfoSection title="Giữ cọc trước khi công khai ca">
-        {isSupabaseEnv()
-          ? 'Nhà tuyển dụng phải giữ cọc đủ tiền công trước khi ca được công khai. Khoản cọc được giữ trên hệ thống CaLẻ, chỉ trả cho người lao động khi ca hoàn thành, và được hoàn cho nhà tuyển dụng nếu ca bị huỷ hoặc vị trí không có người làm.'
-          : 'Nhà tuyển dụng phải giữ cọc đủ tiền công trước khi ca được công khai. Khoản này được giữ trong ví mô phỏng và chỉ được trả sau khi ca hoàn thành hoặc hoàn lại nếu ca bị huỷ đúng quy định.'}
+      <InfoSection title="Điểm uy tín">
+        {live
+          ? 'Mỗi người có điểm uy tín tạm tính từ lịch sử ca: hoàn thành, huỷ, vắng mặt. Nhà tuyển dụng xem điểm này khi duyệt người.'
+          : 'Điểm uy tín tạm tính từ lịch sử ca và đánh giá sau ca. Điểm dưới 50 bị tạm khoá ứng tuyển (bản demo).'}
       </InfoSection>
 
-      <InfoSection title="Điểm uy tín hai chiều">
-        Cả người lao động và nhà tuyển dụng đều có hồ sơ uy tín, được
-        cộng/trừ điểm dựa trên hành vi thực tế: hoàn thành ca, huỷ
-        đúng/sai quy định, đánh giá sau ca. Điểm dưới ngưỡng 50 sẽ tạm
-        khoá quyền ứng tuyển.
-      </InfoSection>
-
-      <InfoSection title="Cảnh báo và bảo vệ người dùng">
+      <InfoSection title="Lưu ý an toàn">
         <InfoList
           items={[
-            'CaLẻ không bao giờ thu phí đăng ký hoặc giữ tiền của người lao động.',
-            'Mọi giao dịch tiền tệ đều diễn ra trong ứng dụng — không nhận tiền mặt ngoài luồng.',
-            'Báo cáo tranh chấp ngay khi phát hiện hành vi không phù hợp; quản trị viên sẽ xem xét trong thời gian sớm nhất.',
-            'Khi gặp tình huống đe doạ an toàn, ưu tiên rời khỏi địa điểm và liên hệ cơ quan chức năng trước, sau đó báo cho CaLẻ.',
+            'CaLẻ không thu phí và không giữ tiền của người lao động.',
+            'Chỉ nhận tiền công trong ứng dụng, không nhận tiền mặt ngoài luồng.',
+            'Gặp nguy hiểm: rời khỏi địa điểm, gọi 113, sau đó báo cho CaLẻ qua trang Liên hệ hỗ trợ.',
           ]}
         />
       </InfoSection>

@@ -14,10 +14,7 @@ export default function AboutPage() {
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new', variant: 'secondary' },
       ]}
     >
-      <InfoSection title={t('about.vision.title')}>
-        {t('about.vision.body')}
-      </InfoSection>
-
+      {/* P1 feedback F3 — gộp Tầm nhìn + Sứ mệnh, Giá trị + Niềm tin. */}
       <InfoSection title={t('about.mission.title')}>
         {t('about.mission.body')}
       </InfoSection>
@@ -26,20 +23,9 @@ export default function AboutPage() {
         <InfoList
           items={[
             t('about.values.item.transparency'),
+            t('about.values.item.payment'),
             t('about.values.item.twoWayTrust'),
-            t('about.values.item.safety'),
-            t('about.values.item.userCentric'),
-          ]}
-        />
-      </InfoSection>
-
-      <InfoSection title={t('about.trust.title')}>
-        <InfoList
-          items={[
-            t('about.trust.item.payment'),
-            t('about.trust.item.reputation'),
-            t('about.trust.item.cancellation'),
-            t('about.trust.item.support'),
+            t('about.values.item.support'),
           ]}
         />
       </InfoSection>
