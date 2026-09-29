@@ -329,9 +329,10 @@ export function NavBar() {
   // (it collapsed the employer nav at 1366/1440/1920), so it is removed.
   //
   // How the nav now fits one row at 1280px without overlap:
-  //   1. Shortened employer desktop labels (Đăng ca / Lịch tuyển dụng /
-  //      Ca công khai / Hồ sơ; "Lịch tuyển dụng" giữ đủ chữ theo P0 F6) — full labels live in `title` tooltips,
-  //      the mobile drawer, and the UserMenu (routes unchanged).
+  //   1. Shortened employer desktop labels (Đăng ca / Hồ sơ; "Lịch tuyển
+  //      dụng" giữ đủ chữ theo P0 F6; "Ca công khai" đã bỏ khỏi nav — 6 mục)
+  //      — full labels live in `title` tooltips, the mobile drawer, and the
+  //      UserMenu (routes unchanged).
   //   2. Wider header container (`max-w-[1600px]`) so the desktop nav
   //      has more horizontal room than the page's `max-w-7xl` content.
   //   3. Compact nav gap/padding at <= 1536 (`xl:`), normal at `2xl`.
@@ -742,19 +743,9 @@ function EmployerNav({
       >
         {t('nav.short.employerSchedule')}
       </NavLink>
-      {/* Phase 10C-Stab-1 Batch 2 P — direct link to the public
-          listing so employers can preview how their shifts appear
-          to workers. HEADER-NAV-LAYOUT-3 — shortened to "Ca công khai"
-          on the desktop nav (full label in the `title` tooltip + the
-          mobile drawer) so the 7-item employer nav fits one row at
-          >= 1280px without a hamburger. */}
-      <NavLink
-        href="/shifts"
-        pathname={pathname}
-        title={t('nav.full.publicShifts')}
-      >
-        {t('nav.short.publicShifts')}
-      </NavLink>
+      {/* P0 feedback — bỏ "Ca công khai" (/shifts) khỏi nav employer: mục đích
+          xem trước ca như người lao động thấy nay là link "Xem như người lao
+          động thấy" trên trang quản lý từng ca (/employer/shifts/[id]). */}
       <NavLink href="/handbook" pathname={pathname}>
         {t('nav.label.handbook')}
       </NavLink>

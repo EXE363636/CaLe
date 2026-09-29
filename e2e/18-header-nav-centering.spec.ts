@@ -11,7 +11,7 @@ import { ACCOUNTS } from './fixtures/constants';
  * is never collapsed to a hamburger just because labels are long.
  *
  * The employer nav fits one row at 1280px via shortened desktop labels
- * (Đăng ca / Lịch tuyển dụng / Ca công khai / Hồ sơ — full labels live in
+ * (Đăng ca / Lịch tuyển dụng / Hồ sơ — full labels live in
  * `title` tooltips + the mobile drawer + the UserMenu, routes
  * unchanged), a widened `max-w-[1600px]` header, and compact link
  * gap/padding at `xl`.
@@ -164,19 +164,20 @@ test.describe('HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no over
       expect(m.logoNavGap, `logo↔nav gap @${width}`).toBeGreaterThanOrEqual(GAP_MIN);
       expect(m.navRightGap, `nav↔right gap @${width}`).toBeGreaterThanOrEqual(GAP_MIN);
 
-      // All 7 employer links present with the SHORTENED desktop labels.
+      // All employer links present with the SHORTENED desktop labels.
       // "Hỗ trợ" was moved to the footer (7→6), then "Cẩm nang làm việc"
-      // (handbook) was added to the top nav (6→7). Per NavBar's own note
-      // the 7-item employer nav is designed to fit one row at >= 1280px
-      // without a hamburger.
-      expect(m.visibleNavLinks, `nav links @${width}`).toBe(7);
+      // (handbook) was added to the top nav (6→7), then P0 feedback removed
+      // "Ca công khai" (7→6; preview now lives on the employer shift page).
+      // The employer nav must fit one row at >= 1280px without a hamburger.
+      expect(m.visibleNavLinks, `nav links @${width}`).toBe(6);
       // P0 feedback F6 — chủ dự án chốt nhãn "Lịch tuyển dụng" (không rút gọn).
-      for (const label of ['Đăng ca', 'Lịch tuyển dụng', 'Ca công khai', 'Hồ sơ']) {
+      for (const label of ['Đăng ca', 'Lịch tuyển dụng', 'Hồ sơ']) {
         expect(
           m.navLinkTexts,
           `employer short label "${label}" @${width}`,
         ).toContain(label);
       }
+      expect(m.navLinkTexts, `no "Ca công khai" @${width}`).not.toContain('Ca công khai');
 
       // Long profile name truncates within its container.
       const nameOk = await page.evaluate(() => {

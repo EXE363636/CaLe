@@ -55,9 +55,7 @@ export const vi: Record<string, string> = {
   // `title` tooltip with the full label (see the `*.full` keys).
   'nav.short.postShift': 'Đăng ca',
   'nav.short.employerSchedule': 'Lịch tuyển dụng',
-  'nav.short.publicShifts': 'Ca công khai',
   'nav.short.employerProfile': 'Hồ sơ',
-  'nav.full.publicShifts': 'Danh sách ca công khai',
   'nav.full.employerProfile': 'Hồ sơ doanh nghiệp',
   'nav.support': 'Hỗ trợ',
 
@@ -116,6 +114,8 @@ export const vi: Record<string, string> = {
   'btn.edit': 'Chỉnh sửa',
   'btn.delete': 'Xoá',
   'btn.back': 'Quay lại',
+  'shift.detail.ownerPreviewNote':
+    'Đây là trang người lao động thấy khi xem ca của bạn. Họ bấm Ứng tuyển ở đây.',
   'btn.submit': 'Gửi',
   'btn.login': 'Đăng nhập',
   'btn.register': 'Đăng ký',
@@ -1524,6 +1524,7 @@ export const vi: Record<string, string> = {
     'Có thể do kết nối mạng không ổn định. Kiểm tra kết nối rồi thử lại.',
   'employer.manageShift.backToDashboard': 'Về bảng điều khiển',
   'employer.manageShift.positionsApproved': 'người đã duyệt',
+  'employer.manageShift.viewAsWorker': 'Xem như người lao động thấy',
   'employer.manageShift.positionsLeft': 'vị trí còn trống',
   'employer.manageShift.cancelled.reasonLabel': 'Lý do:',
   'employer.manageShift.cancelled.penaltyPrefix': 'Phí hủy sau khi đã duyệt người:',
