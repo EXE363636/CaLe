@@ -45,7 +45,9 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 - **Cập nhật 29/09 — P0 xong** trên nhánh `fix/p0-feedback` (tách từ `main` =
   `c76c603`, gồm 2 commit docs mục ⛔). 7 commit: `85a7c1d` (P0-1) → `a05eec5` (P0-2)
   → `57dcbb7` (P0-3) → `c0dae9c` (P0-4) → `0db9007` (P0-5) → `8e96780` (P0-6) →
-  `421f9ce` (sửa FAQ bảng giá theo security-reviewer) + commit docs này.
+  `421f9ce` (sửa FAQ bảng giá theo security-reviewer) + commit docs `9a31c31` +
+  `e915d38` (thêm theo yêu cầu 29/09: bỏ "Ca công khai" khỏi nav employer — 7 → 6
+  mục; trang quản lý ca có link "Xem như người lao động thấy"; E2E 28).
   **Chưa merge `main`** — chờ chủ dự án đồng ý. Không đổi DB.
   - Gate: tsc 0 lỗi; eslint `src`+`e2e` 0 lỗi; `test:run` 778/778 (không còn 3 fail
     `handbookContent`); `test:time` 22/22; `build` OK.
@@ -156,7 +158,10 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
    - Thay dần các `mx-auto max-w-*` rải rác, ưu tiên admin, dashboard, `/shifts`.
 6. ✅ **Nhãn lịch (F6).** _(`8e96780`: theo câu trả lời 1 chỉ đổi nhãn rút gọn
    "Lịch tuyển" → "Lịch tuyển dụng"; KHÔNG làm nhãn "Đã tuyển đủ". Nav employer vẫn
-   vừa một hàng từ 1280px — spec 18 qua 10 cỡ màn.)_ Nội dung plan cũ:
+   vừa một hàng từ 1280px — spec 18 qua 10 cỡ màn.)_ **Thêm (`e915d38`):** bỏ mục
+   "Ca công khai" (/shifts) khỏi nav employer; thay bằng link "Xem như người lao động
+   thấy" trên `/employer/shifts/[id]` (chủ ca xem trang công khai có ghi chú, "Quay
+   lại" về trang quản lý ca). Nội dung plan cũ:
    - Ở lịch employer, ca đã đủ người hiện nhãn chữ "Đã tuyển đủ" rõ ràng
      (`calendar.legend.employer.fullyBooked` đã có).
    - Đổi tên mục điều hướng employer "Lịch" thành "Lịch tuyển dụng".
