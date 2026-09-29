@@ -173,7 +173,7 @@ export default function ShiftsPage() {
   }
 
   return (
-    <PageShell width="7xl">
+    <PageShell width="wide">
       {/* Quieter — calm white header consistent with the worker
           dashboard: no uppercase eyebrow, no gradient surface. The result
           count is a soft chip so orange stays a small accent. */}

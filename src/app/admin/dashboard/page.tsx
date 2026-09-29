@@ -23,7 +23,7 @@ import {
   type AdminShiftFilter,
 } from '@/domain/adminShiftFilter';
 import { effectiveFilledCount } from '@/domain/shiftAvailability';
-import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge, Modal, Select, ButtonLink } from '@/components/ui';
+import { Card, Button, Badge, Input, Textarea, HelpPopover, PageHelpButton, TaskBadge, Modal, Select, ButtonLink, PageShell } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { ReputationBadge } from '@/components/user/ReputationBadge';
@@ -187,7 +187,7 @@ function AdminDashboardContent() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <PageShell width="wide">
       {/* UI-VISUAL-REDESIGN-1 — admin "control panel" hero. A cool
           slate→indigo gradient deliberately distinguishes the admin area
           from the warm orange worker/employer dashboards. */}
@@ -329,7 +329,7 @@ function AdminDashboardContent() {
       {/* Admin-only snapshot dev utility — CHỈ local/demo mode. Ở supabase/
           production ẩn hoàn toàn (công cụ mock/localStorage của developer, B2). */}
       {!isSupabaseEnv() && <SnapshotDevUtility />}
-    </div>
+    </PageShell>
   );
 }
 

@@ -11,7 +11,7 @@ import { getDataMode } from '@/data/supabaseClient';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWalletStore } from '@/stores/walletStore';
-import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink, PageShell } from '@/components/ui';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
@@ -617,7 +617,7 @@ function WorkerDashboardContent() {
     3 + (hasCapability('ratings') ? 2 : 0) + (hasCapability('wallet') ? 1 : 0);
 
   return (
-    <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
+    <PageShell width="wide" className="relative isolate flex flex-col">
       {/* Phase 9T — subtle decorative warmth anchored to the top-right
           of the dashboard, behind every card. Same principle as the
           homepage hero blobs: low alpha, blurred, pointer-events-none,
@@ -1945,7 +1945,7 @@ function WorkerDashboardContent() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageShell>
   );
 }
 

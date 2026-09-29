@@ -14,7 +14,7 @@ import {
   useVerificationStore,
 } from '@/stores';
 import { deriveEmployerPaidOut, deriveHeldEscrow } from '@/domain/finance';
-import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink, PageShell } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { isActiveDashboardShift, getShiftLifecycleState } from '@/domain/shiftLifecycleState';
 import { showSuccess } from '@/lib/toast';
@@ -228,7 +228,7 @@ function EmployerDashboardContent() {
   const showMoneyTiles = hasCapability('wallet') && !isSupabaseEnv();
 
   return (
-    <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
+    <PageShell width="wide" className="relative isolate flex flex-col">
       {/* Phase 9T — subtle decorative warmth anchored to the top-right
           of the dashboard. See worker dashboard for rationale. */}
       <div
@@ -884,7 +884,7 @@ function EmployerDashboardContent() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageShell>
   );
 }
 
