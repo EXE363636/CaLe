@@ -61,6 +61,23 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
   - `npm run lint` toàn repo đang báo lỗi ở `playwright-report/` (báo cáo sinh ra khi
     chạy e2e) và `.claude/skills/impeccable/` (chưa track) — eslint config chưa
     ignore 2 thư mục này. Không phải lỗi code.
+- **Cập nhật 29/09 — P1 phần lớn xong**, 3 nhánh nối tiếp nhau (mỗi nhánh tách từ
+  nhánh trước — merge theo thứ tự `fix/p0-feedback` → `feat/p1-homepage` →
+  `feat/p1-colors` → `feat/p1-copy`). Chưa merge, không đổi DB.
+  - `feat/p1-homepage`: `29cf204` tách trang chủ (`/` chọn vai trò, `/viec-lam`,
+    `/tuyen-dung`, E2E 29; build 33 route); `5675d83` 6 ảnh stock Unsplash
+    (`docs/IMAGE_CREDITS.md`).
+  - `feat/p1-colors`: `6752720` gom 3 màu + token `cream/brand/ink`, badge giữ
+    nguyên; ảnh lợi ích `loading="eager"`.
+  - `feat/p1-copy`: `7c54658` thống nhất thuật ngữ **"cọc"** + **"người ứng tuyển"**
+    (chủ dự án chốt 29/09; nhãn trạng thái "Chờ giữ cọc"/"Đã giữ cọc");
+    `9e97bbf` rút gọn user-guide (~−65% chữ), how-it-works, safety, about và bỏ
+    các câu sai ở production (FAQ "không có tiền thật", "Xác nhận đã thanh
+    toán", bắt buộc SĐT, "giảm phí tương lai").
+  - Gate mỗi nhánh: tsc 0, eslint `src`+`e2e` 0 lỗi, `test:run` 778/778, build OK;
+    e2e toàn bộ 123 qua, chỉ còn 7 test ví hỏng sẵn trên `main`.
+  - Còn lại của P1-4: rà nốt các mô tả dài trong `vi.ts` (≤2 câu, hint ≤1 dòng) ở
+    các màn app (dashboard, form); chưa làm hết.
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
@@ -169,8 +186,11 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 Gate P0: `tsc`, `lint`, `test:run`, `build`, và kiểm tra trên trình duyệt admin +
 employer.
 
-### P1 — Trang chủ, màu, hình, câu chữ (≈3–5 ngày)
-1. **Tách trang chủ theo vai trò (F4).**
+### P1 — Trang chủ, màu, hình, câu chữ (≈3–5 ngày) — ✅ phần lớn xong 29/09 (xem mục 0)
+_Thực tế khác plan: `/` là trang chọn vai trò (câu 3), trang người lao động ở
+`/viec-lam`; badge giữ nguyên (câu 2); thuật ngữ chốt "cọc" thay vì "tiền giữ lại";
+"quán đang dùng" chưa làm (không có quán thật đồng ý hiện tên)._
+1. ✅ **Tách trang chủ theo vai trò (F4).**
    - `/`: dành cho người lao động (khách chủ lực là sinh viên), gồm:
      - Hero: 1 câu + ô tìm ca / nút "Tìm ca gần bạn".
      - 3 lợi ích có ảnh: nhận việc nhanh, tiền về ví sau ca, không cần kinh nghiệm.
@@ -186,7 +206,7 @@ employer.
      trang). Trang chủ chỉ còn tối đa 4 khối.
    - Lưu ý bất biến build "đúng 28 route" trong CLAUDE.md đã cũ (hiện 31), cập nhật
      con số khi thêm route.
-2. **3 màu + khối màu (F2) [QUYẾT phạm vi].**
+2. ✅ **3 màu + khối màu (F2) [QUYẾT phạm vi].**
    - 3 màu thương hiệu: **kem `#FFF4E9`**, **cam `#FF9A5F`**, **mực `#37373B`** (+ trắng).
    - Mỗi section của trang marketing là một khối nền đặc: kem / cam / mực, xen kẽ
      nhau, ít viền và bóng.
@@ -199,14 +219,14 @@ employer.
      (chờ). Nhãn chữ luôn đi kèm. **Mâu thuẫn bất biến CLAUDE.md** ("Đang diễn ra"
      luôn xanh dương `info`): nếu chủ dự án muốn đúng 3 màu cả trong badge thì phải
      sửa bất biến này, `getShiftStatusBadge`, `DESIGN.md` và test badge cùng lúc.
-3. **Hình ảnh (F3).**
+3. ✅ **Hình ảnh (F3).** _(6 ảnh cho 2 trang vai trò; trang thông tin chưa có ảnh bước)_
    - Cần khoảng 8–10 ảnh thật: quán ăn, phục vụ, phụ bếp, kho, sự kiện, sinh viên.
      Ưu tiên ảnh tự chụp ở 10 quán đi khảo sát (xin phép), hoặc ảnh có giấy phép
      miễn phí (Unsplash/Pexels).
    - Đặt ở `public/images/landing/`, dùng `next/image`, có `alt` tiếng Việt, nén WebP
      ≤150KB.
    - Thẻ ca đã có `workplaceImage`; hiện ảnh đó ở danh sách ca.
-4. **Bớt chữ + câu dễ hiểu (F3).**
+4. 🟡 **Bớt chữ + câu dễ hiểu (F3).** _(thuật ngữ + 4 trang thông tin xong; còn rà mô tả dài trong màn app)_
    - Rà `src/i18n/vi.ts` theo danh sách từ khó, đổi ra lời thường. Ví dụ:
      - "escrow/giữ cọc" → "tiền giữ lại".
      - "đối soát" → "kiểm tra tiền".
@@ -377,3 +397,13 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
 - [x] **Kết thúc:** _(mục 0 + 3 đã cập nhật; nhánh đã push; chờ đồng ý merge)_
   - Cập nhật mục 0 và mục 3 của file này (đánh dấu ✅).
   - Push nhánh; chỉ merge `main` khi chủ dự án đồng ý.
+
+### Tiếp theo (sau P0)
+- [ ] Merge lần lượt: `fix/p0-feedback` → `feat/p1-homepage` → `feat/p1-colors` →
+      `feat/p1-copy` (mỗi nhánh tách từ nhánh trước). Cần chủ dự án đồng ý.
+- [ ] Chụp production bằng tài khoản employer: trang Đăng ca (P0-4), Tổng quan admin
+      + dashboard (màu P1-2).
+- [ ] P1-4 còn lại: mô tả dài trong màn app (≤2 câu, hint ≤1 dòng).
+- [ ] P2 chờ chốt 3 điểm mở ở câu 4 (cọc worker khi vắng mặt về đâu; "1 tháng"
+      tính thế nào; đã xác thực CCCD có miễn cọc không).
+- [ ] Task riêng: 7 e2e ví hỏng sẵn trên `main`; eslint bỏ qua `playwright-report/`.
