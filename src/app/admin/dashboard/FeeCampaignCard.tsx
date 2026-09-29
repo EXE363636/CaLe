@@ -26,6 +26,8 @@ export function FeeCampaignCard() {
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  // Lỗi của lần tải hiện tại (theo reloadKey) — không kẹt "Đang tải..." mãi.
+  const [failedKey, setFailedKey] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -35,7 +37,9 @@ export function FeeCampaignCard() {
         setUntil(s.feeFreeUntil);
         setDraft(s.feeFreeUntil ?? '');
       })
-      .catch((e) => showError(errMsg(e)));
+      .catch(() => {
+        if (alive) setFailedKey(reloadKey);
+      });
     return () => {
       alive = false;
     };
@@ -52,6 +56,23 @@ export function FeeCampaignCard() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (until === undefined && failedKey === reloadKey) {
+    return (
+      <Card>
+        <h2 className="font-semibold text-gray-900">{t('admin.feeFree.title')}</h2>
+        <div
+          role="alert"
+          className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          <span>{t('admin.settings.loadError')}</span>
+          <Button size="sm" variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
+            {t('btn.retry')}
+          </Button>
+        </div>
+      </Card>
+    );
   }
 
   const nowIso = new Date().toISOString();

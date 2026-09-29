@@ -11,7 +11,7 @@ import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
 import { DepositWalletConfirm } from '@/components/payment/DepositWalletConfirm';
 import { toPublishPayload } from '@/data/repos/shiftRepo';
-import { calculateDepositWithFee, shiftFeeRate } from '@/domain/deposit';
+import { calculateDepositWithFee, serverWageTotal, shiftFeeRate } from '@/domain/deposit';
 import { useFeeSettings } from '@/lib/useFeeSettings';
 import { Badge, Button, Card, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
 import {
@@ -125,6 +125,7 @@ function NewShiftContent() {
   const [depositPayload, setDepositPayload] = useState<Record<string, unknown> | null>(null);
   const [depositReqId, setDepositReqId] = useState('');
   const [depositPreview, setDepositPreview] = useState(0);
+  const [depositWage, setDepositWage] = useState(0);
   // P2-3 (F12) — đợt miễn phí dịch vụ (phí 0 khi còn hiệu lực).
   const { feeFreeUntil } = useFeeSettings();
   // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
@@ -330,6 +331,8 @@ function NewShiftContent() {
           shiftFeeRate(feeFreeUntil, values.date, new Date().toISOString()),
         ),
       );
+      // P2-2 — tiền công gốc (như server) để tách phần phí mà tiền thưởng trả được.
+      setDepositWage(serverWageTotal(values.hourlyWage, hours, values.positionsTotal));
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -646,6 +649,7 @@ function NewShiftContent() {
             shiftPayload={depositPayload}
             clientRequestId={depositReqId}
             previewAmount={depositPreview}
+            wageAmount={depositWage}
             onPaid={async (shiftId) => {
               // Ca vừa được publish SERVER-SIDE trong confirm_deposit_session.
               // Nạp ca vào store trước khi điều hướng — nếu không, trang chi tiết

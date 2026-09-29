@@ -31,6 +31,7 @@ import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { VerificationsPanel } from './VerificationsPanel';
 import { IdentityReviewPanel } from './IdentityReviewPanel';
 import { FeeCampaignCard } from './FeeCampaignCard';
+import { TopUpBonusCard } from './TopUpBonusCard';
 import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -199,10 +200,7 @@ function AdminDashboardContent() {
         />
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">
-              {t('admin.dashboard.eyebrow')}
-            </p>
-            <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
+            <h1 className="text-2xl font-bold text-white sm:text-3xl">
               {t('admin.dashboard.title')}
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-gray-300">
@@ -406,6 +404,8 @@ function AnalyticsPanel({
       )}
       {/* P2-3 (F12) — đợt miễn phí dịch vụ (chỉ production có phí). */}
       {isSupabaseEnv() && <FeeCampaignCard />}
+      {/* P2-2 (F10) — thưởng nạp ví cho nhà tuyển dụng. */}
+      {isSupabaseEnv() && <TopUpBonusCard />}
       {/* 8 ô (supabase) → 4 cột; 10 ô (local) → 5 cột ở màn rộng — không để hàng lẻ. */}
       <div
         className={[

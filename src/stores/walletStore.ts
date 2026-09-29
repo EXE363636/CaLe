@@ -244,7 +244,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     // nhưng chưa có giao dịch nào của user, hoặc balance>0 mà ledger trống).
     const uid = userId ?? state.ledger[0]?.userId;
     const wallets: UserWallet[] = uid
-      ? [{ userId: uid, balance: state.balance, updatedAt: nowIso() }]
+      ? [{ userId: uid, balance: state.balance, promoBalance: state.promoBalance, updatedAt: nowIso() }]
       : [];
     set({ ledger: state.ledger, wallets, systemBank: bank });
   },

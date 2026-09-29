@@ -1174,7 +1174,6 @@ export const vi: Record<string, string> = {
   // Admin dashboard
   // -------------------------------------------------------------------------
   'admin.dashboard.title': 'Tổng quan quản trị',
-  'admin.dashboard.eyebrow': 'Tổng quan admin',
   'admin.dashboard.subtitle':
     'Theo dõi người dùng, ca làm, tranh chấp và các điều chỉnh thủ công. Override chỉ dùng khi cần xử lý ngoại lệ.',
   'admin.dashboard.badge': 'Chế độ admin',
@@ -2822,6 +2821,30 @@ export const vi: Record<string, string> = {
   // Rút tiền THẬT về tài khoản ngân hàng (PayOS Kênh chi) — chế độ supabase.
   'wallet.kind.UserWithdrawalReversed': 'Hoàn tiền rút không thành công',
   'wallet.kind.PlatformFeeReceived': 'Phí dịch vụ nền tảng',
+  // P2-2 (0026) — thưởng nạp ví (túi thưởng: chỉ trả phí dịch vụ, không rút).
+  'wallet.kind.TopUpBonus': 'Thưởng nạp ví',
+  'wallet.kind.PromoFeeUsed': 'Dùng tiền thưởng trả phí dịch vụ',
+  'wallet.kind.PromoFeeRefund': 'Hoàn tiền thưởng',
+  'wallet.promo.pocketTag': 'Tiền thưởng',
+  'wallet.promo.balance': 'Tiền thưởng: {amount}',
+  'wallet.promo.hint': 'Chỉ dùng trả phí dịch vụ khi đăng ca. Không rút được, không hết hạn.',
+  'wallet.promo.offer': 'Nạp từ {min} được thưởng {bonus} (chỉ dùng trả phí dịch vụ).',
+  'wallet.promo.offerLeft': 'Còn {n} lần nhận thưởng.',
+  'wallet.promo.received': 'Bạn được thưởng {bonus} vào túi tiền thưởng.',
+  'deposit.promo.use': 'Trả phí bằng tiền thưởng',
+  'deposit.promo.cash': 'Trừ từ số dư ví',
+  'admin.settings.loadError': 'Không tải được cài đặt này. Thử lại sau.',
+  'admin.topupBonus.title': 'Thưởng nạp ví',
+  'admin.topupBonus.status.on':
+    'Đang bật: nạp từ {min} được thưởng {bonus}, tối đa {max} lần mỗi nhà tuyển dụng.',
+  'admin.topupBonus.status.off': 'Đang tắt (tiền thưởng = 0).',
+  'admin.topupBonus.min': 'Nạp tối thiểu (đồng)',
+  'admin.topupBonus.amount': 'Tiền thưởng (đồng)',
+  'admin.topupBonus.max': 'Số lần tối đa mỗi nhà tuyển dụng',
+  'admin.topupBonus.hint':
+    'Chỉ nhà tuyển dụng (tài khoản không bị khoá). Tiền thưởng chỉ trả phí dịch vụ, không rút được, tối đa 50% mức nạp. Đặt tiền thưởng = 0 để tắt.',
+  'admin.topupBonus.off': 'Tắt thưởng',
+  'admin.topupBonus.saved': 'Đã lưu chương trình thưởng nạp ví',
   'admin.wallet.title': 'Ví nền tảng (phí dịch vụ 10%)',
   'wallet.withdraw.real.title': 'Rút tiền về tài khoản ngân hàng',
   'wallet.withdraw.real.bank': 'Ngân hàng',

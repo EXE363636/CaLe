@@ -26,11 +26,14 @@ function rowToEntry(r: Row): WalletLedgerEntry {
     shiftId: sOpt(r.shiftId),
     applicationId: sOpt(r.applicationId),
     note: sOpt(r.note),
+    pocket: r.pocket === 'promo' ? 'promo' : 'cash',
   };
 }
 
 export interface WalletState {
   balance: number;
+  /** P2-2 — túi thưởng (0026). */
+  promoBalance: number;
   ledger: WalletLedgerEntry[];
 }
 
@@ -38,9 +41,10 @@ export interface WalletState {
 export async function getWalletState(): Promise<WalletState> {
   const { data, error } = await getSupabaseClient().rpc('get_wallet_state');
   if (error) throw new Error(`get_wallet_state: ${error.message}`);
-  const obj = (data ?? {}) as { balance?: number; ledger?: Row[] };
+  const obj = (data ?? {}) as { balance?: number; promoBalance?: number; ledger?: Row[] };
   return {
     balance: num(obj.balance),
+    promoBalance: num(obj.promoBalance),
     ledger: Array.isArray(obj.ledger) ? obj.ledger.map(rowToEntry) : [],
   };
 }

@@ -41,7 +41,7 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 - ✅ **Migration `0023_schedule_blocks` và `0024_shift_reviews` đã apply** (29/09,
   xem mục ⛔-A). Lúc lập plan `migration list` báo cột remote trống, nhưng thực tế
   bảng đã được chạy tay từ trước; nay đã ghi đúng vào lịch sử migration.
-- 0001–0024 đã apply (0025 apply 29/09 chiều). Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
+- 0001–0024 đã apply (0025 apply 29/09 chiều, 0026 apply 30/09). Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
 - **Cập nhật 29/09 — P0 xong** trên nhánh `fix/p0-feedback` (tách từ `main` =
   `c76c603`, gồm 2 commit docs mục ⛔). 7 commit: `85a7c1d` (P0-1) → `a05eec5` (P0-2)
   → `57dcbb7` (P0-3) → `c0dae9c` (P0-4) → `0db9007` (P0-5) → `8e96780` (P0-6) →
@@ -83,7 +83,10 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 - **Cập nhật 29/09 (chiều):** P0 + P1 đã merge `main` (PR #8, #9 → `75755d7`),
   gồm cả sửa 7 test e2e ví và eslint. **P2-3 xong** trên nhánh
   `fix/wallet-withdraw-visible` (kèm sửa nút Rút tiền) — migration 0025 **đã
-  push 29/09** (đợt miễn phí mặc định TẮT). Chi tiết: `docs/HANDOFF_SESSION_2026-09-29_P2-3.md`.
+  push 29/09** (đợt miễn phí mặc định TẮT).
+- **Cập nhật 30/09:** **P2-2 xong** trên nhánh `feat/p2-topup-bonus` (nối sau
+  PR #10) — migration 0026 **đã push** (thưởng mặc định TẮT). Chi tiết:
+  `docs/HANDOFF_SESSION_2026-09-30_P2-2.md`. Chi tiết: `docs/HANDOFF_SESSION_2026-09-29_P2-3.md`.
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
@@ -267,7 +270,9 @@ Migration mới (0025+), không sửa migration cũ; RPC security definer,
      - Trang ca hiện "Cọc 50.000đ, hoàn lại khi bạn làm xong ca" hoặc "Bạn được
        miễn cọc".
      - Hồ sơ hiện "Xác thực CCCD để không phải cọc".
-2. **Ưu đãi cọc nhà tuyển dụng (F10), chọn 1 trong 2:**
+2. ✅ _(30/09, `478cc04`, 0026 đã push — chọn (b); thêm: chỉ NTD, tối đa N
+   lần/NTD mặc định 1, không hết hạn; xem `HANDOFF_SESSION_2026-09-30_P2-2.md`)_
+   **Ưu đãi cọc nhà tuyển dụng (F10), chọn 1 trong 2:**
    - (a) Giảm cọc từ ca thứ 2: `employer_deposit_ratio_after_first` (vd 50%). Rủi ro
      là thiếu tiền trả công, phải có luồng thu phần còn lại. **Không khuyến nghị**
      vì trả công đang tự động sau 24h.
@@ -415,4 +420,5 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
       tính thế nào; đã xác thực CCCD có miễn cọc không).
 - [x] Task riêng: 7 e2e ví hỏng sẵn trên `main`; eslint bỏ qua `playwright-report/`
       (`a24b0b7`, đã merge).
-- [x] P2-3 miễn phí theo đợt (`d9e3dcf`), 0025 đã `db push` 29/09 — còn chờ merge.
+- [x] P2-3 miễn phí theo đợt (`d9e3dcf`), 0025 đã `db push` 29/09 — còn chờ merge (PR #10).
+- [x] P2-2 thưởng nạp ví (`478cc04`), 0026 đã `db push` 30/09 — còn chờ merge.

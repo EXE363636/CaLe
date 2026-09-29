@@ -87,9 +87,8 @@ Còn lại (Thấp): mô tả sổ cái phí ở 0021 ghi cứng "10%".
 - [ ] Merge `fix/wallet-withdraw-visible` → kiểm tay theo mục ✅ ở đầu file.
 - [ ] (tuỳ chọn) Trang Bảng giá / `/tuyen-dung` hiện dải "Đang miễn phí dịch vụ
       đến hết …" khi có đợt — chưa làm.
-- [ ] **P2-2 thưởng nạp ví** (đã chốt F10: nạp 500.000 đ được +100.000 đ, tiền
-      thưởng chỉ trừ phí dịch vụ, không trả công, không rút). Cần thêm điều
-      khoản "tiền thưởng không quy đổi tiền mặt".
+- [x] **P2-2 thưởng nạp ví** — xong 30/09 (`478cc04`, 0026 đã push), xem
+      `docs/HANDOFF_SESSION_2026-09-30_P2-2.md`.
 - [ ] **P2-1 cọc worker** vẫn chờ chủ dự án chốt 3 điểm: worker vắng mặt thì cọc
       về đâu; "1 tháng" là 30 ngày gần nhất hay tháng dương lịch; đã xác thực
       CCCD có miễn cọc không.

@@ -20,6 +20,7 @@ import { showSuccess } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import { getDataMode } from '@/data/supabaseClient';
 import type { CreatePaymentResult } from '@/data/repos/paymentRepo';
+import { getTopUpBonus, type TopUpBonusInfo } from '@/data/repos/topupBonusRepo';
 import { useWalletStore } from '@/stores/walletStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { walletHistoryLink } from '@/lib/notificationTarget';
@@ -125,6 +126,11 @@ function LedgerRow({ entry }: { entry: WalletLedgerEntry }) {
       <div className="min-w-0 flex-1">
         <span className="block font-medium text-gray-900">
           {t(`wallet.kind.${entry.kind}`)}
+          {entry.pocket === 'promo' && (
+            <span className="ml-1.5 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-800">
+              {t('wallet.promo.pocketTag')}
+            </span>
+          )}
         </span>
         <span className="mt-0.5 block text-xs tabular-nums text-gray-600">
           {formatOccurredAt(entry.occurredAt)}
@@ -194,6 +200,20 @@ export function WalletPanel({
     if (supabase) return wallets.find((w) => w.userId === userId)?.balance ?? 0;
     return deriveWalletBalance(ledger, userId);
   }, [supabase, wallets, ledger, userId]);
+  const promoBalance = supabase
+    ? (wallets.find((w) => w.userId === userId)?.promoBalance ?? 0)
+    : 0;
+
+  // P2-2 — chương trình thưởng nạp ví (chỉ nhà tuyển dụng, supabase). Đọc khi
+  // mở hộp nạp; server mới là nơi quyết có thưởng hay không.
+  const [bonusInfo, setBonusInfo] = useState<TopUpBonusInfo | null>(null);
+  const bonusOffer =
+    bonusInfo &&
+    bonusInfo.bonusAmount > 0 &&
+    bonusInfo.timesReceived < bonusInfo.maxPerUser
+      ? { ...bonusInfo, left: bonusInfo.maxPerUser - bonusInfo.timesReceived }
+      : null;
+
   const userLedger = useMemo(
     () => projectRecentTransactions(ledger, userId),
     [ledger, userId],
@@ -467,6 +487,15 @@ export function WalletPanel({
           {role === 'worker' && balance === 0 && (
             <p className="mt-1 text-xs text-gray-600">{t('wallet.worker.emptyHint')}</p>
           )}
+          {/* P2-2 — túi thưởng (tách khỏi số dư rút được). */}
+          {promoBalance > 0 && (
+            <p className="mt-1 text-sm text-gray-700">
+              <span className="font-semibold tabular-nums text-orange-800">
+                {t('wallet.promo.balance').replace('{amount}', formatVND(promoBalance))}
+              </span>
+              <span className="block text-xs text-gray-600">{t('wallet.promo.hint')}</span>
+            </p>
+          )}
           {allowWithdraw && balance < withdrawMin && (
             <p id={withdrawHintId} className="mt-1 text-xs text-gray-600">
               {balance > 0
@@ -489,6 +518,11 @@ export function WalletPanel({
                 setTopUpError(null);
                 setTopUpStep('amount');
                 setTopUpOpen(true);
+                if (supabase && role === 'employer') {
+                  getTopUpBonus()
+                    .then(setBonusInfo)
+                    .catch(() => setBonusInfo(null));
+                }
               }}
             >
               {t('wallet.topUp.button')}
@@ -709,6 +743,14 @@ export function WalletPanel({
             {supabase && (
               <p className="text-xs text-gray-600">
                 {t('wallet.topUp.real.nextStep').replace('{min}', formatVND(PAYOS_MIN_AMOUNT))}
+              </p>
+            )}
+            {bonusOffer && (
+              <p className="rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-900 ring-1 ring-orange-200">
+                {t('wallet.promo.offer')
+                  .replace('{min}', formatVND(bonusOffer.minAmount))
+                  .replace('{bonus}', formatVND(bonusOffer.bonusAmount))}{' '}
+                {t('wallet.promo.offerLeft').replace('{n}', String(bonusOffer.left))}
               </p>
             )}
             {topUpError && (

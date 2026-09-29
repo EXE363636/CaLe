@@ -41,10 +41,7 @@ export default async function HandbookPage({
       {/* Header section (replaces InfoPage) */}
       <div className="bg-orange-50/30 pb-12 pt-16 lg:pt-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-base sm:text-lg font-bold uppercase tracking-wider text-orange-600">
-            Cẩm nang
-          </p>
-          <h1 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
+          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
             Cẩm nang làm việc
           </h1>
           <p className="mt-4 max-w-3xl text-lg text-gray-600">

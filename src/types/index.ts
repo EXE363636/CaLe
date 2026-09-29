@@ -1238,7 +1238,13 @@ export type WalletLedgerEntryKind =
   /** Rút tiền THẬT (PayOS Kênh chi) thất bại → hoàn lại vào ví. */
   | 'UserWithdrawalReversed'
   /** Phí dịch vụ 10% của một ca → ví admin được chỉ định (migration 0021). */
-  | 'PlatformFeeReceived';
+  | 'PlatformFeeReceived'
+  /** P2-2 (0026) — thưởng nạp ví vào TÚI THƯỞNG (pocket 'promo'). */
+  | 'TopUpBonus'
+  /** P2-2 — dùng tiền thưởng trả phí dịch vụ khi giữ cọc (promo, âm). */
+  | 'PromoFeeUsed'
+  /** P2-2 — phần phí trả bằng thưởng không dùng → hoàn về túi thưởng. */
+  | 'PromoFeeRefund';
 
 /**
  * Single wallet ledger entry. Append-only; never mutated.
@@ -1256,6 +1262,8 @@ export interface WalletLedgerEntry {
   shiftId?: string;
   applicationId?: string;
   note?: string;
+  /** P2-2 — túi tiền: 'cash' (mặc định) hoặc 'promo' (tiền thưởng, supabase). */
+  pocket?: 'cash' | 'promo';
 }
 
 /** Per-user wallet aggregate. */
@@ -1263,6 +1271,8 @@ export interface UserWallet {
   userId: string;
   balance: number;
   updatedAt: string;
+  /** P2-2 — túi thưởng (chỉ trả phí dịch vụ, không rút). Chỉ supabase. */
+  promoBalance?: number;
 }
 
 /**
