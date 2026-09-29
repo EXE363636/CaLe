@@ -223,6 +223,20 @@ KHÔNG phải từ việc tô cam mọi bề mặt. Nền là kem/trắng; cam l
 **The Status-Color-Never-Alone Rule.** Màu trạng thái luôn đi kèm nhãn chữ. Không
 bao giờ truyền đạt "Có tranh chấp" hay "Hoàn thành" chỉ bằng màu.
 
+### Giao diện tối (từ 30/09)
+Bật bằng nút ☾/☀ trên menu → `<html data-theme="dark">` (cookie `cale.theme`, mặc
+định sáng). Nguồn chuẩn: khối `:root[data-theme="dark"]` cuối `src/app/globals.css`.
+**Không dùng class `dark:`** — chỉ đổi giá trị biến màu:
+- Nền trang `#141416`, bề mặt (thẻ, `bg-white`) `#1D1D21`, chữ `#F1F1F4`; thang xám đảo.
+- Cam thương hiệu `#FF9A5F` giữ nguyên. Nền cam nhạt (50–300) → nâu tối; chữ cam
+  đậm (600–950) → cam sáng.
+- Màu trạng thái: nền 50–300 pha tối, chữ 600–950 sáng.
+- **Khối thương hiệu giữ bảng màu bản sáng bên trong:** nền cam (`bg-orange-300…500`,
+  `bg-brand`) và khối mực (`bg-ink`, `bg-gray-900`) — khối mực vẫn tối (`#2C2C31`).
+- Phần tử `text-white` luôn chữ trắng, nền đậm trên chính nó giữ tông đậm; chữ trên
+  ảnh có lớp phủ `from-black` giữ màu sáng; nền mờ hộp thoại luôn tối.
+- Kiểm 30/09: 34 màn (công khai + worker/employer/admin) không còn chữ < 3:1.
+
 ## 3. Typography
 
 **Display Font:** Inter (Google Fonts, subset `latin` + `vietnamese`, biến `--font-inter`)

@@ -52,6 +52,7 @@ import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
 import { LanguageToggle } from './LanguageToggle';
+import { ThemeToggle } from './ThemeToggle';
 import { t as tVi } from '@/i18n/vi';
 import { useT, useTx } from '@/i18n/LocaleProvider';
 
@@ -604,6 +605,7 @@ export function NavBar() {
             </div>
           )}
 
+          <ThemeToggle />
           <LanguageToggle />
 
           {isLoggedIn && (

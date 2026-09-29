@@ -204,3 +204,27 @@ test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   });
 });
+
+test.describe('Nút giao diện sáng / tối', () => {
+  test('bật tối ngay, nhớ khi tải lại, tắt về sáng', async ({ page, seedState, gotoApp }) => {
+    await page.setViewportSize(DESKTOP);
+    await seedState(buildSnapshot());
+    await gotoApp('/');
+    const html = page.locator('html');
+    await expect(html).toHaveAttribute('data-theme', 'light');
+
+    await page.getByRole('button', { name: 'Chuyển sang giao diện tối' }).click();
+    await expect(html).toHaveAttribute('data-theme', 'dark');
+    // Nền trang đổi sang tối (#141416).
+    await expect
+      .poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor))
+      .toBe('rgb(20, 20, 22)');
+
+    // Server đọc cookie → trang tải lại đã tối sẵn (không nháy trắng).
+    await page.reload();
+    await expect(html).toHaveAttribute('data-theme', 'dark');
+
+    await page.getByRole('button', { name: 'Chuyển sang giao diện sáng' }).click();
+    await expect(html).toHaveAttribute('data-theme', 'light');
+  });
+});

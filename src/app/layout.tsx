@@ -9,6 +9,8 @@ import { OAuthOnboardingRedirect } from "@/components/auth/OAuthOnboardingRedire
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
 import { getLocale } from "@/i18n/server";
+import { cookies } from "next/headers";
+import { normalizeTheme, THEME_COOKIE } from "@/lib/theme";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -32,6 +34,8 @@ export default async function RootLayout({
 }>) {
   // Ngôn ngữ hiển thị (cookie `cale.lang`, mặc định tiếng Việt) — xem src/i18n/locale.ts.
   const locale = await getLocale();
+  // Giao diện sáng/tối (cookie `cale.theme`) — đặt sẵn ở server để không nháy trắng.
+  const theme = normalizeTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     // Phase 9Y-Fix-4 — `suppressHydrationWarning` defensively on
     // `<html>` and `<body>`. Browser extensions such as Dark Reader,
@@ -47,6 +51,7 @@ export default async function RootLayout({
     // not recursively, so legitimate child mismatches still warn.
     <html
       lang={locale}
+      data-theme={theme}
       className={`${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
