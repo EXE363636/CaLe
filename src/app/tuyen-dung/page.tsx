@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
 import { t } from '@/i18n/vi';
@@ -15,14 +16,21 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
 export default function EmployerHomePage() {
   const supabase = isSupabaseEnv();
   const benefits = [
-    { icon: <CheckIcon />, title: t('employerHome.benefit.attendance.title'), desc: t('employerHome.benefit.attendance.desc') },
     {
-      icon: <CoinIcon />,
+      img: '/images/landing/employer-su-kien.webp',
+      alt: t('employerHome.benefit.attendance.alt'),
+      title: t('employerHome.benefit.attendance.title'),
+      desc: t('employerHome.benefit.attendance.desc'),
+    },
+    {
+      img: '/images/landing/employer-bep.webp',
+      alt: t('employerHome.benefit.payWorked.alt'),
       title: t('employerHome.benefit.payWorked.title'),
       desc: t(supabase ? 'employerHome.benefit.payWorked.desc' : 'employerHome.benefit.payWorked.desc.demo'),
     },
     {
-      icon: <RefundIcon />,
+      img: '/images/landing/employer-kiem-tra.webp',
+      alt: t('employerHome.benefit.refund.alt'),
       title: t('employerHome.benefit.refund.title'),
       desc: t(supabase ? 'employerHome.benefit.refund.desc' : 'employerHome.benefit.refund.desc.demo'),
     },
@@ -65,12 +73,19 @@ export default function EmployerHomePage() {
           <h2 id="employer-benefits" className="sr-only">{t('employerHome.benefits.title')}</h2>
           <ul className="grid gap-6 sm:grid-cols-3">
             {benefits.map((b) => (
-              <li key={b.title} className="rounded-3xl bg-orange-50 p-6">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-600 shadow-sm">
-                  {b.icon}
-                </span>
-                <h3 className="mt-4 text-lg font-bold text-gray-900">{b.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+              <li key={b.title} className="overflow-hidden rounded-3xl bg-orange-50">
+                <Image
+                  src={b.img}
+                  alt={b.alt}
+                  width={960}
+                  height={640}
+                  sizes="(min-width: 640px) 33vw, 100vw"
+                  className="aspect-[3/2] w-full object-cover"
+                />
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -125,26 +140,3 @@ export default function EmployerHomePage() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-function CoinIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v10M15 9.5c0-1.4-1.3-2-3-2s-3 .8-3 2 1.3 1.8 3 2.2 3 1 3 2.3-1.3 2-3 2-3-.7-3-2" />
-    </svg>
-  );
-}
-function RefundIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-      <path d="M3 3v5h5" />
-    </svg>
-  );
-}

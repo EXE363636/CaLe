@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
 import { LatestShifts } from '@/components/landing/LatestShifts';
@@ -7,7 +8,7 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
 /**
  * Trang cho người lao động — P1 feedback F4. Tối đa 4 khối:
  *   1. Hero: 1 câu + nút "Tìm ca gần bạn" (→ /shifts).
- *   2. 3 lợi ích (ô ảnh sẽ thay icon khi có ảnh — F3).
+ *   2. 3 lợi ích có ảnh (F3 — ảnh stock Unsplash, xem docs/IMAGE_CREDITS.md).
  *   3. 6 ca mới nhất (thật, cùng luật lọc với /shifts).
  *   4. Dải chuyển sang trang nhà tuyển dụng.
  * Khách chủ lực là sinh viên → câu ngắn, lời thường.
@@ -15,13 +16,24 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
 export default function WorkerHomePage() {
   const supabase = isSupabaseEnv();
   const benefits = [
-    { icon: <BoltIcon />, title: t('workerHome.benefit.fast.title'), desc: t('workerHome.benefit.fast.desc') },
     {
-      icon: <WalletIcon />,
+      img: '/images/landing/worker-phuc-vu.webp',
+      alt: t('workerHome.benefit.fast.alt'),
+      title: t('workerHome.benefit.fast.title'),
+      desc: t('workerHome.benefit.fast.desc'),
+    },
+    {
+      img: '/images/landing/worker-vi-tien.webp',
+      alt: t('workerHome.benefit.pay.alt'),
       title: t('workerHome.benefit.pay.title'),
       desc: t(supabase ? 'workerHome.benefit.pay.desc' : 'workerHome.benefit.pay.desc.demo'),
     },
-    { icon: <SproutIcon />, title: t('workerHome.benefit.noExp.title'), desc: t('workerHome.benefit.noExp.desc') },
+    {
+      img: '/images/landing/worker-phu-bep.webp',
+      alt: t('workerHome.benefit.noExp.alt'),
+      title: t('workerHome.benefit.noExp.title'),
+      desc: t('workerHome.benefit.noExp.desc'),
+    },
   ];
 
   return (
@@ -53,12 +65,19 @@ export default function WorkerHomePage() {
           <h2 id="worker-benefits" className="sr-only">{t('workerHome.benefits.title')}</h2>
           <ul className="grid gap-6 sm:grid-cols-3">
             {benefits.map((b) => (
-              <li key={b.title} className="rounded-3xl bg-orange-50 p-6">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-orange-600 shadow-sm">
-                  {b.icon}
-                </span>
-                <h3 className="mt-4 text-lg font-bold text-gray-900">{b.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+              <li key={b.title} className="overflow-hidden rounded-3xl bg-orange-50">
+                <Image
+                  src={b.img}
+                  alt={b.alt}
+                  width={960}
+                  height={640}
+                  sizes="(min-width: 640px) 33vw, 100vw"
+                  className="aspect-[3/2] w-full object-cover"
+                />
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -99,27 +118,3 @@ export default function WorkerHomePage() {
   );
 }
 
-function BoltIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
-    </svg>
-  );
-}
-function WalletIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
-      <path d="M16 11h4M16 14h4" />
-    </svg>
-  );
-}
-function SproutIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 21v-9" />
-      <path d="M12 12c0-4 3-7 8-7 0 5-3 7-8 7Z" />
-      <path d="M12 14c0-3-2.5-5.5-7-5.5 0 4 2.5 5.5 7 5.5Z" />
-    </svg>
-  );
-}
