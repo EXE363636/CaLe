@@ -66,7 +66,7 @@ const EMPLOYER_COLUMN: Column = {
   heading: 'Dành cho nhà tuyển dụng',
   links: [
     { label: 'Đăng ca tuyển', href: '/user-guide#employer-post-shift' },
-    { label: 'Quản lý ứng viên', href: '/user-guide#employer-applicants' },
+    { label: 'Quản lý người ứng tuyển', href: '/user-guide#employer-applicants' },
     { label: 'Giữ tiền ca làm', href: '/user-guide#employer-payments' },
     { label: 'Đánh giá sau ca', href: '/employer/reviews' },
   ],

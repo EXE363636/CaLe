@@ -118,7 +118,7 @@ const EMPLOYER_GROUP: MenuGroup = {
     },
     {
       href: '/employer/dashboard',
-      label: 'Quản lý ứng viên',
+      label: 'Quản lý người ứng tuyển',
       description: 'Duyệt đơn và xác nhận ca hoàn thành',
     },
     {
@@ -194,8 +194,14 @@ const SAFETY_GROUP: MenuGroup = {
 
 const WORKER_GROUP_PUBLIC: MenuGroup = {
   label: 'Người lao động',
-  activePrefixes: ['/worker'],
+  activePrefixes: ['/worker', '/viec-lam'],
   items: [
+    {
+      // P1 feedback F4 — trang giới thiệu riêng cho người lao động.
+      href: '/viec-lam',
+      label: 'Dành cho người lao động',
+      description: 'Lợi ích và các ca mới đăng',
+    },
     {
       href: '/shifts',
       label: 'Tìm ca làm',
@@ -224,8 +230,14 @@ const WORKER_GROUP_PUBLIC: MenuGroup = {
 
 const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
   label: 'Nhà tuyển dụng',
-  activePrefixes: ['/employer'],
+  activePrefixes: ['/employer', '/tuyen-dung'],
   items: [
+    {
+      // P1 feedback F4 — trang giới thiệu riêng cho nhà tuyển dụng.
+      href: '/tuyen-dung',
+      label: 'Dành cho nhà tuyển dụng',
+      description: 'Lợi ích, phí dịch vụ và cách đăng ca',
+    },
     {
       // Phase 9Z-Fix-4: deep-link to the Đăng ca tuyển anchor on
       // /user-guide so logged-out visitors land directly on the
@@ -236,7 +248,7 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
     },
     {
       href: '/user-guide#employer-applicants',
-      label: 'Quản lý ứng viên',
+      label: 'Quản lý người ứng tuyển',
       description: 'Cách duyệt và xác nhận ca làm',
     },
     {
@@ -329,9 +341,10 @@ export function NavBar() {
   // (it collapsed the employer nav at 1366/1440/1920), so it is removed.
   //
   // How the nav now fits one row at 1280px without overlap:
-  //   1. Shortened employer desktop labels (Đăng ca / Lịch tuyển /
-  //      Ca công khai / Hồ sơ) — full labels live in `title` tooltips,
-  //      the mobile drawer, and the UserMenu (routes unchanged).
+  //   1. Shortened employer desktop labels (Đăng ca / Hồ sơ; "Lịch tuyển
+  //      dụng" giữ đủ chữ theo P0 F6; "Ca công khai" đã bỏ khỏi nav — 6 mục)
+  //      — full labels live in `title` tooltips, the mobile drawer, and the
+  //      UserMenu (routes unchanged).
   //   2. Wider header container (`max-w-[1600px]`) so the desktop nav
   //      has more horizontal room than the page's `max-w-7xl` content.
   //   3. Compact nav gap/padding at <= 1536 (`xl:`), normal at `2xl`.
@@ -486,8 +499,20 @@ export function NavBar() {
           nav fits one row from 1280px upward without collapsing. */}
       <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-4">
         {/* Brand block — LEFT zone */}
+        {/* P0 feedback F7 — admin không có trang chủ riêng: logo đưa về
+            Tổng quan admin thay vì landing công khai.
+            P1 feedback F4 — đã đăng nhập thì logo về nơi làm việc chính:
+            worker → danh sách ca, employer → tổng quan; khách → `/`. */}
         <Link
-          href="/"
+          href={
+            role === 'admin'
+              ? '/admin/dashboard'
+              : role === 'employer'
+                ? '/employer/dashboard'
+                : role === 'worker'
+                  ? '/shifts'
+                  : '/'
+          }
           className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:rounded xl:justify-self-start"
         >
           <img
@@ -665,7 +690,7 @@ function WorkerNav({
   );
   return (
     <>
-      <NavLink href="/" pathname={pathname} exact>
+      <NavLink href="/viec-lam" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
       <NavLink href="/shifts" pathname={pathname}>
@@ -713,7 +738,7 @@ function EmployerNav({
   }, [shifts, applications, employerId]);
   return (
     <>
-      <NavLink href="/" pathname={pathname} exact>
+      <NavLink href="/tuyen-dung" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
       <NavLink
@@ -728,7 +753,7 @@ function EmployerNav({
         pathname={pathname}
         badgeCount={dashboardCount}
         badgeAriaLabel={
-          dashboardCount > 0 ? `${dashboardCount} ứng viên cần xử lý` : undefined
+          dashboardCount > 0 ? `${dashboardCount} người ứng tuyển cần xử lý` : undefined
         }
       >
         {t('nav.dashboard')}
@@ -740,19 +765,9 @@ function EmployerNav({
       >
         {t('nav.short.employerSchedule')}
       </NavLink>
-      {/* Phase 10C-Stab-1 Batch 2 P — direct link to the public
-          listing so employers can preview how their shifts appear
-          to workers. HEADER-NAV-LAYOUT-3 — shortened to "Ca công khai"
-          on the desktop nav (full label in the `title` tooltip + the
-          mobile drawer) so the 7-item employer nav fits one row at
-          >= 1280px without a hamburger. */}
-      <NavLink
-        href="/shifts"
-        pathname={pathname}
-        title={t('nav.full.publicShifts')}
-      >
-        {t('nav.short.publicShifts')}
-      </NavLink>
+      {/* P0 feedback — bỏ "Ca công khai" (/shifts) khỏi nav employer: mục đích
+          xem trước ca như người lao động thấy nay là link "Xem như người lao
+          động thấy" trên trang quản lý từng ca (/employer/shifts/[id]). */}
       <NavLink href="/handbook" pathname={pathname}>
         {t('nav.label.handbook')}
       </NavLink>
@@ -775,8 +790,7 @@ function EmployerNav({
 // navigation primitive — they didn't change the URL the user could see
 // against, didn't visually feel different from the dashboard's own
 // pill-style tabs, and adding them at the top forced the rest of the nav
-// to compete for room. We keep only `Trang chủ`, `Tổng quan admin`, and
-// `Hỗ trợ` here and let the dashboard's tab system do its job.
+// to compete for room. We keep only `Tổng quan admin` and `Hỗ trợ` here and let the dashboard's tab system do its job.
 function AdminNav({ pathname }: { pathname: string }) {
   // Phase 10A-Fix-4 — surface pending verification queue items as a
   // badge on the admin dashboard nav link so missed notifications
@@ -793,11 +807,10 @@ function AdminNav({ pathname }: { pathname: string }) {
         : 0,
     [workerDocs, employerDocs, typeChangeRequests],
   );
+  // P0 feedback F7 — bỏ "Trang chủ" (landing công khai) khỏi nav admin:
+  // "về đầu" của admin là Tổng quan admin (logo cũng trỏ về đây).
   return (
     <>
-      <NavLink href="/" pathname={pathname} exact>
-        {t('nav.home')}
-      </NavLink>
       <NavLink
         href="/admin/dashboard"
         pathname={pathname}

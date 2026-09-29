@@ -18,7 +18,7 @@ interface AuthSidePanelProps {
 
 export function AuthSidePanel({ mode }: AuthSidePanelProps) {
   // B4 — supabase/production: CaLẻ chưa thu/giữ tiền, nên benefit tài chính +
-  // disclaimer phải trung thực thay vì hứa ký quỹ/giải ngân (vốn chỉ có ở demo).
+  // disclaimer phải trung thực thay vì hứa ký quỹ/trả (vốn chỉ có ở demo).
   const supabase = isSupabaseEnv();
   const items = [
     {

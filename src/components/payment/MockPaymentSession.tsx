@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   CREATED: 'Đã khởi tạo',
   PENDING: 'Đang chờ thanh toán mô phỏng',
   HELD: 'Đã giữ tiền (mô phỏng)',
-  RELEASED: 'Đã giải ngân (mô phỏng)',
+  RELEASED: 'Đã trả (mô phỏng)',
   CANCELLED: 'Đã hủy phiên mô phỏng',
   EXPIRED: 'Phiên đã hết hạn',
   FAILED: 'Thất bại',
@@ -292,9 +292,9 @@ export function MockPaymentSession({
 
   if (session.status === 'HELD' || session.status === 'RELEASED') {
     return (
-      <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 shadow-card">
-        <h2 className="font-semibold text-emerald-900">Biên nhận mô phỏng</h2>
-        <dl className="mt-3 flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-emerald-100">
+      <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 p-6 shadow-card">
+        <h2 className="font-semibold text-green-900">Biên nhận mô phỏng</h2>
+        <dl className="mt-3 flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-green-100">
           <Row label="Mã giao dịch" value={session.orderCode} mono />
           <Row label="Ngân hàng" value={selectedChannel?.displayName ?? '—'} />
           <Row label="Số tiền" value={formatVND(session.amount)} />

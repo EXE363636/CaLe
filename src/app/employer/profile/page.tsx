@@ -300,7 +300,7 @@ const EMPLOYER_TYPES: EmployerType10A[] = [
 
 const TYPE_HINT: Record<EmployerType10A, string> = {
   Individual:
-    'Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và đảm bảo thanh toán 100% tiền công.',
+    'Không cần giấy phép kinh doanh. Bạn có thể xác minh bằng danh tính người thuê, địa điểm làm việc và giữ cọc 100% tiền công.',
   HouseholdBusiness:
     'Hộ kinh doanh: nộp CCCD đại diện + giấy phép hộ kinh doanh + ảnh mặt tiền.',
   Company:
@@ -492,9 +492,8 @@ function EmployerVerificationCard({
         Xác minh nhà tuyển dụng
       </h2>
       <p className="mb-3 text-xs leading-relaxed text-gray-500">
-        Loại tài khoản dùng để xác định giấy tờ cần xác minh. Bạn không thể
-        tự đổi loại tài khoản sau khi đã chọn. Nếu chọn nhầm hoặc mô hình
-        hoạt động thay đổi, hãy gửi yêu cầu để quản trị viên xem xét.
+        Loại tài khoản quyết định giấy tờ cần xác minh và không tự đổi được
+        sau khi chọn. Nếu chọn nhầm, hãy gửi yêu cầu để quản trị viên xem xét.
       </p>
 
       <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">

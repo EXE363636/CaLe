@@ -173,7 +173,7 @@ export default function ShiftsPage() {
   }
 
   return (
-    <PageShell width="7xl">
+    <PageShell width="wide">
       {/* Quieter — calm white header consistent with the worker
           dashboard: no uppercase eyebrow, no gradient surface. The result
           count is a soft chip so orange stays a small accent. */}
@@ -247,7 +247,7 @@ export default function ShiftsPage() {
               {t('availability.filter.byAvailability')}
             </button>
             {sortMode === 'availability' && (
-              <span className="text-xs text-emerald-700">
+              <span className="text-xs text-green-700">
                 {t('availability.suggest.subtitle')}
               </span>
             )}

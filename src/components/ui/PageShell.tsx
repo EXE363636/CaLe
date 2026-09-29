@@ -5,12 +5,16 @@ interface PageShellProps {
   /**
    * Max content width. Most app pages use `7xl`; narrow reading pages
    * (profile forms) can opt into `4xl`/`3xl`.
+   * P0 feedback F1 — `wide` (1400px) cho màn làm việc nhiều cột: dashboard
+   * worker/employer, Tổng quan admin, danh sách ca — để màn ≥1440px không
+   * còn hai bên lề trống lớn (NavBar rộng 1600px).
    */
-  width?: '7xl' | '6xl' | '5xl' | '4xl' | '3xl';
+  width?: 'wide' | '7xl' | '6xl' | '5xl' | '4xl' | '3xl';
   className?: string;
 }
 
 const widthClasses: Record<NonNullable<PageShellProps['width']>, string> = {
+  wide: 'max-w-[1400px]',
   '7xl': 'max-w-7xl',
   '6xl': 'max-w-6xl',
   '5xl': 'max-w-5xl',

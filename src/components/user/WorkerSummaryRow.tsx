@@ -133,11 +133,11 @@ export function WorkerSummaryRow({
             {summary.approvedMethods.map((m) => (
               <span
                 key={m.type}
-                className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+                className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
               >
                 <span>{m.label}</span>
                 {m.maskedIdentifier && (
-                  <span className="font-mono text-emerald-600/80">
+                  <span className="font-mono text-green-600/80">
                     {m.maskedIdentifier}
                   </span>
                 )}
@@ -157,7 +157,7 @@ export function WorkerSummaryRow({
                 className={[
                   'rounded-full px-2 py-0.5 text-xs font-medium',
                   skillEntry && skillEntry.completedCount > 0
-                    ? 'bg-indigo-50 text-indigo-800'
+                    ? 'bg-orange-100 text-orange-800'
                     : 'bg-gray-100 text-gray-600',
                 ].join(' ')}
                 title={

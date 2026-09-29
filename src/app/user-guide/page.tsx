@@ -9,27 +9,12 @@ const REAL_MONEY = isSupabaseEnv();
 /**
  * Public user guide - Phase 9Y, polished in Phase 9Z-Fix-4.
  *
- * Server component. Renders a substantial walk-through for both
- * audiences - workers and employers - using the existing `<InfoPage>`
- * shell. The step content matches the actual product flows
- * (verification gate, deposit ratios, cancellation windows,
- * reputation arithmetic, etc.) so it's not generic AI filler.
- *
- * Phase 9Z-Fix-4 changes:
- *   - All raw route paths (/register, /worker/profile, /worker/dashboard,
- *     /worker/schedule, /employer/profile, /employer/shifts/new,
- *     /employer/shifts/[id], /shifts, /disputes) removed from
- *     user-facing copy. Replaced with the visible page / menu /
- *     button labels a normal user would actually look for.
- *   - Five new feature-anchor sections added so the public nav can
- *     deep-link to a specific feature explanation:
- *       #worker-schedule       - Lịch cá nhân
- *       #worker-reputation     - Điểm uy tín
- *       #employer-post-shift   - Đăng ca tuyển
- *       #employer-applicants   - Quản lý ứng viên
- *       #employer-payments     - Đảm bảo thanh toán
- *     Each section has `scroll-mt-24` so the sticky nav doesn't
- *     cover the heading when a hash deep-link lands.
+ * P1 feedback F3 (29/09/2026) — bớt chữ, lời thường, nói đúng từng chế độ:
+ *   - Mỗi mục tối đa 3 ý ngắn + 1 ví dụ ngắn; 2 dòng thời gian còn 5 bước.
+ *   - Production: tiền thật qua PayOS, cọc 100% tiền công + 10% phí, tự chốt
+ *     ~24 giờ sau ca; cờ bắt buộc SĐT/CCCD mặc định tắt; server không chặn
+ *     ứng tuyển theo điểm uy tín. Local/demo: mô phỏng.
+ *   - Giữ nguyên mọi anchor `#…` (nav, footer, ô thống kê dashboard link vào).
  *
  * No `'use client'` - the FAQ accordion uses native `<details>` /
  * `<summary>` so JS isn't needed.
@@ -40,111 +25,55 @@ interface Step {
   body: string;
 }
 
-// ---------------------------------------------------------------------------
-// Worker timeline (9 steps, in order)
-// ---------------------------------------------------------------------------
-
 const WORKER_STEPS: Step[] = [
   {
-    title: 'Đăng ký tài khoản người lao động.',
-    body:
-      'Mở trang Đăng ký, chọn "Tôi muốn tìm ca làm", nhập họ tên, email, số điện thoại, mật khẩu (≥ 8 ký tự). Sau khi đăng ký xong, hệ thống đăng nhập tự động.',
+    title: 'Đăng ký và làm hồ sơ.',
+    body: 'Chọn "Tôi muốn tìm ca làm" khi đăng ký. Thêm kỹ năng và khu vực muốn làm trong trang Hồ sơ.',
   },
   {
-    title: 'Hoàn thiện hồ sơ.',
-    body:
-      'Mở mục Hồ sơ trong menu Người lao động và bổ sung giới thiệu ngắn, kỹ năng, loại công việc ưa thích, khu vực ưa thích. Hồ sơ đầy đủ giúp nhà tuyển dụng tin tưởng và duyệt nhanh hơn.',
+    title: 'Tìm và ứng tuyển ca.',
+    body: 'Bấm "Tìm ca làm", mở ca phù hợp rồi bấm "Ứng tuyển". Ca trùng giờ với lịch của bạn sẽ bị chặn.',
   },
   {
-    title: 'Xác minh thông tin.',
-    body:
-      'Bật xác minh số điện thoại, CMND/CCCD, thẻ sinh viên (nếu có) ngay trong trang Hồ sơ. Trong bản dùng thử (MVP) các xác minh được giả lập; người lao động cần xác minh số điện thoại trước khi có thể ứng tuyển ca đầu tiên.',
+    title: 'Chờ duyệt.',
+    body: 'Bạn nhận thông báo khi nhà tuyển dụng duyệt hoặc từ chối (kèm lý do).',
   },
   {
-    title: 'Tìm ca làm.',
-    body:
-      'Bấm "Tìm ca làm" trên thanh điều hướng để xem các ca đang tuyển. Hệ thống chỉ hiển thị ca đã được nhà tuyển dụng đảm bảo thanh toán, còn vị trí trống và chưa quá giờ bắt đầu. Có thể lọc theo khu vực, ngày, lương và loại công việc.',
+    title: 'Đi làm.',
+    body: 'Đến nơi thì bấm "Check-in" trên trang Tổng quan, làm xong bấm "Check-out".',
   },
   {
-    title: 'Ứng tuyển ca phù hợp.',
-    body:
-      'Bấm vào ca để xem chi tiết, sau đó bấm nút "Ứng tuyển". Bạn sẽ không thể ứng tuyển nếu chưa xác minh số điện thoại, có điểm uy tín dưới 50, ca bị trùng giờ, ca đã đủ người hoặc bạn đã ứng tuyển ca đó trước đây.',
-  },
-  {
-    title: 'Chờ nhà tuyển dụng duyệt.',
-    body:
-      'Đơn ứng tuyển bắt đầu ở trạng thái Chờ duyệt. Khi được duyệt, đơn chuyển sang Đã duyệt và bạn nhận thông báo. Nếu bị từ chối, bạn xem lý do tại mục "Đơn bị từ chối gần đây" trên trang Tổng quan của người lao động.',
-  },
-  {
-    title: 'Đi làm - check-in / check-out.',
-    body:
-      'Đến giờ ca, mở trang Tổng quan của người lao động, chọn ca sắp diễn ra và bấm "Check-in". Khi xong ca bấm "Check-out". Hệ thống sẽ chuyển trạng thái thành Đã check-out và chờ nhà tuyển dụng xác nhận.',
-  },
-  {
-    title: 'Nhận thanh toán.',
-    body:
-      REAL_MONEY
-        ? 'Khi nhà tuyển dụng bấm “Xác nhận hoàn thành”, tiền công được chuyển ngay vào ví của bạn và có thể rút về tài khoản ngân hàng. Nếu nhà tuyển dụng không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'
-        : 'Khi nhà tuyển dụng bấm “Xác nhận hoàn thành”, ca được ghi nhận là hoàn thành và tiền công được chuyển cho bạn. Trong bản MVP, việc chuyển tiền chỉ được mô phỏng. Ô "Tổng thu nhập" trên trang Tổng quan tăng tương ứng.',
-  },
-  {
-    title: 'Theo dõi điểm uy tín.',
-    body:
-      'Mỗi ca hoàn thành cộng +5 điểm. Vắng mặt không báo trước trừ 20 điểm. Huỷ ca trong vòng 24 giờ trước giờ bắt đầu trừ 10 điểm. Điểm dưới 50 sẽ bị hạn chế ứng tuyển. Bấm vào ô "Điểm uy tín" trên trang Tổng quan để xem dòng thời gian chi tiết.',
+    title: 'Nhận tiền công.',
+    body: REAL_MONEY
+      ? 'Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví, rút về ngân hàng khi cần. Không ai bấm thì hệ thống tự chốt khoảng 24 giờ sau ca.'
+      : 'Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví (mô phỏng trong bản demo).',
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Employer timeline (9 steps, in order)
-// ---------------------------------------------------------------------------
-
 const EMPLOYER_STEPS: Step[] = [
   {
-    title: 'Đăng ký tài khoản nhà tuyển dụng.',
-    body:
-      'Mở trang Đăng ký, chọn "Tôi cần tuyển người lao động", rồi chọn loại tài khoản: Cá nhân/Freelance hoặc Doanh nghiệp. Trước khi ca được hiển thị cho người lao động, nhà tuyển dụng cần thanh toán trước toàn bộ tiền công của ca; cấp độ tin cậy giúp tăng độ ưu tiên hiển thị và giảm phí dịch vụ trong tương lai.',
+    title: 'Đăng ký và chọn loại tài khoản.',
+    body: 'Chọn "Tôi cần tuyển người lao động", rồi chọn Cá nhân hoặc Doanh nghiệp.',
   },
   {
-    title: 'Hoàn thiện hồ sơ doanh nghiệp.',
-    body:
-      'Mở mục Hồ sơ trong menu Nhà tuyển dụng và bổ sung mô tả, loại hình kinh doanh, logo (nếu có). Trong bản MVP, xác minh doanh nghiệp được giả lập.',
+    title: 'Đăng ca và giữ cọc.',
+    body: REAL_MONEY
+      ? 'Nhập giờ, địa điểm, lương và số người cần. Hệ thống giữ cọc tiền công + 10% phí từ ví rồi mới công khai ca.'
+      : 'Nhập giờ, địa điểm, lương và số người cần. Bấm "Mô phỏng giữ cọc" để công khai ca.',
   },
   {
-    title: 'Đăng ca tuyển.',
-    body:
-      'Trong menu Nhà tuyển dụng, chọn "Đăng ca tuyển". Điền tên ca, mô tả, yêu cầu, loại công việc, khu vực, ngày, giờ bắt đầu/kết thúc, lương theo giờ (đ) và số lượng vị trí cần.',
+    title: 'Duyệt người ứng tuyển.',
+    body: 'Xem hồ sơ và điểm uy tín, bấm "Duyệt" hoặc "Từ chối" kèm lý do.',
   },
   {
-    title: 'Đảm bảo thanh toán tiền công.',
-    body:
-      'Hệ thống yêu cầu nhà tuyển dụng thanh toán trước 100% tổng tiền công cho mọi cấp độ tin cậy trong bản MVP. Bấm “Xác nhận đã thanh toán” để hoàn tất bước thanh toán trước trong bản MVP. Sau đó, ca sẽ chuyển từ Bản nháp sang Đang tuyển. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai.',
-  },
-  {
-    title: 'Nhận đơn ứng tuyển.',
-    body:
-      'Đơn ứng tuyển hiển thị trong trang quản lý chi tiết của ca tuyển và trong ô "Đơn chờ duyệt" trên Tổng quan của nhà tuyển dụng. Bấm "Xem hồ sơ" để xem chi tiết người ứng tuyển kèm điểm uy tín, lịch sử và xác minh.',
-  },
-  {
-    title: 'Duyệt người lao động.',
-    body:
-      'Bấm "Duyệt" để chấp nhận đơn, hoặc "Từ chối" và nhập lý do (bắt buộc). Người lao động sẽ nhận thông báo kèm lý do từ chối.',
-  },
-  {
-    title: 'Theo dõi ca làm.',
-    body:
-      'Khi đến giờ, ca tự chuyển sang Đang diễn ra. Sau giờ kết thúc, nếu có người check-out, ca chuyển sang Chờ xác nhận.',
+    title: 'Theo dõi ca.',
+    body: 'Ca tự chuyển sang Đang diễn ra khi đến giờ. Người lao động check-in khi đến và check-out khi xong.',
   },
   {
     title: 'Xác nhận hoàn thành.',
-    body:
-      REAL_MONEY
-        ? 'Bấm "Xác nhận hoàn thành" trên từng người lao động: tiền công vào ví người đó ngay. Nếu người lao động không đến, bấm "Vắng mặt" (sau giờ bắt đầu 15 phút) - phần cọc của vị trí đó được hoàn về ví của bạn khi ca chốt. Nếu bạn không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'
-        : 'Bấm "Xác nhận hoàn thành" trên từng người lao động. Tiền công được chuyển cho người lao động và ca chuyển sang trạng thái Đã hoàn thành. Trong bản MVP, giao dịch này chỉ được mô phỏng. Nếu người lao động vắng mặt, bấm "Vắng mặt" - bạn được tặng 1 lượt boost cho ca tiếp theo.',
-  },
-  {
-    title: 'Đánh giá sau ca.',
-    body:
-      'Sau khi ca hoàn thành, đánh giá người lao động từ 1–5 sao và nhận xét ngắn. Đánh giá hai chiều - người lao động cũng có thể đánh giá nhà tuyển dụng.',
+    body: REAL_MONEY
+      ? 'Bấm "Xác nhận hoàn thành" để trả tiền công. Ai không đến thì bấm "Vắng mặt": phần cọc đó hoàn về ví của bạn.'
+      : 'Bấm "Xác nhận hoàn thành" để trả tiền công (mô phỏng). Ai không đến thì bấm "Vắng mặt".',
   },
 ];
 
@@ -364,7 +293,11 @@ export default function UserGuidePage() {
     <InfoPage
       eyebrow="Hướng dẫn sử dụng"
       title="Cách dùng CaLẻ"
-      intro="Hướng dẫn từng bước cho người lao động và nhà tuyển dụng. Mỗi bước gắn liền với thao tác thật trên ứng dụng - không phải mô tả chung chung."
+      intro={
+        REAL_MONEY
+          ? 'Hướng dẫn ngắn cho người lao động và nhà tuyển dụng. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua PayOS.'
+          : 'Hướng dẫn ngắn cho người lao động và nhà tuyển dụng. Đây là bản demo: tiền và xác minh đều là mô phỏng.'
+      }
       ctas={[
         { label: 'Tìm ca làm ngay', href: '/shifts' },
         {
@@ -374,281 +307,7 @@ export default function UserGuidePage() {
         },
       ]}
     >
-      {/* Hero summary - what is CaLê / Now */}
-      <section>
-        <p className="text-justify leading-relaxed text-gray-700">
-          CaLẻ là nền tảng kết nối ca làm ngắn hạn tại Việt Nam.
-          Người muốn tìm việc theo ca như sinh viên, người lao động tự do hoặc người cần kiếm thêm thu nhập có thể tìm ca phù hợp với lịch cá nhân; nhà tuyển dụng đảm bảo thanh
-          toán trước khi đăng ca, giúp người lao động yên tâm về thanh toán.
-        </p>
-        <p className="mt-3 text-justify leading-relaxed text-gray-700">
-          Toàn bộ giao dịch trong bản dùng thử (MVP) đều được giả lập trong
-          trình duyệt - không có thanh toán thật, không có xác minh thật.
-          Trang hướng dẫn này mô tả luồng đầy đủ để bạn hình dung sản phẩm
-          khi triển khai chính thức.
-        </p>
-      </section>
-
-      {/* Phase 9Z-Fix-4 - feature anchor sections.
-          Public nav deep-links land here; `scroll-mt-24` clears the
-          sticky header. Each section explains a specific feature in
-          plain Vietnamese with a CTA inviting login or further
-          reading.
-
-          Phase 9Z-Fix-5 - extended with 9 more dashboard-stat
-          anchors, grouped under three thematic <GuideGroup> blocks
-          (Người lao động / Nhà tuyển dụng / Thanh toán & uy tín) so
-          the guide reads as three distinct audiences rather than a
-          long flat list. */}
-
-      <GuideGroup
-        eyebrow="Dành cho người lao động"
-        title="Tính năng cho người tìm việc"
-        lead="Các tính năng giúp bạn tìm ca, quản lý lịch và giữ điểm uy tín tốt."
-      >
-        <FeatureGuide
-          id="worker-schedule"
-          eyebrow="Người lao động"
-          title="Lịch cá nhân hoạt động như thế nào?"
-          bullets={[
-            'Người lao động có thể khai báo các khung giờ bận hoặc rảnh trong tuần.',
-            'Hệ thống dùng lịch cá nhân để tránh ứng tuyển trùng giờ với việc khác.',
-            'Khi bạn ứng tuyển một ca, hệ thống kiểm tra ca đó có trùng lịch cá nhân hoặc trùng ca đã được duyệt không. Nếu trùng, đơn ứng tuyển bị chặn để bạn không nhận quá nhiều ca cùng lúc.',
-            'Tính năng Lịch cá nhân yêu cầu đăng nhập với vai trò người lao động.',
-          ]}
-          example="Bạn có lịch học từ 14:00–16:00 thứ Ba. Khi bạn cố ứng tuyển một ca diễn ra 15:00–17:00 cùng thứ Ba, hệ thống sẽ chặn đơn ứng tuyển và báo trùng lịch."
-          nextAction="Trong Lịch cá nhân, đánh dấu các khung giờ bạn bận trong tuần để hệ thống lọc giúp bạn các ca phù hợp."
-          primaryCta={{ label: 'Đăng nhập để mở Lịch cá nhân', href: '/login' }}
-          secondaryCta={{ label: 'Tìm ca làm phù hợp', href: '/shifts' }}
-        />
-
-        <FeatureGuide
-          id="worker-reputation"
-          eyebrow="Người lao động"
-          title="Điểm uy tín của người lao động"
-          bullets={[
-            'Điểm uy tín phản ánh mức độ đáng tin cậy của bạn dựa trên lịch sử thực tế. Mọi người lao động bắt đầu với 100 điểm.',
-            'Hoàn thành ca tốt cộng +5 điểm cho mỗi ca.',
-            'Vắng mặt không báo trước trừ 20 điểm; huỷ trong vòng 24 giờ trước giờ bắt đầu trừ 10 điểm.',
-            'Điểm dưới 50 sẽ bị hạn chế ứng tuyển ca mới cho đến khi điểm phục hồi.',
-          ]}
-          example="Bạn bắt đầu với 100 điểm và đây cũng là mức hiển thị tối đa. Vì vậy, sau khi hoàn thành thêm các ca tốt, điểm vẫn hiển thị là 100. Nếu bạn vắng mặt một ca và bị trừ 20 điểm, điểm sẽ giảm còn 80."
-          nextAction="Bấm vào ô “Điểm uy tín” trên Tổng quan người lao động để xem toàn bộ dòng thời gian cộng / trừ điểm."
-          primaryCta={{ label: 'Đăng nhập để xem điểm của bạn', href: '/login' }}
-          secondaryCta={{ label: 'Hồ sơ & điểm uy tín', href: '/worker/reputation-guide' }}
-        />
-
-        <FeatureGuide
-          id="worker-completed-shifts"
-          eyebrow="Người lao động"
-          title="Ca đã hoàn thành là gì?"
-          bullets={[
-            'Đây là số ca bạn đã làm xong và được nhà tuyển dụng xác nhận hoàn thành.',
-            'Một ca chỉ tính vào "Đã hoàn thành" sau khi cả người lao động và nhà tuyển dụng đều xác nhận xong.',
-            'Số liệu này được dùng cùng với điểm uy tín và đánh giá để xây dựng hồ sơ làm việc của bạn.',
-          ]}
-          example="Tuần này bạn làm 3 ca: 2 ca đã được nhà tuyển dụng bấm Xác nhận hoàn thành, 1 ca vẫn đang chờ xác nhận. Ô “Ca đã hoàn thành” chỉ đếm 2 ca; ca còn lại sẽ chuyển sang đếm khi nhà tuyển dụng xác nhận."
-          nextAction="Bấm vào ô “Ca đã hoàn thành” trên Tổng quan người lao động để xem danh sách 5 ca gần nhất."
-        />
-
-        <FeatureGuide
-          id="worker-total-income"
-          eyebrow="Người lao động"
-          title="Tổng thu nhập được tính như thế nào?"
-          bullets={[
-            'Tổng thu nhập là tổng tiền công từ những ca bạn đã hoàn thành và đã được nhà tuyển dụng xác nhận thanh toán.',
-            REAL_MONEY
-              ? 'Một ca chỉ tính vào tổng thu nhập sau khi được xác nhận hoàn thành - tiền công khi đó vào ví của bạn.'
-              : 'Một ca chỉ tính vào tổng thu nhập sau khi nhà tuyển dụng bấm Xác nhận hoàn thành - tiền sẽ được giải ngân (mô phỏng trong bản MVP).',
-            'Số tiền này không bao gồm các ca đang diễn ra hoặc đang chờ xác nhận.',
-          ]}
-          example="Bạn hoàn thành 2 ca: một ca 4 giờ với lương 45.000 đ/giờ (tổng 180.000 đ) và một ca 5 giờ với lương 60.000 đ/giờ (tổng 300.000 đ). Sau khi cả hai được xác nhận, ô “Tổng thu nhập” tăng thêm 480.000 đ."
-          nextAction="Bấm vào ô “Tổng thu nhập” trên Tổng quan người lao động để xem danh sách các ca và số tiền nhận được gần đây."
-        />
-
-        <FeatureGuide
-          id="worker-cancellation-quota"
-          eyebrow="Người lao động"
-          title="Hạn mức huỷ tuần là gì?"
-          bullets={[
-            'Đây là số lần bạn còn có thể huỷ ca trong 7 ngày gần nhất, theo quy định điểm uy tín.',
-            'Hạn mức cơ bản: 3 lượt huỷ trong 7 ngày và 10 lượt trong 30 ngày.',
-            'Khi điểm uy tín cao (80–94 điểm), bạn được tăng nhẹ hạn mức (4/tuần, 12/tháng); rất cao (95–100 điểm) tăng hơn nữa (5/tuần, 14/tháng).',
-            'Hạn mức tính trên các đơn ứng tuyển bị huỷ thực tế, không tính các yêu cầu huỷ vẫn đang chờ duyệt hoặc bị nhà tuyển dụng từ chối.',
-          ]}
-          example="Trong 7 ngày qua, bạn đã huỷ 2 ca nên còn 1 lượt huỷ. Sau khi sử dụng lượt thứ 3, bạn sẽ không thể huỷ thêm cho đến khi một lần huỷ cũ không còn nằm trong khoảng 7 ngày gần nhất."
-          nextAction="Bấm vào ô “Hạn mức huỷ tuần” trên Tổng quan người lao động để xem chi tiết các lần huỷ trong 7 và 30 ngày gần nhất."
-        />
-      </GuideGroup>
-
-      <GuideGroup
-        eyebrow="Dành cho nhà tuyển dụng"
-        title="Tính năng cho nhà tuyển dụng"
-        lead="Các tính năng giúp bạn đăng ca, duyệt ứng viên và theo dõi tiến độ."
-      >
-        <FeatureGuide
-          id="employer-post-shift"
-          eyebrow="Nhà tuyển dụng"
-          title="Đăng ca tuyển diễn ra như thế nào?"
-          bullets={[
-            'Nhà tuyển dụng nhập tên ca, thời gian, địa điểm, mức lương theo giờ và số lượng người cần tuyển.',
-            'Trước khi ca được hiển thị cho người lao động, nhà tuyển dụng cần thanh toán trước toàn bộ tiền công của ca. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai.',
-            'Ca chỉ hiển thị cho người lao động sau khi đảm bảo thanh toán thành công - đảm bảo tiền công được bảo đảm trước khi ai đó đến nhận việc.',
-            'Trong bản MVP, thanh toán và đảm bảo thanh toán được giả lập trong trình duyệt - không có giao dịch tiền thật.',
-          ]}
-          example="Bạn đăng một ca phục vụ 4 giờ tối thứ Bảy, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Hệ thống yêu cầu đảm bảo thanh toán 100% tức 280.000 đ trước khi ca công khai. Cấp độ tin cậy của bạn ảnh hưởng đến độ ưu tiên hiển thị, không ảnh hưởng đến khoản đảm bảo thanh toán."
-          nextAction="Trong menu Nhà tuyển dụng, chọn Đăng ca tuyển và điền đầy đủ thông tin để tiến hành đảm bảo thanh toán."
-          primaryCta={{ label: 'Đăng nhập để đăng ca tuyển', href: '/login' }}
-          secondaryCta={{ label: 'Xem cách đảm bảo thanh toán', href: '/employer/payments' }}
-        />
-
-        <FeatureGuide
-          id="employer-applicants"
-          eyebrow="Nhà tuyển dụng"
-          title="Quản lý ứng viên như thế nào?"
-          bullets={[
-            'Khi có người ứng tuyển, nhà tuyển dụng xem hồ sơ, điểm uy tín, kỹ năng và lịch sử làm việc của ứng viên ngay trên trang quản lý ca.',
-            'Bấm Duyệt để chấp nhận đơn ứng tuyển, hoặc Từ chối kèm lý do (bắt buộc) để người lao động hiểu vì sao.',
-            'Sau khi duyệt, người lao động sẽ nhận thông báo và đến giờ thực hiện ca.',
-            REAL_MONEY
-              ? 'Sau khi ca hoàn thành, nhà tuyển dụng bấm Xác nhận hoàn thành - tiền công vào ví người lao động.'
-              : 'Sau khi ca hoàn thành, nhà tuyển dụng bấm Xác nhận hoàn thành - tiền công được giải ngân (mô phỏng) cho người lao động.',
-          ]}
-          example="Có 3 người ứng tuyển ca tối nay. Bạn xem hồ sơ từng người: ứng viên A có điểm uy tín 95 và 12 ca hoàn thành, ứng viên B có 75 và 4 ca, ứng viên C mới (100 điểm, chưa có ca). Bạn duyệt A và B, từ chối C kèm lý do «Ưu tiên người có kinh nghiệm cho ca này»."
-          nextAction="Trong Tổng quan nhà tuyển dụng, bấm vào ô “Đơn chờ duyệt” để xử lý các đơn còn chờ."
-          primaryCta={{ label: 'Đăng nhập để quản lý ứng viên', href: '/login' }}
-          secondaryCta={{ label: 'Xem quy trình tuyển dụng', href: '/how-it-works' }}
-        />
-
-        <FeatureGuide
-          id="employer-active-shifts"
-          eyebrow="Nhà tuyển dụng"
-          title="Ca đang hoạt động là gì?"
-          bullets={[
-            'Đây là các ca đã đăng, đã đảm bảo thanh toán và đang trong quá trình tuyển hoặc làm việc.',
-            'Bao gồm các trạng thái: Đang tuyển (còn vị trí), Đã đủ người (đủ ứng viên đã duyệt), Đang diễn ra (đến giờ ca), và Chờ xác nhận (đã check-out, chờ xác nhận hoàn thành).',
-            'Số liệu này không bao gồm ca Bản nháp, Đã huỷ, Hết hạn hoặc Đã hoàn thành.',
-          ]}
-          example="Hôm nay bạn có 4 ca: 2 ca đang tuyển thêm người, 1 ca đã đủ người và sắp diễn ra, 1 ca đã hoàn thành tuần trước. Ô “Ca đang hoạt động” đếm 3, không tính ca đã hoàn thành."
-          nextAction="Bấm vào ô “Ca đang hoạt động” trên Tổng quan để mở danh sách và quản lý từng ca."
-        />
-
-        <FeatureGuide
-          id="employer-pending-applications"
-          eyebrow="Nhà tuyển dụng"
-          title="Đơn chờ duyệt là gì?"
-          bullets={[
-            'Đây là các đơn ứng tuyển đang chờ nhà tuyển dụng quyết định Duyệt hoặc Từ chối.',
-            'Trong khoảng thời gian này, ứng viên thấy đơn của mình ở trạng thái Chờ duyệt và chưa nhận thông báo kết quả.',
-            'Sau khi bạn xử lý, đơn sẽ chuyển sang Đã duyệt hoặc Bị từ chối, và ứng viên nhận thông báo kèm lý do (nếu từ chối).',
-          ]}
-          example="Có 2 người ứng tuyển vào ca phục vụ tối nay. Trước khi ca bắt đầu, bạn mở từng đơn để xem hồ sơ, điểm uy tín và kỹ năng, rồi chọn Duyệt hoặc Từ chối."
-          nextAction="Nên xử lý đơn ứng tuyển sớm để người lao động có thời gian chuẩn bị, đặc biệt khi ca diễn ra trong vòng 24 giờ."
-        />
-
-        <FeatureGuide
-          id="employer-posted-shifts"
-          eyebrow="Nhà tuyển dụng"
-          title="Ca đã đăng gồm những gì?"
-          bullets={[
-            'Đây là tổng số ca bạn đã tạo trên hệ thống - bao gồm Bản nháp, Đang tuyển, Đã đủ người, Đang diễn ra, Chờ xác nhận, Đã hoàn thành và Đã huỷ.',
-            'Là chỉ số tổng hợp xuyên suốt thời gian, không chỉ tuần hiện tại.',
-            'Dùng để theo dõi quy mô tuyển dụng của bạn theo thời gian dài.',
-          ]}
-          example="Trong 6 tháng qua bạn đã tạo 24 ca: 18 đã hoàn thành, 4 đang hoạt động, 1 bản nháp chưa đảm bảo thanh toán, 1 đã huỷ. Ô “Ca đã đăng” đếm cả 24."
-          nextAction="Bấm vào ô “Ca đã đăng” để xem danh sách đầy đủ và lọc theo trạng thái."
-        />
-
-        <FeatureGuide
-          id="employer-completed-shifts"
-          eyebrow="Nhà tuyển dụng"
-          title="Ca đã hoàn thành là gì?"
-          bullets={[
-            'Đây là các ca đã được xác nhận hoàn thành sau khi người lao động check-in / check-out và bạn bấm Xác nhận hoàn thành.',
-            REAL_MONEY
-              ? 'Tiền công cho các ca này đã được chuyển vào ví người lao động.'
-              : 'Tiền công cho các ca này đã được giải ngân (mô phỏng trong bản MVP).',
-            'Số liệu này dùng để xây dựng hồ sơ uy tín nhà tuyển dụng - càng nhiều ca hoàn thành thành công, càng dễ thu hút người lao động chất lượng.',
-          ]}
-          example="Tháng này bạn đã đăng 6 ca. 4 ca đã chạy xong và bạn đã bấm Xác nhận hoàn thành cho từng người lao động. Ô “Ca đã hoàn thành” đếm 4; 2 ca còn lại vẫn ở trạng thái Đang diễn ra hoặc Chờ xác nhận."
-          nextAction="Sau mỗi ca, nhớ vào trang quản lý ca và bấm Xác nhận hoàn thành để tiền công được giải ngân cho người lao động."
-        />
-      </GuideGroup>
-
-      <GuideGroup
-        eyebrow="Thanh toán, đảm bảo thanh toán và uy tín"
-        title="Cách hệ thống đảm bảo thanh toán hoạt động"
-        lead="Cơ chế giữ tiền tạm và giải ngân khi ca hoàn thành - bảo đảm cho cả hai phía."
-      >
-        <FeatureGuide
-          id="employer-payments"
-          eyebrow="Nhà tuyển dụng"
-          title="Đảm bảo thanh toán"
-          bullets={[
-            'Nhà tuyển dụng thanh toán trước tiền công trước khi ca được công khai trên hệ thống.',
-            'Tiền công chỉ được giải ngân cho người lao động sau khi ca hoàn thành và được xác nhận hai chiều.',
-            'Cơ chế thanh toán trước giúp người lao động yên tâm về thanh toán mà không phải trả trước bất kỳ khoản nào.',
-            REAL_MONEY
-              ? 'Nạp và rút tiền là giao dịch thật qua cổng thanh toán PayOS.'
-              : 'Trong bản MVP, mọi giao dịch được mô phỏng trong trình duyệt; không có thanh toán thật.',
-          ]}
-          example="Bạn đăng một ca trị giá 280.000 đ. Hệ thống yêu cầu đảm bảo thanh toán 100% tức 280.000 đ. Số tiền này được giữ tạm trong hệ thống đến khi ca hoàn thành - lúc đó tiền sẽ được chuyển cho người lao động. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ tương lai, không ảnh hưởng đến tỷ lệ đảm bảo thanh toán."
-          nextAction="Xem cấp độ tin cậy hiện tại của bạn và cách nâng cấp để được ưu tiên hiển thị và giảm phí dịch vụ trong tương lai."
-          primaryCta={{ label: 'Tìm hiểu cấp độ tin cậy', href: '/employer/payments' }}
-          secondaryCta={{ label: 'Đăng nhập', href: '/login' }}
-        />
-
-        <FeatureGuide
-          id="employer-total-deposit"
-          eyebrow="Nhà tuyển dụng"
-          title="Tổng tiền công chờ thanh toán được tính như thế nào?"
-          bullets={[
-            'Đây là tổng tiền công đang được hệ thống giữ tạm chờ thanh toán.',
-            'Bao gồm khoản tiền công chờ thanh toán của các ca đang tuyển, đã đủ người, đang diễn ra và chờ xác nhận.',
-            'Đây chưa phải là khoản tiền đã chi trả. Hệ thống đang giữ tạm số tiền này và sẽ chuyển cho người lao động sau khi ca được xác nhận hoàn thành.',
-            REAL_MONEY
-              ? 'Tiền cọc được giữ thật từ ví nhà tuyển dụng; phần không sử dụng được hoàn về ví.'
-              : 'Trong bản MVP, thao tác giữ tiền chờ thanh toán chỉ là mô phỏng, chưa có giao dịch thật.',
-          ]}
-          example="Bạn đăng một ca 4 giờ, lương 35.000 đ/giờ, cần 2 người. Tổng tiền công là 280.000 đ. Hệ thống sẽ giữ tạm 100% là 280.000 đ. Sau khi đăng ca, ô “Tổng tiền công chờ thanh toán” tăng thêm 280.000 đ."
-          nextAction="Bấm vào ô “Tổng tiền công chờ thanh toán” trên Tổng quan nhà tuyển dụng để xem danh sách các ca đang giữ tiền."
-        />
-
-        <FeatureGuide
-          id="employer-total-paid"
-          eyebrow="Nhà tuyển dụng"
-          title="Tổng tiền công đã thanh toán là gì?"
-          bullets={[
-            'Đây là tổng tiền đã giải ngân cho người lao động sau khi ca hoàn thành và được xác nhận.',
-            'Số tiền này tăng mỗi khi bạn bấm Xác nhận hoàn thành cho một người lao động trong ca đã chạy xong.',
-            'Đây là tổng tiền công đã được chuyển cho người lao động sau khi các ca hoàn thành. Chỉ những khoản đã được nhà tuyển dụng xác nhận hoàn thành mới được tính vào số liệu này.',
-          ]}
-          example="Tuần trước bạn xác nhận hoàn thành cho 4 người, tiền công lần lượt 140.000 đ, 140.000 đ, 180.000 đ và 180.000 đ. Ô “Tổng tiền công đã thanh toán” tăng thêm 640.000 đ."
-          nextAction="Bấm vào ô “Tổng tiền công đã thanh toán” trên Tổng quan nhà tuyển dụng để xem các giao dịch giải ngân gần đây."
-        />
-      </GuideGroup>
-
-      <GuideGroup
-        eyebrow="Xác minh và quyền riêng tư"
-        title="Cách hệ thống xác minh người dùng"
-        lead="Quản trị viên duyệt giấy tờ - nhà tuyển dụng và người lao động chỉ thấy huy hiệu xác minh, không thấy ảnh giấy tờ gốc."
-      >
-        <FeatureGuide
-          id="verification-overview"
-          eyebrow="Quyền riêng tư"
-          title="Cách xác minh hoạt động"
-          bullets={[
-            'Người lao động có thể xác minh bằng CCCD/CMND, thẻ sinh viên hoặc bằng lái xe - không bắt buộc chọn loại nào cụ thể.',
-            'Nhà tuyển dụng có thể đăng ký dưới dạng Cá nhân thuê ngắn hạn, Hộ kinh doanh, Doanh nghiệp hoặc Agency / Sự kiện - mỗi loại nộp tài liệu khác nhau.',
-            'Chỉ quản trị viên được xem đầy đủ giấy tờ bạn gửi. Người dùng khác chỉ nhìn thấy trạng thái đã xác minh, loại giấy tờ và một phần số giấy tờ đã được che.',
-            'Một số ca có thể yêu cầu người lao động mang theo giấy tờ đã xác minh để đối chiếu khi nhận ca.',
-          ]}
-          example="Bạn xác minh bằng CCCD. Trong danh sách ứng viên của nhà tuyển dụng, họ sẽ thấy chip xanh «Đã xác minh · CCCD / CMND · 0791•••••234». Họ KHÔNG thấy ảnh CCCD đầy đủ của bạn."
-          nextAction="Vào trang Hồ sơ tương ứng (người lao động hoặc nhà tuyển dụng) và gửi tài liệu xác minh để quản trị viên duyệt."
-        />
-      </GuideGroup>
-
-      {/* Two-column timeline */}
+      {/* 5 bước cho mỗi bên */}
       <div className="grid gap-6 md:grid-cols-2 md:gap-8">
         <RoleColumn
           title="Dành cho người lao động"
@@ -662,28 +321,204 @@ export default function UserGuidePage() {
         />
       </div>
 
-      {/* FAQ accordion */}
+      {/* Các mục chi tiết — nav, footer và ô thống kê dashboard link vào #id. */}
+      <GuideGroup eyebrow="Dành cho người lao động" title="Tính năng cho người tìm việc">
+        <FeatureGuide
+          id="worker-schedule"
+          eyebrow="Người lao động"
+          title="Lịch cá nhân"
+          bullets={[
+            'Đánh dấu giờ bận / rảnh trong tuần.',
+            'Khi bạn ứng tuyển, ca trùng lịch bận hoặc trùng ca đã được duyệt sẽ bị chặn.',
+          ]}
+          example="Bạn học 14:00–16:00 thứ Ba. Ca 15:00–17:00 thứ Ba sẽ báo trùng lịch."
+          primaryCta={{ label: 'Đăng nhập để mở Lịch cá nhân', href: '/login' }}
+          secondaryCta={{ label: 'Tìm ca làm phù hợp', href: '/shifts' }}
+        />
+
+        <FeatureGuide
+          id="worker-reputation"
+          eyebrow="Người lao động"
+          title="Điểm uy tín"
+          bullets={[
+            'Bắt đầu 100 điểm (tạm tính từ lịch sử ca). Hoàn thành ca +5, vắng mặt không báo −20, huỷ trong 24 giờ trước ca −10.',
+            REAL_MONEY
+              ? 'Nhà tuyển dụng xem điểm này khi duyệt người.'
+              : 'Điểm dưới 50 bị tạm khoá ứng tuyển (bản demo).',
+          ]}
+          example="Bạn đang 100 điểm, vắng một ca không báo thì còn 80."
+          primaryCta={{ label: 'Đăng nhập để xem điểm của bạn', href: '/login' }}
+          secondaryCta={{ label: 'Hồ sơ & điểm uy tín', href: '/worker/reputation-guide' }}
+        />
+
+        <FeatureGuide
+          id="worker-completed-shifts"
+          eyebrow="Người lao động"
+          title="Ca đã hoàn thành"
+          bullets={['Số ca bạn làm xong và đã được nhà tuyển dụng xác nhận. Ca đang chờ xác nhận chưa được đếm.']}
+          example="Tuần này làm 3 ca, 2 ca đã xác nhận → ô này hiện 2."
+        />
+
+        <FeatureGuide
+          id="worker-total-income"
+          eyebrow="Người lao động"
+          title="Tổng thu nhập"
+          bullets={[
+            REAL_MONEY
+              ? 'Tổng tiền công đã vào ví từ các ca đã được xác nhận.'
+              : 'Tổng tiền công từ các ca đã được xác nhận (mô phỏng).',
+            'Không tính ca đang diễn ra hoặc đang chờ xác nhận.',
+          ]}
+          example="Ca 4 giờ × 45.000đ + ca 5 giờ × 60.000đ → tăng 480.000đ."
+        />
+
+        <FeatureGuide
+          id="worker-cancellation-quota"
+          eyebrow="Người lao động"
+          title="Hạn mức huỷ ca"
+          bullets={[
+            'Tối đa 3 lần huỷ trong 7 ngày và 10 lần trong 30 ngày.',
+            'Điểm uy tín 80–94: 4/tuần, 12/tháng. Điểm 95–100: 5/tuần, 14/tháng.',
+          ]}
+          example="7 ngày qua đã huỷ 2 ca → còn 1 lượt."
+        />
+      </GuideGroup>
+
+      <GuideGroup eyebrow="Dành cho nhà tuyển dụng" title="Tính năng cho nhà tuyển dụng">
+        <FeatureGuide
+          id="employer-post-shift"
+          eyebrow="Nhà tuyển dụng"
+          title="Đăng ca tuyển"
+          bullets={[
+            'Nhập tên ca, giờ, địa điểm, lương theo giờ và số người cần.',
+            REAL_MONEY
+              ? 'Ca chỉ hiện cho người lao động sau khi hệ thống giữ cọc tiền công + 10% phí từ ví.'
+              : 'Ca chỉ hiện cho người lao động sau khi giữ cọc (mô phỏng).',
+          ]}
+          example={
+            REAL_MONEY
+              ? 'Ca 4 giờ, 35.000đ/giờ, cần 2 người: tiền công 280.000đ → giữ 308.000đ (gồm 28.000đ phí).'
+              : 'Ca 4 giờ, 35.000đ/giờ, cần 2 người: giữ cọc 280.000đ (mô phỏng).'
+          }
+          primaryCta={{ label: 'Đăng nhập để đăng ca tuyển', href: '/login' }}
+          secondaryCta={{ label: 'Xem cách giữ cọc', href: '/employer/payments' }}
+        />
+
+        <FeatureGuide
+          id="employer-applicants"
+          eyebrow="Nhà tuyển dụng"
+          title="Quản lý người ứng tuyển"
+          bullets={[
+            'Xem hồ sơ, điểm uy tín và số ca đã làm ngay trên trang quản lý ca.',
+            'Bấm "Duyệt", hoặc "Từ chối" kèm lý do để người lao động hiểu.',
+          ]}
+          example="3 người ứng tuyển: bạn duyệt 2 người nhiều kinh nghiệm, từ chối 1 người kèm lý do."
+          primaryCta={{ label: 'Đăng nhập để quản lý người ứng tuyển', href: '/login' }}
+          secondaryCta={{ label: 'Xem quy trình tuyển dụng', href: '/how-it-works' }}
+        />
+
+        <FeatureGuide
+          id="employer-active-shifts"
+          eyebrow="Nhà tuyển dụng"
+          title="Ca đang hoạt động"
+          bullets={['Ca đã giữ cọc và đang tuyển, đã đủ người, đang diễn ra hoặc chờ xác nhận. Không tính nháp, đã huỷ, hết hạn, đã hoàn thành.']}
+        />
+
+        <FeatureGuide
+          id="employer-pending-applications"
+          eyebrow="Nhà tuyển dụng"
+          title="Đơn chờ duyệt"
+          bullets={['Đơn bạn chưa duyệt hoặc từ chối. Nên xử lý sớm, nhất là ca diễn ra trong 24 giờ tới.']}
+        />
+
+        <FeatureGuide
+          id="employer-posted-shifts"
+          eyebrow="Nhà tuyển dụng"
+          title="Ca đã đăng"
+          bullets={['Tổng số ca bạn từng tạo, gồm mọi trạng thái.']}
+        />
+
+        <FeatureGuide
+          id="employer-completed-shifts"
+          eyebrow="Nhà tuyển dụng"
+          title="Ca đã hoàn thành"
+          bullets={[
+            REAL_MONEY
+              ? 'Ca bạn đã xác nhận hoàn thành; tiền công đã vào ví người lao động.'
+              : 'Ca bạn đã xác nhận hoàn thành; tiền công đã được trả (mô phỏng).',
+          ]}
+        />
+      </GuideGroup>
+
+      <GuideGroup eyebrow="Tiền cọc" title="Cách giữ cọc hoạt động">
+        <FeatureGuide
+          id="employer-payments"
+          eyebrow="Nhà tuyển dụng"
+          title="Giữ cọc"
+          bullets={[
+            'Tiền công được giữ cọc trước khi ca hiện ra, và chỉ trả cho người lao động khi ca xong.',
+            'Phần không dùng (vị trí trống, người vắng mặt, ca huỷ) hoàn về ví của bạn.',
+            REAL_MONEY
+              ? 'Nạp và rút tiền là giao dịch thật qua PayOS.'
+              : 'Trong bản demo, mọi giao dịch đều là mô phỏng.',
+          ]}
+          primaryCta={{ label: 'Xem chi tiết giữ cọc', href: '/employer/payments' }}
+          secondaryCta={{ label: 'Đăng nhập', href: '/login' }}
+        />
+
+        <FeatureGuide
+          id="employer-total-deposit"
+          eyebrow="Nhà tuyển dụng"
+          title="Tổng tiền công chờ thanh toán"
+          bullets={['Tiền cọc đang giữ cho các ca chưa xong. Chưa phải tiền đã trả.']}
+          example="Đăng ca 280.000đ tiền công → ô này tăng 280.000đ."
+        />
+
+        <FeatureGuide
+          id="employer-total-paid"
+          eyebrow="Nhà tuyển dụng"
+          title="Tổng tiền công đã thanh toán"
+          bullets={['Tiền đã trả cho người lao động, tăng mỗi lần bạn xác nhận hoàn thành.']}
+        />
+      </GuideGroup>
+
+      <GuideGroup eyebrow="Quyền riêng tư" title="Xác minh người dùng">
+        <FeatureGuide
+          id="verification-overview"
+          eyebrow="Quyền riêng tư"
+          title="Cách xác minh hoạt động"
+          bullets={[
+            'Gửi giấy tờ trong trang Hồ sơ; quản trị viên duyệt.',
+            'Người dùng khác chỉ thấy huy hiệu "Đã xác minh" và số giấy tờ đã che, không thấy ảnh gốc.',
+          ]}
+        />
+      </GuideGroup>
+
       <InfoSection title="Câu hỏi thường gặp">
         <div className="mt-2 flex flex-col gap-3">
           <FaqEntry
-            question="Tôi có phải trả trước khi ứng tuyển không?"
-            answer="Không. Người lao động không bao giờ phải trả trước bất kỳ khoản nào. Chỉ nhà tuyển dụng đảm bảo thanh toán tiền công trước khi đăng ca công khai."
+            question="Người lao động có phải trả trước không?"
+            answer="Không. Chỉ nhà tuyển dụng giữ cọc tiền công trước khi đăng ca."
           />
           <FaqEntry
-            question="Tôi có thể huỷ ca đã được duyệt không?"
-            answer="Bạn có thể huỷ ca đã được duyệt. Nếu huỷ trước giờ bắt đầu hơn 3 tiếng, yêu cầu được xử lý ngay. Nếu còn dưới 3 tiếng, nhà tuyển dụng cần đồng ý. Việc huỷ trong vòng 24 giờ trước khi ca bắt đầu sẽ làm giảm 10 điểm uy tín."
+            question="Tôi có huỷ được ca đã được duyệt không?"
+            answer="Được. Còn hơn 3 giờ trước ca thì huỷ ngay; dưới 3 giờ cần nhà tuyển dụng đồng ý. Huỷ trong 24 giờ trước ca bị trừ 10 điểm uy tín."
           />
           <FaqEntry
-            question="Tỷ lệ đảm bảo thanh toán của nhà tuyển dụng được tính như thế nào?"
-            answer="Trước khi ca được hiển thị cho người lao động, nhà tuyển dụng cần thanh toán trước toàn bộ tiền công của ca cho mọi cấp độ tin cậy trong bản MVP. Khoản này giữ trong hệ thống, chỉ giải ngân khi ca hoàn thành. Cấp độ tin cậy (thấp, trung bình, cao) ảnh hưởng đến độ ưu tiên hiển thị ca và phí dịch vụ trong tương lai, không ảnh hưởng đến tỷ lệ đảm bảo thanh toán."
+            question="Có giao dịch tiền thật không?"
+            answer={
+              REAL_MONEY
+                ? 'Có. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.'
+                : 'Không. Đây là bản demo, mọi giao dịch đều là mô phỏng.'
+            }
           />
           <FaqEntry
-            question="Phiên bản này có giao dịch tiền thật không?"
-            answer="Không. Đây là bản dùng thử (MVP). Toàn bộ thanh toán, xác minh và đăng nhập đều giả lập trong trình duyệt. Khi triển khai thật, các luồng này sẽ được thay bằng dịch vụ tương ứng."
-          />
-          <FaqEntry
-            question="Tôi cần làm gì khi có tranh chấp?"
-            answer="Bấm Báo cáo vấn đề trên trang quản lý ca. Quản trị viên sẽ vào xem xét và quyết định giải ngân hoặc hoàn tiền theo trang Chính sách xử lý tranh chấp."
+            question="Có vướng mắc thì làm gì?"
+            answer={
+              REAL_MONEY
+                ? 'Vào trang Liên hệ hỗ trợ, đội ngũ CaLẻ sẽ xem và phản hồi.'
+                : 'Bấm "Báo cáo vấn đề" trên trang quản lý ca; quản trị viên xem xét theo Chính sách xử lý tranh chấp.'
+            }
           />
         </div>
       </InfoSection>

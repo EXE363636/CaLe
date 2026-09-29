@@ -536,8 +536,8 @@ function NewShiftContent() {
           </h2>
           <p className="mb-3 text-sm leading-relaxed text-gray-600">
             Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.
-            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức đảm bảo
-            thanh toán và quy tắc an toàn cho người lao động.
+            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức cọc
+            và quy tắc an toàn cho người lao động.
           </p>
           <ButtonLink href="/employer/profile" variant="primary" size="md">
               {t('posting.readiness.cta.profile')}
@@ -563,12 +563,21 @@ function NewShiftContent() {
           <PageHelpButton
             title={t('help.shiftCreate.title')}
             intro={t('help.shiftCreate.intro')}
-            items={[
-              t('help.shiftCreate.item1'),
-              t('help.shiftCreate.item2'),
-              t('help.shiftCreate.item3'),
-              t('help.shiftCreate.item4'),
-            ]}
+            // P0 feedback F5 — tối đa 3 ý, đúng theo chế độ (production không
+            // có "Xác nhận đã thanh toán" hay cấp uy tín).
+            items={
+              serverMode
+                ? [
+                    t('help.shiftCreate.real.item1'),
+                    t('help.shiftCreate.real.item2'),
+                    t('help.shiftCreate.real.item3'),
+                  ]
+                : [
+                    t('help.shiftCreate.item1'),
+                    t('help.shiftCreate.item3'),
+                    t('help.shiftCreate.item4'),
+                  ]
+            }
           />
         </div>
       </header>
@@ -582,19 +591,18 @@ function NewShiftContent() {
       {!createdShiftId && sourceShift && (
         <Card className="mb-4 border-orange-200 bg-orange-50">
           <p className="text-sm text-orange-900">
-            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi đảm bảo thanh toán.
+            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi giữ cọc.
           </p>
         </Card>
       )}
 
-      {/* Phase 6: trust tier + deposit ratio explainer. Visible from the
-          first paint so the employer sees what they'll be charged before
-          they finish filling out the form. */}
-      {/* Production: cọc = 100% tiền công + 10% phí (server
-          create_deposit_session), KHÔNG theo cấp uy tín, và không có "ưu tiên
-          hiển thị theo uy tín" → thẻ cấp uy tín là sai. Nói đúng luồng thật. */}
-      {!createdShiftId && !depositPayload && (
-        serverMode ? <RealDepositExplainerCard /> : <TrustExplainerCard trust={trust} ratio={ratio} />
+      {/* Phase 6: trust tier + deposit ratio explainer (local/demo only).
+          P0 feedback F5 — production không còn thẻ giải thích cọc ở đầu
+          trang: công thức + khi nào giữ/hoàn đã nằm trong khối tóm tắt tiền
+          DUY NHẤT dưới form (ShiftForm), cạnh nút Đăng. Đầu trang chỉ còn
+          VerificationGateNotice khi thật sự có việc cần làm. */}
+      {!createdShiftId && !depositPayload && !serverMode && (
+        <TrustExplainerCard trust={trust} ratio={ratio} />
       )}
 
       {/* Phase 10A-Fix-3 — verification + workplace readiness checklist.
@@ -625,9 +633,6 @@ function NewShiftContent() {
           rồi ca mới được đăng. Ca chỉ tồn tại sau khi HELD. */}
       {depositPayload && (
         <div className="mb-2">
-          <p className="mb-3 rounded-lg bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200">
-            {t('deposit.real.confirmNote')}
-          </p>
           <DepositWalletConfirm
             shiftPayload={depositPayload}
             clientRequestId={depositReqId}
@@ -922,7 +927,7 @@ function ReadinessChecklist({
       className={[
         'mb-5 rounded-2xl border p-4 shadow-card',
         ready
-          ? 'border-emerald-200 bg-emerald-50/60'
+          ? 'border-green-200 bg-green-50/60'
           : 'border-amber-300 bg-amber-50',
       ].join(' ')}
     >
@@ -939,7 +944,7 @@ function ReadinessChecklist({
               aria-hidden="true"
               className={[
                 'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
-                it.ok ? 'bg-emerald-500' : 'bg-amber-500',
+                it.ok ? 'bg-green-500' : 'bg-amber-500',
               ].join(' ')}
             >
               {it.ok ? '✓' : '!'}
@@ -975,19 +980,6 @@ function ReadinessChecklist({
 // ---------------------------------------------------------------------------
 // Trust explainer
 // ---------------------------------------------------------------------------
-
-function RealDepositExplainerCard() {
-  return (
-    <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50 p-5">
-      <p className="text-sm font-semibold text-orange-900">{t('deposit.real.title')}</p>
-      <ul className="mt-2 flex flex-col gap-1.5 text-sm leading-relaxed text-orange-950">
-        <li>{t('deposit.real.formula')}</li>
-        <li>{t('deposit.real.when')}</li>
-        <li>{t('deposit.real.refund')}</li>
-      </ul>
-    </div>
-  );
-}
 
 function TrustExplainerCard({
   trust,

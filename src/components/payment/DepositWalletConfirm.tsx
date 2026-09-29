@@ -165,10 +165,10 @@ export function DepositWalletConfirm({
         )}
       </dl>
 
+      {/* P0 feedback F5 — cách hoàn tiền đã nói ở khối tóm tắt dưới form;
+          ở đây chỉ nhắc điều mới: máy chủ tính lại số tiền. */}
       <p className="mt-2 text-xs text-gray-500">
-        Số tiền do máy chủ tính lại chính xác khi giữ cọc. Tiền cọc được giữ trong hệ thống
-        cho tới khi ca hoàn thành (trả lương người lao động) hoặc được hoàn lại vào ví nếu ca
-        bị huỷ / hết hạn không có người làm.
+        Máy chủ tính lại chính xác số tiền khi giữ cọc.
       </p>
 
       {!enough && (

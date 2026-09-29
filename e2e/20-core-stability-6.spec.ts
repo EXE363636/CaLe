@@ -202,7 +202,7 @@ test.describe('Part 4: employer deposit blocked on insufficient balance', () => 
 
     // Deposit confirm card appears after a valid create.
     const depositBtn = page.getByRole('button', {
-      name: 'Mô phỏng đảm bảo thanh toán',
+      name: 'Mô phỏng giữ cọc',
     });
     await expect(depositBtn).toBeVisible();
 
@@ -212,7 +212,7 @@ test.describe('Part 4: employer deposit blocked on insufficient balance', () => 
     await depositBtn.click();
     const insufficientModal = page.getByRole('dialog');
     await expect(
-      insufficientModal.getByText('Số dư ví không đủ để đặt cọc').first(),
+      insufficientModal.getByText('Số dư ví không đủ để giữ cọc').first(),
     ).toBeVisible();
     await expect(
       insufficientModal.getByRole('button', { name: 'Nạp tiền ngay' }),
@@ -257,14 +257,14 @@ test.describe('Part 4: employer deposit blocked on insufficient balance', () => 
     });
     await page.getByRole('button', { name: 'Đăng ca cần tuyển' }).click();
     const depositBtn = page.getByRole('button', {
-      name: 'Mô phỏng đảm bảo thanh toán',
+      name: 'Mô phỏng giữ cọc',
     });
     await expect(depositBtn).toBeVisible();
     await depositBtn.click();
 
     // No insufficient-balance error; deposit succeeds.
     await expect(
-      page.getByText('Số dư ví không đủ để đặt cọc. Vui lòng nạp thêm tiền.'),
+      page.getByText('Số dư ví không đủ để giữ cọc. Vui lòng nạp thêm tiền.'),
     ).toHaveCount(0);
   });
 });

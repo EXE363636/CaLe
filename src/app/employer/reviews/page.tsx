@@ -18,19 +18,14 @@ export default function EmployerReviewsPage() {
       <InfoSection title="Khi nào cần đánh giá">
         {production ? (
           <>
-            Sau khi ca được xác nhận hoàn thành (bạn bấm xác nhận, hoặc hệ
-            thống tự xác nhận sau 24 giờ), nút &quot;Đánh giá người lao
-            động&quot; xuất hiện ở từng người trong trang quản lý ca. Bạn có
-            14 ngày để chấm 1–5 sao và viết nhận xét ngắn. Đánh giá không ảnh
-            hưởng việc trả công — tiền công đã được trả khi ca được xác nhận.
-            Người lao động cũng có thể đánh giá lại bạn.
+            Sau khi ca được xác nhận hoàn thành, bạn có 14 ngày để chấm 1–5 sao
+            cho từng người trong trang quản lý ca. Đánh giá không ảnh hưởng tiền
+            công, và người lao động cũng có thể đánh giá lại bạn.
           </>
         ) : (
           <>
-            Sau khi người lao động check-out, ứng dụng nhắc bạn xác nhận hoàn
-            thành ca. Tại bước đó, bạn có thể chấm 1–5 sao và viết nhận xét
-            ngắn. Trong bản demo, đánh giá là bắt buộc để khoản đảm bảo thanh
-            toán mô phỏng được giải ngân thành tiền công cho người lao động.
+            Khi xác nhận hoàn thành ca, bạn chấm 1–5 sao và viết nhận xét ngắn.
+            Trong bản demo, phải đánh giá thì tiền công (mô phỏng) mới được trả.
           </>
         )}
       </InfoSection>
@@ -47,10 +42,8 @@ export default function EmployerReviewsPage() {
       </InfoSection>
 
       <InfoSection title="Đánh giá xây dựng">
-        Hãy viết nhận xét cụ thể. &quot;Bạn pha chế nhanh, gọn quầy&quot; hữu ích
-        hơn &quot;Tốt&quot;. Nhà tuyển dụng khác sẽ tham khảo nhận xét của bạn
-        khi duyệt đơn, và người lao động biết phần nào cần cải thiện. Đánh giá
-        đã gửi không sửa được.
+        Viết cụ thể: &quot;Pha chế nhanh, gọn quầy&quot; hữu ích hơn
+        &quot;Tốt&quot;. Đánh giá đã gửi không sửa được.
       </InfoSection>
 
       <InfoSection title="Khi cần báo cáo thay vì đánh giá">

@@ -100,6 +100,7 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
   {
     heading: 'Người lao động',
     links: [
+      { href: '/viec-lam', label: 'Dành cho người lao động' },
       { href: '/shifts', label: 'Tìm ca làm' },
       { href: '/worker/reputation-guide', label: 'Hồ sơ & điểm uy tín' },
       // Phase 9Z-Fix-3: public-variant — `/worker/schedule` is
@@ -118,8 +119,9 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       // public guide pages.
       // Phase 9Z-Fix-4: deep-link to specific anchors so the user
       // lands on the right feature explanation.
+      { href: '/tuyen-dung', label: 'Dành cho nhà tuyển dụng' },
       { href: '/user-guide#employer-post-shift', label: 'Đăng ca tuyển' },
-      { href: '/user-guide#employer-applicants', label: 'Quản lý ứng viên' },
+      { href: '/user-guide#employer-applicants', label: 'Quản lý người ứng tuyển' },
       { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
     ],
@@ -143,7 +145,7 @@ const WORKER_SECTIONS: DrawerSection[] = [
   {
     heading: 'Chính',
     links: [
-      { href: '/', label: 'Trang chủ' },
+      { href: '/viec-lam', label: 'Trang chủ' },
       { href: '/shifts', label: 'Tìm ca làm' },
       { href: '/worker/dashboard', label: 'Tổng quan' },
       { href: '/worker/schedule', label: 'Lịch cá nhân' },
@@ -167,7 +169,7 @@ const EMPLOYER_SECTIONS: DrawerSection[] = [
   {
     heading: 'Chính',
     links: [
-      { href: '/', label: 'Trang chủ' },
+      { href: '/tuyen-dung', label: 'Trang chủ' },
       { href: '/employer/shifts/new', label: 'Đăng ca tuyển' },
       { href: '/employer/dashboard', label: 'Tổng quan' },
       { href: '/employer/schedule', label: 'Lịch tuyển dụng' },
@@ -191,7 +193,6 @@ const ADMIN_SECTIONS: DrawerSection[] = [
   {
     heading: 'Chính',
     links: [
-      { href: '/', label: 'Trang chủ' },
       { href: '/admin/dashboard', label: 'Tổng quan admin' },
     ],
   },

@@ -142,7 +142,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
         <li className="flex items-start gap-2">
           <span
             aria-hidden="true"
-            className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500"
+            className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-green-500"
           />
           <span>{tSettlement('shifts.detail.paymentEvidence.autoReleaseRule')}</span>
         </li>

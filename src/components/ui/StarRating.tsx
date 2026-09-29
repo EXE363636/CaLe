@@ -54,8 +54,10 @@ export function StarRating({
                 // gray-500 outline that clears >=3:1 non-text contrast on
                 // white (the old `#d1d5db` did not). `stroke-current` ties
                 // the outline color to the text-* token above.
+                // P1 feedback F2 — sao dùng cam thương hiệu thay amber; viền
+                // orange-600 đạt >=3:1 trên nền trắng (amber-400 chỉ ~1,7:1).
                 filled
-                  ? 'fill-amber-400 text-amber-400'
+                  ? 'fill-orange-500 text-orange-600'
                   : 'fill-none text-gray-500',
                 'stroke-current',
                 readOnly ? 'h-full w-full' : sizeMap[size],

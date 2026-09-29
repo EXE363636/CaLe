@@ -54,10 +54,8 @@ export const vi: Record<string, string> = {
   // UserMenu keep the full labels, and each shortened link carries a
   // `title` tooltip with the full label (see the `*.full` keys).
   'nav.short.postShift': 'Đăng ca',
-  'nav.short.employerSchedule': 'Lịch tuyển',
-  'nav.short.publicShifts': 'Ca công khai',
+  'nav.short.employerSchedule': 'Lịch tuyển dụng',
   'nav.short.employerProfile': 'Hồ sơ',
-  'nav.full.publicShifts': 'Danh sách ca công khai',
   'nav.full.employerProfile': 'Hồ sơ doanh nghiệp',
   'nav.support': 'Hỗ trợ',
 
@@ -88,7 +86,7 @@ export const vi: Record<string, string> = {
   'nav.userMenu.employer.postShift': 'Đăng ca tuyển',
   'nav.userMenu.employer.schedule': 'Lịch tuyển dụng',
   'nav.userMenu.employer.profile': 'Hồ sơ doanh nghiệp',
-  'nav.userMenu.employer.pending': 'Quản lý ứng viên',
+  'nav.userMenu.employer.pending': 'Quản lý người ứng tuyển',
   'nav.userMenu.employer.payments': 'Thanh toán & đảm bảo',
 
   // Admin shortcuts
@@ -116,6 +114,8 @@ export const vi: Record<string, string> = {
   'btn.edit': 'Chỉnh sửa',
   'btn.delete': 'Xoá',
   'btn.back': 'Quay lại',
+  'shift.detail.ownerPreviewNote':
+    'Đây là trang người lao động thấy khi xem ca của bạn. Họ bấm Ứng tuyển ở đây.',
   'btn.submit': 'Gửi',
   'btn.login': 'Đăng nhập',
   'btn.register': 'Đăng ký',
@@ -127,7 +127,7 @@ export const vi: Record<string, string> = {
   'btn.checkOutLate': 'Check-out muộn',
   'btn.confirmCompletion': 'Xác nhận hoàn thành',
   'btn.reportIssue': 'Báo cáo vấn đề',
-  'btn.deposit': 'Mô phỏng đảm bảo thanh toán',
+  'btn.deposit': 'Mô phỏng giữ cọc',
   'btn.postShift': 'Đăng ca cần tuyển',
   'btn.findShift': 'Tìm ca làm ngay',
   'btn.viewDetail': 'Xem chi tiết',
@@ -179,12 +179,12 @@ export const vi: Record<string, string> = {
     'Cả hai bên đã xác nhận có mặt. Đợi đến hết ca.',
   'applicantBucket.AwaitingCheckout': 'Chờ check-out',
   'applicantBucket.AwaitingCheckout.hint':
-    'Ca đã hết giờ nhưng người lao động chưa check-out. Bạn có thể nhắc nhở hoặc đánh dấu vắng mặt nếu không liên lạc được.',
+    'Hết giờ nhưng chưa check-out. Nhắc người lao động, hoặc đánh dấu vắng mặt nếu không liên lạc được.',
   'applicantBucket.AwaitingConfirmation': 'Chờ xác nhận hoàn thành',
   'applicantBucket.AwaitingConfirmation.hint':
-    'Người lao động đã check-out. Hãy xác nhận hoàn thành để giải ngân hoặc khiếu nại nếu có vấn đề. Tự động xác nhận sau 12 giờ.',
+    'Đã check-out: xác nhận để trả tiền công, hoặc khiếu nại nếu có vấn đề. Tự xác nhận sau 12 giờ.',
   'applicantBucket.AwaitingConfirmation.hint.real':
-    'Người lao động đã check-out. Hãy xác nhận hoàn thành để trả công hoặc khiếu nại nếu có vấn đề. Nếu bạn không thao tác, hệ thống tự xác nhận và trả công sau 24 giờ kể từ giờ kết thúc ca.',
+    'Đã check-out: xác nhận để trả công, hoặc khiếu nại nếu có vấn đề. Không thao tác thì hệ thống tự xác nhận sau 24 giờ.',
   'applicantBucket.Disputed': 'Đang khiếu nại',
   'applicantBucket.Disputed.hint':
     'Quản trị viên đang xử lý tranh chấp. Bạn có thể bổ sung phản hồi nếu cần.',
@@ -213,7 +213,7 @@ export const vi: Record<string, string> = {
   // state, used by the single `ShiftLifecycleBadge` everywhere so the
   // same shift never shows different text on different pages.
   'shift.lifecycle.Draft': 'Bản nháp',
-  'shift.lifecycle.PendingDeposit': 'Chờ đảm bảo thanh toán',
+  'shift.lifecycle.PendingDeposit': 'Chờ giữ cọc',
   'shift.lifecycle.Published': 'Đang tuyển',
   'shift.lifecycle.StartingSoon': 'Sắp bắt đầu',
   'shift.lifecycle.InProgress': 'Đang diễn ra',
@@ -227,8 +227,8 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   // Escrow / payment statuses
   // -------------------------------------------------------------------------
-  'escrow.PendingDeposit': 'Chờ đảm bảo thanh toán',
-  'escrow.Deposited': 'Đã đảm bảo thanh toán',
+  'escrow.PendingDeposit': 'Chờ giữ cọc',
+  'escrow.Deposited': 'Đã giữ cọc',
   'escrow.InProgress': 'Đang xử lý',
   'escrow.Completed': 'Đã hoàn tất',
   'escrow.Released': 'Đã thanh toán',
@@ -296,7 +296,7 @@ export const vi: Record<string, string> = {
   'notification.kind.ApplicationExpired': 'Đơn ứng tuyển đã hết hạn',
   'notification.kind.DisputeFiled': 'Nhà tuyển dụng đang khiếu nại ca làm',
   'notification.kind.DisputeOpened': 'Có khiếu nại mới cần xử lý',
-  'notification.kind.AutoReleaseSettled': 'Tự động giải ngân tiền công',
+  'notification.kind.AutoReleaseSettled': 'Tự động trả tiền công',
   'notification.kind.ShiftStarted': 'Ca làm đã bắt đầu',
   'notification.kind.ShiftEnded': 'Ca làm đã kết thúc',
   'notification.kind.WorkerCheckedIn': 'Người lao động đã check-in',
@@ -314,7 +314,7 @@ export const vi: Record<string, string> = {
   // CORE-STABILITY-7 Part 1 - wallet top-up notification.
   'notification.kind.UserTopUp': 'Nạp tiền vào ví',
   // CORE-STABILITY-7 Part 1 - employer deposit-paid notification.
-  'notification.kind.EmployerDepositPaid': 'Đã đặt cọc cho ca làm',
+  'notification.kind.EmployerDepositPaid': 'Đã giữ cọc cho ca làm',
   // CORE-STABILITY-7 Part 6 - review reported (admin alert).
   'notification.kind.ReviewReported': 'Có báo cáo đánh giá mới',
   // Phase 9M - affordance label on dashboard notification cards.
@@ -418,7 +418,7 @@ export const vi: Record<string, string> = {
   'apply.error.ALREADY_APPLIED': 'Bạn đã ứng tuyển ca làm này rồi.',
   'apply.error.SHIFT_NOT_FOUND': 'Không tìm thấy ca làm.',
   'apply.error.SHIFT_NOT_AVAILABLE': 'Ca làm này không còn nhận đơn ứng tuyển.',
-  'apply.error.SHIFT_NOT_DEPOSITED': 'Ca làm chưa được đảm bảo thanh toán.',
+  'apply.error.SHIFT_NOT_DEPOSITED': 'Ca làm chưa được giữ cọc.',
   'apply.error.WORKER_NOT_FOUND': 'Không tìm thấy tài khoản người lao động.',
   'apply.error.NOT_PUBLISHED': 'Ca làm này chưa được đăng công khai.',
 
@@ -432,7 +432,7 @@ export const vi: Record<string, string> = {
   'feedback.error.applicationNotFound': 'Không tìm thấy đơn ứng tuyển.',
   'feedback.error.wrongStatus': 'Trạng thái hiện tại không cho phép thao tác này.',
   'feedback.error.shiftAlreadyStarted':
-    'Ca đã bắt đầu, không thể duyệt thêm ứng viên.',
+    'Ca đã bắt đầu, không thể duyệt thêm người ứng tuyển.',
   'feedback.error.reasonRequired': 'Vui lòng nhập lý do.',
   'feedback.error.positionsBelowFilled':
     'Số người tuyển không thể nhỏ hơn số người đã được duyệt.',
@@ -484,12 +484,12 @@ export const vi: Record<string, string> = {
   // Employer action feedback
   'feedback.shift.create.success': 'Đã tạo ca tuyển dụng',
   'feedback.shift.create.success.desc':
-    'Bấm "Mô phỏng đảm bảo thanh toán" để công khai ca cho người lao động.',
-  'feedback.shift.deposit.success': 'Đã mô phỏng đảm bảo thanh toán - ca đã được công khai',
+    'Bấm "Mô phỏng giữ cọc" để công khai ca cho người lao động.',
+  'feedback.shift.deposit.success': 'Đã mô phỏng giữ cọc - ca đã được công khai',
   'feedback.shift.edit.success': 'Đã lưu thay đổi',
   'feedback.shift.cancel.success': 'Đã huỷ ca làm',
   'feedback.shift.cancel.success.desc':
-    'Khoản đảm bảo thanh toán đã được hoàn (mô phỏng).',
+    'Tiền cọc đã được hoàn (mô phỏng).',
   'feedback.applicant.approve.success': 'Đã duyệt người ứng tuyển',
   'feedback.applicant.reject.success': 'Đã từ chối đơn ứng tuyển',
   'feedback.applicant.confirm.success': 'Đã xác nhận hoàn thành ca',
@@ -507,7 +507,7 @@ export const vi: Record<string, string> = {
   'feedback.admin.suspend.success': 'Đã tạm khoá tài khoản',
   'feedback.admin.reactivate.success': 'Đã mở khoá tài khoản',
   'feedback.admin.dispute.resolve.success': 'Đã giải quyết tranh chấp',
-  'feedback.admin.escrow.override.success': 'Đã override trạng thái đặt cọc',
+  'feedback.admin.escrow.override.success': 'Đã override trạng thái cọc',
 
   // Auth action feedback
   'feedback.auth.login.success': 'Đăng nhập thành công',
@@ -562,7 +562,7 @@ export const vi: Record<string, string> = {
   'admin.accounts.delete.button': 'Xoá vĩnh viễn',
   'admin.accounts.delete.modal.title': 'Xoá vĩnh viễn tài khoản',
   'admin.accounts.delete.modal.warning':
-    'Hành động này KHÔNG THỂ hoàn tác. Tài khoản sẽ bị xoá khỏi hệ thống đăng nhập và cơ sở dữ liệu. Chỉ áp dụng cho tài khoản chưa có ca làm hoặc đơn ứng tuyển nào.',
+    'KHÔNG THỂ hoàn tác: tài khoản bị xoá khỏi đăng nhập và cơ sở dữ liệu. Chỉ áp dụng cho tài khoản chưa có ca hay đơn ứng tuyển.',
   'admin.accounts.delete.modal.retype': 'Nhập lại email để xác nhận',
   'admin.accounts.delete.modal.retypePlaceholder': 'Nhập chính xác email tài khoản',
   'admin.accounts.delete.modal.confirm': 'Tôi hiểu, xoá vĩnh viễn',
@@ -603,8 +603,15 @@ export const vi: Record<string, string> = {
   'admin.user.sortDir.toDesc': 'Đổi sang giảm dần',
   'admin.shifts.filter.all': 'Tất cả',
   'admin.shifts.filter.active': 'Đang hoạt động',
+  'admin.shifts.filter.unfilled': 'Chưa khớp',
   'admin.shifts.filter.completed': 'Đã hoàn thành',
+  'admin.shifts.filter.cancelled': 'Đã huỷ',
   'admin.shifts.filter.disputed': 'Tranh chấp',
+  'admin.shifts.filterHint.unfilled':
+    'Ca đã đăng, chưa bắt đầu, còn thiếu người. Ca bắt đầu trong 24 giờ tới được đánh dấu "Gấp".',
+  'admin.shifts.filterHint.cancelled': 'Ca bị huỷ, hoặc hết hạn mà không có ai nhận.',
+  'admin.shifts.unfilledBadge': 'Thiếu {missing} người',
+  'admin.shifts.urgentBadge': 'Gấp',
   'admin.user.currentScore': 'Điểm hiện tại',
   'admin.user.newScore': 'Điểm uy tín mới',
   'admin.user.newScore.placeholder': '0–100',
@@ -776,6 +783,61 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
 
   // Hero - one unified message across every breakpoint ("rõ ca – rõ tiền").
+  // P1 feedback F4 — trang chủ tách theo vai trò: `/` chọn vai trò,
+  // `/viec-lam` (người lao động), `/tuyen-dung` (nhà tuyển dụng).
+  'home.role.worker': 'Tôi cần việc',
+  'home.role.employer': 'Tôi cần tuyển',
+  'home.role.switchAria': 'Chọn trang theo vai trò',
+  'home.chooser.lead': 'Bạn đang tìm việc hay cần tuyển người?',
+  'home.chooser.worker.desc': 'Tìm ca làm ngắn hạn gần bạn, chọn giờ hợp lịch học.',
+  'home.chooser.worker.cta': 'Xem trang tìm việc',
+  'home.chooser.employer.desc': 'Đăng ca theo giờ, chọn người từ danh sách ứng tuyển.',
+  'home.chooser.employer.cta': 'Xem trang tuyển dụng',
+  'home.chooser.safetyLink': 'An toàn',
+  'workerHome.hero.title': 'Tìm ca làm ngắn hạn gần bạn',
+  'workerHome.hero.lead': 'Chọn ca hợp lịch học, làm vài giờ là xong.',
+  'workerHome.hero.cta': 'Tìm ca gần bạn',
+  'workerHome.benefits.title': 'Vì sao nên làm qua CaLẻ',
+  'workerHome.benefit.fast.alt': 'Nhân viên quầy đồ ăn đang mỉm cười phục vụ khách',
+  'workerHome.benefit.fast.title': 'Nhận việc nhanh',
+  'workerHome.benefit.fast.desc': 'Ứng tuyển trong vài giây, biết kết quả ngay khi nhà tuyển dụng duyệt.',
+  'workerHome.benefit.pay.alt': 'Người đàn ông mỉm cười cầm điện thoại trên phố',
+  'workerHome.benefit.pay.title': 'Tiền về ví sau ca',
+  'workerHome.benefit.pay.desc': 'Ca hoàn thành, tiền công vào ví CaLẻ. Rút về ngân hàng khi cần.',
+  'workerHome.benefit.pay.desc.demo': 'Ca hoàn thành, tiền công vào ví (mô phỏng trong bản demo).',
+  'workerHome.benefit.noExp.alt': 'Bạn trẻ đang nấu món ăn trên bếp trong một quán đông khách',
+  'workerHome.benefit.noExp.title': 'Không cần kinh nghiệm',
+  'workerHome.benefit.noExp.desc': 'Nhiều ca phục vụ, phụ bếp, sự kiện nhận người mới. Yêu cầu ghi rõ ở từng ca.',
+  'workerHome.latest.title': 'Ca mới đăng',
+  'workerHome.latest.viewAll': 'Xem tất cả ca',
+  'workerHome.latest.empty': 'Chưa có ca nào đang tuyển. Quay lại sau nhé.',
+  'workerHome.switch.text': 'Bạn cần tuyển người?',
+  'workerHome.switch.cta': 'Xem trang tuyển dụng',
+  'employerHome.hero.title': 'Cần người làm theo ca?',
+  'employerHome.hero.lead': 'Đăng ca với giờ và tiền công rõ ràng, chọn người từ danh sách ứng tuyển.',
+  'employerHome.hero.cta': 'Đăng ký để đăng ca',
+  'employerHome.hero.haveAccount': 'Đã có tài khoản?',
+  'employerHome.benefits.title': 'Lợi ích cho nhà tuyển dụng',
+  'employerHome.benefit.attendance.alt': 'Nhóm nhân viên mặc đồng phục tập trung trước giờ làm sự kiện',
+  'employerHome.benefit.attendance.title': 'Biết ai đã đến, ai đã xong',
+  'employerHome.benefit.attendance.desc': 'Người lao động bấm check-in khi đến. Bạn xác nhận hoàn thành sau ca.',
+  'employerHome.benefit.payWorked.alt': 'Nhân viên bếp đang sơ chế rau củ trong bếp nhà hàng',
+  'employerHome.benefit.payWorked.title': 'Chỉ trả khi có người làm',
+  'employerHome.benefit.payWorked.desc': 'Phí 10% chỉ tính trên phần ca có người làm.',
+  'employerHome.benefit.payWorked.desc.demo': 'Trong bản demo, tiền giữ và phí đều là mô phỏng.',
+  'employerHome.benefit.refund.alt': 'Quản lý cầm bảng kẹp hồ sơ kiểm tra danh sách',
+  'employerHome.benefit.refund.title': 'Hoàn phần không dùng',
+  'employerHome.benefit.refund.desc': 'Vị trí trống, người vắng mặt, ca huỷ: tiền công và phí phần đó về lại ví.',
+  'employerHome.benefit.refund.desc.demo': 'Vị trí trống, người vắng mặt: tiền giữ được hoàn về ví (mô phỏng).',
+  'employerHome.pricing.title': 'Phí dịch vụ',
+  'employerHome.pricing.unit': 'trên tiền công của phần ca có người làm',
+  'employerHome.pricing.unit.demo': 'trong giai đoạn thử nghiệm, chưa thu phí',
+  'employerHome.pricing.example': 'Ví dụ: tiền công 200.000đ → giữ 220.000đ. Người lao động nhận 200.000đ.',
+  'employerHome.pricing.example.demo': 'Ví dụ mô phỏng: tiền công 200.000đ → giữ 200.000đ.',
+  'employerHome.pricing.more': 'Xem bảng giá',
+  'employerHome.final.text': 'Sẵn sàng đăng ca đầu tiên?',
+  'employerHome.switch.text': 'Bạn đang tìm việc?',
+  'employerHome.switch.cta': 'Xem trang tìm việc',
   'landing.hero.badge': 'Rõ ràng · Đáng tin · Nhanh gọn',
   'landing.hero.title': 'Việc làm ngắn hạn,',
   'landing.hero.titleAccent': 'rõ ca – rõ tiền',
@@ -876,9 +938,9 @@ export const vi: Record<string, string> = {
   'landing.safety.dispute.title': 'Tranh chấp minh bạch',
   'landing.safety.dispute.desc':
     'Có quy trình xử lý rõ ràng khi hai bên chưa thống nhất về ca làm.',
-  'landing.safety.finance.title': 'Đảm bảo thanh toán',
+  'landing.safety.finance.title': 'Giữ cọc',
   'landing.safety.finance.desc':
-    'Đặt cọc, ví và thanh toán đều là sổ cái mô phỏng trong bản demo - chưa có giao dịch thật.',
+    'Giữ cọc, ví và thanh toán đều là sổ cái mô phỏng trong bản demo - chưa có giao dịch thật.',
   // Supabase/production: cọc/ví là tiền THẬT (PayOS) — mô tả đúng luồng giữ cọc.
   'landing.safety.finance.title.supabase': 'Giữ cọc tiền công',
   'landing.safety.finance.desc.supabase':
@@ -919,7 +981,7 @@ export const vi: Record<string, string> = {
   'auth.side.join.desc':
     'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người lao động linh hoạt.',
   'auth.side.benefit1': 'Thanh toán minh bạch',
-  'auth.side.benefit1.desc': 'Nhà tuyển dụng thanh toán trước, tiền chỉ giải ngân khi hoàn thành.',
+  'auth.side.benefit1.desc': 'Nhà tuyển dụng thanh toán trước, tiền chỉ trả khi hoàn thành.',
   // Supabase/production: tiền công giữ cọc THẬT → mô tả trung thực.
   'auth.side.benefit1.supabase': 'Rõ ca – rõ tiền',
   'auth.side.benefit1.desc.supabase':
@@ -931,7 +993,7 @@ export const vi: Record<string, string> = {
   'auth.side.disclaimer':
     'Phiên bản MVP - toàn bộ thanh toán & xác minh đều giả lập, không có giao dịch thật.',
   'auth.side.disclaimer.supabase':
-    'Giai đoạn thử nghiệm giới hạn (Beta). Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. Nạp, rút tiền qua cổng thanh toán PayOS; tiền công được giữ cọc cho tới khi ca hoàn thành.',
+    'Giai đoạn thử nghiệm (Beta). Nạp, rút tiền qua PayOS; tiền công được giữ cọc tới khi ca hoàn thành.',
 
   // -------------------------------------------------------------------------
   // Worker dashboard
@@ -1045,18 +1107,18 @@ export const vi: Record<string, string> = {
   'employer.dashboard.upcomingShifts': 'Ca làm sắp tới',
   'employer.dashboard.noShifts': 'Bạn chưa đăng ca làm nào.',
   'employer.dashboard.noShifts.hint':
-    'Đăng ca mới chỉ mất vài phút. Hệ thống sẽ tự động giữ khoản đảm bảo thanh toán và xử lý đơn ứng tuyển.',
+    'Đăng ca mới chỉ mất vài phút. Hệ thống sẽ tự động giữ tiền cọc và xử lý đơn ứng tuyển.',
   'employer.dashboard.applicants': 'Đơn chờ duyệt',
   'employer.dashboard.pendingApps': 'Đơn ứng tuyển chờ duyệt ({count})',
 
   'employer.payments.title': 'Tóm tắt thanh toán',
   'employer.payments.intro':
-    'Tóm tắt khoản đảm bảo thanh toán và đã thanh toán cho các ca làm của bạn.',
+    'Tóm tắt tiền cọc và đã thanh toán cho các ca làm của bạn.',
   'employer.payments.disclaimer':
     'Tất cả thanh toán trong MVP đều giả lập. Không có giao dịch thật xảy ra.',
   'employer.payments.recentTitle': 'Ca đã thanh toán gần đây',
   'employer.payments.empty':
-    'Chưa có ca nào hoàn thành. Khi worker hoàn thành ca, khoản đảm bảo thanh toán sẽ chuyển sang đã thanh toán.',
+    'Chưa có ca nào hoàn thành. Khi worker hoàn thành ca, tiền cọc sẽ chuyển sang đã thanh toán.',
 
   // Phase 9H - employer stat-tile detail modals.
   'employer.detail.positionsLabel': 'vị trí đã duyệt',
@@ -1126,6 +1188,11 @@ export const vi: Record<string, string> = {
   'admin.analytics.aria.allShifts': 'Xem toàn bộ ca làm trong tab Ca làm',
   'admin.analytics.aria.activeShifts': 'Lọc ca đang hoạt động',
   'admin.analytics.aria.completedShifts': 'Lọc ca đã hoàn thành',
+  'admin.analytics.unfilledShifts': 'Ca chưa khớp',
+  'admin.analytics.unfilledUrgent': '{count} ca bắt đầu trong 24 giờ',
+  'admin.analytics.cancelledShifts': 'Ca huỷ',
+  'admin.analytics.aria.unfilledShifts': 'Lọc ca chưa đủ người trong tab Ca làm',
+  'admin.analytics.aria.cancelledShifts': 'Lọc ca đã huỷ hoặc hết hạn không ai nhận',
   'admin.analytics.aria.disputedPayments': 'Lọc ca có thanh toán tranh chấp',
   'admin.analytics.aria.disputes': 'Mở tab Tranh chấp',
   'admin.dashboard.tabs.disputesBadge': '{count} tranh chấp cần xử lý',
@@ -1146,7 +1213,7 @@ export const vi: Record<string, string> = {
   'shifts.listing.title': 'Tìm ca làm',
   'shifts.listing.eyebrow': 'Khám phá ca làm',
   'shifts.listing.subtitle':
-    'Tìm ca làm ngắn hạn phù hợp với lịch của bạn. Hệ thống chỉ hiển thị ca đã được nhà tuyển dụng đảm bảo thanh toán.',
+    'Tìm ca làm ngắn hạn phù hợp với lịch của bạn. Hệ thống chỉ hiển thị ca đã được nhà tuyển dụng giữ cọc.',
   'shifts.listing.matchSuffix': 'ca phù hợp',
   'shifts.listing.resultCount': '{count} ca đang mở tuyển',
   'shifts.listing.empty': 'Không tìm thấy ca làm phù hợp.',
@@ -1159,21 +1226,27 @@ export const vi: Record<string, string> = {
   'shifts.detail.positionsFilled': 'Đã có người',
   'shifts.detail.positionsLeft': 'Còn trống',
   'shifts.detail.wage': 'Lương theo giờ',
-  'shifts.detail.depositStatus': 'Trạng thái đảm bảo thanh toán',
+  'shifts.detail.depositStatus': 'Trạng thái cọc',
   'shifts.detail.oldNotificationNote':
     'Ca này đã kết thúc hoặc đã đóng. Trạng thái ở trên là trạng thái hiện tại của ca.',
   'shifts.detail.requirements': 'Yêu cầu',
   'shifts.detail.fullyBooked': 'Ca này đã đủ người.',
   'shifts.detail.notPublished': 'Ca làm này chưa được đăng công khai.',
-  'shifts.deposit.title': 'Đảm bảo thanh toán trước',
+  'shifts.deposit.title': 'Giữ cọc trước',
   'shifts.new.subtitle.real':
     'Điền thông tin ca làm. Số tiền cần giữ cọc được tính tự động và hiện ngay dưới form.',
   'shifts.new.subtitle':
-    'Hoàn thành thông tin ca làm. Hệ thống sẽ tự động tính khoản đảm bảo thanh toán dựa trên độ uy tín nhà tuyển dụng.',
+    'Hoàn thành thông tin ca làm. Hệ thống sẽ tự động tính tiền cọc dựa trên độ uy tín nhà tuyển dụng.',
   'shifts.deposit.amount': 'Số dư tuyển dụng cần đảm bảo',
+  // P0 feedback F5 — khối tóm tắt tiền duy nhất dưới form đăng ca (production).
+  'shiftForm.depositSummary.wage': 'Tiền công',
+  'shiftForm.depositSummary.fee': 'Phí dịch vụ 10%',
+  'shiftForm.depositSummary.total': 'Tổng giữ từ ví',
+  'shiftForm.depositSummary.note':
+    'Ca được đăng ngay sau khi giữ đủ số tiền này. Phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
   'shifts.deposit.description':
     'Nhà tuyển dụng cần thanh toán trước toàn bộ tiền công vào ví doanh nghiệp trước khi ca được đăng công khai.',
-  'shifts.deposit.success': 'Đảm bảo thanh toán thành công! Ca làm đã được đăng.',
+  'shifts.deposit.success': 'Giữ cọc thành công! Ca làm đã được đăng.',
 
   // -------------------------------------------------------------------------
   // Reputation
@@ -1261,7 +1334,7 @@ export const vi: Record<string, string> = {
   'help.employerDashboard.intro':
     'Theo dõi ca làm, đơn ứng tuyển và thanh toán giả lập của bạn.',
   'help.employerDashboard.item1':
-    'Bấm "Đăng ca mới" để tạo ca và đảm bảo thanh toán theo mức tin cậy.',
+    'Bấm "Đăng ca mới" để tạo ca và giữ cọc theo mức tin cậy.',
   'help.employerDashboard.item2':
     'Các ô số liệu có thể bấm để cuộn nhanh đến phần tương ứng.',
   'help.employerDashboard.item3':
@@ -1275,7 +1348,7 @@ export const vi: Record<string, string> = {
   'help.employerSchedule.item1':
     'Bấm vào ca trên lịch để vào trang quản lý chi tiết.',
   'help.employerSchedule.item2':
-    'Trạng thái ca tự cập nhật theo thời gian, khoản đảm bảo thanh toán và đơn ứng tuyển.',
+    'Trạng thái ca tự cập nhật theo thời gian, tiền cọc và đơn ứng tuyển.',
   'help.employerSchedule.item3':
     'Bấm "Tuỳ chỉnh khung giờ" để mở rộng dải giờ hiển thị.',
 
@@ -1284,12 +1357,16 @@ export const vi: Record<string, string> = {
     'Hoàn thành thông tin ca làm; ca chỉ được đăng sau khi giữ cọc tiền công.',
   'help.shiftCreate.item1':
     'Lương theo giờ nhập số nguyên - hệ thống tự đọc thành chữ Việt.',
-  'help.shiftCreate.item2':
-    'Mọi nhà tuyển dụng đều thanh toán trước 100% tổng tiền công. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai, không ảnh hưởng đến tỷ lệ đảm bảo thanh toán.',
   'help.shiftCreate.item3':
-    'Bấm "Xác nhận đã thanh toán" để hoàn tất đảm bảo thanh toán - không có giao dịch thật.',
+    'Bấm "Xác nhận đã thanh toán" để hoàn tất giữ cọc - không có giao dịch thật.',
+  // P0 feedback F5 — popover production: 3 ý, đúng luồng tiền thật.
+  'help.shiftCreate.real.item1':
+    'Lương theo giờ nhập số nguyên, hệ thống tự đọc thành chữ.',
+  'help.shiftCreate.real.item2':
+    'Khi bấm Đăng, hệ thống giữ tiền công + 10% phí từ ví. Ví thiếu thì nạp qua QR PayOS.',
+  'help.shiftCreate.real.item3': 'Ca hiện công khai ngay sau khi giữ đủ tiền.',
   'help.shiftCreate.item4':
-    'Sau khi hoàn tất đảm bảo thanh toán, ca sẽ chuyển sang trạng thái "Đã đăng" công khai.',
+    'Sau khi hoàn tất giữ cọc, ca sẽ chuyển sang trạng thái "Đã đăng" công khai.',
 
   'help.adminDashboard.title': 'Hướng dẫn - Tổng quan quản trị',
   'help.adminDashboard.intro':
@@ -1297,7 +1374,7 @@ export const vi: Record<string, string> = {
   'help.adminDashboard.item1':
     'Bấm vào ô số liệu để chuyển nhanh sang tab tương ứng.',
   'help.adminDashboard.item2':
-    'Override escrow chỉ dùng khi cần xử lý ngoại lệ - đã có ghi chú.',
+    'Override trạng thái cọc chỉ dùng khi cần xử lý ngoại lệ - đã có ghi chú.',
   'help.adminDashboard.item3':
     'Điểm uy tín có thể điều chỉnh trực tiếp trong tab Người dùng.',
   'help.adminDashboard.item4':
@@ -1318,10 +1395,10 @@ export const vi: Record<string, string> = {
   // Worker dashboard sections
   'help.workerDashboard.section.purpose.heading': 'Trang này dùng để',
   'help.workerDashboard.section.purpose.item1':
-    'Trang Tổng quan hiển thị toàn bộ hoạt động của bạn - ca sắp tới, đơn ứng tuyển, điểm uy tín, hạn mức huỷ và thông báo.',
+    'Trang Tổng quan gom mọi việc của bạn: ca sắp tới, đơn ứng tuyển, điểm uy tín và thông báo.',
   'help.workerDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
   'help.workerDashboard.section.numbers.item1':
-    'Điểm uy tín 0–100. Bắt đầu 100. Mỗi ca hoàn thành +5. Vắng mặt không báo trước −20. Huỷ trong 24 giờ −10. Dưới 50 bị hạn chế ứng tuyển.',
+    'Điểm uy tín 0–100, bắt đầu từ 100: hoàn thành ca +5, vắng mặt không báo −20, huỷ trong 24 giờ trước ca −10.',
   'help.workerDashboard.section.numbers.item2':
     'Hạn mức huỷ tuần: 3 lượt mặc định. Đạt điểm uy tín cao thì được nâng (4–5 lượt/tuần).',
   'help.workerDashboard.section.numbers.item3':
@@ -1351,7 +1428,7 @@ export const vi: Record<string, string> = {
     'Đánh dấu thời gian bận để tránh ứng tuyển trùng giờ. Có thể là giờ học, ca làm khác, hoặc việc cá nhân.',
   'help.workerSchedule.section.numbers.heading': 'Các con số / trạng thái quan trọng',
   'help.workerSchedule.section.numbers.item1':
-    'Mỗi khung bận có ngày + giờ bắt đầu + giờ kết thúc. Hệ thống không cho ứng tuyển ca trùng giờ với khung bận trong cùng ngày.',
+    'Mỗi khung bận gồm ngày, giờ bắt đầu và kết thúc. Ca trùng khung bận sẽ không ứng tuyển được.',
   'help.workerSchedule.section.numbers.item2':
     'Ca làm đã được duyệt cũng tự động tính là khung bận.',
   'help.workerSchedule.section.actions.heading': 'Thao tác chính',
@@ -1370,14 +1447,14 @@ export const vi: Record<string, string> = {
   // Employer dashboard sections
   'help.employerDashboard.section.purpose.heading': 'Trang này dùng để',
   'help.employerDashboard.section.purpose.item1':
-    'Trang Tổng quan hiển thị toàn bộ ca bạn đã đăng - ca đang tuyển, đơn chờ duyệt, ca đã hoàn thành và thanh toán giả lập.',
+    'Trang Tổng quan gom mọi ca bạn đã đăng: ca đang tuyển, đơn chờ duyệt, ca đã xong và tiền công.',
   'help.employerDashboard.section.numbers.heading': 'Các con số / trạng thái quan trọng',
   'help.employerDashboard.section.numbers.item1':
     'Ca đang hoạt động: ca có trạng thái "Đang tuyển", "Đã đủ người", "Đang diễn ra", "Chờ xác nhận".',
   'help.employerDashboard.section.numbers.item2':
     'Đơn chờ duyệt: số đơn ứng tuyển ở trạng thái "Chờ duyệt" trên các ca của bạn.',
   'help.employerDashboard.section.numbers.item3':
-    'Tổng đã đảm bảo thanh toán / đã thanh toán: tổng tiền cọc đã giữ và tổng tiền công đã trả cho người lao động.',
+    'Tổng đã giữ cọc / đã thanh toán: tổng tiền cọc đã giữ và tổng tiền công đã trả cho người lao động.',
   'help.employerDashboard.section.numbers.item4':
     'Lượt boost: 1 lượt được tặng mỗi khi đánh dấu vắng mặt; dùng để đẩy ca lên đầu danh sách.',
   'help.employerDashboard.section.actions.heading': 'Thao tác chính',
@@ -1391,7 +1468,7 @@ export const vi: Record<string, string> = {
     'Bấm "Xem lịch tuyển dụng" để xem các ca theo tuần.',
   'help.employerDashboard.section.mistakes.heading': 'Lỗi thường gặp',
   'help.employerDashboard.section.mistakes.item1':
-    'Ca chỉ công khai sau khi bấm "Xác nhận đã thanh toán" (đảm bảo thanh toán trước) - trước đó ca ở trạng thái "Bản nháp".',
+    'Ca chỉ công khai sau khi bấm "Xác nhận đã thanh toán" (giữ cọc trước) - trước đó ca ở trạng thái "Bản nháp".',
   'help.employerDashboard.section.mistakes.item2':
     'Từ chối đơn bắt buộc nhập lý do - người lao động sẽ thấy lý do trên Tổng quan của họ.',
   'help.employerDashboard.section.mistakes.item3':
@@ -1464,7 +1541,7 @@ export const vi: Record<string, string> = {
     'Hoàn thành các ca làm và đợi nhà tuyển dụng xác nhận để nhận thanh toán (giả lập trong MVP).',
   'worker.dashboard.empty.income.cta': 'Tìm ca làm ngay',
   'worker.dashboard.empty.upcoming.descriptionRich':
-    'Vào "Tìm ca làm" để xem các ca đang tuyển và ứng tuyển ca đầu tiên. Hệ thống chỉ hiện các ca đã được nhà tuyển dụng đảm bảo thanh toán.',
+    'Vào "Tìm ca làm" để xem các ca đang tuyển và ứng tuyển ca đầu tiên. Hệ thống chỉ hiện các ca đã được nhà tuyển dụng giữ cọc.',
 
   // Employer dashboard empty states
   'employer.dashboard.empty.upcoming.descriptionRich':
@@ -1487,7 +1564,7 @@ export const vi: Record<string, string> = {
   'employer.dashboard.empty.pending.title':
     'Chưa có đơn ứng tuyển nào chờ duyệt.',
   'employer.dashboard.empty.pending.description':
-    'Đơn ứng tuyển mới sẽ hiển thị ở đây. Bạn có thể kiểm tra mô tả ca, lương, thời gian để thu hút thêm ứng viên.',
+    'Đơn ứng tuyển mới sẽ hiển thị ở đây. Bạn có thể kiểm tra mô tả ca, lương, thời gian để thu hút thêm người ứng tuyển.',
   'employer.dashboard.empty.pending.cta': 'Đăng ca mới',
 
   // Employer manage shift empty state
@@ -1502,10 +1579,11 @@ export const vi: Record<string, string> = {
     'Có thể do kết nối mạng không ổn định. Kiểm tra kết nối rồi thử lại.',
   'employer.manageShift.backToDashboard': 'Về bảng điều khiển',
   'employer.manageShift.positionsApproved': 'người đã duyệt',
+  'employer.manageShift.viewAsWorker': 'Xem như người lao động thấy',
   'employer.manageShift.positionsLeft': 'vị trí còn trống',
   'employer.manageShift.cancelled.reasonLabel': 'Lý do:',
   'employer.manageShift.cancelled.penaltyPrefix': 'Phí hủy sau khi đã duyệt người:',
-  'employer.manageShift.cancelled.penaltyUnit': '% khoản đảm bảo thanh toán',
+  'employer.manageShift.cancelled.penaltyUnit': '% tiền cọc',
   'employer.manageShift.cancelled.affectedLabel':
     'Số người lao động đã được duyệt bị ảnh hưởng:',
   'employer.manageShift.cancel.title': 'Hủy ca làm',
@@ -1524,7 +1602,7 @@ export const vi: Record<string, string> = {
   'employer.manageShift.cancel.keep': 'Không',
   'employer.manageShift.cancel.confirm': 'Xác nhận hủy ca',
   'employer.manageShift.cancel.successPenalty':
-    'Hệ thống đã thông báo cho người lao động và áp dụng phí hủy {rate}% khoản đảm bảo thanh toán.',
+    'Hệ thống đã thông báo cho người lao động và áp dụng phí hủy {rate}% tiền cọc.',
   'employer.manageShift.risk.title': 'Công việc rủi ro cao',
   'employer.manageShift.risk.body':
     'Nên chọn người đã xác minh danh tính, có uy tín cao và có lịch sử làm việc phù hợp.',
@@ -1535,7 +1613,7 @@ export const vi: Record<string, string> = {
   'employer.manageShift.manual.button': 'Xác nhận người lao động đã hoàn thành',
   'employer.manageShift.manual.modalTitle': 'Xác nhận hoàn thành thủ công',
   'employer.manageShift.manual.modalBody':
-    'Người lao động chưa bấm check-out. Bạn đang xác nhận hoàn thành thủ công vì đã xác nhận họ có mặt và ca đã kết thúc. Thao tác này được ghi nhận là xác nhận thủ công.',
+    'Người lao động chưa check-out. Bạn đang xác nhận hoàn thành thủ công vì họ đã có mặt và ca đã kết thúc.',
   'employer.manageShift.dispute.category': 'Loại:',
   'employer.manageShift.dispute.reason': 'Lý do:',
   'employer.manageShift.dispute.evidence': 'Mô tả bằng chứng:',
@@ -1544,7 +1622,7 @@ export const vi: Record<string, string> = {
   'employer.manageShift.dispute.sideWorker': 'Người lao động',
   'employer.manageShift.dispute.sideEmployer': 'Nhà tuyển dụng',
   'employer.manageShift.pendingExpired': 'Đơn đã hết hạn xử lý',
-  'employer.manageShift.pendingExpiredHint': 'Ca đã bắt đầu nên không thể duyệt thêm ứng viên.',
+  'employer.manageShift.pendingExpiredHint': 'Ca đã bắt đầu nên không thể duyệt thêm người ứng tuyển.',
   'employer.manageShift.status.disputed': 'Đang khiếu nại — chờ quản trị viên xử lý',
   'employer.manageShift.status.confirmed': 'Đã xác nhận & thanh toán',
   'employer.manageShift.status.noShowLocal': 'Vắng mặt — đã hoàn tiền & tặng boost',
@@ -1568,7 +1646,7 @@ export const vi: Record<string, string> = {
 
   // Employer stat modal descriptions
   'hint.employer.activeShifts':
-    'Các ca đã đăng, đã đảm bảo thanh toán và đang trong quá trình tuyển hoặc làm việc.',
+    'Các ca đã đăng, đã giữ cọc và đang trong quá trình tuyển hoặc làm việc.',
   'hint.employer.postedShifts':
     'Tổng số ca bạn đã tạo trên hệ thống, gồm cả nháp, đang tuyển, đã đầy, đã hoàn thành và đã huỷ.',
   'hint.employer.completedShifts':
@@ -1582,13 +1660,13 @@ export const vi: Record<string, string> = {
 
   // HelpPopover descriptions - employer manage shift applicant statuses
   'hint.employer.statusApproved':
-    'Bạn đã chấp nhận ứng viên này. Họ sẽ check-in khi đến giờ ca.',
+    'Bạn đã chấp nhận người ứng tuyển này. Họ sẽ check-in khi đến giờ ca.',
   'hint.employer.statusCompleted':
-    'Bạn đã xác nhận ứng viên hoàn thành ca này. Tiền công đã được chuyển vào ví người lao động.',
+    'Bạn đã xác nhận người ứng tuyển hoàn thành ca này. Tiền công đã được chuyển vào ví người lao động.',
 
   // HelpPopover description - admin override button
   'hint.admin.override':
-    'Chỉ dùng khi cần xử lý ngoại lệ. Thao tác này có thể ảnh hưởng trực tiếp đến trạng thái ca hoặc người dùng. Bản demo: thay đổi chỉ lưu trên trình duyệt này, chưa có nhật ký phía máy chủ.',
+    'Chỉ dùng cho trường hợp ngoại lệ. Bản demo: thay đổi chỉ lưu trên trình duyệt này.',
 
   // -------------------------------------------------------------------------
   // Phase 6 - employer types
@@ -1606,22 +1684,13 @@ export const vi: Record<string, string> = {
   // Phase 10C-Stab-1 Batch 3: every employer deposits 100% tiền công.
   // Trust tier still matters for visibility / priority / fees in future.
   // -------------------------------------------------------------------------
-  'deposit.real.title': 'Giữ cọc từ ví trước khi đăng ca',
-  'deposit.real.formula':
-    'Số tiền giữ = lương/giờ × số giờ × số người cần + 10% phí dịch vụ. Tổng cụ thể hiện ngay dưới form khi bạn nhập.',
-  'deposit.real.when':
-    'Ca chỉ được đăng sau khi hệ thống giữ đủ số tiền này từ số dư ví của bạn. Thiếu số dư thì nạp thêm qua PayOS.',
-  'deposit.real.refund':
-    'Tiền công được trả cho người lao động khi ca hoàn thành; phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
-  'deposit.real.confirmNote':
-    'Để đăng ca, hệ thống giữ cọc từ số dư ví của bạn. Ca chỉ được đăng sau khi giữ cọc. Tiền cọc trả cho người lao động khi ca hoàn thành; phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
-  'deposit.trust.title': 'Đảm bảo thanh toán 100% tiền công',
+  'deposit.trust.title': 'Cọc 100% tiền công',
   'deposit.trust.low':
-    'Độ uy tín: Thấp. Nhà tuyển dụng mới hoặc chưa xác minh. Đảm bảo thanh toán 100% tiền công; cấp độ tin cậy vẫn ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
+    'Độ uy tín: Thấp (tài khoản mới hoặc chưa xác minh). Cọc 100% tiền công.',
   'deposit.trust.medium':
-    'Độ uy tín: Trung bình. Đã xác minh hoặc đã hoàn thành ít nhất 3 ca. Đảm bảo thanh toán 100% tiền công; cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
+    'Độ uy tín: Trung bình (đã xác minh hoặc xong ít nhất 3 ca). Cọc 100% tiền công.',
   'deposit.trust.high':
-    'Độ uy tín: Cao. Đã xác minh và hoàn thành ít nhất 5 ca. Đảm bảo thanh toán 100% tiền công; cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ.',
+    'Độ uy tín: Cao (đã xác minh và xong ít nhất 5 ca). Cọc 100% tiền công.',
   'deposit.trust.label.low': 'Thấp',
   'deposit.trust.label.medium': 'Trung bình',
   'deposit.trust.label.high': 'Cao',
@@ -1629,8 +1698,8 @@ export const vi: Record<string, string> = {
     'Bạn cần thanh toán trước 100% tổng tiền công trước khi đăng ca. Cấp độ tin cậy ảnh hưởng đến độ ưu tiên hiển thị và phí dịch vụ trong tương lai.',
   'deposit.breakdown.fullWage': 'Tổng tiền lương',
   'deposit.breakdown.trust': 'Độ uy tín',
-  'deposit.breakdown.ratio': 'Tỷ lệ đảm bảo thanh toán',
-  'deposit.confirmPaid': 'Mô phỏng đảm bảo thanh toán',
+  'deposit.breakdown.ratio': 'Tỷ lệ cọc',
+  'deposit.confirmPaid': 'Mô phỏng giữ cọc',
 
   // -------------------------------------------------------------------------
   // Phase 6 - rejection reason dialog
@@ -1740,9 +1809,9 @@ export const vi: Record<string, string> = {
   // Phase 7 - admin shifts panel polish
   // -------------------------------------------------------------------------
   'admin.shifts.autoNote':
-    'Trạng thái ca được hệ thống tự động cập nhật theo thời gian, đặt cọc và tiến độ ứng tuyển. Override chỉ dùng khi cần xử lý ngoại lệ.',
+    'Trạng thái ca được hệ thống tự động cập nhật theo thời gian, giữ cọc và tiến độ ứng tuyển. Override chỉ dùng khi cần xử lý ngoại lệ.',
   'admin.shifts.autoNoteReal':
-    'Trạng thái ca được hệ thống tự động cập nhật theo thời gian, đặt cọc và tiến độ ứng tuyển.',
+    'Trạng thái ca được hệ thống tự động cập nhật theo thời gian, giữ cọc và tiến độ ứng tuyển.',
   'admin.shifts.lastSync': 'Đồng bộ trạng thái lần cuối: {when}',
   'admin.shifts.override': 'Override (khẩn cấp)',
 
@@ -1788,7 +1857,7 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'auth.register.employerType.label': 'Loại tài khoản nhà tuyển dụng',
   'auth.register.employerType.intro':
-    'Loại tài khoản này quyết định giấy tờ cần xác minh và quy định đảm bảo thanh toán. Bạn không thể tự đổi sau khi đã chọn - nếu cần thay đổi, hãy gửi yêu cầu để quản trị viên xét duyệt.',
+    'Loại tài khoản này quyết định giấy tờ cần xác minh và quy định giữ cọc. Bạn không thể tự đổi sau khi đã chọn - nếu cần thay đổi, hãy gửi yêu cầu để quản trị viên xét duyệt.',
   'auth.register.employerType.required':
     'Vui lòng chọn loại tài khoản nhà tuyển dụng.',
   'employerType10A.Individual': 'Cá nhân thuê ngắn hạn',
@@ -1796,7 +1865,7 @@ export const vi: Record<string, string> = {
   'employerType10A.Company': 'Doanh nghiệp',
   'employerType10A.AgencyEvent': 'Agency / Sự kiện',
   'employerType10A.Individual.hint':
-    'Không cần giấy phép kinh doanh. Bạn cần xác minh danh tính người thuê, địa điểm làm việc và đảm bảo thanh toán 100% tiền công.',
+    'Không cần giấy phép kinh doanh. Bạn cần xác minh danh tính người thuê, địa điểm làm việc và giữ cọc 100% tiền công.',
   'employerType10A.HouseholdBusiness.hint':
     'Hộ kinh doanh: nộp CCCD đại diện + giấy phép hộ kinh doanh + ảnh mặt tiền.',
   'employerType10A.Company.hint':
@@ -1807,7 +1876,7 @@ export const vi: Record<string, string> = {
   // UI-REFRESH Batch 3 - multi-section create-shift form headings.
   'shiftForm.section.basics': 'Thông tin ca làm',
   'shiftForm.section.details': 'Mô tả và yêu cầu',
-  'shiftForm.section.deposit': 'Đặt cọc',
+  'shiftForm.section.deposit': 'Giữ cọc',
 
   'form.workplaceSection.title': 'Ảnh địa điểm và liên hệ tại nơi làm việc',
   'form.workplaceSection.intro':
@@ -1847,9 +1916,9 @@ export const vi: Record<string, string> = {
   'posting.readiness.checklist.event':
     'Hợp đồng / xác nhận sự kiện đã được duyệt',
   'posting.readiness.depositLocked':
-    'Hệ thống chỉ mở bước đảm bảo thanh toán khi bạn đã hoàn tất các yêu cầu trên.',
+    'Hệ thống chỉ mở bước giữ cọc khi bạn đã hoàn tất các yêu cầu trên.',
   'posting.readiness.individualNote':
-    'Với tài khoản cá nhân thuê ngắn hạn, hệ thống yêu cầu đảm bảo thanh toán 100% tiền công.',
+    'Với tài khoản cá nhân thuê ngắn hạn, hệ thống yêu cầu giữ cọc 100% tiền công.',
 
   'shifts.detail.workplace.title': 'Ảnh địa điểm / khu vực làm việc',
   'shifts.detail.workplace.empty':
@@ -1976,11 +2045,11 @@ export const vi: Record<string, string> = {
   'shift.timeline.kind.EmployerRespondedToDispute': 'Nhà tuyển dụng phản hồi khiếu nại',
   'shift.timeline.kind.AdminRequestedEvidence': 'Quản trị viên yêu cầu bổ sung bằng chứng',
   'shift.timeline.kind.AdminResolvedDispute': 'Quản trị viên đã giải quyết khiếu nại',
-  'shift.timeline.kind.WageReleased': 'Đã giải ngân tiền công',
+  'shift.timeline.kind.WageReleased': 'Đã trả tiền công',
   'shift.timeline.kind.WageRefunded': 'Đã hoàn cọc',
   'feedback.repost.success': 'Đang chuyển sang biểu mẫu',
   'feedback.repost.success.desc':
-    'Vui lòng chỉnh sửa ca mới và chọn ngày giờ trước khi đảm bảo thanh toán.',
+    'Vui lòng chỉnh sửa ca mới và chọn ngày giờ trước khi giữ cọc.',
 
   // Phase 10C-Stab-1 Batch 2 - employer verification gate.
   'shift.create.error.EMPLOYER_NOT_VERIFIED':
@@ -1990,7 +2059,7 @@ export const vi: Record<string, string> = {
   'shift.create.error.PAST_SHIFT':
     'Không thể đăng ca trong quá khứ. Vui lòng chọn ngày/giờ trong tương lai.',
   'shift.create.error.INSUFFICIENT_BALANCE':
-    'Số dư ví không đủ để đặt cọc. Vui lòng nạp thêm tiền.',
+    'Số dư ví không đủ để giữ cọc. Vui lòng nạp thêm tiền.',
   // CORE-STABILITY-8 Part 2 - required on-site contact for publish.
   'shift.create.error.CONTACT_PERSON_REQUIRED':
     'Vui lòng nhập người phụ trách tại chỗ.',
@@ -2002,7 +2071,7 @@ export const vi: Record<string, string> = {
     'Đã lưu bản nháp. Bạn có thể tiếp tục chỉnh sửa sau ở mục "Bản nháp đã lưu".',
   'shiftForm.draft.section.title': 'Bản nháp đã lưu',
   'shiftForm.draft.section.intro':
-    'Bản nháp là biểu mẫu đã lưu - chưa được đăng, người lao động không thấy. Tiếp tục chỉnh sửa rồi đảm bảo thanh toán để đăng ca.',
+    'Bản nháp là biểu mẫu đã lưu - chưa được đăng, người lao động không thấy. Tiếp tục chỉnh sửa rồi giữ cọc để đăng ca.',
   'shiftForm.draft.untitled': '(Chưa có tiêu đề)',
   'shiftForm.draft.noDate': 'Chưa chọn ngày giờ',
   'shiftForm.draft.savedAt': 'Lưu lúc',
@@ -2015,15 +2084,15 @@ export const vi: Record<string, string> = {
     'Chọn cách xử lý khi ca làm không đủ số người được duyệt trước giờ bắt đầu.',
   'employer.understaffed.runWithApproved': 'Vẫn chạy với số người đã duyệt',
   'employer.understaffed.runWithApproved.hint':
-    'Ca vẫn diễn ra với những người đã được duyệt. Khoản đảm bảo thanh toán của các vị trí không dùng sẽ được hoàn lại khi ca kết thúc.',
+    'Ca vẫn diễn ra với những người đã được duyệt. Tiền cọc của các vị trí không dùng sẽ được hoàn lại khi ca kết thúc.',
   'employer.understaffed.requireFull': 'Chỉ chạy khi đủ số người',
   'employer.understaffed.requireFull.hint':
-    'Nếu chưa đủ người trước giờ bắt đầu, ca sẽ tự hủy, hoàn lại toàn bộ khoản đảm bảo thanh toán và thông báo cho người đã được duyệt.',
+    'Nếu chưa đủ người trước giờ bắt đầu, ca sẽ tự hủy, hoàn lại toàn bộ tiền cọc và thông báo cho người đã được duyệt.',
   // CORE-STABILITY-7 Part 2 - insufficient-balance draft modal.
-  'deposit.insufficient.title': 'Số dư ví không đủ để đặt cọc',
+  'deposit.insufficient.title': 'Số dư ví không đủ để giữ cọc',
   'deposit.insufficient.body':
-    'Số dư ví của bạn không đủ để đặt cọc cho ca này. Bạn có muốn nạp tiền vào ví không? Bản nháp ca làm vẫn được giữ nguyên.',
-  'deposit.insufficient.required': 'Cần đặt cọc',
+    'Ví không đủ để giữ cọc ca này; bản nháp vẫn được giữ. Bạn có muốn nạp thêm tiền không?',
+  'deposit.insufficient.required': 'Cần giữ cọc',
   'deposit.insufficient.balance': 'Số dư hiện tại',
   'deposit.insufficient.shortfall': 'Còn thiếu',
   'deposit.insufficient.draftNote':
@@ -2032,9 +2101,9 @@ export const vi: Record<string, string> = {
   'deposit.insufficient.saveDraft': 'Lưu nháp',
   'deposit.insufficient.backToEdit': 'Quay lại chỉnh sửa',
   'deposit.insufficient.savedDraft':
-    'Đã lưu bản nháp ca làm. Bạn có thể nạp tiền và đặt cọc sau.',
+    'Đã lưu bản nháp ca làm. Bạn có thể nạp tiền và giữ cọc sau.',
   'shift.create.error.NOT_FOUND':
-    'Không tìm thấy ca làm hoặc ca không ở trạng thái chờ đặt cọc.',
+    'Không tìm thấy ca làm hoặc ca không ở trạng thái chờ giữ cọc.',
   'shift.requiresEmployerVerification.banner':
     'Ca này cần xác minh nhà tuyển dụng. Bạn có thể vẫn xem thông tin, nhưng nên kiểm tra kỹ trước khi ứng tuyển.',
 
@@ -2374,7 +2443,7 @@ export const vi: Record<string, string> = {
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',
   'attendance.revert.title': 'Chuyển sang có mặt (đến muộn)',
   'attendance.revert.body':
-    'Người lao động đã đến muộn? Bạn có thể chuyển trạng thái từ vắng mặt sang có mặt. Điểm uy tín của người lao động sẽ được hoàn lại và ca tiếp tục bình thường.',
+    'Người lao động đến muộn? Chuyển từ vắng mặt sang có mặt để hoàn lại điểm uy tín và tiếp tục ca.',
   'attendance.revert.reasonLabel': 'Lý do chuyển trạng thái',
   'attendance.revert.reasonPlaceholder': 'Ví dụ: người lao động đến muộn 20 phút do kẹt xe.',
   'attendance.revert.confirm': 'Xác nhận có mặt',
@@ -2491,7 +2560,7 @@ export const vi: Record<string, string> = {
     'Công việc rủi ro cao chỉ cho phép mức “Bắt buộc checklist + ghi chú bàn giao” trở lên.',
   'help.evidence.title': 'Cách chọn mức bằng chứng',
   'help.evidence.description':
-    'Bạn có thể chọn 1 trong 5 mức bằng chứng sau ca. Mức cao hơn yêu cầu người lao động gửi nhiều minh chứng hơn (checklist, ảnh bàn giao, ghi chú), giúp giảm tranh chấp nhưng tăng công sức cho cả hai bên. Việc làm rủi ro thấp như phát tờ rơi thường chỉ cần checklist; việc tiền mặt hoặc kho hàng nên yêu cầu ảnh bàn giao và ghi chú đầy đủ. Hệ thống đã đề xuất một mức phù hợp dựa trên loại công việc bạn chọn - bạn có thể giữ nguyên hoặc đổi sang mức khác.',
+    'Mức càng cao, người lao động càng phải gửi nhiều bằng chứng (checklist, ảnh, ghi chú). Hệ thống đã gợi ý mức hợp với loại việc, bạn có thể đổi.',
 
   // Phase 10C - Worker shift detail "Quy trình thanh toán & bằng chứng" card
   'shifts.detail.paymentEvidence.title': 'Quy trình thanh toán & bằng chứng',
@@ -2502,7 +2571,7 @@ export const vi: Record<string, string> = {
   'shifts.detail.paymentEvidence.confirmRule.real':
     'Sau khi bạn check-out, nhà tuyển dụng xác nhận hoàn thành hoặc khiếu nại nếu có vấn đề.',
   'shifts.detail.paymentEvidence.autoReleaseRule':
-    'Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống sẽ tự động giải ngân tiền công.',
+    'Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống sẽ tự động trả tiền công.',
   'shifts.detail.paymentEvidence.autoReleaseRule.real':
     'Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công vào ví của bạn sau 24 giờ kể từ giờ kết thúc ca.',
   'shifts.detail.paymentEvidence.evidenceLabel': 'Mức bằng chứng cho ca này',
@@ -2524,14 +2593,14 @@ export const vi: Record<string, string> = {
     'Bạn cần tích đầy đủ checklist và viết ghi chú bàn giao đầy đủ khi check-out.',
   'help.paymentEvidence.title': 'Khi nào cần bằng chứng?',
   'help.paymentEvidence.description':
-    'Mức bằng chứng tuỳ thuộc độ rủi ro công việc. Việc nhẹ như phát tờ rơi hoặc hỗ trợ sự kiện thường chỉ cần checklist hoàn thành. Việc liên quan tiền mặt, kho hàng hoặc bàn giao thường yêu cầu ảnh bàn giao và ghi chú để hai bên cùng yên tâm. Sau khi bạn check-out, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn. Bằng chứng chỉ là minh chứng công việc - đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật.',
+    'Việc nhẹ chỉ cần checklist; việc có tiền mặt hay kho hàng cần thêm ảnh bàn giao và ghi chú. Đừng chụp khách hàng, giấy tờ cá nhân hay hoá đơn nhạy cảm.',
   'help.paymentEvidence.description.real':
-    'Mức bằng chứng tuỳ thuộc độ rủi ro công việc. Việc nhẹ như phát tờ rơi hoặc hỗ trợ sự kiện thường chỉ cần checklist hoàn thành. Việc liên quan tiền mặt, kho hàng hoặc bàn giao thường yêu cầu ảnh bàn giao và ghi chú để hai bên cùng yên tâm. Sau khi bạn check-out, nhà tuyển dụng xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự xác nhận và trả tiền công cho bạn sau 24 giờ kể từ giờ kết thúc ca. Bằng chứng chỉ là minh chứng công việc - đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật.',
+    'Việc nhẹ chỉ cần checklist; việc có tiền mặt hay kho hàng cần thêm ảnh bàn giao và ghi chú. Đừng chụp khách hàng, giấy tờ cá nhân hay hoá đơn nhạy cảm.',
 
   // Phase 10C - Worker check-out dialog
   'checkout.dialog.title': 'Hoàn tất ca làm',
   'checkout.dialog.intro':
-    'Hãy xác nhận các mục bên dưới trước khi check-out. Sau khi gửi, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại - nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn.',
+    'Hãy xác nhận các mục bên dưới trước khi check-out. Sau khi gửi, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại - nếu không thao tác, hệ thống tự động trả tiền công cho bạn.',
   'checkout.dialog.intro.real':
     'Hãy xác nhận các mục bên dưới trước khi check-out. Sau khi gửi, nhà tuyển dụng xác nhận hoặc khiếu nại - nếu không thao tác, hệ thống tự xác nhận và trả tiền công vào ví của bạn sau 24 giờ kể từ giờ kết thúc ca.',
   'checkout.dialog.checklist.title': 'Checklist hoàn thành',
@@ -2554,19 +2623,19 @@ export const vi: Record<string, string> = {
   'checkout.dialog.submit': 'Hoàn tất ca làm',
   'checkout.dialog.cancel': 'Đóng',
   'feedback.checkOut.success.desc':
-    'Nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn.',
+    'Nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động trả tiền công cho bạn.',
   'feedback.checkOut.success.desc.real':
     'Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công vào ví của bạn sau 24 giờ kể từ giờ kết thúc ca.',
   'help.checkout.title': 'Vì sao cần bằng chứng?',
   'help.checkout.description':
-    'Bằng chứng giúp nhà tuyển dụng xác nhận ca nhanh hơn và tránh hiểu lầm. Hệ thống chỉ yêu cầu các mục thực sự cần thiết theo loại công việc - bạn không cần chuẩn bị quá nhiều. Đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật. Sau khi bạn gửi, nhà tuyển dụng có 12 giờ để xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự động giải ngân tiền công cho bạn.',
+    'Chỉ gửi các mục được yêu cầu; đừng chụp khách hàng hay giấy tờ cá nhân. Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống tự trả tiền công cho bạn.',
   'help.checkout.description.real':
-    'Bằng chứng giúp nhà tuyển dụng xác nhận ca nhanh hơn và tránh hiểu lầm. Hệ thống chỉ yêu cầu các mục thực sự cần thiết theo loại công việc - bạn không cần chuẩn bị quá nhiều. Đừng chụp khách hàng, giấy tờ cá nhân, hoá đơn nhạy cảm hay hàng hoá bảo mật. Sau khi bạn gửi, nhà tuyển dụng xác nhận hoặc khiếu nại; nếu không thao tác, hệ thống tự xác nhận và trả tiền công cho bạn sau 24 giờ kể từ giờ kết thúc ca.',
+    'Chỉ gửi các mục được yêu cầu; đừng chụp khách hàng hay giấy tờ cá nhân. Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công khoảng 24 giờ sau ca.',
 
   // Phase 10C - Employer confirmation panel + AutoReleaseCountdown
   'employer.confirm.panel.title': 'Xác nhận hoàn thành ca',
   'employer.confirm.panel.intro':
-    'Người lao động đã check-out. Bạn có thể xác nhận hoàn thành để giải ngân tiền công, hoặc khiếu nại nếu phát hiện vấn đề.',
+    'Người lao động đã check-out. Bạn có thể xác nhận hoàn thành để trả tiền công, hoặc khiếu nại nếu phát hiện vấn đề.',
   'employer.confirm.checkOutAt': 'Thời điểm check-out',
   'employer.confirm.checklist.title': 'Checklist hoàn thành',
   'employer.confirm.checklist.complete': 'Đã tích đầy đủ {n} mục',
@@ -2578,14 +2647,14 @@ export const vi: Record<string, string> = {
   'employer.confirm.evidenceFile.empty': 'Người lao động không gửi tệp bằng chứng.',
   'employer.confirm.countdown.label': 'Thời gian còn lại để xác nhận hoặc khiếu nại',
   'employer.confirm.countdown.warning':
-    'Nếu bạn không xác nhận hoặc khiếu nại trong 12 giờ, hệ thống sẽ tự động giải ngân tiền công.',
+    'Nếu bạn không xác nhận hoặc khiếu nại trong 12 giờ, hệ thống sẽ tự động trả tiền công.',
   'employer.confirm.countdown.expired':
-    'Đã hết thời gian - hệ thống sẽ tự động giải ngân tiền công ở lần đồng bộ kế tiếp.',
+    'Đã hết thời gian - hệ thống sẽ tự động trả tiền công ở lần đồng bộ kế tiếp.',
   'employer.confirm.btn.confirm': 'Xác nhận hoàn thành',
   'employer.confirm.btn.dispute': 'Khiếu nại',
   'help.autoRelease.title': 'Đếm ngược 12 giờ',
   'help.autoRelease.description':
-    'Đếm ngược cho biết bạn còn bao nhiêu thời gian để xác nhận hoặc khiếu nại trước khi hệ thống tự động giải ngân tiền công cho người lao động. Đồng hồ tính từ lúc người lao động check-out. Khi đếm ngược về 00:00:00, hệ thống sẽ tự động xác nhận hoàn thành ở lần đồng bộ kế tiếp; nếu bạn đã khiếu nại, đếm ngược không có hiệu lực và quản trị viên sẽ xử lý.',
+    'Thời gian còn lại để bạn xác nhận hoặc khiếu nại, tính từ lúc người lao động check-out. Hết giờ thì hệ thống tự xác nhận; nếu bạn đã khiếu nại, quản trị viên sẽ xử lý.',
 
   // Phase 10C - Employer DisputeDialog
   'dispute.dialog.title': 'Khiếu nại ca làm',
@@ -2777,40 +2846,28 @@ export const vi: Record<string, string> = {
   // R5.3). All partner groups are presented as potential/directional only
   // (R6.2/R6.3/R6.4) - no real brand names or logos.
   // -------------------------------------------------------------------------
+  // P1 feedback F3 — trang Giới thiệu rút gọn: gộp Tầm nhìn + Sứ mệnh, gộp
+  // Giá trị + Niềm tin; mỗi đoạn tối đa 2 câu.
   'about.intro':
-    'CaLẻ là sản phẩm của CaLedo Tech - đội ngũ Việt Nam mong muốn xây dựng một nền tảng kết nối ca làm ngắn hạn cho người lao động linh hoạt và nhà tuyển dụng địa phương.',
+    'CaLẻ là sàn việc làm theo ca ngắn hạn của CaLedo Tech, một đội ngũ tại Việt Nam.',
 
-  'about.vision.title': 'Tầm nhìn',
-  'about.vision.body':
-    'CaLẻ hướng tới một thị trường ca làm ngắn hạn nơi mỗi giờ làm việc đều minh bạch và đáng tin. Chúng tôi mong muốn người lao động linh hoạt và nhà tuyển dụng địa phương có thể tìm thấy nhau một cách rõ ràng về giờ giấc, mức lương và kỳ vọng - thay vì dựa vào các kênh tin nhắn rời rạc.',
-
-  'about.mission.title': 'Sứ mệnh',
+  'about.mission.title': 'Chúng tôi làm gì',
   'about.mission.body':
-    'CaLẻ được xây dựng để giúp người lao động nhận ca minh bạch về giờ giấc, mức lương, địa điểm, và giúp nhà tuyển dụng tìm được người phù hợp một cách an toàn. Chúng tôi mong muốn giảm bớt rủi ro cho cả hai phía trong mỗi ca làm ngắn hạn.',
+    'Giúp sinh viên và người làm tự do tìm ca rõ giờ, rõ lương, rõ địa điểm. Giúp chủ quán tìm đủ người đúng giờ mà không phải nhắn tin rời rạc.',
 
-  'about.values.title': 'Giá trị cốt lõi',
+  'about.values.title': 'Điều chúng tôi giữ',
   'about.values.item.transparency':
-    'Minh bạch: thông tin ca làm, mức lương và kỳ vọng được nêu rõ trước khi nhận ca.',
+    'Rõ ràng: giờ làm, tiền công và yêu cầu ghi rõ trước khi nhận ca.',
+  'about.values.item.payment':
+    'Tiền công được giữ cọc trước khi ca hiện ra.',
   'about.values.item.twoWayTrust':
-    'Tin cậy hai chiều: cả người lao động và nhà tuyển dụng đều có hồ sơ và điểm uy tín.',
-  'about.values.item.safety':
-    'An toàn: quy trình huỷ ca, xác minh và xử lý tranh chấp được thiết kế để bảo vệ cả hai bên.',
-  'about.values.item.userCentric':
-    'Lấy người dùng làm trung tâm: hỗ trợ tiếng Việt, phù hợp với nhịp làm việc linh hoạt tại Việt Nam.',
+    'Tin cậy hai chiều: cả hai bên đều có hồ sơ và điểm uy tín.',
+  'about.values.item.support':
+    'Hỗ trợ bằng tiếng Việt từ đội ngũ tại Hà Nội.',
 
-  'about.trust.title': 'Cách chúng tôi xây dựng niềm tin',
-  'about.trust.item.payment':
-    'Đảm bảo thanh toán trước khi ca được công khai để đảm bảo người lao động nhận đúng tiền công.',
-  'about.trust.item.reputation':
-    'Điểm uy tín hai chiều: cả người lao động và nhà tuyển dụng đều có hồ sơ minh bạch.',
-  'about.trust.item.cancellation':
-    'Quy trình huỷ ca rõ ràng để hạn chế rủi ro cho cả hai bên.',
-  'about.trust.item.support':
-    'Hỗ trợ tiếng Việt từ đội ngũ tại Hà Nội.',
-
-  'about.team.title': 'Đội ngũ sáng lập',
+  'about.team.title': 'Đội ngũ',
   'about.team.body':
-    'CaLẻ được phát triển bởi CaLedo Tech - một đội ngũ tại Việt Nam mong muốn đưa các công cụ làm việc ngắn hạn đến gần hơn với thị trường lao động trong nước. Chúng tôi đặc biệt hướng tới các bạn cần ca linh hoạt theo lịch học hoặc lịch cá nhân, và các chủ quán/cửa hàng cần người lao động bù trong giờ cao điểm.',
+    'CaLẻ do CaLedo Tech phát triển. Chúng tôi làm cho các bạn cần ca theo lịch học và các quán cần người bù giờ cao điểm.',
 
   'about.version.title': 'Phiên bản hiện tại',
   'about.version.body.supabase':

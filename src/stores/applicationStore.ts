@@ -1546,7 +1546,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
         shift.id,
         'WageReleased',
         payoutAmount > 0
-          ? `Đã giải ngân ${payoutAmount.toLocaleString('vi-VN')} đồng cho ${workerName}.`
+          ? `Đã trả ${payoutAmount.toLocaleString('vi-VN')} đồng cho ${workerName}.`
           : `Đã xác nhận hoàn thành cho ${workerName}.`,
       );
     }
@@ -2314,7 +2314,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           userId: s.employerId,
           kind: 'ShiftCancelled',
           title: 'Ca đã tự hủy (không đủ người)',
-          body: `Ca "${s.title}" đã tự hủy vì chưa đủ số người được duyệt trước giờ bắt đầu. Tiền đặt cọc đã được hoàn về ví.`,
+          body: `Ca "${s.title}" đã tự hủy vì chưa đủ số người được duyệt trước giờ bắt đầu. Tiền cọc đã được hoàn về ví.`,
           link: '/employer/dashboard?modal=wallet',
           dedupeKey: `AutoCancelUnderstaffed:emp:${s.id}`,
         });
@@ -2543,7 +2543,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           kind: 'ShiftExpiredEmpty',
           title: 'Ca đã hết hạn',
           body: refundable
-            ? `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ. Tiền đặt cọc đã được hoàn về ví.`
+            ? `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ. Tiền cọc đã được hoàn về ví.`
             : `Ca "${shift.title}" đã hết hạn vì không có người được duyệt đúng giờ.`,
           // CORE-STABILITY-8 Part 5.5 — deeplink to wallet history so
           // the employer sees the refund line.
@@ -2673,7 +2673,7 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           useNotificationStore.getState().push({
             userId: a.workerId,
             kind: 'AutoReleaseSettled',
-            title: 'Tự động giải ngân tiền công',
+            title: 'Tự động trả tiền công',
             body:
               `Hệ thống tự động xác nhận ca "${shift.title}" sau 12 giờ ` +
               `nhà tuyển dụng không thao tác. Tiền công ${payout.toLocaleString('vi-VN')}đ ` +
@@ -2686,11 +2686,11 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
           useNotificationStore.getState().push({
             userId: shift.employerId,
             kind: 'AutoReleaseSettled',
-            title: 'Tự động giải ngân tiền công',
+            title: 'Tự động trả tiền công',
             body:
               `Ca "${shift.title}" đã được hệ thống tự động xác nhận sau 12 giờ ` +
               `(không có khiếu nại). Tiền cọc ${payout.toLocaleString('vi-VN')}đ ` +
-              `đã được giải ngân cho người lao động.`,
+              `đã được trả cho người lao động.`,
             link: `/employer/shifts/${shift.id}`,
             dedupeKey: `AutoReleaseSettled:employer:${a.id}`,
           });

@@ -19,11 +19,9 @@ export default function WorkerCancellationPolicyPage() {
       </InfoSection>
 
       <InfoSection title="Hạn mức huỷ ca">
-        Mỗi người lao động có hạn mức huỷ trong 7 ngày và 30 ngày gần
-        nhất. Vượt hạn mức sẽ bị chặn huỷ tạm thời cho đến khi cửa sổ
-        thời gian trôi qua. Điểm uy tín cao giúp bạn được nâng hạn mức:
-        ≥ 80 điểm thêm 1 lượt/tuần và 2 lượt/tháng; ≥ 95 điểm thêm 2
-        lượt/tuần và 4 lượt/tháng.
+        Bạn được huỷ tối đa 3 lần trong 7 ngày và 10 lần trong 30 ngày; vượt
+        hạn mức thì tạm thời không huỷ được. Điểm ≥ 80 được thêm 1 lượt/tuần và
+        2 lượt/tháng; ≥ 95 thêm 2 lượt/tuần và 4 lượt/tháng.
       </InfoSection>
 
       <InfoSection title="Cách huỷ đúng quy định">
@@ -37,10 +35,8 @@ export default function WorkerCancellationPolicyPage() {
       </InfoSection>
 
       <InfoSection title="Khi nhà tuyển dụng huỷ ca">
-        Nếu nhà tuyển dụng chủ động huỷ ca, bạn sẽ nhận thông báo trong
-        ứng dụng và không bị trừ điểm. Khoản đảm bảo thanh toán của họ sẽ
-        được hoàn về ví ký quỹ. Bạn có thể tìm ca khác phù hợp với lịch
-        của mình.
+        Bạn nhận thông báo và không bị trừ điểm. Hãy tìm ca khác hợp với
+        lịch của bạn.
       </InfoSection>
     </InfoPage>
   );

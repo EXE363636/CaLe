@@ -67,7 +67,7 @@ describe('<PaymentEvidenceCard/> — Phase 10C worker education', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống sẽ tự động giải ngân tiền công.',
+        'Nếu nhà tuyển dụng không thao tác trong 12 giờ, hệ thống sẽ tự động trả tiền công.',
       ),
     ).toBeInTheDocument();
   });

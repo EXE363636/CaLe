@@ -207,11 +207,11 @@ function WorkerBody({ worker }: { worker: Worker }) {
           {verificationSummary.approvedMethods.map((m) => (
             <span
               key={m.type}
-              className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+              className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
             >
               <span>{m.label}</span>
               {m.maskedIdentifier && (
-                <span className="font-mono text-emerald-600/80">
+                <span className="font-mono text-green-600/80">
                   {m.maskedIdentifier}
                 </span>
               )}
@@ -334,10 +334,10 @@ function AdminAdjustmentHistoryList({ worker }: { worker: Worker }) {
       {entries.map((e) => (
         <li
           key={e.id}
-          className="rounded-lg border border-indigo-100 bg-indigo-50/50 px-3 py-2"
+          className="rounded-lg border border-orange-100 bg-orange-50 px-3 py-2"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-indigo-800">
+            <span className="text-xs font-semibold text-orange-800">
               {e.oldScore} → {e.newScore}
             </span>
             <span className="text-xs text-gray-500">

@@ -69,7 +69,7 @@ describe('CalendarEventCard', () => {
       />,
     );
     root = container.firstElementChild as HTMLElement;
-    expect(root.className).toContain('bg-slate-100');
+    expect(root.className).toContain('bg-gray-100');
   });
 
   it('adds absolute-friendly classes when absolute prop is true', () => {

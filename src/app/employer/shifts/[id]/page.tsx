@@ -599,6 +599,16 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
         <span>
           {positionsLeft} {t('employer.manageShift.positionsLeft')}
         </span>
+        {/* P0 feedback — thay mục "Ca công khai" trên nav: xem trước đúng ca
+            này như người lao động thấy (chỉ khi ca đã thật sự đăng). */}
+        {shift.status !== 'Draft' && shift.escrowStatus !== 'PendingDeposit' && (
+          <Link
+            href={`/shifts/${shift.id}`}
+            className="ml-auto inline-flex min-h-[44px] items-center rounded px-1 font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+          >
+            {t('employer.manageShift.viewAsWorker')} →
+          </Link>
+        )}
       </div>
 
       {/* Cancel shift — only available while the shift is in a state that

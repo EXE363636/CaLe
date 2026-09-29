@@ -87,6 +87,15 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* P1 feedback F2 — "3 màu": tên ngữ nghĩa cho 3 màu thương hiệu, dùng cho
+   * khối màu đặc (`bg-cream` / `bg-brand` / `bg-ink`) ở trang marketing.
+   * Cùng giá trị với background / orange-500 / gray-900 — không thêm màu. */
+  --color-cream: var(--background);
+  --color-brand: var(--brand);
+  --color-ink: var(--foreground);
+  /* Màu trạng thái KHÔNG có token riêng: dùng bộ tone của `Badge`
+   * (success/warning/danger/info/neutral), luôn kèm nhãn chữ. Badge trạng
+   * thái ca giữ nguyên (câu trả lời 2, 29/09). */
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }

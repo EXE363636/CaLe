@@ -24,7 +24,7 @@ export default function WorkerReputationGuidePage() {
       <InfoSection title="Ngưỡng điểm và quyền lợi">
         <InfoList
           items={[
-            '≥ 80: được hiển thị ưu tiên trong danh sách ứng viên, mở rộng hạn mức huỷ ca trong tuần.',
+            '≥ 80: được hiển thị ưu tiên trong danh sách người ứng tuyển, mở rộng hạn mức huỷ ca trong tuần.',
             '50 – 79: ứng tuyển bình thường.',
             '< 50: tạm khoá quyền ứng tuyển ca mới cho đến khi điểm phục hồi.',
           ]}

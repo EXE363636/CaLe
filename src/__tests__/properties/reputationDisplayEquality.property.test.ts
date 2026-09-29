@@ -37,7 +37,7 @@
  * any shared source (confirmed in
  * `src/components/landing/FeaturedJobMockup.tsx`):
  *
- *     <p className="mt-1 text-3xl font-extrabold text-emerald-500">95</p>
+ *     <p className="mt-1 text-3xl font-extrabold text-green-500">95</p>
  *
  * So for a worker whose real `reputationScore` is (say) 80, the hero shows
  * 95 while every `worker.reputationScore`-backed surface shows 80. The two

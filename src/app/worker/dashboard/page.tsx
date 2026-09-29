@@ -11,7 +11,7 @@ import { getDataMode } from '@/data/supabaseClient';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWalletStore } from '@/stores/walletStore';
-import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
+import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink, PageShell } from '@/components/ui';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
@@ -617,7 +617,7 @@ function WorkerDashboardContent() {
     3 + (hasCapability('ratings') ? 2 : 0) + (hasCapability('wallet') ? 1 : 0);
 
   return (
-    <div className="relative isolate mx-auto flex max-w-6xl flex-col px-4 py-8 sm:px-6 lg:px-8">
+    <PageShell width="wide" className="relative isolate flex flex-col">
       {/* Phase 9T — subtle decorative warmth anchored to the top-right
           of the dashboard, behind every card. Same principle as the
           homepage hero blobs: low alpha, blurred, pointer-events-none,
@@ -822,7 +822,7 @@ function WorkerDashboardContent() {
       <section id="wallet" className="order-3 mb-8 scroll-mt-24 lg:order-none">
         {hasCapability('wallet') ? (
           // Ví mô phỏng (server): worker NHẬN lương (tự cộng khi ca hoàn thành)
-          // + RÚT. Không nạp (worker không đặt cọc). Không giữ tiền client (#7).
+          // + RÚT. Không nạp (worker không giữ cọc). Không giữ tiền client (#7).
           <WalletPanel
             userId={worker.id}
             role="worker"
@@ -1150,7 +1150,7 @@ function WorkerDashboardContent() {
                     href={`/shifts/${m.shift.id}`}
                     className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
                   >
-                    <Card className="transition-colors hover:border-emerald-300 hover:shadow-sm">
+                    <Card className="transition-colors hover:border-green-300 hover:shadow-sm">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-gray-900">
@@ -1180,7 +1180,7 @@ function WorkerDashboardContent() {
                             {m.label}
                           </Badge>
                           {m.fitsAvailability && (
-                            <span className="text-xs font-medium text-emerald-700">
+                            <span className="text-xs font-medium text-green-700">
                               {t('availability.fitsAvailability')}
                             </span>
                           )}
@@ -1434,11 +1434,11 @@ function WorkerDashboardContent() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5">
+              <div className="rounded-xl border border-green-100 bg-white px-3 py-2.5">
                 <p className="text-sm font-medium text-gray-600">
                   {t('worker.dashboard.reputationModal.completedLabel')}
                 </p>
-                <p className="mt-0.5 text-xl font-bold text-emerald-600">
+                <p className="mt-0.5 text-xl font-bold text-green-600">
                   {worker.completedShiftCount}
                 </p>
               </div>
@@ -1473,14 +1473,14 @@ function WorkerDashboardContent() {
                     className={[
                       'flex items-start justify-between gap-2 rounded-lg px-3 py-2',
                       ev.isAdmin
-                        ? 'border border-indigo-200 bg-indigo-50/60'
+                        ? 'border border-orange-200 bg-orange-50'
                         : 'border border-gray-200 bg-white',
                     ].join(' ')}
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         {ev.isAdmin && (
-                          <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-700">
+                          <span className="rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-semibold text-white">
                             {t('worker.dashboard.reputationModal.adminBadge')}
                           </span>
                         )}
@@ -1503,7 +1503,7 @@ function WorkerDashboardContent() {
                       className={[
                         'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold',
                         ev.delta > 0
-                          ? 'bg-emerald-50 text-emerald-700'
+                          ? 'bg-green-50 text-green-700'
                           : ev.delta < 0
                             ? 'bg-red-50 text-red-700'
                             : 'bg-amber-50 text-amber-700',
@@ -1646,7 +1646,7 @@ function WorkerDashboardContent() {
               and whether a quota slot was refunded. */}
           {(worker.protections ?? []).length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold text-emerald-700">
+              <p className="text-sm font-semibold text-green-700">
                 {t('worker.dashboard.protection.title')}
               </p>
               <ul className="flex flex-col gap-2">
@@ -1656,10 +1656,10 @@ function WorkerDashboardContent() {
                   .map((rec) => (
                     <li
                       key={rec.id}
-                      className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2"
+                      className="rounded-lg border border-green-200 bg-green-50/60 px-3 py-2"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-xs font-medium text-emerald-900">
+                        <p className="truncate text-xs font-medium text-green-900">
                           {rec.quotaSlotsRefunded > 0
                             ? t('worker.dashboard.protection.quotaRefunded').replace(
                                 '{count}',
@@ -1667,15 +1667,15 @@ function WorkerDashboardContent() {
                               )
                             : t('worker.dashboard.protection.quotaNotCounted')}
                         </p>
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                        <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
                           {rec.shiftTitle}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-emerald-800/80">
+                      <p className="mt-0.5 text-xs text-green-800/80">
                         {rec.employerName} • {t('worker.dashboard.history.reasonLabel')}{' '}
                         {rec.reason}
                       </p>
-                      <p className="mt-0.5 text-xs text-emerald-700/70">
+                      <p className="mt-0.5 text-xs text-green-700/70">
                         {formatDateVN(rec.occurredAt.slice(0, 10))}
                       </p>
                     </li>
@@ -1818,11 +1818,11 @@ function WorkerDashboardContent() {
         }
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
-          <div className="rounded-xl bg-emerald-50 px-4 py-3 ring-1 ring-emerald-100">
-            <p className="text-sm font-medium text-emerald-700">
+          <div className="rounded-xl bg-green-50 px-4 py-3 ring-1 ring-green-100">
+            <p className="text-sm font-medium text-green-700">
               {t('worker.dashboard.completedModal.totalLabel')}
             </p>
-            <p className="mt-1 text-2xl font-extrabold text-emerald-700 tabular-nums">
+            <p className="mt-1 text-2xl font-extrabold text-green-700 tabular-nums">
               {completedCount}
             </p>
           </div>
@@ -1897,7 +1897,7 @@ function WorkerDashboardContent() {
                               </p>
                             )}
                           </div>
-                          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                          <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">
                             {t('worker.dashboard.completedModal.confirmedBadge')}
                           </span>
                         </div>
@@ -1945,7 +1945,7 @@ function WorkerDashboardContent() {
           </div>
         </div>
       </Modal>
-    </div>
+    </PageShell>
   );
 }
 
@@ -1993,14 +1993,14 @@ function StatTile({
   const toneChip: Record<Tone, string> = {
     brand: 'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
     neutral: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-    good: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
+    good: 'bg-green-50 text-green-600 ring-1 ring-green-100',
     warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
     bad: 'bg-red-50 text-red-600 ring-1 ring-red-100',
   };
   const toneText: Record<Tone, string> = {
     brand: 'text-orange-600',
     neutral: 'text-gray-900',
-    good: 'text-emerald-600',
+    good: 'text-green-600',
     warn: 'text-amber-600',
     bad: 'text-red-600',
   };
@@ -2206,7 +2206,7 @@ function UpcomingShiftCard({
             gets a subtle emerald check so an approved-but-far shift still
             reads as reassuring while the lifecycle badge is hidden. */}
         {application.status === 'Approved' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">
             <svg
               className="h-3.5 w-3.5"
               viewBox="0 0 20 20"

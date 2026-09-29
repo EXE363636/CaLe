@@ -227,7 +227,7 @@ export const handbookArticles: HandbookArticle[] = [
     "id": "3",
     "slug": "cach-xay-dung-ho-so-ca-le-uy-tin",
     "title": "Thiết kế hồ sơ cá nhân uy tín: Chìa khóa để luôn được nhận ca",
-    "excerpt": "Hồ sơ trực tuyến là bộ mặt của bạn. Trong môi trường tuyển dụng siêu tốc độ, một hồ sơ được trình bày chuyên nghiệp sẽ giúp bạn vượt qua hàng chục ứng viên khác.",
+    "excerpt": "Hồ sơ trực tuyến là bộ mặt của bạn. Trong môi trường tuyển dụng siêu tốc độ, một hồ sơ được trình bày chuyên nghiệp sẽ giúp bạn vượt qua hàng chục người ứng tuyển khác.",
     "audience": "worker",
     "categoryId": "kinh-nghiem-di-lam",
     "categoryLabel": "Kinh nghiệm đi làm",
@@ -269,7 +269,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "3. Bảo vệ \"Điểm Uy Tín\" và Lịch sử hoàn thành",
         "paragraphs": [
-          "Thuật toán của các nền tảng việc làm luôn ưu tiên hiển thị những ứng viên có độ tin cậy cao lên đầu danh sách. Độ tin cậy này được xây dựng hoàn toàn dựa trên Lịch sử làm việc của bạn.",
+          "Thuật toán của các nền tảng việc làm luôn ưu tiên hiển thị những người ứng tuyển có độ tin cậy cao lên đầu danh sách. Độ tin cậy này được xây dựng hoàn toàn dựa trên Lịch sử làm việc của bạn.",
           "Mỗi đánh giá 5 sao kèm theo những lời khen ngợi từ quản lý cũ như \"Nhân viên ngoan, nhanh nhẹn, dọn dẹp sạch sẽ\" có sức nặng gấp trăm lần những gì bạn tự viết về bản thân. Hãy trân trọng từng cơ hội làm việc để tích lũy những viên gạch uy tín này."
         ]
       },
@@ -463,7 +463,7 @@ export const handbookArticles: HandbookArticle[] = [
   {
     "id": "7",
     "slug": "cach-dang-tin-tuyen-nguoi-ngan-han",
-    "title": "Tuyển người cấp tốc: Kỹ năng viết tin đăng thu hút ứng viên tức thì",
+    "title": "Tuyển người cấp tốc: Kỹ năng viết tin đăng thu hút người ứng tuyển tức thì",
     "excerpt": "Cửa hàng đang quá tải và cần bổ sung nhân sự ngay lập tức? Học cách tối ưu hóa bản tin tuyển dụng để thu hút đúng người, đúng việc trong thời gian ngắn nhất.",
     "audience": "employer",
     "categoryId": "danh-cho-doanh-nghiep",
@@ -490,7 +490,7 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "1. Tiêu đề: Khẩn cấp và Trọng tâm",
         "paragraphs": [
           "Trong danh sách hàng chục ca làm đang mở, tiêu đề của bạn phải lập tức bắt lấy sự chú ý. Đừng dùng các tiêu đề lãng mạn hay chung chung. Hãy sử dụng cấu trúc: **[Trạng thái khẩn] + [Vị trí] + [Khung giờ/Địa điểm]**.",
-          "Ví dụ thay vì viết: \"Cửa hàng trà sữa ABC tuyển nhân viên\", hãy viết: \"CẦN GẤP 2 Phục vụ ca tối nay (18h-22h) tại Quận Bình Thạnh\". Sự cấp bách và rõ ràng về thời gian sẽ kích thích những ứng viên ở gần khu vực đó ứng tuyển ngay."
+          "Ví dụ thay vì viết: \"Cửa hàng trà sữa ABC tuyển nhân viên\", hãy viết: \"CẦN GẤP 2 Phục vụ ca tối nay (18h-22h) tại Quận Bình Thạnh\". Sự cấp bách và rõ ràng về thời gian sẽ kích thích những người ứng tuyển ở gần khu vực đó ứng tuyển ngay."
         ],
         "imageUrl": "/images/handbook/unique/new_inline_art7.png",
         "imageCaption": "Tin đăng rõ ràng, mức lương minh bạch là thỏi nam châm thu hút người lao động."
@@ -498,7 +498,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "2. Thông tin thù lao: Trực diện và Đủ hấp dẫn",
         "paragraphs": [
-          "Thu nhập là động lực số 1 của người lao động ngắn hạn. Việc sử dụng các cụm từ như \"Lương thỏa thuận\" hay \"Theo năng lực\" trong các tin tuyển dụng thời vụ là một sai lầm chết người, khiến ứng viên bỏ qua ngay lập tức.",
+          "Thu nhập là động lực số 1 của người lao động ngắn hạn. Việc sử dụng các cụm từ như \"Lương thỏa thuận\" hay \"Theo năng lực\" trong các tin tuyển dụng thời vụ là một sai lầm chết người, khiến người ứng tuyển bỏ qua ngay lập tức.",
           "Hãy điền chính xác con số: \"30.000đ/giờ\", kèm theo các lợi ích phụ trội nếu có, ví dụ: \"Bao ăn 1 bữa\", \"Hỗ trợ 20k tiền xăng\". Đôi khi, chỉ cần thêm một bữa ăn nhẹ, tin đăng của bạn sẽ vượt trội hoàn toàn so với đối thủ cạnh tranh.",
           "Mức lương cũng cần hợp lý so với khối lượng công việc và mặt bằng khu vực: ca đêm, ca cuối tuần hay việc nặng nên được trả tương xứng. Trả thấp hơn mặt bằng có thể tiết kiệm được vài chục nghìn, nhưng thường khiến ít người ứng tuyển và người đã nhận ca cũng dễ bỏ ca hơn."
         ]
@@ -506,10 +506,10 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "3. Mô tả công việc: Chân thực, không tô vẽ",
         "paragraphs": [
-          "Đối với công việc thời vụ, ứng viên cần biết chính xác họ sẽ phải làm gì bằng chân tay. Đừng dùng các từ ngữ đao to búa lớn. Hãy liệt kê gạch đầu dòng các công việc cụ thể.",
+          "Đối với công việc thời vụ, người ứng tuyển cần biết chính xác họ sẽ phải làm gì bằng chân tay. Đừng dùng các từ ngữ đao to búa lớn. Hãy liệt kê gạch đầu dòng các công việc cụ thể.",
           "- \"Nhiệm vụ: Chạy bàn bưng đồ ăn, dọn dẹp bàn sau khi khách về. Không yêu cầu ghi order.\"",
           "- \"Yêu cầu: Mặc quần dài đen, áo thun tối màu, mang giày thể thao. Cần có thái độ nhanh nhẹn, nghe theo sự điều phối của tổ trưởng.\"",
-          "Mô tả thực tế giúp loại bỏ những ứng viên sợ vất vả, giữ lại những người thực sự sẵn sàng làm việc."
+          "Mô tả thực tế giúp loại bỏ những người ứng tuyển sợ vất vả, giữ lại những người thực sự sẵn sàng làm việc."
         ]
       },
       {
@@ -540,7 +540,7 @@ export const handbookArticles: HandbookArticle[] = [
     "author": "CaLẻ Team",
     "readingTime": 7,
     "imageUrl": "/images/handbook/unique/new_grid_art8.png",
-    "imageAlt": "Chủ cửa hàng duyệt danh sách các ứng viên đăng ký",
+    "imageAlt": "Chủ cửa hàng duyệt danh sách người ứng tuyển đăng ký",
     "featured": false,
     "content": [
       {
@@ -552,7 +552,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "1. Phân tích \"Điểm Uy Tín\" và Lịch sử hoàn thành",
         "paragraphs": [
-          "Đây là màng lọc quan trọng nhất. Một ứng viên có đánh giá 4.8/5 sao với lịch sử hoàn thành 20 ca làm việc tại các nhà hàng khác nhau là bảo chứng vàng cho thái độ của họ. Bạn có thể lướt đọc nhanh các nhận xét từ những người chủ trước.",
+          "Đây là màng lọc quan trọng nhất. Một người ứng tuyển có đánh giá 4.8/5 sao với lịch sử hoàn thành 20 ca làm việc tại các nhà hàng khác nhau là bảo chứng vàng cho thái độ của họ. Bạn có thể lướt đọc nhanh các nhận xét từ những người chủ trước.",
           "Hãy đặc biệt chú ý đến tỷ lệ vắng mặt (No-show). Nếu một hồ sơ có lịch sử nhận việc nhưng không đến làm mà không báo trước, bạn nên cân nhắc từ chối ngay lập tức để tránh rủi ro vỡ trận nhân sự."
         ],
         "imageUrl": "/images/handbook/unique/new_inline_art8.png",
@@ -608,13 +608,13 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "1. Vũ khí giữ chân nhân sự tốt",
         "paragraphs": [
           "Nhu cầu được công nhận là một nhu cầu cơ bản của con người. Khi một bạn sinh viên hoàn thành tốt công việc, việc bạn tặng họ 5 sao cùng lời nhận xét: \"Em làm rất tốt, nhanh nhẹn, sạch sẽ. Lần sau quán đông khách anh sẽ gọi lại nhé!\" mang lại giá trị tinh thần cực lớn.",
-          "Sự thiện cảm này khiến ứng viên đó luôn ưu tiên ứng tuyển vào cửa hàng của bạn mỗi khi bạn đăng ca mới, từ chối những công việc khác để quay lại làm cho một \"người sếp tốt\"."
+          "Sự thiện cảm này khiến người ứng tuyển đó luôn ưu tiên ứng tuyển vào cửa hàng của bạn mỗi khi bạn đăng ca mới, từ chối những công việc khác để quay lại làm cho một \"người sếp tốt\"."
         ],
         "imageUrl": "/images/handbook/unique/new_inline_art9.png",
         "imageCaption": "Đánh giá 5 sao sau mỗi ca làm là cách tốt nhất để xây dựng cộng đồng uy tín."
       },
       {
-        "heading": "2. Xây dựng một mạng lưới ứng viên tin cậy",
+        "heading": "2. Xây dựng một mạng lưới người ứng tuyển tin cậy",
         "paragraphs": [
           "Mỗi khi bạn đánh giá tốt một người, hệ thống sẽ ghi nhớ sự liên kết đó. Về lâu dài, bạn sẽ tự xây dựng được một tệp \"nhân sự quen\". Bất cứ khi nào bạn đăng ca khẩn cấp, hệ thống có thể ưu tiên thông báo cho những người này.",
           "Việc dùng đi dùng lại những người quen việc giúp bạn cắt giảm hoàn toàn thời gian đào tạo và hướng dẫn lại từ đầu, tối ưu hóa năng suất hoạt động của cửa hàng."
@@ -654,7 +654,7 @@ export const handbookArticles: HandbookArticle[] = [
     "content": [
       {
         "paragraphs": [
-          "Đồng hồ điểm 17:30, chỉ còn 30 phút nữa là nhà hàng bước vào khung giờ phục vụ cao điểm bữa tối. Bất ngờ, điện thoại rung lên, ứng viên bạn vừa duyệt nhận việc báo tin nhắn: \"Anh ơi em bị hỏng xe không qua được\".",
+          "Đồng hồ điểm 17:30, chỉ còn 30 phút nữa là nhà hàng bước vào khung giờ phục vụ cao điểm bữa tối. Bất ngờ, điện thoại rung lên, người ứng tuyển bạn vừa duyệt nhận việc báo tin nhắn: \"Anh ơi em bị hỏng xe không qua được\".",
           "Sự phẫn nộ và hoảng loạn là phản ứng tự nhiên, nhưng nó không giải quyết được vấn đề thiếu hụt người bưng bê. Thay vì nổi nóng, bạn cần khởi động ngay quy trình xử lý khủng hoảng."
         ]
       },
@@ -677,7 +677,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "3. Phương pháp phòng ngừa chủ động",
         "paragraphs": [
-          "Quản lý giỏi là người không để khủng hoảng xảy ra. Bạn có thể áp dụng chiến lược \"Xác nhận kép\". Trước ca làm khoảng 3 tiếng, hãy gửi một tin nhắn ngắn gọn: \"Chào em, 18h tối nay em nhớ đến làm đúng giờ nhé, áo thun tối màu em nha\". Việc này không chỉ nhắc nhở ứng viên mà còn giúp bạn dò xét phản ứng của họ.",
+          "Quản lý giỏi là người không để khủng hoảng xảy ra. Bạn có thể áp dụng chiến lược \"Xác nhận kép\". Trước ca làm khoảng 3 tiếng, hãy gửi một tin nhắn ngắn gọn: \"Chào em, 18h tối nay em nhớ đến làm đúng giờ nhé, áo thun tối màu em nha\". Việc này không chỉ nhắc nhở người ứng tuyển mà còn giúp bạn dò xét phản ứng của họ.",
           "Thứ hai, hãy luôn duy trì mối quan hệ tốt với những bạn sinh viên từng làm việc chăm chỉ tại quán. Lưu số điện thoại hoặc kết nối Zalo với họ. Trong những tình huống khẩn cấp \"cháy\" nhân sự, một cuộc gọi nhờ vả những người quen việc luôn hiệu quả hơn việc tìm kiếm người lạ từ đầu."
         ]
       }

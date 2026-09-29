@@ -15,7 +15,7 @@ interface CardProps extends HTMLAttributes<HTMLElement> {
 const toneClasses: Record<NonNullable<CardProps['tone']>, string> = {
   default: 'bg-white border-gray-200',
   warm: 'bg-orange-50/60 border-orange-100',
-  subtle: 'bg-slate-50 border-gray-200',
+  subtle: 'bg-gray-50 border-gray-200',
 };
 
 export function Card({

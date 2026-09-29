@@ -1,47 +1,49 @@
 import { InfoPage, InfoSection, InfoList, InfoStep } from '@/components/layout/InfoPage';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
+/**
+ * P1 feedback F3 — bớt chữ: 4 bước, mỗi bước tối đa 2 câu, lời thường.
+ * Nói đúng luồng: production giữ cọc 100% tiền công + 10% phí từ ví (0018),
+ * tự chốt ~24 giờ sau ca (0019); local/demo là mô phỏng.
+ */
 export default function HowItWorksPage() {
+  const live = isSupabaseEnv();
   return (
     <InfoPage
       eyebrow="Hướng dẫn"
       title="Cách hoạt động"
-      intro="Một ca làm trên CaLẻ đi qua bốn bước: nhà tuyển dụng đăng ca và đảm bảo thanh toán, người lao động ứng tuyển, hai bên gặp nhau để thực hiện ca, sau đó xác nhận và thanh toán."
-      ctas={[
-        { label: 'Xem ca đang tuyển', href: '/shifts' },
-      ]}
+      intro="Một ca làm đi qua 4 bước, từ lúc đăng ca đến lúc trả tiền công."
+      ctas={[{ label: 'Xem ca đang tuyển', href: '/shifts' }]}
     >
-      <InfoStep n={1} title="Đăng ca và đảm bảo thanh toán">
-        Nhà tuyển dụng tạo ca với địa điểm, giờ giấc, mức lương theo giờ
-        và số lượng vị trí cần tuyển. Hệ thống tính toán khoản cần đảm
-        bảo thanh toán dựa trên cấp độ tin cậy của doanh nghiệp. Ca chỉ
-        được công khai sau khi đảm bảo thanh toán thành công.
+      <InfoStep n={1} title="Nhà tuyển dụng đăng ca">
+        Nhập giờ làm, địa điểm, lương theo giờ và số người cần.{' '}
+        {live
+          ? 'Ca chỉ hiện cho người lao động sau khi hệ thống giữ cọc tiền công và 10% phí từ ví.'
+          : 'Ca chỉ hiện cho người lao động sau khi giữ cọc (mô phỏng).'}
       </InfoStep>
 
       <InfoStep n={2} title="Người lao động ứng tuyển">
-        Người lao động duyệt danh sách ca, kiểm tra thông tin nhà tuyển
-        dụng, đánh giá từ người lao động trước, và ứng tuyển nếu phù hợp với
-        lịch cá nhân. Hệ thống tự động kiểm tra trùng lịch để hạn chế cam
-        kết kép.
+        Chọn ca hợp lịch rồi bấm Ứng tuyển. Hệ thống cảnh báo nếu ca trùng giờ với
+        lịch của bạn.
       </InfoStep>
 
-      <InfoStep n={3} title="Duyệt và thực hiện ca">
-        Nhà tuyển dụng duyệt người ứng tuyển dựa trên hồ sơ, điểm uy tín
-        và kinh nghiệm. Đến giờ làm, người lao động check-in hệ thống, làm việc, rồi check-out khi xong.
+      <InfoStep n={3} title="Duyệt và làm ca">
+        Nhà tuyển dụng xem hồ sơ và duyệt người phù hợp. Người lao động bấm check-in
+        khi đến và check-out khi xong.
       </InfoStep>
 
-      <InfoStep n={4} title="Xác nhận và thanh toán">
-        Sau khi check-out, nhà tuyển dụng xác nhận hoàn thành và để lại
-        đánh giá. Khoản đảm bảo thanh toán được giải ngân thành tiền
-        công. Người lao động cũng có thể đánh giá nhà tuyển dụng để đóng
-        góp dữ liệu uy tín cho cộng đồng.
+      <InfoStep n={4} title="Xác nhận và trả tiền công">
+        {live
+          ? 'Nhà tuyển dụng xác nhận hoàn thành, tiền công vào ví người lao động. Nếu không ai bấm, hệ thống tự chốt khoảng 24 giờ sau ca.'
+          : 'Nhà tuyển dụng xác nhận hoàn thành, tiền công vào ví người lao động (mô phỏng).'}
       </InfoStep>
 
-      <InfoSection title="Quyền và nghĩa vụ chính">
+      <InfoSection title="Cần nhớ">
         <InfoList
           items={[
-            'Nhà tuyển dụng đảm bảo thanh toán trước, không thu phí đăng ký từ người lao động.',
-            'Người lao động cần xác minh số điện thoại trước khi ứng tuyển ca đầu tiên.',
-            'Mọi tranh chấp đều có thể yêu cầu quản trị viên xem xét.',
+            'Người lao động dùng CaLẻ miễn phí.',
+            'Phần tiền không dùng (vị trí trống, người vắng mặt, ca huỷ) được hoàn về ví nhà tuyển dụng.',
+            'Có vướng mắc: vào trang Liên hệ hỗ trợ.',
           ]}
         />
       </InfoSection>

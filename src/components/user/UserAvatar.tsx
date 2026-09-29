@@ -29,13 +29,13 @@ const sizeMap: Record<NonNullable<UserAvatarProps['size']>, string> = {
 // Tinted fill + deep ink of the same hue (DESIGN.md status-pair pattern).
 // White initials on *-400 fills measured 2–2.6:1 (fails WCAG AA); these
 // pairs all clear 4.5:1.
+// P1 feedback F2 — chỉ họ màu thương hiệu (cam / mực): bỏ xanh dương, xanh
+// lá, tím, hồng, xanh ngọc — các màu đó dành cho trạng thái, không trang trí.
 const bgColors = [
   'bg-orange-100 text-orange-800',
-  'bg-blue-100 text-blue-800',
-  'bg-green-100 text-green-800',
-  'bg-purple-100 text-purple-800',
-  'bg-pink-100 text-pink-800',
-  'bg-teal-100 text-teal-800',
+  'bg-orange-200 text-gray-900',
+  'bg-gray-200 text-gray-900',
+  'bg-gray-900 text-white',
 ];
 
 function getInitials(name: string): string {
