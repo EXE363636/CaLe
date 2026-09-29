@@ -41,7 +41,7 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 - ✅ **Migration `0023_schedule_blocks` và `0024_shift_reviews` đã apply** (29/09,
   xem mục ⛔-A). Lúc lập plan `migration list` báo cột remote trống, nhưng thực tế
   bảng đã được chạy tay từ trước; nay đã ghi đúng vào lịch sử migration.
-- 0001–0024 đã apply. Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
+- 0001–0024 đã apply (0025 apply 29/09 chiều). Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
 - **Cập nhật 29/09 — P0 xong** trên nhánh `fix/p0-feedback` (tách từ `main` =
   `c76c603`, gồm 2 commit docs mục ⛔). 7 commit: `85a7c1d` (P0-1) → `a05eec5` (P0-2)
   → `57dcbb7` (P0-3) → `c0dae9c` (P0-4) → `0db9007` (P0-5) → `8e96780` (P0-6) →
@@ -82,8 +82,8 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
     trang thông tin).
 - **Cập nhật 29/09 (chiều):** P0 + P1 đã merge `main` (PR #8, #9 → `75755d7`),
   gồm cả sửa 7 test e2e ví và eslint. **P2-3 xong** trên nhánh
-  `fix/wallet-withdraw-visible` (kèm sửa nút Rút tiền) — migration 0025 **chưa
-  push**. Chi tiết: `docs/HANDOFF_SESSION_2026-09-29_P2-3.md`.
+  `fix/wallet-withdraw-visible` (kèm sửa nút Rút tiền) — migration 0025 **đã
+  push 29/09** (đợt miễn phí mặc định TẮT). Chi tiết: `docs/HANDOFF_SESSION_2026-09-29_P2-3.md`.
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
@@ -278,7 +278,7 @@ Migration mới (0025+), không sửa migration cũ; RPC security definer,
        lương).
      - Cộng thưởng trong `credit_wallet_from_payment` (idempotent theo payment id).
      - Cần điều khoản: tiền thưởng không quy đổi tiền mặt.
-3. ✅ _(29/09, `d9e3dcf`, chưa push DB — thêm luật: ngày làm ca ≤ đợt + 30 ngày;
+3. ✅ _(29/09, `d9e3dcf`, 0025 đã push DB — thêm luật: ngày làm ca ≤ đợt + 30 ngày;
    xem `HANDOFF_SESSION_2026-09-29_P2-3.md`)_
    **Miễn phí theo đợt (F12):** `platform_settings.fee_free_until` (ngày), nghĩa là
    phí 0% cho ca đăng trước ngày đó. Dùng cho campaign "free cả tháng / 1 tuần".
@@ -415,4 +415,4 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
       tính thế nào; đã xác thực CCCD có miễn cọc không).
 - [x] Task riêng: 7 e2e ví hỏng sẵn trên `main`; eslint bỏ qua `playwright-report/`
       (`a24b0b7`, đã merge).
-- [x] P2-3 miễn phí theo đợt (`d9e3dcf`) — còn chờ `db push` 0025 + merge.
+- [x] P2-3 miễn phí theo đợt (`d9e3dcf`), 0025 đã `db push` 29/09 — còn chờ merge.

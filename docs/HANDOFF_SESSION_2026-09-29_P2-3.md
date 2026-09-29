@@ -2,15 +2,17 @@
 
 > Đọc kèm `CLAUDE.md` và `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md` (plan P0–P3).
 
-## ⛔ Migration 0025 CHƯA apply lên DB thật
+## ✅ Migration 0025 ĐÃ apply lên DB thật (29/09, hungkobe273)
 - File: `supabase/migrations/20260929000025_fee_free_campaign.sql`.
-- Chỉ chạy `npx supabase db push` khi **chủ dự án đồng ý**. Không chạy hộ.
+- `npx supabase db push` chạy 29/09 sau khi chủ dự án đồng ý. Sau push đã kiểm:
+  `migration list` có cả local lẫn remote; `fee_free_until` = NULL (đợt đang
+  TẮT, phí 10% như cũ); nhật ký trống; hàm phiên cọc dùng `_shift_fee_rate`;
+  quyền đúng (anon chỉ gọi được `get_fee_settings`; không ai gọi thẳng được
+  hàm nội bộ; anon không đọc được bảng audit).
 - Đã chạy thử trên DB thật trong transaction + `rollback` (4 lần, bản cuối ở
   `d9e3dcf`): mọi kiểm tra đạt, sau rollback DB không còn dấu vết.
-- **Thứ tự nên làm:** `db push` → merge code. Nếu lỡ merge code trước: app vẫn
-  chạy (phí vẫn 10% như cũ, trang Đăng ca không hiện miễn phí), chỉ ô admin
-  "Miễn phí dịch vụ theo đợt" báo lỗi vì chưa có RPC.
-- Sau khi push, kiểm tra:
+- Code (nhánh `fix/wallet-withdraw-visible`) merge được ngay. Sau khi deploy,
+  kiểm tra tay trên production:
   1. `npx supabase migration list` → 0025 có cả local lẫn remote.
   2. Admin → tab Thống kê → đặt "Miễn phí đến hết ngày" → trang Đăng ca của
      employer hiện "Miễn phí (đợt đến hết …)", bước xác nhận giữ cọc = đúng tiền
@@ -21,7 +23,7 @@
 ## 0. Trạng thái repo
 - `main` = `75755d7`: đã merge PR #8 (P0 + P1) và PR #9 (trang chủ có ảnh +
   "Ca gấp cần người"; sửa 7 test e2e ví; eslint bỏ qua thư mục sinh ra).
-- Nhánh **`fix/wallet-withdraw-visible`** (tách từ `main`), 3 commit, chưa merge:
+- Nhánh **`fix/wallet-withdraw-visible`** (tách từ `main`), chưa merge:
   - `491ba1f` **fix(wallet): nút "Rút tiền" luôn hiện**, làm mờ khi số dư dưới
     mức rút tối thiểu (PayOS 2.000 đ) + dòng lý do. Trước đây nút bị ẩn hẳn nên
     người dùng tưởng không có tính năng rút. Chỉ đổi hiển thị. E2E mới trong
@@ -81,7 +83,8 @@ Còn lại (Thấp): mô tả sổ cái phí ở 0021 ghi cứng "10%".
   có e2e — kiểm tay theo mục ⛔ sau khi push.
 
 ## 3. Việc tiếp theo
-- [ ] Chủ dự án đồng ý → `db push` 0025 → merge `fix/wallet-withdraw-visible`.
+- [x] `db push` 0025 (29/09).
+- [ ] Merge `fix/wallet-withdraw-visible` → kiểm tay theo mục ✅ ở đầu file.
 - [ ] (tuỳ chọn) Trang Bảng giá / `/tuyen-dung` hiện dải "Đang miễn phí dịch vụ
       đến hết …" khi có đợt — chưa làm.
 - [ ] **P2-2 thưởng nạp ví** (đã chốt F10: nạp 500.000 đ được +100.000 đ, tiền
