@@ -191,7 +191,6 @@ const ADMIN_SECTIONS: DrawerSection[] = [
   {
     heading: 'Chính',
     links: [
-      { href: '/', label: 'Trang chủ' },
       { href: '/admin/dashboard', label: 'Tổng quan admin' },
     ],
   },

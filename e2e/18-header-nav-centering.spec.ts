@@ -60,7 +60,11 @@ async function measure(page: import('@playwright/test').Page) {
     };
     const header = document.querySelector('header');
     const nav = document.querySelector('nav[aria-label="Main navigation"]');
-    const logo = header ? header.querySelector('a[href="/"]') : null;
+    // Locate the brand link by its logo image, not by href: for admin the
+    // logo points to /admin/dashboard (P0 feedback F7), for others to "/".
+    const logo = header
+      ? header.querySelector('a:has(img[src="/images/logo.png"])')
+      : null;
     const userMenu = document.querySelector('[data-user-menu="true"]');
     const bell = header
       ? header.querySelector('button[aria-label="Thông báo"]')

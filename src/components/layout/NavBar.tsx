@@ -486,8 +486,10 @@ export function NavBar() {
           nav fits one row from 1280px upward without collapsing. */}
       <div className="mx-auto flex max-w-[1600px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8 xl:grid xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:gap-4">
         {/* Brand block — LEFT zone */}
+        {/* P0 feedback F7 — admin không có trang chủ riêng: logo đưa về
+            Tổng quan admin thay vì landing công khai. */}
         <Link
-          href="/"
+          href={role === 'admin' ? '/admin/dashboard' : '/'}
           className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:rounded xl:justify-self-start"
         >
           <img
@@ -775,8 +777,7 @@ function EmployerNav({
 // navigation primitive — they didn't change the URL the user could see
 // against, didn't visually feel different from the dashboard's own
 // pill-style tabs, and adding them at the top forced the rest of the nav
-// to compete for room. We keep only `Trang chủ`, `Tổng quan admin`, and
-// `Hỗ trợ` here and let the dashboard's tab system do its job.
+// to compete for room. We keep only `Tổng quan admin` and `Hỗ trợ` here and let the dashboard's tab system do its job.
 function AdminNav({ pathname }: { pathname: string }) {
   // Phase 10A-Fix-4 — surface pending verification queue items as a
   // badge on the admin dashboard nav link so missed notifications
@@ -793,11 +794,10 @@ function AdminNav({ pathname }: { pathname: string }) {
         : 0,
     [workerDocs, employerDocs, typeChangeRequests],
   );
+  // P0 feedback F7 — bỏ "Trang chủ" (landing công khai) khỏi nav admin:
+  // "về đầu" của admin là Tổng quan admin (logo cũng trỏ về đây).
   return (
     <>
-      <NavLink href="/" pathname={pathname} exact>
-        {t('nav.home')}
-      </NavLink>
       <NavLink
         href="/admin/dashboard"
         pathname={pathname}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useUserStore } from '@/stores/userStore';
@@ -100,12 +100,22 @@ function AdminDashboardContent() {
   >('all');
 
   // Phase 9L — notification deep links may arrive with `?tab=...` and
-  // optionally `?filter=...`. Apply once on mount and strip the params
-  // so refreshing or switching tabs doesn't keep snapping back.
-  const router = useRouter();
+  // optionally `?filter=...`. Apply once on mount.
+  // P0 feedback F7 — sau đó URL luôn phản ánh tab (+ bộ lọc ca) đang đứng
+  // (replaceState, không thêm history), để admin mở chi tiết ca rồi bấm
+  // Back của trình duyệt vẫn về đúng tab thay vì tab Thống kê.
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const handledQuery = useRef(false);
+  useEffect(() => {
+    const qs = new URLSearchParams();
+    if (tab !== 'analytics') qs.set('tab', tab);
+    if (tab === 'shifts' && shiftsInitialFilter !== 'all') qs.set('filter', shiftsInitialFilter);
+    const next = qs.toString() ? `${pathname}?${qs.toString()}` : pathname;
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, '', next);
+    }
+  }, [tab, shiftsInitialFilter, pathname]);
   useEffect(() => {
     if (handledQuery.current) return;
     const qTab = searchParams.get('tab');
@@ -131,7 +141,6 @@ function AdminDashboardContent() {
         }
       }
     }
-    router.replace(pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -306,7 +315,12 @@ function AdminDashboardContent() {
         />
       )}
       {tab === 'users' && <UsersPanel initialFilter={usersInitialFilter} />}
-      {tab === 'shifts' && <ShiftsPanel initialFilter={shiftsInitialFilter} />}
+      {tab === 'shifts' && (
+        <ShiftsPanel
+          initialFilter={shiftsInitialFilter}
+          onFilterChange={setShiftsInitialFilter}
+        />
+      )}
       {tab === 'disputes' && showDisputes && <DisputesPanel />}
       {tab === 'verifications' && showVerifications &&
         (isSupabaseEnv() ? <IdentityReviewPanel /> : <VerificationsPanel />)}
@@ -1295,8 +1309,11 @@ function UserRow({
 
 function ShiftsPanel({
   initialFilter = 'all',
+  onFilterChange,
 }: {
   initialFilter?: 'all' | 'active' | 'completed' | 'disputed';
+  /** Báo bộ lọc lên dashboard để giữ trong URL (Back về đúng bộ lọc). */
+  onFilterChange?: (filter: 'all' | 'active' | 'completed' | 'disputed') => void;
 }) {
   const shifts = useShiftStore((s) => s.shifts);
   const lastSyncAt = useShiftStore((s) => s.lastLifecycleSyncAt);
@@ -1341,7 +1358,10 @@ function ShiftsPanel({
               size="sm"
               variant={filter === f ? 'primary' : 'ghost'}
               aria-pressed={filter === f}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                setFilter(f);
+                onFilterChange?.(f);
+              }}
             >
               {t(`admin.shifts.filter.${f}`)}
             </Button>

@@ -335,9 +335,11 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Back */}
+      {/* Back — P0 feedback F7: admin mở ca từ tab Ca làm của Tổng quan
+          admin, nên "Quay lại" đưa về đúng tab đó thay vì danh sách ca
+          công khai. */}
       <Link
-        href="/shifts"
+        href={currentUser?.role === 'admin' ? '/admin/dashboard?tab=shifts' : '/shifts'}
         className="mb-4 -ml-1 inline-flex items-center gap-1 rounded px-1 py-1 text-sm font-medium text-orange-700 transition-colors hover:text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
       >
         ← {t('btn.back')}
