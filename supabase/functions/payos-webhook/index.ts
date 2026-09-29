@@ -69,6 +69,7 @@ Deno.serve(async (req: Request) => {
     p_order_code: orderCode,
     p_paid_amount: Number.isInteger(paidAmount) ? paidAmount : null,
     p_reference: String(data.reference ?? ''),
+    p_payment_link_id: String(data.paymentLinkId ?? ''),
   });
   if (error) {
     if (error.message.includes('ORDER_NOT_FOUND')) return json({ ok: true, note: 'unknown-order (ack)' });
