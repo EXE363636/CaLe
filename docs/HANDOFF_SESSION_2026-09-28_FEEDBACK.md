@@ -8,8 +8,8 @@
 Ai pull về (người hay AI agent) phải xong **cả 2 việc** dưới đây, ghi kết quả vào
 file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG và hỏi chủ dự án.
 
-- [ ] **A. Migration 0023/0024.** Hỏi người viết (partner, commit `a44dc82`,
-      `f7a20a7`) đã định chạy `npx supabase db push` chưa.
+- [ ] **A. Migration 0023/0024.** Hỏi người viết (partner; `a44dc82` và `f7a20a7` là 2 commit
+      TẠO RA migration, không phải bản mới nhất) đã định chạy `npx supabase db push` chưa.
   - Người viết tự chạy. Người khác **KHÔNG chạy hộ**.
   - Kiểm tra bằng `npx supabase migration list`: 0023 và 0024 phải có cả cột local lẫn
     remote.
@@ -26,8 +26,11 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 > trước, không tự suy đoán câu trả lời, không tự chạy `db push` 0023/0024.
 
 ## 0. Trạng thái repo lúc lập plan
-- `main` = `feat/payos-real-payment` = `adbef85` (partner: lịch lưu server 0023, đánh
-  giá hai chiều 0024, rà soát UI, hồ sơ worker, `PAYOS_MOCK`).
+- **Bản mới nhất có plan này:** `main` = `feat/payos-real-payment` = `d725728`
+  (`b79809a` thêm plan, `d725728` thêm mục ⛔). Hai commit này CHỈ sửa tài liệu
+  (`docs/`, `CLAUDE.md`), không đổi code.
+- **Code mới nhất** vẫn là `adbef85` của partner (lịch lưu server 0023, đánh giá hai
+  chiều 0024, rà soát UI, hồ sơ worker, `PAYOS_MOCK`). Plan được viết dựa trên code này.
 - ⚠️ **Migration `0023_schedule_blocks` và `0024_shift_reviews` CHƯA apply** lên
   Supabase (`npx supabase migration list`: cột remote trống). Code tự chịu được thiếu
   bảng: lịch giữ trên thiết bị, form đánh giá ẩn. Người viết 0023/0024 chạy
