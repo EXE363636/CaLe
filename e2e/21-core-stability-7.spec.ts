@@ -21,7 +21,7 @@ const DESKTOP = { width: 1440, height: 900 };
 // ---------------------------------------------------------------------------
 
 test.describe('Part 1: wallet top-up notification + deeplink', () => {
-  test('worker top-up creates a notification that deeplinks to wallet history', async ({
+  test('employer top-up creates a notification that deeplinks to wallet history', async ({
     page,
     seedState,
     loginAs,
@@ -29,8 +29,9 @@ test.describe('Part 1: wallet top-up notification + deeplink', () => {
   }) => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
-    await loginAs(ACCOUNTS.worker.id);
-    await gotoApp('/worker/dashboard');
+    // Nạp ví là việc của nhà tuyển dụng (worker chỉ nhận lương + rút).
+    await loginAs(ACCOUNTS.employer.id);
+    await gotoApp('/employer/dashboard');
 
     // Top up.
     await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();

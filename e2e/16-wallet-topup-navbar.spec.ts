@@ -15,8 +15,9 @@ test.describe('Phase 4: custom wallet top-up', () => {
     gotoApp,
   }) => {
     await seedState(buildSnapshot());
-    await loginAs(ACCOUNTS.worker.id);
-    await gotoApp('/worker/dashboard');
+    // Nạp ví là việc của nhà tuyển dụng (worker chỉ nhận lương + rút).
+    await loginAs(ACCOUNTS.employer.id);
+    await gotoApp('/employer/dashboard');
 
     await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();
     const dialog = page.getByRole('dialog');
@@ -41,8 +42,9 @@ test.describe('Phase 4: custom wallet top-up', () => {
     gotoApp,
   }) => {
     await seedState(buildSnapshot());
-    await loginAs(ACCOUNTS.worker.id);
-    await gotoApp('/worker/dashboard');
+    // Nạp ví là việc của nhà tuyển dụng (worker chỉ nhận lương + rút).
+    await loginAs(ACCOUNTS.employer.id);
+    await gotoApp('/employer/dashboard');
 
     await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();
     const dialog = page.getByRole('dialog');

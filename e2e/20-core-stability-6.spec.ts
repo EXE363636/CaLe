@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures/test';
-import { buildSnapshot, buildShift, buildApplication } from './fixtures/seed';
+import { buildFunds, buildSnapshot, buildShift, buildApplication } from './fixtures/seed';
 import { ACCOUNTS } from './fixtures/constants';
 
 /**
@@ -76,20 +76,16 @@ test.describe('Part 3: wallet withdrawal', () => {
     loginAs,
     gotoApp,
   }) => {
-    await seedState(buildSnapshot());
+    await seedState(buildSnapshot(buildFunds(ACCOUNTS.worker.id, 500000)));
     await loginAs(ACCOUNTS.worker.id);
     await gotoApp('/worker/dashboard');
 
-    // Top up first so there is a balance to withdraw.
-    await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();
-    let dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Số tiền muốn nạp (đồng)').fill('500000');
-    await dialog.getByRole('button', { name: 'Xác nhận nạp' }).click();
+    // Worker không tự nạp được (chỉ nhận lương + rút) → số dư được seed sẵn.
     await expect(page.getByText('500.000 đ').first()).toBeVisible();
 
     // Withdraw 200.000.
     await page.getByRole('button', { name: 'Rút tiền' }).click();
-    dialog = page.getByRole('dialog');
+    const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Số tiền muốn rút (đồng)').fill('200000');
     await dialog.getByRole('button', { name: 'Xác nhận rút' }).click();
 
@@ -109,18 +105,15 @@ test.describe('Part 3: wallet withdrawal', () => {
     loginAs,
     gotoApp,
   }) => {
-    await seedState(buildSnapshot());
+    await seedState(buildSnapshot(buildFunds(ACCOUNTS.worker.id, 100000)));
     await loginAs(ACCOUNTS.worker.id);
     await gotoApp('/worker/dashboard');
 
-    await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();
-    let dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Số tiền muốn nạp (đồng)').fill('100000');
-    await dialog.getByRole('button', { name: 'Xác nhận nạp' }).click();
+    // Worker không tự nạp được (chỉ nhận lương + rút) → số dư được seed sẵn.
     await expect(page.getByText('100.000 đ').first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Rút tiền' }).click();
-    dialog = page.getByRole('dialog');
+    const dialog = page.getByRole('dialog');
     // Over-balance.
     await dialog.getByLabel('Số tiền muốn rút (đồng)').fill('200000');
     await dialog.getByRole('button', { name: 'Xác nhận rút' }).click();
@@ -293,18 +286,15 @@ test.describe('Part 8: withdrawal security / access-control', () => {
     loginAs,
     gotoApp,
   }) => {
-    await seedState(buildSnapshot());
+    await seedState(buildSnapshot(buildFunds(ACCOUNTS.worker.id, 300000)));
     await loginAs(ACCOUNTS.worker.id);
     await gotoApp('/worker/dashboard');
 
-    await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();
-    let dialog = page.getByRole('dialog');
-    await dialog.getByLabel('Số tiền muốn nạp (đồng)').fill('300000');
-    await dialog.getByRole('button', { name: 'Xác nhận nạp' }).click();
+    // Worker không tự nạp được (chỉ nhận lương + rút) → số dư được seed sẵn.
     await expect(page.getByText('300.000 đ').first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Rút tiền' }).click();
-    dialog = page.getByRole('dialog');
+    const dialog = page.getByRole('dialog');
     await dialog.getByLabel('Số tiền muốn rút (đồng)').fill('100000');
     const xss = '<img src=x onerror="window.__cs6xss=1">';
     await dialog

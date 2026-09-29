@@ -114,7 +114,7 @@ test('H5: employer detail header shows the phase chip once, no duplicate termina
 });
 
 // H8/H9 — wallet reconciliation + top-up.
-test('H8/H9: worker wallet reflects historical payouts and top-up adds a ledger entry', async ({
+test('H8/H9: worker wallet reflects historical payouts (worker cannot top up)', async ({
   page,
   seedState,
   loginAs,
@@ -146,12 +146,9 @@ test('H8/H9: worker wallet reflects historical payouts and top-up adds a ledger 
   // Backfill credited the worker wallet with the historical payout.
   await expect(page.getByText('200.000 đ').first()).toBeVisible();
 
-  // QA-Fix-2 Phase 4 — top-up now uses a custom-amount modal.
-  await page.getByRole('button', { name: 'Nạp tiền vào ví' }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog.getByLabel('Số tiền muốn nạp (đồng)').fill('500000');
-  await dialog.getByRole('button', { name: 'Xác nhận nạp' }).click();
-  await expect(page.getByText('700.000 đ').first()).toBeVisible();
+  // Worker chỉ nhận lương + rút, không có nút nạp (WalletPanel allowTopUp=false).
+  // Luồng nạp được kiểm ở spec 16/21 bằng tài khoản nhà tuyển dụng.
+  await expect(page.getByRole('button', { name: 'Nạp tiền vào ví' })).toHaveCount(0);
 });
 
 // H10/H11 — admin dispute badge + expandable detail.
