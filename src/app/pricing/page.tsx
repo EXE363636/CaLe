@@ -46,33 +46,46 @@ export default function PricingPage() {
           price={live ? '10%' : '0đ'}
           priceNote={live ? 'trên tiền công' : 'dự kiến 10% tiền công — chưa thu phí'}
           highlight
-          points={[
-            'Đăng ca, duyệt người ứng tuyển miễn phí.',
-            'Tiền công + phí được giữ khi đăng ca.',
-            'Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí phần đó.',
-          ]}
+          points={
+            live
+              ? [
+                  'Đăng ca, duyệt người ứng tuyển miễn phí.',
+                  'Tiền công + phí được giữ khi đăng ca.',
+                  'Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí phần đó.',
+                ]
+              : [
+                  'Đăng ca, duyệt người ứng tuyển miễn phí.',
+                  'Tiền công được giữ (mô phỏng) khi đăng ca.',
+                  'Huỷ ca sau khi đã duyệt người có thể bị trừ 5–15% tiền giữ (mô phỏng).',
+                ]
+          }
           example={
             live
               ? 'Ví dụ: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí CaLẻ 20.000đ.'
-              : 'Ví dụ mô phỏng: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí 20.000đ (mô phỏng).'
+              : 'Ví dụ mô phỏng: tiền công 200.000đ → giữ 200.000đ (chưa cộng phí). Ca xong, người lao động nhận 200.000đ.'
           }
         />
       </div>
 
-      <InfoSection title="Câu hỏi thường gặp">
-        <dl className="flex flex-col gap-4">
-          <Faq q="Khi nào tiền được giữ?">
-            Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.
-          </Faq>
-          <Faq q="Khi nào người lao động nhận tiền?">
-            Khi nhà tuyển dụng xác nhận hoàn thành. Nếu không ai bấm, hệ thống tự chốt sau 24 giờ
-            kể từ giờ kết thúc ca.
-          </Faq>
-          <Faq q="Có gói trả phí nào khác không?">
-            Chưa. Hiện chỉ có mức phí ở trên.
-          </Faq>
-        </dl>
-      </InfoSection>
+      {/* FAQ mô tả luồng tiền THẬT ở production (0010 đăng sau khi giữ cọc,
+          0019 tự chốt). Local/demo không có tự chốt → không hiện. */}
+      {live && (
+        <InfoSection title="Câu hỏi thường gặp">
+          <dl className="flex flex-col gap-4">
+            <Faq q="Khi nào tiền được giữ?">
+              Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.
+            </Faq>
+            <Faq q="Khi nào người lao động nhận tiền?">
+              Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự
+              chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không
+              check-in bị tính vắng mặt. Ca đang có tranh chấp chờ quản trị viên xử lý.
+            </Faq>
+            <Faq q="Có gói trả phí nào khác không?">
+              Chưa. Hiện chỉ có mức phí ở trên.
+            </Faq>
+          </dl>
+        </InfoSection>
+      )}
     </InfoPage>
   );
 }
