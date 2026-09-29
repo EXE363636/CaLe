@@ -4,13 +4,23 @@ import { useEffect, useState } from 'react';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN, HelpPopover } from '@/components/ui';
 import { t } from '@/i18n/vi';
-import { formatVND } from '@/lib/format';
+import { formatDateVN, formatVND } from '@/lib/format';
+import { useFeeSettings } from '@/lib/useFeeSettings';
 import {
   formatNumberVNInput,
   numberToVietnameseCurrency,
   parseVNNumberInput,
 } from '@/lib/numberVN';
-import { hoursBetween, calculateDeposit, platformFee } from '@/domain/deposit';
+import {
+  hoursBetween,
+  calculateDeposit,
+  platformFee,
+  feeFreeShiftDeadline,
+  isFeeFreeActive,
+  isFeeFreeForShift,
+  serverWageTotal,
+  shiftFeeRate,
+} from '@/domain/deposit';
 import {
   EVIDENCE_REQUIREMENT_VALUES,
   suggestedEvidenceForJobType,
@@ -241,13 +251,23 @@ export function ShiftForm({
 
   // Live deposit calculation. Tiền công gốc + 10% phí dịch vụ (supabase khớp
   // server; local/demo không cộng phí). Hiển thị số dư cần đảm bảo THẬT để
-  // employer biết cần bao nhiêu số dư ví.
-  const liveDepositBase = calculateDeposit(
+  // employer biết cần bao nhiêu số dư ví. Supabase làm tròn tiền công như
+  // server (compute_shift_amount) để khớp số ở bước xác nhận giữ cọc.
+  const liveDepositBase = (supabase ? serverWageTotal : calculateDeposit)(
     values.hourlyWage,
     hoursBetween(values.startTime, values.endTime),
     values.positionsTotal,
   );
-  const liveDepositFee = isSupabaseEnv() ? platformFee(liveDepositBase) : 0;
+  // P2-3 (F12) — đợt miễn phí dịch vụ: phí 0 (server quyết lại khi tạo phiên cọc).
+  const { feeFreeUntil } = useFeeSettings();
+  const nowIso = new Date().toISOString();
+  const feeFree = supabase && isFeeFreeForShift(feeFreeUntil, values.date, nowIso);
+  // Đang có đợt nhưng ngày làm ca quá xa (> 30 ngày sau đợt) → vẫn tính phí.
+  const feeFreeTooFar =
+    supabase && !feeFree && !!values.date && isFeeFreeActive(feeFreeUntil, nowIso);
+  const liveDepositFee = supabase
+    ? platformFee(liveDepositBase, shiftFeeRate(feeFreeUntil, values.date, nowIso))
+    : 0;
   const liveDeposit = liveDepositBase + liveDepositFee;
 
   function set<K extends keyof ShiftFormValues>(key: K, value: ShiftFormValues[K]) {
@@ -729,7 +749,7 @@ export function ShiftForm({
           className="rounded-xl bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-200"
           data-testid="shift-form-deposit-summary"
         >
-          {liveDepositFee > 0 ? (
+          {liveDepositFee > 0 || feeFree ? (
             <>
               <dl className="flex flex-col gap-1 tabular-nums">
                 <div className="flex items-center justify-between gap-3">
@@ -737,14 +757,28 @@ export function ShiftForm({
                   <dd>{formatVND(liveDepositBase)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <dt className="text-orange-800">{t('shiftForm.depositSummary.fee')}</dt>
-                  <dd>{formatVND(liveDepositFee)}</dd>
+                  <dt className="text-orange-800">
+                    {feeFree ? t('shiftForm.depositSummary.feeFree') : t('shiftForm.depositSummary.fee')}
+                  </dt>
+                  <dd>
+                    {feeFree && feeFreeUntil
+                      ? t('shiftForm.depositSummary.feeFreeValue').replace('{date}', formatDateVN(feeFreeUntil))
+                      : formatVND(liveDepositFee)}
+                  </dd>
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t border-orange-200 pt-1 font-semibold">
                   <dt>{t('shiftForm.depositSummary.total')}</dt>
                   <dd>{formatVND(liveDeposit)}</dd>
                 </div>
               </dl>
+              {feeFreeTooFar && feeFreeUntil && (
+                <p className="mt-2 text-xs text-orange-800">
+                  {t('shiftForm.depositSummary.feeFreeTooFar').replace(
+                    '{date}',
+                    formatDateVN(feeFreeShiftDeadline(feeFreeUntil)),
+                  )}
+                </p>
+              )}
               <p className="mt-2 text-xs text-orange-800">{t('shiftForm.depositSummary.note')}</p>
             </>
           ) : (
