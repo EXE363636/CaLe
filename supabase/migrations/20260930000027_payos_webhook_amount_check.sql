@@ -20,6 +20,7 @@
 --     provider_txn_ref rồi gọi credit_wallet_from_payment (0026, gồm thưởng).
 --   - Còn lại KHÔNG cộng ví, đặt needs_review, trả NEEDS_REVIEW:
 --       AMOUNT_MISMATCH   số tiền nhận ≠ số tiền đơn (hoặc thiếu);
+--       MISSING_REFERENCE webhook không có mã giao dịch (data.reference);
 --       LINK_MISMATCH     paymentLinkId của webhook ≠ link đã tạo cho đơn;
 --       ORDER_NOT_PAYABLE tiền về cho đơn CANCELLED / EXPIRED / FAILED;
 --       EXTRA_PAYMENT     giao dịch khác cho đơn đã PAID;
@@ -128,6 +129,8 @@ begin
     v_reason := 'ALREADY_FLAGGED';
   elsif p_paid_amount is null or p_paid_amount <> v_o.amount then
     v_reason := 'AMOUNT_MISMATCH';
+  elsif v_ref is null then
+    v_reason := 'MISSING_REFERENCE';      -- không có mã giao dịch -> không chống trùng được
   elsif v_link is not null and v_o.provider_ref is not null and v_o.provider_ref <> v_link then
     v_reason := 'LINK_MISMATCH';
   elsif v_o.status <> 'PENDING' then
