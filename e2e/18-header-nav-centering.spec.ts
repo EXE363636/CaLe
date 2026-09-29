@@ -11,7 +11,7 @@ import { ACCOUNTS } from './fixtures/constants';
  * is never collapsed to a hamburger just because labels are long.
  *
  * The employer nav fits one row at 1280px via shortened desktop labels
- * (Đăng ca / Lịch tuyển / Ca công khai / Hồ sơ — full labels live in
+ * (Đăng ca / Lịch tuyển dụng / Ca công khai / Hồ sơ — full labels live in
  * `title` tooltips + the mobile drawer + the UserMenu, routes
  * unchanged), a widened `max-w-[1600px]` header, and compact link
  * gap/padding at `xl`.
@@ -170,7 +170,8 @@ test.describe('HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no over
       // the 7-item employer nav is designed to fit one row at >= 1280px
       // without a hamburger.
       expect(m.visibleNavLinks, `nav links @${width}`).toBe(7);
-      for (const label of ['Đăng ca', 'Lịch tuyển', 'Ca công khai', 'Hồ sơ']) {
+      // P0 feedback F6 — chủ dự án chốt nhãn "Lịch tuyển dụng" (không rút gọn).
+      for (const label of ['Đăng ca', 'Lịch tuyển dụng', 'Ca công khai', 'Hồ sơ']) {
         expect(
           m.navLinkTexts,
           `employer short label "${label}" @${width}`,

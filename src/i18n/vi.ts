@@ -54,7 +54,7 @@ export const vi: Record<string, string> = {
   // UserMenu keep the full labels, and each shortened link carries a
   // `title` tooltip with the full label (see the `*.full` keys).
   'nav.short.postShift': 'Đăng ca',
-  'nav.short.employerSchedule': 'Lịch tuyển',
+  'nav.short.employerSchedule': 'Lịch tuyển dụng',
   'nav.short.publicShifts': 'Ca công khai',
   'nav.short.employerProfile': 'Hồ sơ',
   'nav.full.publicShifts': 'Danh sách ca công khai',

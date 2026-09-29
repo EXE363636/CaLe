@@ -329,8 +329,8 @@ export function NavBar() {
   // (it collapsed the employer nav at 1366/1440/1920), so it is removed.
   //
   // How the nav now fits one row at 1280px without overlap:
-  //   1. Shortened employer desktop labels (Đăng ca / Lịch tuyển /
-  //      Ca công khai / Hồ sơ) — full labels live in `title` tooltips,
+  //   1. Shortened employer desktop labels (Đăng ca / Lịch tuyển dụng /
+  //      Ca công khai / Hồ sơ; "Lịch tuyển dụng" giữ đủ chữ theo P0 F6) — full labels live in `title` tooltips,
   //      the mobile drawer, and the UserMenu (routes unchanged).
   //   2. Wider header container (`max-w-[1600px]`) so the desktop nav
   //      has more horizontal room than the page's `max-w-7xl` content.
