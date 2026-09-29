@@ -8,12 +8,19 @@
 Ai pull về (người hay AI agent) phải xong **cả 2 việc** dưới đây, ghi kết quả vào
 file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG và hỏi chủ dự án.
 
-- [ ] **A. Migration 0023/0024.** Hỏi người viết (partner; `a44dc82` và `f7a20a7` là 2 commit
+- [x] **A. Migration 0023/0024.** Hỏi người viết (partner; `a44dc82` và `f7a20a7` là 2 commit
       TẠO RA migration, không phải bản mới nhất) đã định chạy `npx supabase db push` chưa.
   - Người viết tự chạy. Người khác **KHÔNG chạy hộ**.
   - Kiểm tra bằng `npx supabase migration list`: 0023 và 0024 phải có cả cột local lẫn
     remote.
-  - Ghi kết quả: `____` (vd "đã apply 29/09 bởi …" / "chưa, lý do …").
+  - Ghi kết quả: **đã apply 29/09/2026 bởi hungkobe273** (`npx supabase db push`;
+    `migration list` giờ có cả local lẫn remote cho 0023/0024).
+    - Phát hiện trước khi push: bảng `schedule_blocks`, `shift_reviews` và 3 RPC
+      **đã có sẵn trên remote** (từng chạy tay, không ghi vào `schema_migrations`);
+      `shift_reviews` có 2 dòng thật.
+    - Đã so hàm/constraint/cột/policy/index/quyền trên remote với file local (chạy
+      lại trong transaction + rollback): **khớp 100%**. Sau push so lại: schema không
+      đổi, dữ liệu giữ nguyên (2 dòng đánh giá). Push thực chất chỉ ghi lịch sử.
 - [ ] **B. Trả lời đủ 7 câu ở mục 5.** Điền vào dòng **Trả lời:** dưới từng câu.
   - Phải có **đủ 7 câu trả lời** mới bắt đầu, kể cả P0.
   - Câu nào bị trả lời "chưa biết" thì ghi rõ, và KHÔNG làm phần phụ thuộc câu đó:
@@ -31,11 +38,10 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
   (`docs/`, `CLAUDE.md`), không đổi code.
 - **Code mới nhất** vẫn là `adbef85` của partner (lịch lưu server 0023, đánh giá hai
   chiều 0024, rà soát UI, hồ sơ worker, `PAYOS_MOCK`). Plan được viết dựa trên code này.
-- ⚠️ **Migration `0023_schedule_blocks` và `0024_shift_reviews` CHƯA apply** lên
-  Supabase (`npx supabase migration list`: cột remote trống). Code tự chịu được thiếu
-  bảng: lịch giữ trên thiết bị, form đánh giá ẩn. Người viết 0023/0024 chạy
-  `npx supabase db push` sau khi review, rồi ghi lại vào handoff.
-- 0001–0022 đã apply. Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
+- ✅ **Migration `0023_schedule_blocks` và `0024_shift_reviews` đã apply** (29/09,
+  xem mục ⛔-A). Lúc lập plan `migration list` báo cột remote trống, nhưng thực tế
+  bảng đã được chạy tay từ trước; nay đã ghi đúng vào lịch sử migration.
+- 0001–0024 đã apply. Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
