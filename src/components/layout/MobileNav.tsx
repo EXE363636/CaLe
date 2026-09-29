@@ -92,10 +92,8 @@ interface DrawerSection {
 const PUBLIC_SECTIONS: DrawerSection[] = [
   {
     heading: 'Chính',
-    links: [
-      { href: '/', label: 'Trang chủ' },
-      { href: '/shifts', label: 'Tìm ca làm' },
-    ],
+    // Khách: "Tìm ca làm" chỉ nằm trong mục "Người lao động" bên dưới.
+    links: [{ href: '/', label: 'Trang chủ' }],
   },
   {
     heading: 'Người lao động',
