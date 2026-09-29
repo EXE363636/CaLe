@@ -574,10 +574,10 @@ export function NavBar() {
               <NavButton href="/register" pathname={pathname}>
                 {t('nav.register')}
               </NavButton>
-              {/* Phase 9T — the middle nav already carries "Tìm ca làm"
-                  for workers, so this primary CTA is dedicated to the
-                  employer side. Two clear paths, no duplicate "find a
-                  shift" CTA fighting itself for attention. */}
+              {/* Phase 9T — "Tìm ca làm" nằm trong dropdown "Người lao
+                  động", so this primary CTA is dedicated to the employer
+                  side. Two clear paths, no duplicate "find a shift" CTA
+                  fighting itself for attention. */}
               <Link
                 href="/register?role=employer"
                 className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
@@ -631,9 +631,9 @@ function PublicNav({
       <NavLink href="/" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
-      <NavLink href="/shifts" pathname={pathname}>
-        {t('nav.shifts')}
-      </NavLink>
+      {/* Khách không có mục "Tìm ca làm" riêng: trang chủ dành cho cả hai
+          vai trò, lối tìm ca nằm trong dropdown "Người lao động" (và menu
+          của tài khoản worker). */}
       <Dropdown
         id="worker"
         group={WORKER_GROUP_PUBLIC}
