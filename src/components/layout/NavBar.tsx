@@ -194,11 +194,11 @@ const SAFETY_GROUP: MenuGroup = {
 
 const WORKER_GROUP_PUBLIC: MenuGroup = {
   label: 'Người lao động',
-  activePrefixes: ['/worker', '/viec-lam'],
+  activePrefixes: ['/worker', '/for-workers'],
   items: [
     {
       // P1 feedback F4 — trang giới thiệu riêng cho người lao động.
-      href: '/viec-lam',
+      href: '/for-workers',
       label: 'Dành cho người lao động',
       description: 'Lợi ích và các ca mới đăng',
     },
@@ -230,11 +230,11 @@ const WORKER_GROUP_PUBLIC: MenuGroup = {
 
 const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
   label: 'Nhà tuyển dụng',
-  activePrefixes: ['/employer', '/tuyen-dung'],
+  activePrefixes: ['/employer', '/for-employers'],
   items: [
     {
       // P1 feedback F4 — trang giới thiệu riêng cho nhà tuyển dụng.
-      href: '/tuyen-dung',
+      href: '/for-employers',
       label: 'Dành cho nhà tuyển dụng',
       description: 'Lợi ích, phí dịch vụ và cách đăng ca',
     },
@@ -690,7 +690,7 @@ function WorkerNav({
   );
   return (
     <>
-      <NavLink href="/viec-lam" pathname={pathname} exact>
+      <NavLink href="/for-workers" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
       <NavLink href="/shifts" pathname={pathname}>
@@ -738,7 +738,7 @@ function EmployerNav({
   }, [shifts, applications, employerId]);
   return (
     <>
-      <NavLink href="/tuyen-dung" pathname={pathname} exact>
+      <NavLink href="/for-employers" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
       <NavLink

@@ -784,7 +784,7 @@ export const vi: Record<string, string> = {
 
   // Hero - one unified message across every breakpoint ("rõ ca – rõ tiền").
   // P1 feedback F4 — trang chủ tách theo vai trò: `/` chọn vai trò,
-  // `/viec-lam` (người lao động), `/tuyen-dung` (nhà tuyển dụng).
+  // `/for-workers` (người lao động), `/for-employers` (nhà tuyển dụng).
   'home.role.worker': 'Tôi cần việc',
   'home.role.employer': 'Tôi cần tuyển',
   'home.role.switchAria': 'Chọn trang theo vai trò',
@@ -806,7 +806,9 @@ export const vi: Record<string, string> = {
   'home.urgent.lead': 'Bắt đầu trong {hours} giờ tới, còn thiếu người.',
   'workerHome.hero.title': 'Tìm ca làm ngắn hạn gần bạn',
   'workerHome.hero.lead': 'Chọn ca hợp lịch học, làm vài giờ là xong.',
-  'workerHome.hero.cta': 'Tìm ca gần bạn',
+  'workerHome.hero.cta': 'Đăng ký để nhận ca',
+  'workerHome.hero.browse': 'Xem ca đang tuyển',
+  'workerHome.hero.haveAccount': 'Đã có tài khoản?',
   'workerHome.benefits.title': 'Vì sao nên làm qua CaLẻ',
   'workerHome.benefit.fast.alt': 'Nhân viên quầy đồ ăn đang mỉm cười phục vụ khách',
   'workerHome.benefit.fast.title': 'Nhận việc nhanh',

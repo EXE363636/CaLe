@@ -125,7 +125,7 @@ thêm phần túi thưởng (đã diff, và md5 thân cũ trên remote khớp fi
   - Việc sau (Thấp): hiện "Đang kiểm tra giao dịch" cho người nạp khi đơn
     `needs_review` (`get_payment_order_status` chưa trả trường này); RPC + UI
     admin cho đơn cần xem.
-- [ ] (tuỳ chọn) Dải "Đang miễn phí dịch vụ đến hết …" ở Bảng giá / `/tuyen-dung`.
+- [ ] (tuỳ chọn) Dải "Đang miễn phí dịch vụ đến hết …" ở Bảng giá / `/for-employers`.
 - [ ] **P2-1 cọc worker** — ĐÃ CHỐT (30/09), làm được SAU khi xong task webhook
       PayOS ở trên. Chi tiết: `HANDOFF_SESSION_2026-09-28_FEEDBACK.md` mục 3 (P2-1)
       và mục 5 câu 4. Tóm tắt:

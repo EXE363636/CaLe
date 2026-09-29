@@ -11,7 +11,7 @@ import { ShiftCard } from '@/components/shift/ShiftCard';
 import { t } from '@/i18n/vi';
 
 /**
- * P1 feedback F4 — "6 ca mới nhất" trên trang người lao động (`/viec-lam`).
+ * P1 feedback F4 — "6 ca mới nhất" trên trang người lao động (`/for-workers`).
  *
  * Chỉ đọc store (AppHydrator đã nạp), lọc bằng helper chuẩn
  * `isShiftAvailableForRecruiting` (cùng luật với `/shifts`), rồi lấy ca đăng

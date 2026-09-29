@@ -125,7 +125,7 @@ export default function EmployerHomePage() {
             <p className="text-lg font-semibold">{t('employerHome.final.text')}</p>
             <p className="mt-1 text-sm text-white/70">
               {t('employerHome.switch.text')}{' '}
-              <Link href="/viec-lam" className="font-semibold text-white underline-offset-2 hover:underline">
+              <Link href="/for-workers" className="font-semibold text-white underline-offset-2 hover:underline">
                 {t('employerHome.switch.cta')}
               </Link>
             </p>
