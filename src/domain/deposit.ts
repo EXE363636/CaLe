@@ -74,9 +74,60 @@ export function calculateDeposit(
  */
 export const PLATFORM_FEE_RATE = 0.1;
 
-/** Phí dịch vụ mô phỏng trên một khoản tiền công gốc (làm tròn như server). */
-export function platformFee(base: number): number {
-  return Math.round(base * PLATFORM_FEE_RATE);
+/** Phí dịch vụ trên một khoản tiền công gốc (làm tròn như server). */
+export function platformFee(base: number, rate: number = PLATFORM_FEE_RATE): number {
+  return Math.round(base * rate);
+}
+
+/** Ngày `YYYY-MM-DD` theo giờ Việt Nam (UTC+7, không có giờ mùa hè). */
+export function vietnamDate(nowIso: string): string {
+  return new Date(Date.parse(nowIso) + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/**
+ * P2-3 (F12) — đợt miễn phí dịch vụ: miễn phí đến HẾT ngày `feeFreeUntil`
+ * (giờ Việt Nam). KHỚP server `_platform_fee_rate()` (migration 0025).
+ */
+export function isFeeFreeActive(feeFreeUntil: string | null, nowIso: string): boolean {
+  return feeFreeUntil != null && vietnamDate(nowIso) <= feeFreeUntil;
+}
+
+/** Tỉ lệ phí đang áp dụng: 0 trong đợt miễn phí, còn lại `PLATFORM_FEE_RATE`. */
+export function effectiveFeeRate(feeFreeUntil: string | null, nowIso: string): number {
+  return isFeeFreeActive(feeFreeUntil, nowIso) ? 0 : PLATFORM_FEE_RATE;
+}
+
+/**
+ * Ca đăng trong đợt chỉ được miễn phí nếu ngày làm ca không quá chừng này
+ * ngày sau ngày kết thúc đợt (chủ dự án chốt 29/09 — chặn đăng trước hàng
+ * loạt ca ở xa để né phí). KHỚP server `_shift_fee_rate` (migration 0025).
+ */
+export const FEE_FREE_SHIFT_GRACE_DAYS = 30;
+
+/** Ngày làm ca muộn nhất còn được miễn phí: `feeFreeUntil` + 30 ngày. */
+export function feeFreeShiftDeadline(feeFreeUntil: string): string {
+  const d = new Date(`${feeFreeUntil}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + FEE_FREE_SHIFT_GRACE_DAYS);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Ca `shiftDate` đăng lúc `nowIso` có được miễn phí dịch vụ không. */
+export function isFeeFreeForShift(
+  feeFreeUntil: string | null,
+  shiftDate: string,
+  nowIso: string,
+): boolean {
+  if (!feeFreeUntil || !/^\d{4}-\d{2}-\d{2}$/.test(shiftDate)) return false;
+  return isFeeFreeActive(feeFreeUntil, nowIso) && shiftDate <= feeFreeShiftDeadline(feeFreeUntil);
+}
+
+/** Tỉ lệ phí cho một ca cụ thể (0 nếu `isFeeFreeForShift`). */
+export function shiftFeeRate(
+  feeFreeUntil: string | null,
+  shiftDate: string,
+  nowIso: string,
+): number {
+  return isFeeFreeForShift(feeFreeUntil, shiftDate, nowIso) ? 0 : PLATFORM_FEE_RATE;
 }
 
 /**
@@ -90,7 +141,20 @@ export function calculateDepositWithFee(
   wage: number,
   hours: number,
   positions: number,
+  rate: number = PLATFORM_FEE_RATE,
 ): number {
-  const base = calculateDeposit(wage, hours, positions);
-  return base + platformFee(base);
+  const base = serverWageTotal(wage, hours, positions);
+  return base + platformFee(base, rate);
+}
+
+/**
+ * Tiền công gốc làm tròn ĐÚNG như server (`compute_shift_amount`:
+ * `round(lương × giờ × vị trí)`). Tính qua số phút nguyên để tránh sai số
+ * float ở mốc ,5 đồng; phí phải tính trên số đã làm tròn này.
+ *
+ * @example serverWageTotal(25000, 140 / 60, 1); // 58333 (không phải 58333,33)
+ */
+export function serverWageTotal(wage: number, hours: number, positions: number): number {
+  const minutes = Math.round(hours * 60);
+  return Math.round((wage * minutes * positions) / 60);
 }

@@ -1251,6 +1251,10 @@ export const vi: Record<string, string> = {
   // P0 feedback F5 — khối tóm tắt tiền duy nhất dưới form đăng ca (production).
   'shiftForm.depositSummary.wage': 'Tiền công',
   'shiftForm.depositSummary.fee': 'Phí dịch vụ 10%',
+  'shiftForm.depositSummary.feeFree': 'Phí dịch vụ',
+  'shiftForm.depositSummary.feeFreeValue': 'Miễn phí (đợt đến hết {date})',
+  'shiftForm.depositSummary.feeFreeTooFar':
+    'Đợt miễn phí dịch vụ chỉ áp dụng cho ca làm đến hết {date}. Ca này vẫn tính phí 10%.',
   'shiftForm.depositSummary.total': 'Tổng giữ từ ví',
   'shiftForm.depositSummary.note':
     'Ca được đăng ngay sau khi giữ đủ số tiền này. Phần không dùng (vị trí trống, vắng mặt, ca huỷ) được hoàn về ví.',
@@ -2409,6 +2413,16 @@ export const vi: Record<string, string> = {
     '24 giờ qua: đã gửi {sent} / {cap} mã, lỗi {failed}.',
   'admin.identity.settings.lastFail': 'Lỗi gần nhất:',
   'admin.identity.settings.saved': 'Đã lưu cài đặt xác thực',
+  // P2-3 (F12) — đợt miễn phí dịch vụ.
+  'admin.feeFree.title': 'Miễn phí dịch vụ theo đợt',
+  'admin.feeFree.status.active': 'Đang miễn phí dịch vụ đến hết ngày {date}.',
+  'admin.feeFree.status.off': 'Chưa bật. Phí dịch vụ đang là 10%.',
+  'admin.feeFree.dateLabel': 'Miễn phí đến hết ngày',
+  'admin.feeFree.hint':
+    'Miễn phí cho ca đăng đến hết ngày này, nếu ngày làm ca không quá 30 ngày sau đó. Ca đã đăng trước không đổi.',
+  'admin.feeFree.clear': 'Tắt miễn phí',
+  'admin.feeFree.saved': 'Đã bật đợt miễn phí dịch vụ',
+  'admin.feeFree.cleared': 'Đã tắt đợt miễn phí dịch vụ',
   'admin.identity.filter.Pending': 'Chờ duyệt',
   'admin.identity.filter.Approved': 'Đã duyệt',
   'admin.identity.filter.Rejected': 'Từ chối',
@@ -2752,6 +2766,9 @@ export const vi: Record<string, string> = {
   // dispute banners.
   // -----------------------------------------------------------------
   'wallet.withdraw.belowMin': 'Số dư dưới {min} — chưa rút được (mức rút tối thiểu).',
+  // Ví trống: nút "Rút tiền" vẫn hiện (làm mờ) để người dùng biết có tính năng rút.
+  'wallet.withdraw.emptyMin': 'Rút được khi ví có từ {min}.',
+  'wallet.withdraw.empty': 'Ví chưa có tiền để rút.',
   'wallet.withdraw.minHint': 'rút tối thiểu {min}',
   'wallet.withdraw.all': 'Rút hết',
   'wallet.topUp.real.title': 'Nạp tiền vào ví',

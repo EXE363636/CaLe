@@ -11,7 +11,8 @@ import { useVerificationStore } from '@/stores';
 import { ShiftForm, type ShiftFormValues } from '@/components/forms/ShiftForm';
 import { DepositWalletConfirm } from '@/components/payment/DepositWalletConfirm';
 import { toPublishPayload } from '@/data/repos/shiftRepo';
-import { calculateDepositWithFee } from '@/domain/deposit';
+import { calculateDepositWithFee, shiftFeeRate } from '@/domain/deposit';
+import { useFeeSettings } from '@/lib/useFeeSettings';
 import { Badge, Button, Card, Modal, PageHelpButton, ButtonLink } from '@/components/ui';
 import {
   DEPOSIT_RATIO,
@@ -124,6 +125,8 @@ function NewShiftContent() {
   const [depositPayload, setDepositPayload] = useState<Record<string, unknown> | null>(null);
   const [depositReqId, setDepositReqId] = useState('');
   const [depositPreview, setDepositPreview] = useState(0);
+  // P2-3 (F12) — đợt miễn phí dịch vụ (phí 0 khi còn hiệu lực).
+  const { feeFreeUntil } = useFeeSettings();
   // CORE-STABILITY-8 Part 1 — the draft currently being edited (if the
   // employer arrived via ?draft= or saved one this session). When set,
   // "Lưu nháp" updates it instead of creating a new draft.
@@ -317,9 +320,15 @@ function NewShiftContent() {
       );
       setDepositPayload(toPublishPayload(input));
       setDepositReqId(`deposit-${currentUserId}-${Date.now()}`);
-      // Số dư cần giữ = tiền công gốc + 10% phí (khớp server create_deposit_session).
+      // Số dư cần giữ = tiền công gốc + phí (10%, hoặc 0 trong đợt miễn phí —
+      // khớp server create_deposit_session / _platform_fee_rate).
       setDepositPreview(
-        calculateDepositWithFee(values.hourlyWage, hours, values.positionsTotal),
+        calculateDepositWithFee(
+          values.hourlyWage,
+          hours,
+          values.positionsTotal,
+          shiftFeeRate(feeFreeUntil, values.date, new Date().toISOString()),
+        ),
       );
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;

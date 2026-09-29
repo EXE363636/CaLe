@@ -30,6 +30,7 @@ import { ReputationBadge } from '@/components/user/ReputationBadge';
 import { AdminUserProfileModal } from '@/components/user/AdminUserProfileModal';
 import { VerificationsPanel } from './VerificationsPanel';
 import { IdentityReviewPanel } from './IdentityReviewPanel';
+import { FeeCampaignCard } from './FeeCampaignCard';
 import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -403,6 +404,8 @@ function AnalyticsPanel({
           allowTopUp={false}
         />
       )}
+      {/* P2-3 (F12) — đợt miễn phí dịch vụ (chỉ production có phí). */}
+      {isSupabaseEnv() && <FeeCampaignCard />}
       {/* 8 ô (supabase) → 4 cột; 10 ô (local) → 5 cột ở màn rộng — không để hàng lẻ. */}
       <div
         className={[

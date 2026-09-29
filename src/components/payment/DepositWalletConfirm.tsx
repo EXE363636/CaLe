@@ -32,7 +32,10 @@ function mapDepositErr(e: unknown): string {
     INSUFFICIENT_BALANCE:
       'Số dư ví không đủ để giữ cọc. Vui lòng nạp thêm vào ví rồi thử lại.',
     SHIFT_IN_PAST: 'Ca đã qua giờ bắt đầu, không thể đăng. Vui lòng chỉnh lại thời gian.',
-    SESSION_EXPIRED: 'Phiên đã hết hạn. Vui lòng thử lại.',
+    // Phiên cũ (theo clientRequestId) không dùng lại được — phải gửi lại form
+    // để trang cha tạo mã yêu cầu mới; bấm "Xác nhận" lần nữa sẽ lỗi y hệt.
+    SESSION_EXPIRED:
+      'Phiên giữ cọc đã hết hạn (30 phút). Bấm "Quay lại chỉnh sửa" rồi gửi lại form để tạo phiên mới.',
     NOT_OWNER: 'Bạn không có quyền với phiên này.',
     CHANNEL_NOT_AVAILABLE: 'Chưa có kênh thanh toán khả dụng. Vui lòng liên hệ hỗ trợ.',
     PAYOS_REJECTED: 'Không tạo được mã thanh toán PayOS. Vui lòng thử lại sau.',
@@ -82,8 +85,13 @@ export function DepositWalletConfirm({
     if (currentUserId) void refetchWallet(currentUserId);
   }, [currentUserId, refetchWallet]);
 
-  const enough = balance >= previewAmount;
-  const shortfall = Math.max(0, previewAmount - balance);
+  // Số tiền server đã chốt khi tạo phiên cọc. Khác preview (vd đợt miễn phí
+  // dịch vụ vừa kết thúc / admin vừa tắt) → dừng, hiện số mới, bắt bấm lại.
+  const [serverAmount, setServerAmount] = useState<number | null>(null);
+  const amount = serverAmount ?? previewAmount;
+
+  const enough = balance >= amount;
+  const shortfall = Math.max(0, amount - balance);
   const topUpAmount = Math.max(shortfall, PAYOS_MIN_AMOUNT);
 
   /** Ví ĐỦ: tạo phiên cọc + giữ cọc trực tiếp từ ví. */
@@ -100,6 +108,15 @@ export function DepositWalletConfirm({
         channelId: channel.id,
         clientRequestId,
       });
+      // Không giữ tiền thật vượt số người dùng đã thấy trên nút. Lần bấm lại
+      // trả về CÙNG phiên (idempotent theo clientRequestId) nên sẽ khớp.
+      if (session.amount !== amount) {
+        setServerAmount(session.amount);
+        setError(
+          `Phí dịch vụ vừa thay đổi — số tiền cần giữ là ${formatVND(session.amount)}. Bấm xác nhận lại để đăng ca.`,
+        );
+        return;
+      }
       const r = await provider.confirmDeposit(session.paymentId);
       if (currentUserId) await refetchWallet(currentUserId);
       if (!r.shiftId) throw new Error('SESSION_NOT_FOUND');
@@ -153,13 +170,13 @@ export function DepositWalletConfirm({
         </div>
         <div className="flex items-center justify-between">
           <dt className="text-gray-600">Khoản cần giữ cọc</dt>
-          <dd className="font-semibold tabular-nums text-orange-700">{formatVND(previewAmount)}</dd>
+          <dd className="font-semibold tabular-nums text-orange-700">{formatVND(amount)}</dd>
         </div>
         {enough && (
           <div className="flex items-center justify-between border-t border-gray-100 pt-1.5">
             <dt className="text-gray-600">Số dư sau khi giữ cọc</dt>
             <dd className="font-semibold tabular-nums text-gray-900">
-              {formatVND(balance - previewAmount)}
+              {formatVND(balance - amount)}
             </dd>
           </div>
         )}
@@ -196,7 +213,7 @@ export function DepositWalletConfirm({
             disabled={loading}
             onClick={handleConfirmWallet}
           >
-            Xác nhận đăng ca — giữ cọc {formatVND(previewAmount)}
+            Xác nhận đăng ca — giữ cọc {formatVND(amount)}
           </Button>
         ) : (
           <Button
