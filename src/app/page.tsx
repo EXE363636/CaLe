@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { UrgentShifts } from '@/components/landing/UrgentShifts';
-import { t } from '@/i18n/vi';
+import { getT } from '@/i18n/server';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
@@ -13,7 +13,8 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  * không thêm khối chữ). Dưới 2 thẻ: "Ca gấp cần người" — dữ liệu thật, tự ẩn
  * khi không có ca gấp. Lợi ích về tiền nói đúng theo chế độ (CLAUDE.md §5).
  */
-export default function RoleChooserPage() {
+export default async function RoleChooserPage() {
+  const t = await getT();
   const supabase = isSupabaseEnv();
   return (
     <div className="hero-decor relative flex min-w-0 flex-col px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">

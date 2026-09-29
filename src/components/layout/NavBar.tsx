@@ -51,7 +51,9 @@ import { hasCapability } from '@/data/capabilities';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
 import { UserMenu } from './UserMenu';
-import { t } from '@/i18n/vi';
+import { LanguageToggle } from './LanguageToggle';
+import { t as tVi } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 
 // ---------------------------------------------------------------------------
 // Public nav structure
@@ -151,7 +153,7 @@ const SAFETY_GROUP: MenuGroup = {
     },
     {
       href: '/safety',
-      label: t('nav.label.safety'),
+      label: tVi('nav.label.safety'),
       description: 'Cơ chế bảo vệ người dùng của CaLẻ',
     },
     {
@@ -166,12 +168,12 @@ const SAFETY_GROUP: MenuGroup = {
     },
     {
       href: '/user-guide',
-      label: t('nav.label.userGuide'),
+      label: tVi('nav.label.userGuide'),
       description: 'Hướng dẫn từng bước cho cả hai phía',
     },
     {
       href: '/handbook',
-      label: t('nav.label.handbook'),
+      label: tVi('nav.label.handbook'),
       description: 'Bí quyết để làm việc suôn sẻ',
     },
   ],
@@ -283,6 +285,19 @@ function hidePaymentsInSupabase(group: MenuGroup): MenuGroup {
 // Active-state helper
 // ---------------------------------------------------------------------------
 
+/** Dịch nhãn menu (hằng tiếng Việt) theo ngôn ngữ đang chọn — xem `translateText`. */
+function localizeGroup(group: MenuGroup, tx: (vi: string) => string): MenuGroup {
+  return {
+    ...group,
+    label: tx(group.label),
+    items: group.items.map((it) => ({
+      ...it,
+      label: tx(it.label),
+      description: it.description ? tx(it.description) : undefined,
+    })),
+  };
+}
+
 function isPathActive(pathname: string, target: string): boolean {
   if (target === '/') return pathname === '/';
   return pathname === target || pathname.startsWith(`${target}/`);
@@ -298,6 +313,8 @@ function isAnyPrefixActive(pathname: string, prefixes: string[]): boolean {
 
 export function NavBar() {
   const pathname = usePathname() ?? '';
+  const t = useT();
+  const tx = useTx();
   const currentUser = useCurrentUser();
 
   const role = currentUser?.role ?? null;
@@ -582,10 +599,12 @@ export function NavBar() {
                 href="/register?role=employer"
                 className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
               >
-                Đăng ca tuyển
+                {tx('Đăng ca tuyển')}
               </Link>
             </div>
           )}
+
+          <LanguageToggle />
 
           {isLoggedIn && (
             <div className="hidden xl:flex">
@@ -626,6 +645,8 @@ function PublicNav({
   onToggle,
   onItemClick,
 }: PublicNavProps) {
+  const t = useT();
+  const tx = useTx();
   return (
     <>
       <NavLink href="/" pathname={pathname} exact>
@@ -636,7 +657,7 @@ function PublicNav({
           của tài khoản worker). */}
       <Dropdown
         id="worker"
-        group={WORKER_GROUP_PUBLIC}
+        group={localizeGroup(WORKER_GROUP_PUBLIC, tx)}
         pathname={pathname}
         isOpen={activeDropdown === 'worker'}
         registerContainer={registerContainer}
@@ -647,7 +668,7 @@ function PublicNav({
       />
       <Dropdown
         id="employer"
-        group={hidePaymentsInSupabase(EMPLOYER_GROUP_PUBLIC)}
+        group={localizeGroup(hidePaymentsInSupabase(EMPLOYER_GROUP_PUBLIC), tx)}
         pathname={pathname}
         isOpen={activeDropdown === 'employer'}
         registerContainer={registerContainer}
@@ -658,7 +679,7 @@ function PublicNav({
       />
       <Dropdown
         id="safety"
-        group={SAFETY_GROUP}
+        group={localizeGroup(SAFETY_GROUP, tx)}
         pathname={pathname}
         isOpen={activeDropdown === 'safety'}
         registerContainer={registerContainer}
@@ -678,6 +699,7 @@ function WorkerNav({
   pathname: string;
   workerId: string;
 }) {
+  const t = useT();
   // Phase 10A-Fix-5 — worker profile badge counts only LATEST per-doc
   // verification records in actionable status (Rejected / NeedsMoreInfo).
   // The dashboard nav no longer carries an unread-notification badge
@@ -728,6 +750,7 @@ function EmployerNav({
   pathname: string;
   employerId: string;
 }) {
+  const t = useT();
   const shifts = useShiftStore((s) => s.shifts);
   const applications = useApplicationStore((s) => s.applications);
   const dashboardCount = useMemo(() => {
@@ -792,6 +815,7 @@ function EmployerNav({
 // pill-style tabs, and adding them at the top forced the rest of the nav
 // to compete for room. We keep only `Tổng quan admin` and `Hỗ trợ` here and let the dashboard's tab system do its job.
 function AdminNav({ pathname }: { pathname: string }) {
+  const tx = useTx();
   // Phase 10A-Fix-4 — surface pending verification queue items as a
   // badge on the admin dashboard nav link so missed notifications
   // don't lead to forgotten reviews.
@@ -821,7 +845,7 @@ function AdminNav({ pathname }: { pathname: string }) {
             : undefined
         }
       >
-        Tổng quan admin
+        {tx('Tổng quan admin')}
       </NavLink>
     </>
   );

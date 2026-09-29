@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { getTx } from '@/i18n/server';
 
 /**
  * Trang bảng giá công khai.
@@ -14,55 +15,57 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  * sau 24 giờ — 0019). Local/demo: mọi số tiền là mô phỏng, chưa thu phí.
  * Không có nút mua thật; CTA chỉ dẫn tới đăng ký / đăng ca.
  */
-export default function PricingPage() {
+export default async function PricingPage() {
   const live = isSupabaseEnv();
+  // Chữ trên trang còn viết cứng tiếng Việt → dịch theo câu (src/i18n/en.ts, enText).
+  const tx = await getTx();
 
   return (
     <InfoPage
-      eyebrow="Chi phí"
-      title={live ? 'Bảng giá giai đoạn thử nghiệm (Beta)' : 'Giai đoạn thử nghiệm — 0đ'}
+      eyebrow={tx('Chi phí')}
+      title={live ? tx('Bảng giá giai đoạn thử nghiệm (Beta)') : tx('Giai đoạn thử nghiệm — 0đ')}
       intro={
         live
-          ? 'Người lao động không mất phí. Nhà tuyển dụng chỉ trả phí cho phần ca có người làm.'
-          : 'Giao dịch và số dư đều là mô phỏng. CaLẻ chưa thu, giữ hoặc chuyển tiền thật.'
+          ? tx('Người lao động không mất phí. Nhà tuyển dụng chỉ trả phí cho phần ca có người làm.')
+          : tx('Giao dịch và số dư đều là mô phỏng. CaLẻ chưa thu, giữ hoặc chuyển tiền thật.')
       }
       ctas={[
-        { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
-        { label: 'Đăng ký / Đăng nhập', href: '/register', variant: 'secondary' },
+        { label: tx('Đăng ca tuyển'), href: '/employer/shifts/new' },
+        { label: tx('Đăng ký / Đăng nhập'), href: '/register', variant: 'secondary' },
       ]}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <PriceCard
-          audience="Người lao động"
-          price="Miễn phí"
+          audience={tx('Người lao động')}
+          price={tx('Miễn phí')}
           points={[
-            'Tìm ca và ứng tuyển không mất phí.',
-            live ? 'Nhận đủ tiền công vào ví sau ca.' : 'Tiền công vào ví mô phỏng sau ca.',
-            live ? 'Rút tiền về tài khoản ngân hàng của bạn.' : 'Chưa rút được tiền thật.',
+            tx('Tìm ca và ứng tuyển không mất phí.'),
+            live ? tx('Nhận đủ tiền công vào ví sau ca.') : tx('Tiền công vào ví mô phỏng sau ca.'),
+            live ? tx('Rút tiền về tài khoản ngân hàng của bạn.') : tx('Chưa rút được tiền thật.'),
           ]}
         />
         <PriceCard
-          audience="Nhà tuyển dụng"
+          audience={tx('Nhà tuyển dụng')}
           price={live ? '10%' : '0đ'}
-          priceNote={live ? 'trên tiền công' : 'dự kiến 10% tiền công — chưa thu phí'}
+          priceNote={live ? tx('trên tiền công') : tx('dự kiến 10% tiền công — chưa thu phí')}
           highlight
           points={
             live
               ? [
-                  'Đăng ca, duyệt người ứng tuyển miễn phí.',
-                  'Tiền công + phí được giữ khi đăng ca.',
-                  'Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí phần đó.',
+                  tx('Đăng ca, duyệt người ứng tuyển miễn phí.'),
+                  tx('Tiền công + phí được giữ khi đăng ca.'),
+                  tx('Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí phần đó.'),
                 ]
               : [
-                  'Đăng ca, duyệt người ứng tuyển miễn phí.',
-                  'Tiền công được giữ (mô phỏng) khi đăng ca.',
-                  'Huỷ ca sau khi đã duyệt người có thể bị trừ 5–15% tiền giữ (mô phỏng).',
+                  tx('Đăng ca, duyệt người ứng tuyển miễn phí.'),
+                  tx('Tiền công được giữ (mô phỏng) khi đăng ca.'),
+                  tx('Huỷ ca sau khi đã duyệt người có thể bị trừ 5–15% tiền giữ (mô phỏng).'),
                 ]
           }
           example={
             live
-              ? 'Ví dụ: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí CaLẻ 20.000đ.'
-              : 'Ví dụ mô phỏng: tiền công 200.000đ → giữ 200.000đ (chưa cộng phí). Ca xong, người lao động nhận 200.000đ.'
+              ? tx('Ví dụ: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí CaLẻ 20.000đ.')
+              : tx('Ví dụ mô phỏng: tiền công 200.000đ → giữ 200.000đ (chưa cộng phí). Ca xong, người lao động nhận 200.000đ.')
           }
         />
       </div>
@@ -70,18 +73,16 @@ export default function PricingPage() {
       {/* FAQ mô tả luồng tiền THẬT ở production (0010 đăng sau khi giữ cọc,
           0019 tự chốt). Local/demo không có tự chốt → không hiện. */}
       {live && (
-        <InfoSection title="Câu hỏi thường gặp">
+        <InfoSection title={tx('Câu hỏi thường gặp')}>
           <dl className="flex flex-col gap-4">
-            <Faq q="Khi nào tiền được giữ?">
-              Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.
+            <Faq q={tx('Khi nào tiền được giữ?')}>
+              {tx('Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.')}
             </Faq>
-            <Faq q="Khi nào người lao động nhận tiền?">
-              Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự
-              chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không
-              check-in bị tính vắng mặt. Ca đang có tranh chấp chờ quản trị viên xử lý.
+            <Faq q={tx('Khi nào người lao động nhận tiền?')}>
+              {tx('Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt. Ca đang có tranh chấp chờ quản trị viên xử lý.')}
             </Faq>
-            <Faq q="Có gói trả phí nào khác không?">
-              Chưa. Hiện chỉ có mức phí ở trên.
+            <Faq q={tx('Có gói trả phí nào khác không?')}>
+              {tx('Chưa. Hiện chỉ có mức phí ở trên.')}
             </Faq>
           </dl>
         </InfoSection>

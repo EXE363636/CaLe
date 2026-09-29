@@ -10,7 +10,7 @@ import { Input, Button } from '@/components/ui';
 import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { isValidEmail, isRequired, isValidPassword, isValidVNPhone, sanitizePhoneInput } from '@/lib/validate';
 
 type Role = 'worker' | 'employer';
@@ -65,6 +65,8 @@ const ALL_DASHBOARDS: Record<string, string> = {
 };
 
 function RegisterForm() {
+  const t = useT();
+  const tx = useTx();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialRole = (searchParams.get('role') === 'employer' ? 'employer' : 'worker') as Role;
@@ -210,7 +212,7 @@ function RegisterForm() {
     // nhập kèm hướng dẫn xác nhận email (không có session để vào dashboard).
     if (result.value.needsConfirmation) {
       showSuccess(
-        'Đã tạo tài khoản. Vui lòng kiểm tra email để xác nhận, sau đó đăng nhập.',
+        tx('Đã tạo tài khoản. Vui lòng kiểm tra email để xác nhận, sau đó đăng nhập.'),
         undefined,
         { scope: 'auth' },
       );
@@ -357,7 +359,7 @@ function RegisterForm() {
                   value={values.businessType}
                   onChange={(e) => set('businessType', e.target.value)}
                   error={errors.businessType}
-                  placeholder="Nhà hàng, Cafe, Sự kiện..."
+                  placeholder={tx('Nhà hàng, Cafe, Sự kiện...')}
                   required
                 />
               </>
@@ -393,7 +395,7 @@ function RegisterForm() {
                 value={values.password}
                 onChange={(e) => set('password', e.target.value)}
                 error={errors.password}
-                hint="Ít nhất 8 ký tự"
+                hint={tx('Ít nhất 8 ký tự')}
                 autoComplete="new-password"
                 required
               />

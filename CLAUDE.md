@@ -148,6 +148,11 @@ npx tsc --noEmit     # type-check
 - **Không viết lại app từ đầu.** Code đã ổn định, có test.
 - **Không thêm tính năng mới** (chat, staff-supply/agency, AI matching) trước khi backend/core ổn định — đã quyết định hoãn.
 - Khi đổi shape dữ liệu persistence → **bump `SCHEMA_VERSION`** trong `persistence.ts` (hiện là 19) để tự reseed.
+- **Song ngữ VI / EN (từ 30/09, đợt 1 = trang công khai):** cookie `cale.lang`, xem
+  `src/i18n/locale.ts`. Màn đã dịch dùng `useT()`/`useTx()` (client) hoặc `await getT()`/
+  `await getTx()` (server) thay cho `t` của `vi.ts`. Thêm/sửa chữ trên các màn này → thêm
+  bản tiếng Anh vào `src/i18n/en.ts` (`en` theo khoá, `enText` theo câu Việt viết cứng);
+  test `i18nEnglish.test.ts` sẽ báo nếu thiếu. Màn chưa chuyển vẫn dùng `t` (luôn tiếng Việt).
 - **Palette:** `src/app/globals.css` là nguồn chuẩn DUY NHẤT. `DESIGN.md` cập nhật để KHỚP globals.css, không ngược lại.
 - Mục tiêu **WCAG 2.1 AA**, mobile-first, chạm tối thiểu 44×44px, tôn trọng `prefers-reduced-motion`.
 

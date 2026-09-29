@@ -42,6 +42,17 @@ vi.mock('@/data/payments', () => ({
   ],
 }));
 
+// PricingPage là server component async, đọc ngôn ngữ từ cookie (next/headers) —
+// ngoài request thì giả lập ngôn ngữ mặc định (tiếng Việt).
+vi.mock('@/i18n/server', async () => {
+  const { makeT, makeTx } = await import('@/i18n/locale');
+  return {
+    getLocale: async () => 'vi',
+    getT: async () => makeT('vi'),
+    getTx: async () => makeTx('vi'),
+  };
+});
+
 import { capabilities } from '@/data/capabilities';
 import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
 import PricingPage from '@/app/pricing/page';
@@ -62,8 +73,8 @@ describe('capability mock/live payments', () => {
 });
 
 describe('PricingPage — trung thực, không nút mua', () => {
-  it('hiển thị giai đoạn thử nghiệm / 0đ / sắp công bố, không CTA mua/thanh toán', () => {
-    const { container } = render(<PricingPage />);
+  it('hiển thị giai đoạn thử nghiệm / 0đ / sắp công bố, không CTA mua/thanh toán', async () => {
+    const { container } = render(await PricingPage());
     const text = nfc(container.textContent);
     expect(text).toContain('Giai đoạn thử nghiệm');
     expect(text).toContain('0đ');
@@ -73,8 +84,8 @@ describe('PricingPage — trung thực, không nút mua', () => {
   });
 
   // P0 feedback F8 — 2 thẻ, mỗi ý một lần, bỏ VIP/Boost "dự kiến".
-  it('2 thẻ Người lao động / Nhà tuyển dụng, không còn VIP/Boost, ví dụ chỉ 1 lần', () => {
-    const { container } = render(<PricingPage />);
+  it('2 thẻ Người lao động / Nhà tuyển dụng, không còn VIP/Boost, ví dụ chỉ 1 lần', async () => {
+    const { container } = render(await PricingPage());
     const text = nfc(container.textContent);
     const headings = Array.from(container.querySelectorAll('h2')).map((h) => nfc(h.textContent));
     expect(headings).toEqual(expect.arrayContaining(['Người lao động', 'Nhà tuyển dụng']));

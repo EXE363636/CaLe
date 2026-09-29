@@ -9,9 +9,10 @@ import { useState } from 'react';
 
 import { useAuthStore } from '@/stores/authStore';
 import { showError } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 export function GoogleSignInButton({ role }: { role?: 'worker' | 'employer' }) {
+  const t = useT();
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
   const [loading, setLoading] = useState(false);
 
@@ -46,6 +47,7 @@ export function GoogleSignInButton({ role }: { role?: 'worker' | 'employer' }) {
 
 /** Đường kẻ "hoặc" giữa nút Google và form email. */
 export function AuthDivider() {
+  const t = useT();
   return (
     <div className="my-5 flex items-center gap-3 text-xs text-gray-500" aria-hidden="true">
       <span className="h-px flex-1 bg-gray-200" />

@@ -76,6 +76,7 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
 import { showSuccess } from '@/lib/toast';
 import { useToastStore } from '@/stores/toastStore';
 import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import type { Admin, Employer, User, Worker } from '@/types';
 
@@ -314,6 +315,9 @@ function chipClasses(tone: 'good' | 'warn' | 'neutral'): string {
 // ---------------------------------------------------------------------------
 
 export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } = {}) {
+  // Ngôn ngữ đang chọn (các helper module như roleLabel vẫn dùng `t` tiếng Việt).
+  const t = useT();
+  const tx = useTx();
   const [open, setOpen] = useState(false);
 
   // Phase 9X — portal mount guard. `createPortal` needs a real DOM
@@ -502,7 +506,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
             className="mb-3 flex min-h-[44px] items-center gap-2 rounded-lg px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-700"
           >
             <SupportGlyph />
-            <span>Cần hỗ trợ? Liên hệ đội CaLẻ</span>
+            <span>{tx('Cần hỗ trợ? Liên hệ đội CaLẻ')}</span>
           </Link>
 
           {isLoggedIn ? (
@@ -609,10 +613,11 @@ function DrawerSectionView({
   pathname: string;
   onNavigate: () => void;
 }): ReactNode {
+  const tx = useTx();
   return (
     <section>
       <p className="mx-1 mb-1 mt-0 rounded-md bg-orange-50/60 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700">
-        {heading}
+        {tx(heading)}
       </p>
       <ul className="flex flex-col gap-0.5">
         {links.map((link) => (
@@ -622,7 +627,7 @@ function DrawerSectionView({
               onClick={onNavigate}
               className="flex min-h-[44px] items-center rounded-lg px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
             >
-              {link.label}
+              {tx(link.label)}
             </Link>
           </li>
         ))}

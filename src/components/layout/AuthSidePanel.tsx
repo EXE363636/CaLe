@@ -9,7 +9,7 @@
  */
 
 import Link from 'next/link';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 interface AuthSidePanelProps {
@@ -17,6 +17,7 @@ interface AuthSidePanelProps {
 }
 
 export function AuthSidePanel({ mode }: AuthSidePanelProps) {
+  const t = useT();
   // B4 — supabase/production: CaLẻ chưa thu/giữ tiền, nên benefit tài chính +
   // disclaimer phải trung thực thay vì hứa ký quỹ/trả (vốn chỉ có ở demo).
   const supabase = isSupabaseEnv();

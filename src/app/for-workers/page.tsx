@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
 import { LatestShifts } from '@/components/landing/LatestShifts';
-import { t } from '@/i18n/vi';
+import { getT } from '@/i18n/server';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
@@ -13,7 +13,8 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  *   4. Dải chuyển sang trang nhà tuyển dụng.
  * Khách chủ lực là sinh viên → câu ngắn, lời thường.
  */
-export default function WorkerHomePage() {
+export default async function WorkerHomePage() {
+  const t = await getT();
   const supabase = isSupabaseEnv();
   const benefits = [
     {

@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
-import { t } from '@/i18n/vi';
+import { getT } from '@/i18n/server';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
@@ -13,7 +13,8 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  *   4. Khối mực: CTA đăng ca + chuyển sang trang người lao động.
  * Không hiện "quán đang dùng" cho tới khi có khách thật đồng ý (không bịa).
  */
-export default function EmployerHomePage() {
+export default async function EmployerHomePage() {
+  const t = await getT();
   const supabase = isSupabaseEnv();
   const benefits = [
     {

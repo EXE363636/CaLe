@@ -178,3 +178,29 @@ test.describe('Role homepages', () => {
     );
   });
 });
+
+test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
+  test('chuyển sang English rồi về Tiếng Việt, nhớ lựa chọn khi tải lại', async ({
+    page,
+    seedState,
+    gotoApp,
+  }) => {
+    await page.setViewportSize(DESKTOP);
+    await seedState(buildSnapshot());
+    await gotoApp('/for-workers');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
+
+    await page.getByRole('button', { name: 'Switch to English' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find short shifts near you');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    const nav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(nav.getByRole('button', { name: 'Workers' })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find short shifts near you');
+
+    await page.getByRole('button', { name: 'Chuyển sang Tiếng Việt' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
+  });
+});

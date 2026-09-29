@@ -28,6 +28,7 @@
 
 import Link from 'next/link';
 import { t } from '@/i18n/vi';
+import { useTx } from '@/i18n/LocaleProvider';
 
 interface ColumnLink {
   label: string;
@@ -93,6 +94,7 @@ const COLUMNS: Column[] = [
 ];
 
 export function Footer() {
+  const tx = useTx();
   return (
     <footer className="mt-auto border-t border-orange-100 bg-white/80">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -106,8 +108,7 @@ export function Footer() {
               CaLedo Tech
             </p>
             <p className="mt-3 text-sm text-gray-600">
-              Kết nối ca làm ngắn hạn an toàn, minh bạch và linh hoạt cho
-              người lao động và nhà tuyển dụng tại Việt Nam.
+              {tx('Kết nối ca làm ngắn hạn an toàn, minh bạch và linh hoạt cho người lao động và nhà tuyển dụng tại Việt Nam.')}
             </p>
             <ul className="mt-4 flex flex-col gap-1.5 text-xs text-gray-600">
               <li>
@@ -124,8 +125,8 @@ export function Footer() {
                 <span className="font-medium text-gray-700">0868325698</span>
               </li>
               <li>
-                <span className="text-gray-400">Địa chỉ: </span>
-                <span>Hà Nội, Việt Nam</span>
+                <span className="text-gray-400">{tx('Địa chỉ: ')}</span>
+                <span>{tx('Hà Nội, Việt Nam')}</span>
               </li>
             </ul>
           </div>
@@ -148,13 +149,11 @@ export function Footer() {
             Dùng process.env trực tiếp (không getDataMode()) để build không throw. */}
         {process.env.NEXT_PUBLIC_DATA_MODE === 'supabase' ? (
           <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-xs leading-relaxed text-gray-600 ring-1 ring-gray-100">
-            Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống.
-            Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.
+            {tx('Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.')}
           </p>
         ) : (
           <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs leading-relaxed text-amber-800 ring-1 ring-amber-100">
-            Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu.
-            Trong MVP/demo không có giao dịch thật.
+            {tx('Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu. Trong MVP/demo không có giao dịch thật.')}
           </p>
         )}
       </div>
@@ -165,10 +164,11 @@ export function Footer() {
 // ---------------------------------------------------------------------------
 
 function FooterColumn({ column }: { column: Column }) {
+  const tx = useTx();
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
-        {column.heading}
+        {tx(column.heading)}
       </p>
       <ul className="mt-3 flex flex-col gap-2 text-sm text-gray-600">
         {column.links.map((link) => (
@@ -177,7 +177,7 @@ function FooterColumn({ column }: { column: Column }) {
               href={link.href}
               className="hover:text-orange-700 hover:underline"
             >
-              {link.label}
+              {tx(link.label)}
             </Link>
           </li>
         ))}
