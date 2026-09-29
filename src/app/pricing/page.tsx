@@ -1,90 +1,128 @@
-import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
+import type { ReactNode } from 'react';
+import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
- * Trang bảng giá công khai. KHÔNG có gói cũ trong code/Git history nên KHÔNG bịa
- * con số: hiển thị trung thực giai đoạn thử nghiệm (0đ, miễn phí), liệt kê các
- * tính năng ĐÃ hoạt động thật, và khu vực "Gói chính thức — sắp công bố".
+ * Trang bảng giá công khai.
+ *
+ * P0 feedback F8 — không lặp thông tin: mỗi ý chỉ nói MỘT lần, gom thành 2 thẻ
+ * (Người lao động / Nhà tuyển dụng) + 1 ví dụ + FAQ ngắn. Bỏ mục VIP/Boost
+ * "dự kiến" cho tới khi chủ dự án chốt giá.
+ *
+ * Supabase/production: phí nền tảng 10% ĐANG được thu thật (giữ cùng cọc, chỉ
+ * tính trên phần ca có người làm — khớp _finalize_shift_deposit, 0018; tự chốt
+ * sau 24 giờ — 0019). Local/demo: mọi số tiền là mô phỏng, chưa thu phí.
  * Không có nút mua thật; CTA chỉ dẫn tới đăng ký / đăng ca.
  */
 export default function PricingPage() {
-  // Supabase/production: phí nền tảng 10% ĐANG được thu thật (giữ cùng cọc,
-  // chỉ tính trên phần ca có người làm — khớp _finalize_shift_deposit, 0018).
-  if (isSupabaseEnv()) {
-    return (
-      <InfoPage
-        eyebrow="Bảng giá"
-        title="Bảng giá giai đoạn thử nghiệm (Beta)"
-        intro="Người lao động dùng miễn phí. Nhà tuyển dụng trả phí nền tảng 10% trên tiền công của phần ca có người làm."
-        ctas={[
-          { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
-          { label: 'Đăng ký / Đăng nhập', href: '/register', variant: 'secondary' },
-        ]}
-      >
-        <InfoSection title="Phí hiện áp dụng">
-          <InfoList
-            items={[
-              'Người lao động: miễn phí, nhận đủ tiền công vào ví và rút về ngân hàng.',
-              'Nhà tuyển dụng: đăng ca, nhận và duyệt ứng viên miễn phí.',
-              'Phí nền tảng: 10% tiền công, được giữ cùng tiền cọc khi đăng ca.',
-              'Chỉ tính phí phần ca có người làm: vị trí trống, người lao động vắng mặt hoặc ca bị huỷ được hoàn cả tiền công lẫn phí tương ứng.',
-            ]}
-          />
-          <p className="mt-3">
-            Ví dụ: tiền công 200.000đ + phí nền tảng 10% 20.000đ = giữ cọc 220.000đ. Khi ca hoàn
-            thành, người lao động nhận 200.000đ vào ví, CaLẻ thu phí 20.000đ.
-          </p>
-        </InfoSection>
-
-        <InfoSection title="Dự kiến — chưa áp dụng">
-          <InfoList
-            items={[
-              'VIP Nhà tuyển dụng: 99.000đ/30 ngày; phí nền tảng còn 5%.',
-              'Boost tin tuyển: 10.000đ/lượt.',
-            ]}
-          />
-        </InfoSection>
-      </InfoPage>
-    );
-  }
+  const live = isSupabaseEnv();
 
   return (
     <InfoPage
       eyebrow="Bảng giá"
-      title="Giai đoạn thử nghiệm — 0đ"
-      intro="Giao dịch và số dư đều là mô phỏng. CaLẻ chưa thu, giữ hoặc chuyển tiền thật."
+      title={live ? 'Bảng giá giai đoạn thử nghiệm (Beta)' : 'Giai đoạn thử nghiệm — 0đ'}
+      intro={
+        live
+          ? 'Người lao động không mất phí. Nhà tuyển dụng chỉ trả phí cho phần ca có người làm.'
+          : 'Giao dịch và số dư đều là mô phỏng. CaLẻ chưa thu, giữ hoặc chuyển tiền thật.'
+      }
       ctas={[
         { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
         { label: 'Đăng ký / Đăng nhập', href: '/register', variant: 'secondary' },
       ]}
     >
-      <InfoSection title="Hiện tại: Giai đoạn thử nghiệm — 0đ">
-        <p className="mb-2">
-          <span className="text-2xl font-extrabold text-orange-700">0đ</span>{' '}
-          <span className="text-sm text-gray-500">· Miễn phí trong thời gian thử nghiệm</span>
-        </p>
-        <p>Các tính năng đang hoạt động thật:</p>
-        <InfoList
-          items={[
-            'Đăng ký / đăng nhập Người lao động và Nhà tuyển dụng.',
-            'Đăng ca miễn phí, quản lý và duyệt/từ chối ứng viên miễn phí.',
-            'Người lao động tìm ca và ứng tuyển.',
-            'Chấm công: check-in, xác nhận có mặt, check-out, xác nhận hoàn thành (lưu trên hệ thống).',
-            'Đồng bộ dữ liệu giữa các thiết bị/phiên đăng nhập.',
+      <div className="grid gap-4 sm:grid-cols-2">
+        <PriceCard
+          audience="Người lao động"
+          price="Miễn phí"
+          points={[
+            'Tìm ca và ứng tuyển không mất phí.',
+            live ? 'Nhận đủ tiền công vào ví sau ca.' : 'Tiền công vào ví mô phỏng sau ca.',
+            live ? 'Rút tiền về tài khoản ngân hàng của bạn.' : 'Chưa rút được tiền thật.',
           ]}
         />
-      </InfoSection>
+        <PriceCard
+          audience="Nhà tuyển dụng"
+          price={live ? '10%' : '0đ'}
+          priceNote={live ? 'trên tiền công' : 'dự kiến 10% tiền công — chưa thu phí'}
+          highlight
+          points={[
+            'Đăng ca, duyệt người ứng tuyển miễn phí.',
+            'Tiền công + phí được giữ khi đăng ca.',
+            'Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí phần đó.',
+          ]}
+          example={
+            live
+              ? 'Ví dụ: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí CaLẻ 20.000đ.'
+              : 'Ví dụ mô phỏng: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí 20.000đ (mô phỏng).'
+          }
+        />
+      </div>
 
-      <InfoSection title="Bảng giá dự kiến — chưa thu phí">
-        <InfoList items={[
-          'Người lao động: miễn phí.',
-          'Nhà tuyển dụng: đăng ca, nhận và duyệt ứng viên miễn phí.',
-          'Phí nền tảng tiêu chuẩn dự kiến: 10% tiền công của ca hoàn thành.',
-          'VIP Nhà tuyển dụng dự kiến: 99.000đ/30 ngày; phí nền tảng dự kiến còn 5% — chưa thu phí.',
-          'Boost tin tuyển dự kiến: 10.000đ/lượt — chưa thu phí.',
-        ]} />
-        <p className="mt-3">Ví dụ mô phỏng: tiền công 200.000đ + phí nền tảng 10% 20.000đ = tổng bảo đảm 220.000đ; worker nhận mô phỏng 200.000đ và CaLẻ ghi nhận phí mô phỏng 20.000đ.</p>
+      <InfoSection title="Câu hỏi thường gặp">
+        <dl className="flex flex-col gap-4">
+          <Faq q="Khi nào tiền được giữ?">
+            Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.
+          </Faq>
+          <Faq q="Khi nào người lao động nhận tiền?">
+            Khi nhà tuyển dụng xác nhận hoàn thành. Nếu không ai bấm, hệ thống tự chốt sau 24 giờ
+            kể từ giờ kết thúc ca.
+          </Faq>
+          <Faq q="Có gói trả phí nào khác không?">
+            Chưa. Hiện chỉ có mức phí ở trên.
+          </Faq>
+        </dl>
       </InfoSection>
     </InfoPage>
+  );
+}
+
+function PriceCard({
+  audience,
+  price,
+  priceNote,
+  points,
+  example,
+  highlight,
+}: {
+  audience: string;
+  price: string;
+  priceNote?: string;
+  points: string[];
+  example?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <section
+      className={[
+        'flex flex-col rounded-2xl border p-5 shadow-card',
+        highlight ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white',
+      ].join(' ')}
+    >
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-600">{audience}</h2>
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2">
+        <span className="text-3xl font-extrabold text-gray-900">{price}</span>
+        {priceNote && <span className="text-sm text-gray-600">{priceNote}</span>}
+      </p>
+      <ul className="mt-4 flex list-disc flex-col gap-2 pl-5 text-sm leading-relaxed text-gray-700 marker:text-orange-400">
+        {points.map((p) => (
+          <li key={p}>{p}</li>
+        ))}
+      </ul>
+      {example && (
+        <p className="mt-4 rounded-xl bg-white/70 px-3 py-2 text-sm text-gray-700 ring-1 ring-orange-100">
+          {example}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function Faq({ q, children }: { q: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="font-semibold text-gray-900">{q}</dt>
+      <dd className="mt-1 text-gray-700">{children}</dd>
+    </div>
   );
 }

@@ -67,9 +67,20 @@ describe('PricingPage — trung thực, không nút mua', () => {
     const text = nfc(container.textContent);
     expect(text).toContain('Giai đoạn thử nghiệm');
     expect(text).toContain('0đ');
-    expect(text).toContain('Bảng giá dự kiến — chưa thu phí');
+    expect(text).toContain('chưa thu phí');
     expect(text.toLowerCase()).not.toContain('mua ngay');
     expect(text.toLowerCase()).not.toContain('thanh toán ngay');
+  });
+
+  // P0 feedback F8 — 2 thẻ, mỗi ý một lần, bỏ VIP/Boost "dự kiến".
+  it('2 thẻ Người lao động / Nhà tuyển dụng, không còn VIP/Boost, ví dụ chỉ 1 lần', () => {
+    const { container } = render(<PricingPage />);
+    const text = nfc(container.textContent);
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => nfc(h.textContent));
+    expect(headings).toEqual(expect.arrayContaining(['Người lao động', 'Nhà tuyển dụng']));
+    expect(text).not.toMatch(/VIP|Boost/);
+    expect(text.match(/Ví dụ/g)?.length).toBe(1);
+    expect(text).not.toMatch(/VNĐ|₫/);
   });
 });
 
