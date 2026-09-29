@@ -8,6 +8,22 @@
 > hoặc B (7 câu trả lời ở mục 5) chưa có kết quả → HỎI người dùng, không tự suy
 > đoán, không tự `db push` 0023/0024. Xoá dòng chặn này khi A + B đã xong.
 
+## 0. Agent & lệnh của repo — TỰ ÁP DỤNG, không cần người dùng nhắc
+
+Có trong `.claude/` (mô tả: `.claude/README.md`). AI agent tự dùng theo bảng dưới:
+
+| Khi | Tự làm |
+|---|---|
+| Sắp `git commit` có sửa code | Chạy `/verify` (chỉ sửa docs/Markdown thì bỏ qua). Không ĐẠT → sửa rồi mới commit. |
+| Diff đụng `supabase/migrations`, `supabase/functions`, ví/cọc/PayOS/rút tiền, auth, CCCD | Chạy `/verify pre-pr` + gọi agent **security-reviewer** rà diff TRƯỚC khi push. Có lỗi Nghiêm trọng → dừng, báo người dùng. |
+| Thêm hàm `src/domain/` hoặc sửa bug tái hiện được | Làm theo `/tdd` (test hỏng trước, rồi mới sửa). |
+| Thêm/đổi luồng người dùng trên UI | Gọi agent **e2e-runner** thêm/cập nhật spec `e2e/`. |
+| `tsc` / `lint` / `build` đỏ | Gọi agent **build-error-resolver**. |
+| Bắt đầu phần việc dài (một bước P0/P1…) | `/checkpoint create <tên>`; xong thì `/checkpoint verify <tên>`. |
+
+Báo ngắn cho người dùng khi đã chạy (vd "verify ĐẠT, security-reviewer: không có lỗi
+nghiêm trọng"). Dòng ⛔ CHẶN ở trên vẫn ưu tiên hơn bảng này.
+
 ---
 
 ## 1. Sản phẩm là gì

@@ -11,6 +11,8 @@
 | Lệnh | `/checkpoint create\|verify\|list` | Ghi/so mốc tiến độ vào `.claude/checkpoints.log` (không commit). |
 | Skill | `graphify` | Tra knowledge graph (`graphify-out/`). |
 
+Quy tắc tự dùng (khi nào gọi agent/lệnh nào) nằm ở `CLAUDE.md` mục 0 — AI đọc tự động mỗi phiên.
+
 Các agent/lệnh trên chỉ là file Markdown (prompt), **không có hook hay script tự chạy**.
 Viết lại từ [affaan-m/everything-claude-code](https://github.com/affaan-m/everything-claude-code)
 (MIT, xem `THIRD_PARTY_NOTICES.md`) cho khớp CaLẻ. Cố ý KHÔNG lấy hooks (chặn tạo
