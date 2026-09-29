@@ -22,6 +22,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { useWalletStore } from '@/stores/walletStore';
 import { getPaymentProvider, listPaymentChannels } from '@/data/payments';
 import type { CreatePaymentResult } from '@/data/repos/paymentRepo';
+import { splitDepositFunding } from '@/domain/topupBonus';
+import { t } from '@/i18n/vi';
 
 /** PayOS: số tiền nạp tối thiểu. */
 const PAYOS_MIN_AMOUNT = 2000;
@@ -52,6 +54,11 @@ export interface DepositWalletConfirmProps {
   clientRequestId: string;
   /** Số tiền dự kiến hiển thị trước (server tính lại chính xác). */
   previewAmount: number;
+  /**
+   * Tiền công gốc (đã làm tròn như server). Phần còn lại của khoản cọc là phí
+   * dịch vụ — phần duy nhất tiền thưởng (P2-2) được trả.
+   */
+  wageAmount: number;
   /** Gọi khi HELD: điều hướng sang chi tiết ca đã đăng. */
   onPaid: (shiftId: string) => void;
   /** Gọi khi hủy → quay lại form. */
@@ -62,6 +69,7 @@ export function DepositWalletConfirm({
   shiftPayload,
   clientRequestId,
   previewAmount,
+  wageAmount,
   onPaid,
   onCancel,
 }: DepositWalletConfirmProps) {
@@ -73,6 +81,10 @@ export function DepositWalletConfirm({
 
   const balance = useMemo(
     () => wallets.find((w) => w.userId === currentUserId)?.balance ?? 0,
+    [wallets, currentUserId],
+  );
+  const promoBalance = useMemo(
+    () => wallets.find((w) => w.userId === currentUserId)?.promoBalance ?? 0,
     [wallets, currentUserId],
   );
 
@@ -90,8 +102,14 @@ export function DepositWalletConfirm({
   const [serverAmount, setServerAmount] = useState<number | null>(null);
   const amount = serverAmount ?? previewAmount;
 
-  const enough = balance >= amount;
-  const shortfall = Math.max(0, amount - balance);
+  // P2-2 — tiền thưởng trả PHÍ trước (khớp server confirm_deposit_session).
+  const { promoUse, cashNeeded } = splitDepositFunding(
+    amount,
+    Math.max(0, amount - wageAmount),
+    promoBalance,
+  );
+  const enough = balance >= cashNeeded;
+  const shortfall = Math.max(0, cashNeeded - balance);
   const topUpAmount = Math.max(shortfall, PAYOS_MIN_AMOUNT);
 
   /** Ví ĐỦ: tạo phiên cọc + giữ cọc trực tiếp từ ví. */
@@ -117,6 +135,9 @@ export function DepositWalletConfirm({
         );
         return;
       }
+      // Đọc lại ví (thưởng có thể đã dùng ở tab khác) — phần chia thưởng/tiền
+      // mặt hiển thị sau đó khớp server; tổng số giữ đã được kiểm ở trên.
+      if (currentUserId) await refetchWallet(currentUserId);
       const r = await provider.confirmDeposit(session.paymentId);
       if (currentUserId) await refetchWallet(currentUserId);
       if (!r.shiftId) throw new Error('SESSION_NOT_FOUND');
@@ -172,11 +193,23 @@ export function DepositWalletConfirm({
           <dt className="text-gray-600">Khoản cần giữ cọc</dt>
           <dd className="font-semibold tabular-nums text-orange-700">{formatVND(amount)}</dd>
         </div>
+        {promoUse > 0 && (
+          <>
+            <div className="flex items-center justify-between">
+              <dt className="text-gray-600">{t('deposit.promo.use')}</dt>
+              <dd className="font-semibold tabular-nums text-orange-800">−{formatVND(promoUse)}</dd>
+            </div>
+            <div className="flex items-center justify-between">
+              <dt className="text-gray-600">{t('deposit.promo.cash')}</dt>
+              <dd className="font-semibold tabular-nums text-gray-900">{formatVND(cashNeeded)}</dd>
+            </div>
+          </>
+        )}
         {enough && (
           <div className="flex items-center justify-between border-t border-gray-100 pt-1.5">
             <dt className="text-gray-600">Số dư sau khi giữ cọc</dt>
             <dd className="font-semibold tabular-nums text-gray-900">
-              {formatVND(balance - amount)}
+              {formatVND(balance - cashNeeded)}
             </dd>
           </div>
         )}
