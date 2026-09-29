@@ -80,6 +80,10 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
     + 4 trang app còn ≤2 câu; bỏ "thanh toán giả lập" (sai ở production) và lời hứa
     "cấp độ ảnh hưởng phí". → **P1 xong** (trừ "quán đang dùng" và ảnh cho bước ở
     trang thông tin).
+- **Cập nhật 29/09 (chiều):** P0 + P1 đã merge `main` (PR #8, #9 → `75755d7`),
+  gồm cả sửa 7 test e2e ví và eslint. **P2-3 xong** trên nhánh
+  `fix/wallet-withdraw-visible` (kèm sửa nút Rút tiền) — migration 0025 **chưa
+  push**. Chi tiết: `docs/HANDOFF_SESSION_2026-09-29_P2-3.md`.
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
@@ -274,7 +278,9 @@ Migration mới (0025+), không sửa migration cũ; RPC security definer,
        lương).
      - Cộng thưởng trong `credit_wallet_from_payment` (idempotent theo payment id).
      - Cần điều khoản: tiền thưởng không quy đổi tiền mặt.
-3. **Miễn phí theo đợt (F12):** `platform_settings.fee_free_until` (ngày), nghĩa là
+3. ✅ _(29/09, `d9e3dcf`, chưa push DB — thêm luật: ngày làm ca ≤ đợt + 30 ngày;
+   xem `HANDOFF_SESSION_2026-09-29_P2-3.md`)_
+   **Miễn phí theo đợt (F12):** `platform_settings.fee_free_until` (ngày), nghĩa là
    phí 0% cho ca đăng trước ngày đó. Dùng cho campaign "free cả tháng / 1 tuần".
    Admin bật/tắt ở tab Thống kê.
 4. Chạy thử trong transaction + rollback (như 0022) trước `db push`. Mọi cờ mặc
@@ -401,12 +407,12 @@ Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
   - Push nhánh; chỉ merge `main` khi chủ dự án đồng ý.
 
 ### Tiếp theo (sau P0)
-- [ ] Merge lần lượt: `fix/p0-feedback` → `feat/p1-homepage` → `feat/p1-colors` →
-      `feat/p1-copy` → `feat/p1-copy-app` (mỗi nhánh tách từ nhánh trước). Cần chủ
-      dự án đồng ý.
+- [x] Merge P0 + P1 vào `main` (PR #8, #9 → `75755d7`).
 - [ ] Chụp production bằng tài khoản employer: trang Đăng ca (P0-4), Tổng quan admin
       + dashboard (màu P1-2).
 - [x] P1-4 còn lại: mô tả dài trong màn app (`300ca50`).
 - [ ] P2 chờ chốt 3 điểm mở ở câu 4 (cọc worker khi vắng mặt về đâu; "1 tháng"
       tính thế nào; đã xác thực CCCD có miễn cọc không).
-- [ ] Task riêng: 7 e2e ví hỏng sẵn trên `main`; eslint bỏ qua `playwright-report/`.
+- [x] Task riêng: 7 e2e ví hỏng sẵn trên `main`; eslint bỏ qua `playwright-report/`
+      (`a24b0b7`, đã merge).
+- [x] P2-3 miễn phí theo đợt (`d9e3dcf`) — còn chờ `db push` 0025 + merge.
