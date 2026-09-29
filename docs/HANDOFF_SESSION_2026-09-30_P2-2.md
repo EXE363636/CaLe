@@ -99,9 +99,14 @@ thêm phần túi thưởng (đã diff, và md5 thân cũ trên remote khớp fi
   `payment_orders.amount` trước khi cộng ví (+ thưởng). Cần xác minh với PayOS và
   thêm kiểm.
 - [ ] (tuỳ chọn) Dải "Đang miễn phí dịch vụ đến hết …" ở Bảng giá / `/tuyen-dung`.
-- [ ] **P2-1 cọc worker** vẫn chờ chủ dự án chốt 3 điểm: worker vắng mặt thì cọc
-      về đâu; "1 tháng" là 30 ngày gần nhất hay tháng dương lịch; đã xác thực
-      CCCD có miễn cọc không.
+- [ ] **P2-1 cọc worker** — ĐÃ CHỐT (30/09), làm được SAU khi xong task webhook
+      PayOS ở trên. Chi tiết: `HANDOFF_SESSION_2026-09-28_FEEDBACK.md` mục 3 (P2-1)
+      và mục 5 câu 4. Tóm tắt:
+      - Cọc = 50% tiền công ca, tối đa 100.000 đ.
+      - Miễn cọc: đã duyệt CCCD, hoặc ≥5 ca hoàn thành trong 30 ngày gần nhất
+        (cửa sổ trượt).
+      - Vắng mặt không báo → 100% cọc về NTD sau 24h (khiếu nại → admin quyết), và
+        mất quyền miễn cọc 30 ngày. Tự huỷ trước ca → hoàn đủ.
 
 ## 4. Lưu ý môi trường
 Như `HANDOFF_SESSION_2026-09-29_P2-3.md` mục 4. Thêm: kịch bản chạy thử luồng tiền

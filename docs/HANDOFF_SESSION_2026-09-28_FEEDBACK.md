@@ -21,7 +21,7 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
     - Đã so hàm/constraint/cột/policy/index/quyền trên remote với file local (chạy
       lại trong transaction + rollback): **khớp 100%**. Sau push so lại: schema không
       đổi, dữ liệu giữ nguyên (2 dòng đánh giá). Push thực chất chỉ ghi lịch sử.
-- [x] **B. Trả lời đủ 7 câu ở mục 5.** _(xong 29/09 — P3 hoãn theo câu 6; P2-1 còn 3 điểm mở ở câu 4)_ Điền vào dòng **Trả lời:** dưới từng câu.
+- [x] **B. Trả lời đủ 7 câu ở mục 5.** _(xong 29/09 — P3 hoãn theo câu 6; 3 điểm P2-1 ở câu 4 chốt 30/09)_ Điền vào dòng **Trả lời:** dưới từng câu.
   - Phải có **đủ 7 câu trả lời** mới bắt đầu, kể cả P0.
   - Câu nào bị trả lời "chưa biết" thì ghi rõ, và KHÔNG làm phần phụ thuộc câu đó:
     - Câu 1 → P0 bước 6.
@@ -251,25 +251,36 @@ Gate P1: như P0, cộng test snapshot/e2e của landing nếu có. Kiểm tra m
 ### P2 — Cọc hai đầu + xác thực worker + ưu đãi cọc NTD (DB, ≈4–6 ngày) [QUYẾT]
 Migration mới (0025+), không sửa migration cũ; RPC security definer,
 `search_path=''`.
-1. **Worker chưa xác thực phải cọc (F9).**
-   - `platform_settings`: `worker_deposit_amount` (vd 50.000đ, hoặc % tiền công ca),
-     `worker_deposit_exempt_after` (vd 3 ca hoàn thành), `require_worker_deposit`
-     (mặc định TẮT).
-   - Hàm `_worker_needs_deposit(uid)`: KHÔNG cần nếu `identity_verified_at` có giá trị
-     HOẶC số đơn Completed ≥ N.
+1. **Worker chưa xác thực phải cọc (F9).** — ĐÃ CHỐT ĐỦ (xem mục 5 câu 4), làm
+   được. Điều kiện trước: sửa webhook PayOS so số tiền (task riêng).
+   - `platform_settings`: `worker_deposit_ratio` (mặc định 50%),
+     `worker_deposit_max` (mặc định 100.000 đ), `worker_deposit_exempt_after`
+     (mặc định 5 ca), `worker_deposit_window_days` (mặc định 30),
+     `require_worker_deposit` (mặc định TẮT). Admin sửa ở tab Thống kê như
+     `FeeCampaignCard`/`TopUpBonusCard`.
+   - Cọc của một đơn = `min(round(tiền công ca × ratio), max)`.
+   - Hàm `_worker_needs_deposit(uid)` — KHÔNG cần cọc nếu (và không vắng mặt nào
+     trong 30 ngày gần nhất):
+     - `identity_verified_at` có giá trị (đã duyệt CCCD), HOẶC
+     - ≥5 đơn hoàn thành có giờ kết thúc ca trong 30 ngày trước lúc ứng tuyển.
+     - Có vắng mặt (no-show) trong 30 ngày gần nhất → LUÔN cần cọc.
    - Bọc `apply` thêm lần nữa (theo mẫu `*_before_*_guard`): nếu cần cọc, trừ ví
      worker vào khoản giữ `worker_holds(application_id, amount, status)`. Ví không
      đủ thì báo `WORKER_DEPOSIT_REQUIRED` kèm số tiền, UI mời nạp ví hoặc xác thực
      CCCD.
    - Giải phóng khoản giữ:
-     - Hoàn cho worker: ca hoàn thành, bị từ chối, hoặc tự rút đơn trước hạn.
-     - Chuyển cho nhà tuyển dụng (hoặc chia) **[QUYẾT]**: vắng mặt (no-show), huỷ
-       sát giờ.
+     - Hoàn đủ cho worker: ca hoàn thành, bị từ chối, NTD huỷ ca, hoặc worker tự
+       huỷ trước giờ bắt đầu ca.
+     - Vắng mặt không báo: giữ thêm 24h sau giờ kết thúc ca. Worker khiếu nại trong
+       24h → treo, admin quyết (hoàn worker / chuyển NTD). Không khiếu nại → 100%
+       chuyển vào ví **nhà tuyển dụng** (tiền mặt, rút được), ghi ledger. CaLẻ
+       không giữ phần nào.
      - Gắn vào `_finalize_shift_deposit` / luồng từ chối / huỷ, đảm bảo idempotent.
    - UI:
-     - Trang ca hiện "Cọc 50.000đ, hoàn lại khi bạn làm xong ca" hoặc "Bạn được
-       miễn cọc".
-     - Hồ sơ hiện "Xác thực CCCD để không phải cọc".
+     - Trang ca hiện "Cọc X đ, hoàn lại khi bạn làm xong ca" hoặc "Bạn được miễn
+       cọc".
+     - Hồ sơ hiện "Xác thực CCCD hoặc làm đủ 5 ca trong 30 ngày để không phải cọc";
+       sau vắng mặt: "Bạn cần đặt cọc tới ngày …".
 2. ✅ _(30/09, `478cc04`, 0026 đã push — chọn (b); thêm: chỉ NTD, tối đa N
    lần/NTD mặc định 1, không hết hạn; xem `HANDOFF_SESSION_2026-09-30_P2-2.md`)_
    **Ưu đãi cọc nhà tuyển dụng (F10), chọn 1 trong 2:**
@@ -361,7 +372,17 @@ nên làm, nhưng cách ly khỏi luồng ca/escrow.
 4. **F9:** cọc worker bao nhiêu (số cố định hay % tiền công)? Làm đủ mấy ca thì miễn?
    Worker vắng mặt thì tiền cọc về đâu (nhà tuyển dụng / CaLẻ / chia)?
    **Trả lời:** Nguyên văn: "worker tính cọc bằng 50% số tiền sau khi hoàn thành ca, trong 1 tháng nếu hoàn thành đủ 5 ca trở lên thì không cần cọc". Tức cọc = **50% tiền công của ca**; **≥5 ca hoàn thành trong 1 tháng** thì miễn cọc. _(29/09)_
-   ⚠️ **Còn chưa chốt** (hỏi lại trước khi làm P2-1): worker vắng mặt thì cọc về đâu (NTD / CaLẻ / chia); "1 tháng" là 30 ngày gần nhất hay tháng dương lịch; worker đã xác thực CCCD có được miễn cọc không.
+   ✅ **Đã chốt 3 điểm còn lại (30/09, chủ dự án duyệt):**
+   - **Vắng mặt không báo** → 100% cọc về **nhà tuyển dụng**. Cọc giữ thêm 24h sau
+     ca (khớp mốc tự trả công 24h); worker khiếu nại trong 24h → admin quyết; không
+     khiếu nại → chuyển NTD. **Tự huỷ trước ca → hoàn đủ cọc** (áp chính sách huỷ /
+     điểm uy tín hiện có).
+   - **"1 tháng" = 30 ngày gần nhất** (cửa sổ trượt) tính tới lúc ứng tuyển; ≥5 ca
+     hoàn thành trong 30 ngày → miễn cọc.
+   - **Đã duyệt CCCD → miễn cọc.** Vắng mặt 1 lần → **mất quyền miễn cọc 30 ngày**
+     (kể cả đã duyệt CCCD / đủ 5 ca).
+   - Thêm: cọc = 50% tiền công ca, **tối đa 100.000 đ**.
+   - Thêm: **sửa webhook PayOS so số tiền thực nhận TRƯỚC khi bật cọc worker.**
 5. **F10:** giảm cọc từ lần 2, hay thưởng nạp ví (nạp 500 được 600)? Tiền thưởng chỉ
    trừ phí dịch vụ, hay trừ được cả tiền công?
    **Trả lời:** **Thưởng nạp ví** (vd nạp 500.000đ được thêm 100.000đ); tiền thưởng **chỉ trừ phí dịch vụ**, không trả tiền công, không rút được. _(29/09)_
