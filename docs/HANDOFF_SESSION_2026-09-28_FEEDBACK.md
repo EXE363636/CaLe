@@ -42,6 +42,23 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
   xem mục ⛔-A). Lúc lập plan `migration list` báo cột remote trống, nhưng thực tế
   bảng đã được chạy tay từ trước; nay đã ghi đúng vào lịch sử migration.
 - 0001–0024 đã apply. Cờ bắt buộc SĐT/CCCD vẫn TẮT. SpeedSMS chưa có token.
+- **Cập nhật 29/09 — P0 xong** trên nhánh `fix/p0-feedback` (tách từ `main` =
+  `c76c603`, gồm 2 commit docs mục ⛔). 7 commit: `85a7c1d` (P0-1) → `a05eec5` (P0-2)
+  → `57dcbb7` (P0-3) → `c0dae9c` (P0-4) → `0db9007` (P0-5) → `8e96780` (P0-6) →
+  `421f9ce` (sửa FAQ bảng giá theo security-reviewer) + commit docs này.
+  **Chưa merge `main`** — chờ chủ dự án đồng ý. Không đổi DB.
+  - Gate: tsc 0 lỗi; eslint `src`+`e2e` 0 lỗi; `test:run` 778/778 (không còn 3 fail
+    `handbookContent`); `test:time` 22/22; `build` OK.
+  - E2E (server local-mode tạm ở cổng 3101, webpack — vì :3000 đang chạy dev
+    supabase nên Playwright không tự mở được server): spec mới 26, 27 + 18, 19 qua.
+    Toàn bộ bộ e2e: 111 qua + 4 lỗi do tải (qua khi chạy 1 worker) + **7 test ví hỏng
+    có sẵn trên `main`** (14:117, 16×2, 20×3, 21:24 — không tìm thấy nút "Nạp tiền vào
+    ví" sau các đợt đổi UI ví trước P0). Không do P0.
+  - security-reviewer: không có lỗi Nghiêm trọng/Cao; mục Trung bình (FAQ tự chốt
+    24h nói quá) đã sửa ở `421f9ce`.
+  - `npm run lint` toàn repo đang báo lỗi ở `playwright-report/` (báo cáo sinh ra khi
+    chạy e2e) và `.claude/skills/impeccable/` (chưa track) — eslint config chưa
+    ignore 2 thư mục này. Không phải lỗi code.
 
 ## 1. Feedback gốc, đã gom nhóm
 | # | Nhóm | Feedback | Loại |
@@ -94,35 +111,52 @@ file này, commit, **rồi mới được sửa code**. Chưa xong thì DỪNG v
 
 ## 3. Kế hoạch
 
-### P0 — Sửa nhanh, không đổi DB (≈1–2 ngày)
-1. **Admin: Back về Tổng quan admin (F7).**
+### P0 — Sửa nhanh, không đổi DB (≈1–2 ngày) — ✅ XONG 29/09 (nhánh `fix/p0-feedback`)
+1. ✅ **Admin: Back về Tổng quan admin (F7).** _(`85a7c1d`: logo admin → Tổng quan,
+   bỏ "Trang chủ" ở nav admin; URL dashboard giữ `?tab=&filter=` bằng replaceState
+   nên Back trình duyệt đúng tab + bộ lọc; "Quay lại" ở chi tiết ca → `?tab=shifts`
+   (chưa giữ `filter`, Back trình duyệt thì giữ). E2E 26.)_
    - `NavBar.tsx`: khi `role === 'admin'` thì logo và mục "Trang chủ" trỏ
      `/admin/dashboard` (hoặc bỏ mục "Trang chủ" ở `AdminNav`).
    - Trang admin mở sang (chi tiết ca, tranh chấp, hồ sơ): link quay lại dùng
      `/admin/dashboard?tab=<tab đang đứng>` (page đã đọc `?tab=&filter=`, dòng ~103).
-2. **Admin: thêm bộ lọc ca (F7).**
+2. ✅ **Admin: thêm bộ lọc ca (F7).** _(`a05eec5`: `src/domain/adminShiftFilter.ts`
+   + 20 unit test. "Chưa khớp" = ca thật chưa bắt đầu, `effectiveFilledCount` <
+   `positionsTotal`; "Gấp" nếu bắt đầu trong 24h. "Đã huỷ" = Cancelled hoặc Expired
+   không ai nhận. Ô Thống kê "Ca chưa khớp" (kèm số gấp) + "Ca huỷ". E2E 27.)_
    - Tab Ca làm, thêm filter `unfilled` (đã đăng, chưa đủ người, dựa
      `getShiftLifecycleState` + số đơn Confirmed < `slots`; tách thêm "sắp bắt đầu mà
      chưa đủ") và `cancelled` (`Cancelled`, `Expired` không ai nhận).
    - Tab Thống kê, thêm 2 ô "Ca chưa khớp", "Ca huỷ" bấm vào nhảy sang filter đó
      (dùng sẵn `jumpToShifts`). Cập nhật union type ở dòng 362.
-3. **Đăng ca bớt lặp (F5).**
+3. ✅ **Đăng ca bớt lặp (F5).** _(`c0dae9c`: KHÔNG chụp được production vì agent không
+   được đăng nhập bằng mật khẩu → khoanh chỗ lặp bằng đọc code supabase mode: công
+   thức + cách hoàn bị nói 3 lần. Giờ chỉ còn khối tóm tắt dưới form (tiền công /
+   phí 10% / tổng giữ từ ví + 1 dòng); bỏ thẻ cam đầu trang + ghi chú lặp ở bước xác
+   nhận; đầu trang chỉ còn `VerificationGateNotice` khi có việc. Popover 3 ý, đúng
+   theo mode. **Nên chụp lại production bằng tài khoản employer để xác nhận.**)_
    - Chụp trang production khi đăng nhập employer và khoanh các khối lặp.
    - Giữ **một** khối tóm tắt tiền (tiền công, phí 10%, tổng giữ cọc) ở cuối form,
      cạnh nút Đăng; bỏ khối kia.
    - Gộp thẻ số dư và `VerificationGateNotice` thành một thanh cảnh báo khi có vấn đề.
    - Popover trợ giúp: tối đa 3 ý.
-4. **Bảng giá không lặp (F8).**
+4. ✅ **Bảng giá không lặp (F8).** _(`57dcbb7`, `421f9ce`: 2 thẻ + 1 ví dụ + FAQ 3 câu
+   (chỉ production); bỏ VIP/Boost.)_
    - Viết lại thành 2 cột thẻ: **Người lao động** (Miễn phí, 3 ý) và **Nhà tuyển
      dụng** (10% trên tiền công, 3 ý, 1 ví dụ), rồi FAQ ngắn.
    - Bỏ "Dự kiến VIP/Boost" cho tới khi chốt. Sau này thêm cột "Parttime dài hạn"
      khi F11 chốt giá.
-5. **Mở rộng lề (F1).**
+5. ✅ **Mở rộng lề (F1).** _(`0db9007`: repo đã có `PageShell` (`src/components/ui/`)
+   → thêm cỡ `wide` = `max-w-[1400px]` thay vì tạo `PageContainer` trùng. Áp cho
+   dashboard worker/employer, Tổng quan admin, `/shifts`. Đo `/shifts`: 1920px →
+   nội dung 1400px; 375px → lề 16px, không cuộn ngang. Các trang khác chưa đổi.)_
    - Tạo `src/components/layout/PageContainer.tsx` với 3 cỡ: `wide` (dashboard,
      danh sách ca, admin: `max-w-[1400px]`), `default` (`max-w-7xl`), `narrow` (form,
      trang đọc: `max-w-3xl`). Padding `px-4 sm:px-6 lg:px-8`.
    - Thay dần các `mx-auto max-w-*` rải rác, ưu tiên admin, dashboard, `/shifts`.
-6. **Nhãn lịch (F6, tạm hiểu, cần chủ dự án xác nhận).**
+6. ✅ **Nhãn lịch (F6).** _(`8e96780`: theo câu trả lời 1 chỉ đổi nhãn rút gọn
+   "Lịch tuyển" → "Lịch tuyển dụng"; KHÔNG làm nhãn "Đã tuyển đủ". Nav employer vẫn
+   vừa một hàng từ 1280px — spec 18 qua 10 cỡ màn.)_ Nội dung plan cũ:
    - Ở lịch employer, ca đã đủ người hiện nhãn chữ "Đã tuyển đủ" rõ ràng
      (`calendar.legend.employer.fullyBooked` đã có).
    - Đổi tên mục điều hướng employer "Lịch" thành "Lịch tuyển dụng".
@@ -307,34 +341,34 @@ một commit/nhánh riêng. Không push `main` khi chưa được chủ dự án
 ## 7. Việc ngày mai (29/09) — checklist P0
 Nhánh: `fix/p0-feedback` tách từ `main`. Mỗi bước một commit.
 
-- [ ] **Chuẩn bị**
+- [x] **Chuẩn bị**
   - `git pull`, `graphify update .`
   - Hoàn thành mục ⛔ ở đầu file (A: 0023/0024; B: đủ 7 câu trả lời). Chưa xong →
     dừng, không làm các bước dưới.
-- [ ] **Bước 1: Admin Back** (`NavBar.tsx`)
+- [x] **Bước 1: Admin Back** (`NavBar.tsx`)
   - Admin bấm logo hoặc "Trang chủ" thì về `/admin/dashboard`.
   - Link quay lại từ trang con giữ nguyên `?tab=`.
   - Test: đăng nhập admin → mở chi tiết ca → Back → vẫn ở đúng tab admin.
-- [ ] **Bước 2: Admin lọc ca** (`admin/dashboard/page.tsx`)
+- [x] **Bước 2: Admin lọc ca** (`admin/dashboard/page.tsx`)
   - Tab Ca làm thêm filter `unfilled` và `cancelled`.
   - Tab Thống kê thêm 2 ô số liệu tương ứng, bấm vào nhảy sang filter.
   - Thêm unit test cho hàm lọc (tách ra `src/domain/` nếu cần, để test được thuần).
-- [ ] **Bước 3: Bảng giá** (`pricing/page.tsx`)
+- [x] **Bước 3: Bảng giá** (`pricing/page.tsx`)
   - Viết lại thành 2 thẻ (Người lao động / Nhà tuyển dụng), 1 ví dụ, FAQ.
   - Bỏ mục VIP/Boost "dự kiến".
-- [ ] **Bước 4: Đăng ca bớt lặp**
+- [x] **Bước 4: Đăng ca bớt lặp** _(chưa chụp production — xem mục 3)_
   - Chụp trang production (tài khoản employer), khoanh các khối lặp.
   - Giữ một khối tóm tắt tiền cạnh nút Đăng.
   - Gộp cảnh báo số dư và cảnh báo xác thực thành một thanh.
   - Chạy lại `ShiftForm.test.tsx` và e2e đăng ca.
-- [ ] **Bước 5: `PageContainer` + mở rộng lề**
+- [x] **Bước 5: `PageShell wide` + mở rộng lề** _(dùng PageShell có sẵn)_
   - Áp cho admin, dashboard worker/employer, `/shifts` trước.
   - Kiểm tra các cỡ 375 / 1280 / 1920px.
-- [ ] **Bước 6: Nhãn lịch employer**
+- [x] **Bước 6: Nhãn lịch employer** _(chỉ đổi nhãn, theo câu 1)_
   - Ca đủ người hiện "Đã tuyển đủ".
   - Mục điều hướng "Lịch" đổi thành "Lịch tuyển dụng" (nếu chủ dự án xác nhận F6).
-- [ ] **Gate:** `npx tsc --noEmit`, `npm run lint`, `npm run test:run` (3 fail
+- [x] **Gate:** `npx tsc --noEmit`, `npm run lint`, `npm run test:run` (3 fail
   `handbookContent` có sẵn), `npm run build`; kiểm tra trên trình duyệt.
-- [ ] **Kết thúc:**
+- [x] **Kết thúc:** _(mục 0 + 3 đã cập nhật; nhánh đã push; chờ đồng ý merge)_
   - Cập nhật mục 0 và mục 3 của file này (đánh dấu ✅).
   - Push nhánh; chỉ merge `main` khi chủ dự án đồng ý.
