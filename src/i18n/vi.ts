@@ -814,7 +814,7 @@ export const vi: Record<string, string> = {
   'workerHome.switch.text': 'Bạn cần tuyển người?',
   'workerHome.switch.cta': 'Xem trang tuyển dụng',
   'employerHome.hero.title': 'Cần người làm theo ca?',
-  'employerHome.hero.lead': 'Đăng ca với giờ và tiền công rõ ràng, chọn người từ danh sách ứng tuyển.',
+  'employerHome.hero.lead': 'Đăng ca theo giờ, chọn người phù hợp.',
   'employerHome.hero.cta': 'Đăng ký để đăng ca',
   'employerHome.hero.haveAccount': 'Đã có tài khoản?',
   'employerHome.benefits.title': 'Lợi ích cho nhà tuyển dụng',
