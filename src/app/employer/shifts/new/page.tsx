@@ -927,7 +927,7 @@ function ReadinessChecklist({
       className={[
         'mb-5 rounded-2xl border p-4 shadow-card',
         ready
-          ? 'border-emerald-200 bg-emerald-50/60'
+          ? 'border-green-200 bg-green-50/60'
           : 'border-amber-300 bg-amber-50',
       ].join(' ')}
     >
@@ -944,7 +944,7 @@ function ReadinessChecklist({
               aria-hidden="true"
               className={[
                 'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white',
-                it.ok ? 'bg-emerald-500' : 'bg-amber-500',
+                it.ok ? 'bg-green-500' : 'bg-amber-500',
               ].join(' ')}
             >
               {it.ok ? '✓' : '!'}

@@ -12,7 +12,7 @@
  *   modal out of every ancestor so it renders against the root.
  *
  * Phase 9G visual fix retained:
- *   - Backdrop is solid `bg-slate-900/60` with no `backdrop-blur` so it
+ *   - Backdrop is solid `bg-gray-900/60` with no `backdrop-blur` so it
  *     doesn't band against the body's warm gradient.
  *   - Default panel is `max-w-lg`; callers can override via `className`.
  *   - Outer wrapper is `fixed inset-0 overflow-y-auto`; inner content
@@ -99,13 +99,13 @@ export function Modal({
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
-      {/* Backdrop — solid `bg-slate-900/60` layer. No `backdrop-blur`
+      {/* Backdrop — solid `bg-gray-900/60` layer. No `backdrop-blur`
           (Phase 9G fix) AND no elevation/lift shadow: per the
           frontend-visual-polish spec (Req 4.4) the `shadow-modal` lift is
           the panel's alone, never the backdrop. Keep this className free of
           any `shadow-*` / `backdrop-blur-*` utility. */}
       <div
-        className="modal-backdrop-anim fixed inset-0 bg-slate-900/60"
+        className="modal-backdrop-anim fixed inset-0 bg-gray-900/60"
         onClick={onClose}
         aria-hidden="true"
       />

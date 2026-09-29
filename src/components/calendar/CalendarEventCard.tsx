@@ -35,7 +35,7 @@ export interface CalendarEventCardProps {
 }
 
 const variantClasses: Record<CalendarEventVariant, string> = {
-  personalBusy: 'bg-slate-100 border-slate-300 text-slate-800',
+  personalBusy: 'bg-gray-100 border-gray-300 text-gray-800',
   // P3 palette: success/positive family unified on `green-*` (was
   // `emerald-*`). `availableSlot` keeps its dashed border + lighter
   // `green-50` fill as the differentiator from the solid `completedShift`.

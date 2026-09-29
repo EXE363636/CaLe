@@ -188,27 +188,23 @@ function AdminDashboardContent() {
 
   return (
     <PageShell width="wide">
-      {/* UI-VISUAL-REDESIGN-1 — admin "control panel" hero. A cool
-          slate→indigo gradient deliberately distinguishes the admin area
-          from the warm orange worker/employer dashboards. */}
-      <header className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-800 to-indigo-900 p-6 text-white shadow-card sm:p-7">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -right-12 -top-12 h-52 w-52 rounded-full bg-indigo-500/25 blur-3xl"
-        />
+      {/* UI-VISUAL-REDESIGN-1 — admin "control panel" hero.
+          P1 feedback F2 (3 màu + khối màu) — khối mực đặc thay gradient
+          slate→indigo; vẫn tách khỏi dashboard worker/employer nhờ nền mực. */}
+      <header className="relative mb-6 overflow-hidden rounded-3xl bg-ink p-6 text-white shadow-card sm:p-7">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -bottom-16 left-1/4 h-40 w-40 rounded-full bg-orange-500/15 blur-3xl"
         />
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200">
+            <p className="text-xs font-semibold uppercase tracking-wider text-orange-200">
               {t('admin.dashboard.eyebrow')}
             </p>
             <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">
               {t('admin.dashboard.title')}
             </h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-300">
+            <p className="mt-1 max-w-2xl text-sm text-gray-300">
               {t('admin.dashboard.subtitle')}
             </p>
           </div>
@@ -514,7 +510,7 @@ function StatCard({
     'group relative overflow-hidden rounded-3xl border border-gray-100 p-5 text-left w-full shadow-card',
     highlight
       ? 'bg-gradient-to-br from-red-50 to-white'
-      : 'bg-gradient-to-br from-slate-50 to-white',
+      : 'bg-gradient-to-br from-gray-50 to-white',
     onClick
       ? 'motion-lift cursor-pointer hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
       : '',
@@ -1403,12 +1399,12 @@ function ShiftsPanel({
 
       {/* Phase 7: explainer banner — clarifies that statuses move
           automatically and that Override is for exceptional cases. */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+      <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
         <p>
           {t(hasCapability('payments') ? 'admin.shifts.autoNote' : 'admin.shifts.autoNoteReal')}
         </p>
         {lastSyncAt && (
-          <p className="mt-1 text-xs text-blue-700">
+          <p className="mt-1 text-xs text-gray-500">
             {t('admin.shifts.lastSync').replace(
               '{when}',
               formatSyncTime(lastSyncAt),

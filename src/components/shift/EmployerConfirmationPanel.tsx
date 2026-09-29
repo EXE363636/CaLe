@@ -153,7 +153,7 @@ export function EmployerConfirmationPanel({
                         'mt-0.5 inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-sm text-xs font-bold',
                         submitted
                           ? ticked
-                            ? 'bg-emerald-500 text-white'
+                            ? 'bg-green-500 text-white'
                             : 'bg-amber-300 text-amber-900'
                           : 'bg-gray-200 text-gray-500',
                       ].join(' ')}

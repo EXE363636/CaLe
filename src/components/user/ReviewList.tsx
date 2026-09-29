@@ -218,7 +218,7 @@ export function ReviewList({
                         setReportNote('');
                         setReportError(null);
                       }}
-                      className="rounded text-xs font-medium text-gray-600 hover:text-rose-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                      className="rounded text-xs font-medium text-gray-600 hover:text-red-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
                     >
                       {t('review.report.button')}
                     </button>

@@ -83,7 +83,7 @@ function RoleCard({
       className={[
         'motion-lift group flex h-full min-h-[220px] flex-col justify-between rounded-3xl p-7 shadow-card sm:p-8',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
-        tone === 'brand' ? 'bg-orange-500 text-gray-900' : 'bg-gray-900 text-white',
+        tone === 'brand' ? 'bg-brand text-ink' : 'bg-ink text-white',
       ].join(' ')}
     >
       <div>

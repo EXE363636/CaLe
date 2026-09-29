@@ -18,12 +18,12 @@ interface LegendEntry {
 
 const workerEntries: LegendEntry[] = [
   {
-    swatchClass: 'bg-slate-300',
+    swatchClass: 'bg-gray-300',
     labelKey: 'calendar.legend.worker.personalBusy',
   },
   {
     // P3 palette: success/positive family unified on `green-*` (was
-    // `emerald-300`) to match the `availableSlot` event-card swatch.
+    // `green-300`) to match the `availableSlot` event-card swatch.
     swatchClass: 'bg-green-300',
     labelKey: 'calendar.legend.worker.availableSlot',
   },
@@ -91,14 +91,14 @@ export function CalendarLegend({ variant, className }: CalendarLegendProps) {
     <div
       className={['flex flex-col gap-2', className ?? ''].join(' ').trim()}
     >
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {t('calendar.legend.title')}
       </h3>
       <ul className="flex flex-col gap-1.5">
         {entries.map((entry, idx) => (
           <li
             key={`${entry.labelKey}-${idx}`}
-            className="flex items-center gap-2 text-sm text-slate-700"
+            className="flex items-center gap-2 text-sm text-gray-700"
           >
             <span
               aria-hidden="true"

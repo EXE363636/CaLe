@@ -55,7 +55,7 @@ export default function RootLayout({
           what kills the "page looks sliced in half when the drawer
           opens" symptom from manual screenshot QA. */}
       <body
-        className="min-w-0 min-h-full flex flex-col font-sans text-slate-900"
+        className="min-w-0 min-h-full flex flex-col font-sans text-gray-900"
         suppressHydrationWarning
       >
         <AppHydrator>

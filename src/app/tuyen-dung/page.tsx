@@ -80,6 +80,8 @@ export default function EmployerHomePage() {
                   width={960}
                   height={640}
                   sizes="(min-width: 640px) 33vw, 100vw"
+                  // Nằm trong khung nhìn đầu ở desktop (LCP) → tải ngay.
+                  loading="eager"
                   className="aspect-[3/2] w-full object-cover"
                 />
                 <div className="p-6">
@@ -117,7 +119,7 @@ export default function EmployerHomePage() {
       </section>
 
       {/* 4. Khối mực — CTA + chuyển vai trò */}
-      <section className="bg-gray-900 px-4 py-10 text-white sm:px-6 lg:px-8">
+      <section className="bg-ink px-4 py-10 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
             <p className="text-lg font-semibold">{t('employerHome.final.text')}</p>

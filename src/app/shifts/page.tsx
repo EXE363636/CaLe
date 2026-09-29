@@ -247,7 +247,7 @@ export default function ShiftsPage() {
               {t('availability.filter.byAvailability')}
             </button>
             {sortMode === 'availability' && (
-              <span className="text-xs text-emerald-700">
+              <span className="text-xs text-green-700">
                 {t('availability.suggest.subtitle')}
               </span>
             )}

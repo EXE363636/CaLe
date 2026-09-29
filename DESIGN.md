@@ -7,7 +7,7 @@ colors:
   brand-soft: "#FFD5AE"
   cream: "#FFF4E9"
   surface: "#ffffff"
-  bg-base: "#f8fafc"
+  bg-base: "#f9fafb"
   ink: "#37373B"
   ink-heading: "#37373B"
   muted: "#4b5563"
@@ -177,14 +177,27 @@ nghĩa dùng cho badge và cảnh báo. Cam là giọng nói duy nhất; phần 
 - **Cam nhạt / Soft Orange** (`#FFD5AE`, orange-200): nền chip, viền nhẹ, vùng nhấn mảng.
 - **Kem ấm / Warm Cream** (`#FFF4E9`, `--background`): nền kem của toàn trang; thẻ trắng nổi lên trên.
 
+### Ba màu thương hiệu (P1 feedback F2, 29/09/2026)
+Giao diện chung và trang marketing chỉ dùng **3 màu + trắng**, có tên ngữ nghĩa
+trong `@theme` của `globals.css`:
+- **Kem** `bg-cream` = `--background` `#FFF4E9`
+- **Cam** `bg-brand` = `--brand` `#FF9A5F` (orange-500)
+- **Mực** `bg-ink` / `text-ink` = `--foreground` `#37373B` (gray-900)
+
+Trang marketing (`/`, `/viec-lam`, `/tuyen-dung`) dựng bằng **khối màu đặc** xen kẽ
+kem / trắng / cam / mực, ít viền và bóng. Không dùng indigo / tím / hồng / xanh ngọc
+để trang trí; `slate-*` đã gộp vào `gray-*`, `emerald-*` vào `green-*`, `rose-*`
+vào `red-*`. `amber` chỉ cho trạng thái chờ / cảnh báo. Màu trạng thái
+(xanh lá / đỏ / vàng / xanh dương) chỉ dùng cho trạng thái, qua bộ tone của `Badge`.
+
 ### Neutral
-- **Mực than / Slate Ink** (`#37373B`, slate-900): màu chữ thân (body) mặc định.
-- **Mực tiêu đề / Heading Ink** (`#37373B`, gray-900): tiêu đề và nhãn đậm.
+- **Mực / Ink** (`#37373B`, gray-900 = `ink`): màu chữ thân (body) mặc định,
+  tiêu đề và nhãn đậm.
 - **Xám phụ / Muted** (`#4b5563`, gray-600): mô tả, phụ đề.
 - **Xám nhạt / Muted Soft** (`#6b7280`, gray-500): chú thích thứ cấp.
 - **Xám mờ / Faint** (`#9ca3af`, gray-400): placeholder, trạng thái disabled.
 - **Viền / Border** (`#e5e7eb` gray-200; `#d1d5db` gray-300 khi cần rõ hơn).
-- **Nền app / Base** (`#f8fafc`, slate-50): đáy của gradient nền; thẻ trắng nổi lên trên.
+- **Nền app / Base** (`#f9fafb`, gray-50): nền phụ nhạt; thẻ trắng nổi lên trên.
 
 ### Status (semantic — badge & alerts)
 Mỗi màu trạng thái là một cặp nền nhạt + mực đậm, đạt tương phản đọc được:
@@ -193,7 +206,11 @@ Mỗi màu trạng thái là một cặp nền nhạt + mực đậm, đạt tư
 - **Success** (`#dcfce7` nền / `#166534` mực, green): "Hoàn thành".
 - **Danger** (`#fee2e2` nền / `#991b1b` mực, red; nút danger nền `#ef4444`): "Có tranh chấp", "Đã huỷ".
 - **Neutral** (`#f3f4f6` nền / `#374151` mực, gray): "Nháp", "Chờ cọc", "Hết hạn".
-- **Purple** (`#f3e8ff` nền / `#6b21a8` mực): dành riêng, dùng hạn chế.
+- **Purple** (`#f3e8ff` nền / `#6b21a8` mực): tông dự phòng của `Badge`, dùng hạn chế
+  (không dùng tím ở nơi khác).
+
+Badge trạng thái ca **giữ nguyên** bộ tông này ("Đang diễn ra" = info xanh dương) —
+câu trả lời 2 của chủ dự án (29/09): "3 màu" không áp cho badge.
 
 ### Named Rules
 **The One Orange Rule.** Chỉ có MỘT màu thương hiệu — cam tín hiệu. Nó gánh hành
@@ -281,7 +298,7 @@ tác và người dùng hover/focus. Bề mặt tĩnh không tự nâng.
 
 ### Cards / Containers
 - **Corner Style:** bo `16px` (rounded-2xl).
-- **Background:** trắng mặc định; `warm` = `orange-50/60` viền `orange-100`; `subtle` = `slate-50`.
+- **Background:** trắng mặc định; `warm` = `orange-50/60` viền `orange-100`; `subtle` = `gray-50`.
 - **Shadow Strategy:** `shadow-card` khi nghỉ; `shadow-card-hover` + `.motion-lift` khi `clickable`.
 - **Border:** `1px gray-200` mặc định; bỏ viền khi `flush` (thẻ-trong-thẻ) để không rối.
 - **Internal Padding:** `20px` (p-5).
@@ -302,7 +319,7 @@ tác và người dùng hover/focus. Bề mặt tĩnh không tự nâng.
 
 ### Modal
 - **Portal** ra `document.body`, thoát mọi ngữ cảnh clipping. `z-[100]` trên cả nav.
-- **Backdrop:** `slate-900/60` đặc, KHÔNG `backdrop-blur` (tránh band trên nền gradient). Click nền để đóng.
+- **Backdrop:** `gray-900/60` đặc, KHÔNG `backdrop-blur` (tránh band trên nền gradient). Click nền để đóng.
 - **Panel:** trắng, bo `16px`, `p-6`, `shadow-modal`, `ring-1 ring-black/5`, animation `modal-panel-anim`.
 - **A11y:** đóng bằng ESC, focus trap, khoá scroll nền, nút đóng 36px có `aria-label`.
 

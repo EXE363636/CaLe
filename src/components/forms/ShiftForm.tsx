@@ -905,7 +905,7 @@ function EvidenceFieldset({
                       {t(`evidence.requirement.${option}`)}
                     </span>
                     {isSuggested && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
                         {t('evidence.suggestedChip')}
                       </span>
                     )}

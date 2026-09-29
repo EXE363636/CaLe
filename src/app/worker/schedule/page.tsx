@@ -384,7 +384,7 @@ function SchedulePageContent() {
       <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
         <CalendarLegend variant="worker" />
       </div>
-      <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 shadow-sm">
+      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
         <p className="text-xs leading-relaxed text-orange-800">
           {t('schedule.page.approvedShiftsNote')}
         </p>
@@ -581,7 +581,7 @@ function SchedulePageContent() {
           warm-cream chrome already provides surface treatment for the
           calendar grid; the extra blobs added clutter without value. */}
 
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-amber-50 to-white p-6 shadow-card">
+      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white p-6 shadow-card">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-orange-700">
@@ -701,8 +701,8 @@ function BlockRow({
               className={[
                 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
                 block.kind === 'available'
-                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                  : 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+                  ? 'bg-green-50 text-green-700 ring-1 ring-green-200'
+                  : 'bg-gray-100 text-gray-700 ring-1 ring-gray-200',
               ].join(' ')}
             >
               {block.kind === 'available'
@@ -899,7 +899,7 @@ function ScheduleBlockDialog({
               className={[
                 'rounded-xl border px-3 py-2 text-left text-sm transition',
                 kind === 'available'
-                  ? 'border-emerald-400 bg-emerald-50 font-semibold text-emerald-900'
+                  ? 'border-green-400 bg-green-50 font-semibold text-green-900'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
               ].join(' ')}
             >
@@ -912,7 +912,7 @@ function ScheduleBlockDialog({
               className={[
                 'rounded-xl border px-3 py-2 text-left text-sm transition',
                 kind === 'busy'
-                  ? 'border-slate-400 bg-slate-100 font-semibold text-slate-900'
+                  ? 'border-gray-400 bg-gray-100 font-semibold text-gray-900'
                   : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300',
               ].join(' ')}
             >

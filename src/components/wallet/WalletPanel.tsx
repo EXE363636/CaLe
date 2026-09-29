@@ -32,8 +32,8 @@ const PAYOS_MIN_AMOUNT = 2000;
 
 /** Tone chữ cho trạng thái lệnh rút (luôn kèm nhãn chữ, không chỉ dựa màu). */
 function withdrawalTone(status: PayoutOrder['status']): string {
-  if (status === 'SUCCEEDED') return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
-  if (status === 'FAILED' || status === 'CANCELLED') return 'bg-rose-50 text-rose-800 ring-rose-200';
+  if (status === 'SUCCEEDED') return 'bg-green-50 text-green-800 ring-green-200';
+  if (status === 'FAILED' || status === 'CANCELLED') return 'bg-red-50 text-red-800 ring-red-200';
   return 'bg-amber-50 text-amber-800 ring-amber-200';
 }
 
@@ -113,8 +113,8 @@ function mapWalletErr(raw: string): string {
 }
 
 function entryToneClass(amount: number): string {
-  if (amount > 0) return 'text-emerald-700';
-  if (amount < 0) return 'text-rose-700';
+  if (amount > 0) return 'text-green-700';
+  if (amount < 0) return 'text-red-700';
   return 'text-gray-700';
 }
 
@@ -534,7 +534,7 @@ export function WalletPanel({
                       // "signature không hợp lệ") — người dùng không xử lý được.
                       // Giữ lỗi gốc ở `title` cho hỗ trợ tra cứu.
                       <span
-                        className="mt-0.5 block text-xs leading-relaxed text-rose-700"
+                        className="mt-0.5 block text-xs leading-relaxed text-red-700"
                         title={w.failReason}
                       >
                         {/không đủ|insufficient/i.test(w.failReason)

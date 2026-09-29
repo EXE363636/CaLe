@@ -592,7 +592,7 @@ function EmployerDashboardContent() {
               <dt className="text-orange-700">
                 {t('employer.dashboard.stats.completedShifts')}
               </dt>
-              <dd className="mt-1 text-base font-bold text-emerald-600">
+              <dd className="mt-1 text-base font-bold text-green-600">
                 {completedShifts.length}
               </dd>
             </div>
@@ -831,7 +831,7 @@ function EmployerDashboardContent() {
                               className={[
                                 'rounded-full px-2 py-0.5 text-xs font-semibold',
                                 repScore >= 80
-                                  ? 'bg-emerald-50 text-emerald-700'
+                                  ? 'bg-green-50 text-green-700'
                                   : repScore >= 50
                                     ? 'bg-amber-50 text-amber-700'
                                     : 'bg-red-50 text-red-700',
@@ -1029,14 +1029,14 @@ function StatTile({
   const toneChip: Record<Tone, string> = {
     brand: 'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
     neutral: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-    good: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100',
+    good: 'bg-green-50 text-green-600 ring-1 ring-green-100',
     warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
     bad: 'bg-red-50 text-red-600 ring-1 ring-red-100',
   };
   const toneText: Record<Tone, string> = {
     brand: 'text-orange-600',
     neutral: 'text-gray-900',
-    good: 'text-emerald-600',
+    good: 'text-green-600',
     warn: 'text-amber-600',
     bad: 'text-red-600',
   };
@@ -1181,7 +1181,7 @@ function LiveVerificationChips({
       {summary.approvedMethods.map((m) => (
         <span
           key={m.type}
-          className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
+          className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
         >
           Đã xác minh · {m.label}
         </span>
