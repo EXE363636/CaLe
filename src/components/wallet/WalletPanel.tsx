@@ -245,6 +245,7 @@ export function WalletPanel({
 
   // Rút tối thiểu: PayOS (production) không chi dưới 2.000 đ; demo cho mọi số > 0.
   const withdrawMin = supabase ? PAYOS_MIN_AMOUNT : 1;
+  const withdrawHintId = `wallet-withdraw-hint-${userId}`;
 
   function openWithdraw() {
     setWithdrawText('');
@@ -466,9 +467,13 @@ export function WalletPanel({
           {role === 'worker' && balance === 0 && (
             <p className="mt-1 text-xs text-gray-600">{t('wallet.worker.emptyHint')}</p>
           )}
-          {allowWithdraw && balance > 0 && balance < withdrawMin && (
-            <p className="mt-1 text-xs text-gray-600">
-              {t('wallet.withdraw.belowMin').replace('{min}', formatVND(withdrawMin))}
+          {allowWithdraw && balance < withdrawMin && (
+            <p id={withdrawHintId} className="mt-1 text-xs text-gray-600">
+              {balance > 0
+                ? t('wallet.withdraw.belowMin').replace('{min}', formatVND(withdrawMin))
+                : supabase
+                  ? t('wallet.withdraw.emptyMin').replace('{min}', formatVND(withdrawMin))
+                  : t('wallet.withdraw.empty')}
             </p>
           )}
         </div>
@@ -489,8 +494,16 @@ export function WalletPanel({
               {t('wallet.topUp.button')}
             </Button>
           )}
-          {allowWithdraw && balance >= withdrawMin && (
-            <Button size="sm" variant="ghost" onClick={openWithdraw}>
+          {/* Luôn hiện nút rút (làm mờ khi chưa đủ mức tối thiểu) — ẩn hẳn khiến
+              người dùng tưởng app không có tính năng rút tiền. */}
+          {allowWithdraw && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={openWithdraw}
+              disabled={balance < withdrawMin}
+              aria-describedby={balance < withdrawMin ? withdrawHintId : undefined}
+            >
               {t('wallet.withdraw.button')}
             </Button>
           )}

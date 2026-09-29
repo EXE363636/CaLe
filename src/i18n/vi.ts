@@ -2752,6 +2752,9 @@ export const vi: Record<string, string> = {
   // dispute banners.
   // -----------------------------------------------------------------
   'wallet.withdraw.belowMin': 'Số dư dưới {min} — chưa rút được (mức rút tối thiểu).',
+  // Ví trống: nút "Rút tiền" vẫn hiện (làm mờ) để người dùng biết có tính năng rút.
+  'wallet.withdraw.emptyMin': 'Rút được khi ví có từ {min}.',
+  'wallet.withdraw.empty': 'Ví chưa có tiền để rút.',
   'wallet.withdraw.minHint': 'rút tối thiểu {min}',
   'wallet.withdraw.all': 'Rút hết',
   'wallet.topUp.real.title': 'Nạp tiền vào ví',

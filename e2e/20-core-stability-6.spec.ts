@@ -280,6 +280,22 @@ test.describe('Part 8: withdrawal security / access-control', () => {
     await expect(page.getByRole('button', { name: 'Rút tiền' })).toHaveCount(0);
   });
 
+  test('empty wallet still shows a disabled "Rút tiền" button with a reason', async ({
+    page,
+    seedState,
+    loginAs,
+    gotoApp,
+  }) => {
+    await seedState(buildSnapshot()); // worker wallet = 0 đ
+    await loginAs(ACCOUNTS.worker.id);
+    await gotoApp('/worker/dashboard');
+
+    const withdraw = page.getByRole('button', { name: 'Rút tiền' });
+    await expect(withdraw).toBeVisible();
+    await expect(withdraw).toBeDisabled();
+    await expect(withdraw).toHaveAccessibleDescription('Ví chưa có tiền để rút.');
+  });
+
   test('withdrawal note with an XSS payload renders as inert text (escaped, not executed)', async ({
     page,
     seedState,
