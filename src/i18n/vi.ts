@@ -1174,7 +1174,6 @@ export const vi: Record<string, string> = {
   // Admin dashboard
   // -------------------------------------------------------------------------
   'admin.dashboard.title': 'Tổng quan quản trị',
-  'admin.dashboard.eyebrow': 'Tổng quan admin',
   'admin.dashboard.subtitle':
     'Theo dõi người dùng, ca làm, tranh chấp và các điều chỉnh thủ công. Override chỉ dùng khi cần xử lý ngoại lệ.',
   'admin.dashboard.badge': 'Chế độ admin',

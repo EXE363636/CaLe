@@ -19,7 +19,7 @@ export default function PricingPage() {
 
   return (
     <InfoPage
-      eyebrow="Bảng giá"
+      eyebrow="Chi phí"
       title={live ? 'Bảng giá giai đoạn thử nghiệm (Beta)' : 'Giai đoạn thử nghiệm — 0đ'}
       intro={
         live

@@ -10,7 +10,7 @@ export default function SafetyPage() {
   const live = isSupabaseEnv();
   return (
     <InfoPage
-      eyebrow="Bảo vệ"
+      eyebrow="Hỗ trợ"
       title="Bảo vệ người dùng"
       intro="CaLẻ giữ tiền công trước và ghi lại từng bước của ca để hai bên yên tâm."
     >
