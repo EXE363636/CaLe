@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useMemo, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
@@ -41,6 +41,11 @@ import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { Shift, VerificationFlag } from '@/types';
 import { getDataMode, isSupabaseEnv } from '@/data/supabaseClient';
 import { VerificationGateNotice } from '@/components/verification/VerificationGateNotice';
+import { WorkerDepositApplyNotice } from '@/components/workerDeposit/WorkerDepositApplyNotice';
+import { WorkerDepositConfirmModal } from '@/components/workerDeposit/WorkerDepositConfirmModal';
+import { WorkerDepositContestPanel } from '@/components/workerDeposit/WorkerDepositContestPanel';
+import { workerDepositAmount, workerDepositLimitReached, workerShiftWage } from '@/domain/workerDeposit';
+import { useWorkerDepositStore } from '@/stores/workerDepositStore';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -150,6 +155,24 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       )
     : undefined;
 
+  // P2-1 (0028) — cọc người lao động (supabase). Chỉ hiển thị + xin đồng ý;
+  // server tính lại và từ chối nếu số thật lớn hơn số đã đồng ý.
+  const depositStatus = useWorkerDepositStore((s) => s.status);
+  const refreshDepositStatus = useWorkerDepositStore((s) => s.refresh);
+  const depositEnabled = isSupabaseEnv() && !!worker;
+  useEffect(() => {
+    if (depositEnabled) void refreshDepositStatus();
+  }, [depositEnabled, worker?.id, refreshDepositStatus]);
+  const depositAmount =
+    depositEnabled && depositStatus?.enabled && depositStatus.needsDeposit
+      ? workerDepositAmount(workerShiftWage(shift.hourlyWage, shift.startTime, shift.endTime), depositStatus)
+      : 0;
+  const [depositConfirmOpen, setDepositConfirmOpen] = useState(false);
+  // Supabase: khiếu nại vắng mặt qua server (có hoặc không kèm cọc) → ẩn banner
+  // khiếu nại cũ (luồng local) khi bảng khiếu nại server đã tải.
+  const [serverContestReady, setServerContestReady] = useState(false);
+  const markServerContestReady = useCallback(() => setServerContestReady(true), []);
+
   // Phase 10C-Stab-1 Batch 4B — Worker's already-submitted feedback
   // for this shift (idempotency for the post-payment rating banner).
   const submittedFeedbackForApp = useMemo(() => {
@@ -174,10 +197,36 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
   async function handleApply() {
     if (!worker || loading) return;
+    // P2-1: cần cọc → xin đồng ý số tiền trước khi ví bị trừ.
+    if (depositAmount > 0) {
+      const blocked = !depositStatus
+        ? null
+        : workerDepositLimitReached(depositStatus.openHolds, depositStatus.maxOpenHolds)
+          ? 'WORKER_DEPOSIT_LIMIT'
+          : depositStatus.balance < depositAmount
+            ? 'WORKER_DEPOSIT_INSUFFICIENT'
+            : null;
+      if (blocked) {
+        const message = toastFromStoreError(blocked);
+        setApplyError(message);
+        showError(message);
+        return;
+      }
+      setApplyError(null);
+      setDepositConfirmOpen(true);
+      return;
+    }
+    await submitApply(undefined);
+  }
+
+  async function submitApply(acceptedDeposit: number | undefined) {
+    if (!worker) return;
     setLoading(true);
     setApplyError(null);
-    const result = await applyAsync(shift.id, worker.id);
+    const result = await applyAsync(shift.id, worker.id, acceptedDeposit);
     setLoading(false);
+    setDepositConfirmOpen(false);
+    if (depositEnabled) void refreshDepositStatus();
     if (!result.ok) {
       // Phase 10C-Stab-1 Batch 2 F — when the apply was blocked by
       // a schedule conflict, name the conflicting shift in the
@@ -572,6 +621,10 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
         {worker && !myApp && <VerificationGateNotice action="apply" />}
 
+        {worker && !myApp && depositEnabled && depositStatus && (
+          <WorkerDepositApplyNotice status={depositStatus} amount={depositAmount} className="mb-3" />
+        )}
+
         {worker && (
           <ApplicationActions
             shiftId={shift.id}
@@ -640,7 +693,17 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             Distinct from the standard CheckedOut dispute path
             because the application is in a terminal-ish state
             and the category is preset. */}
-        {worker && myApp?.status === 'NoShow' && (
+        {worker && myApp?.status === 'NoShow' && isSupabaseEnv() && (
+          <WorkerDepositContestPanel
+            className="mt-4"
+            applicationId={myApp.id}
+            shiftDate={shift.date}
+            shiftEndTime={shift.endTime}
+            onLoaded={markServerContestReady}
+          />
+        )}
+
+        {worker && myApp?.status === 'NoShow' && !serverContestReady && (
           <div className="mt-4 flex flex-col items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
             <p className="font-semibold">
               {t('worker.absentDispute.banner.title')}
@@ -988,6 +1051,14 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           errorMessage={disputeError}
         />
       )}
+
+      <WorkerDepositConfirmModal
+        open={depositConfirmOpen}
+        amount={depositAmount}
+        loading={loading}
+        onConfirm={() => void submitApply(depositAmount)}
+        onClose={() => setDepositConfirmOpen(false)}
+      />
 
       {/* Phase 10C-Stab-1 Batch 4B — absent dispute dialog. Re-uses
           `<DisputeDialog/>` with the category preset to

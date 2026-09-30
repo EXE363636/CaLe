@@ -1244,7 +1244,13 @@ export type WalletLedgerEntryKind =
   /** P2-2 — dùng tiền thưởng trả phí dịch vụ khi giữ cọc (promo, âm). */
   | 'PromoFeeUsed'
   /** P2-2 — phần phí trả bằng thưởng không dùng → hoàn về túi thưởng. */
-  | 'PromoFeeRefund';
+  | 'PromoFeeRefund'
+  /** P2-1 (0028) — giữ cọc người lao động lúc ứng tuyển (âm). */
+  | 'WorkerDepositHeld'
+  /** P2-1 — hoàn cọc người lao động. */
+  | 'WorkerDepositRefund'
+  /** P2-1 — cọc của người lao động vắng mặt chuyển vào ví nhà tuyển dụng. */
+  | 'EmployerNoShowCompensation';
 
 /**
  * Single wallet ledger entry. Append-only; never mutated.

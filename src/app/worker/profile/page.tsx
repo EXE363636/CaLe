@@ -30,6 +30,7 @@ import { showSuccess, showError } from '@/lib/toast';
 import { t } from '@/i18n/vi';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
+import { WorkerDepositStatusCard } from '@/components/workerDeposit/WorkerDepositStatusCard';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import { useWorkerReviews } from '@/lib/useReviews';
 import { ReviewList } from '@/components/user/ReviewList';
@@ -196,6 +197,8 @@ function WorkerProfileContent() {
               source of truth, not two competing upload paths. */}
           {/* Supabase: xác thực SĐT (OTP) + CCCD (admin duyệt) thật — 0022. */}
           {isSupabaseEnv() && <AccountVerificationCard userId={worker.id} role="worker" />}
+          {/* P2-1 (0028) — cọc khi ứng tuyển + cách được miễn (tự ẩn khi cờ tắt). */}
+          <WorkerDepositStatusCard />
           {/* Local/demo: luồng xác minh giấy tờ mô phỏng cũ. */}
           {hasCapability('verifications') && (
             <WorkerIdentityVerificationCard

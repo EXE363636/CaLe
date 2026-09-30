@@ -2835,6 +2835,111 @@ export const vi: Record<string, string> = {
   'wallet.promo.received': 'Bạn được thưởng {bonus} vào túi tiền thưởng.',
   'deposit.promo.use': 'Trả phí bằng tiền thưởng',
   'deposit.promo.cash': 'Trừ từ số dư ví',
+
+  // P2-1 (0028) — cọc người lao động (tiền thật; chỉ supabase).
+  'wallet.kind.WorkerDepositHeld': 'Giữ cọc ứng tuyển',
+  'wallet.kind.WorkerDepositRefund': 'Hoàn cọc ứng tuyển',
+  'wallet.kind.EmployerNoShowCompensation': 'Tiền cọc của người lao động vắng mặt',
+  'workerDeposit.error.REQUIRED':
+    'Ca này cần đặt cọc. Tải lại trang để xem số tiền cọc rồi ứng tuyển lại.',
+  'workerDeposit.error.CHANGED':
+    'Số tiền cọc vừa thay đổi. Tải lại trang để xem số mới rồi ứng tuyển lại.',
+  'workerDeposit.error.INSUFFICIENT':
+    'Số dư ví không đủ để đặt cọc. Nạp thêm tiền vào ví hoặc xác thực CCCD để được miễn cọc.',
+  'workerDeposit.error.SETTLED':
+    'Tiền cọc của người lao động đã chuyển vào ví của bạn nên không sửa được trạng thái vắng mặt. Liên hệ hỗ trợ nếu cần.',
+  'workerDeposit.error.CONTEST_CLOSED': 'Đã hết hạn khiếu nại cho ca này.',
+  'workerDeposit.error.LIMIT':
+    'Bạn đã có đủ số khoản cọc đang giữ. Chờ các ca trước xong (cọc được hoàn) rồi ứng tuyển thêm, hoặc xác thực CCCD để được miễn cọc.',
+  'workerDeposit.apply.limit': 'Bạn đang giữ {open}/{max} khoản cọc, đã đạt tối đa.',
+  'workerDeposit.contest.reviewPending':
+    'Khoản cọc đang chờ quản trị viên xem xét trước khi chuyển. Nếu bạn có đến, gửi khiếu nại để quản trị viên xét.',
+  'workerDeposit.contest.noDeposit.title': 'Bạn bị đánh vắng mặt ở ca này',
+  'workerDeposit.contest.noDeposit.body':
+    'Nếu bạn có đến, gửi khiếu nại trước {deadline} để quản trị viên xem xét.',
+  'workerDeposit.contest.noDeposit.pending': 'Bạn đã khiếu nại. Quản trị viên đang xem xét.',
+  'workerDeposit.contest.noDeposit.upheld':
+    'Quản trị viên đã chấp nhận khiếu nại: lần vắng mặt này không bị tính.',
+  'workerDeposit.contest.noDeposit.rejected': 'Quản trị viên không chấp nhận khiếu nại.',
+  'workerDeposit.contest.noDeposit.expired': 'Đã hết hạn khiếu nại cho ca này.',
+  'workerDeposit.alert.title': 'Bạn bị đánh vắng mặt ở {n} ca có tiền cọc',
+  'workerDeposit.alert.body': 'Nếu bạn có đến, khiếu nại trong 72 giờ để không mất cọc.',
+  'workerDeposit.alert.link': 'Xem và khiếu nại',
+  'workerDeposit.apply.required': 'Ứng tuyển ca này cần đặt cọc {amount}.',
+  'workerDeposit.apply.rules':
+    'Bạn nhận lại đủ khi làm xong ca, bị từ chối, hoặc huỷ trước giờ bắt đầu. Nếu vắng mặt không báo, tiền cọc chuyển cho nhà tuyển dụng.',
+  'workerDeposit.apply.balance': 'Số dư ví: {balance}.',
+  'workerDeposit.apply.insufficient': 'Ví chưa đủ tiền cọc.',
+  'workerDeposit.apply.topUp': 'Nạp tiền vào ví',
+  'workerDeposit.apply.verify': 'Xác thực CCCD để được miễn cọc',
+  'workerDeposit.exempt.IDENTITY': 'Bạn được miễn cọc khi ứng tuyển vì đã xác thực CCCD.',
+  'workerDeposit.exempt.COMPLETED_SHIFTS':
+    'Bạn được miễn cọc khi ứng tuyển vì đã làm đủ {n} ca trong {days} ngày.',
+  'workerDeposit.blocked':
+    'Bạn cần đặt cọc khi ứng tuyển tới ngày {date} vì có lần vắng mặt gần đây.',
+  'workerDeposit.confirm.title': 'Đặt cọc để ứng tuyển',
+  'workerDeposit.confirm.body':
+    '{amount} sẽ được giữ từ ví của bạn. Bạn nhận lại đủ khi làm xong ca, bị từ chối, hoặc huỷ trước giờ bắt đầu.',
+  'workerDeposit.confirm.noShow':
+    'Nếu vắng mặt không báo, tiền cọc chuyển cho nhà tuyển dụng (bạn có 72 giờ để khiếu nại).',
+  'workerDeposit.confirm.submit': 'Đặt cọc và ứng tuyển',
+  'workerDeposit.confirm.cancel': 'Để sau',
+  'workerDeposit.status.title': 'Cọc khi ứng tuyển',
+  'workerDeposit.status.needs':
+    'Mỗi lần ứng tuyển, bạn đặt cọc {pct}% tiền công ca (tối đa {max}). Tiền cọc được hoàn lại khi bạn làm xong ca.',
+  'workerDeposit.status.howToExempt':
+    'Xác thực CCCD hoặc làm đủ {n} ca trong {days} ngày để không phải cọc (đã làm {done}/{n}).',
+  'workerDeposit.contest.title': 'Tiền cọc {amount} đang được giữ',
+  'workerDeposit.contest.body':
+    'Bạn bị đánh vắng mặt ở ca này. Nếu bạn có đến, gửi khiếu nại trước {deadline}. Quá hạn, tiền cọc chuyển cho nhà tuyển dụng.',
+  'workerDeposit.contest.label': 'Lý do khiếu nại',
+  'workerDeposit.contest.placeholder': 'Ví dụ: Tôi có đến lúc 8:05, đã gặp quản lý ca.',
+  'workerDeposit.contest.submit': 'Gửi khiếu nại',
+  'workerDeposit.contest.reasonShort': 'Vui lòng ghi lý do (ít nhất 5 ký tự).',
+  'workerDeposit.contest.sent': 'Đã gửi khiếu nại. Quản trị viên sẽ xem và quyết định.',
+  'workerDeposit.contest.pending':
+    'Bạn đã khiếu nại. Quản trị viên đang xem xét, tiền cọc vẫn được giữ tới khi có quyết định.',
+  'workerDeposit.contest.expired': 'Đã hết hạn khiếu nại. Tiền cọc sẽ chuyển cho nhà tuyển dụng.',
+  'workerDeposit.contest.refunded': 'Tiền cọc {amount} đã hoàn về ví của bạn.',
+  'workerDeposit.contest.forfeited': 'Tiền cọc {amount} đã chuyển cho nhà tuyển dụng.',
+  'workerDeposit.contest.adminNote': 'Ghi chú của quản trị viên: {note}',
+  'admin.workerDeposit.title': 'Cọc người lao động',
+  'admin.workerDeposit.status.on':
+    'Đang bật: cọc {pct}% tiền công ca, tối đa {max}. Miễn khi đã xác thực CCCD hoặc làm đủ {n} ca trong {days} ngày.',
+  'admin.workerDeposit.status.off': 'Đang tắt: người lao động ứng tuyển không cần cọc.',
+  'admin.workerDeposit.hint':
+    'Tắt chỉ dừng giữ cọc mới; khoản đang giữ vẫn được hoàn hoặc chuyển như thường. Nhà tuyển dụng đánh vắng mặt: cọc về ví nhà tuyển dụng sau hạn khiếu nại 72 giờ. Các khoản chờ quản trị viên duyệt: hệ thống tự đánh vắng (nhà tuyển dụng không xác nhận gì), hoặc nhà tuyển dụng đã tự nhận quá trần trong 24 giờ.',
+  'admin.workerDeposit.overdue':
+    '{count} khoản cọc đã quá hạn xử lý hơn 1 giờ mà vẫn đang giữ. Kiểm tra log cơ sở dữ liệu (cảnh báo "worker_hold … bỏ qua").',
+  'admin.workerDeposit.maxOpen': 'Số khoản cọc tối đa mỗi người',
+  'admin.workerDeposit.forfeitCap': 'NTD tự nhận tối đa / 24 giờ (đồng)',
+  'admin.workerHolds.reviewCap':
+    'Hệ thống giữ lại chờ duyệt: nhà tuyển dụng đã nhận quá trần tiền cọc vắng mặt trong 24 giờ.',
+  'admin.workerHolds.reviewAuto':
+    'Hệ thống tự đánh vắng: nhà tuyển dụng không xác nhận có mặt hay vắng mặt. Chỉ chuyển cọc khi có căn cứ người lao động vắng mặt.',
+  'admin.workerHolds.noReason': 'Người lao động chưa gửi khiếu nại.',
+  'admin.workerHolds.noDeposit':
+    'Không kèm cọc. Chấp nhận thì lần vắng mặt này không tính khi xét miễn cọc.',
+  'admin.workerHolds.overturn': 'Chấp nhận khiếu nại',
+  'admin.workerHolds.reject': 'Không chấp nhận',
+  'admin.workerDeposit.held': 'Đang giữ {count} khoản, tổng {amount}. Khiếu nại chờ xử: {contested}.',
+  'admin.workerDeposit.ratio': 'Tỉ lệ cọc (% tiền công)',
+  'admin.workerDeposit.max': 'Tối đa mỗi lần (đồng)',
+  'admin.workerDeposit.exemptAfter': 'Số ca để được miễn',
+  'admin.workerDeposit.windowDays': 'Tính trong (ngày)',
+  'admin.workerDeposit.enable': 'Bật cọc',
+  'admin.workerDeposit.disable': 'Tắt cọc',
+  'admin.workerDeposit.saved': 'Đã lưu cài đặt cọc người lao động',
+  'admin.workerHolds.title': 'Khiếu nại cọc vắng mặt',
+  'admin.workerHolds.empty': 'Không có khiếu nại nào đang chờ.',
+  'admin.workerHolds.shift': '{shift} · {date} {start}–{end}',
+  'admin.workerHolds.parties': 'Người lao động: {worker} · Nhà tuyển dụng: {employer}',
+  'admin.workerHolds.amount': 'Tiền cọc: {amount}',
+  'admin.workerHolds.reason': 'Lý do khiếu nại: {reason}',
+  'admin.workerHolds.noteLabel': 'Ghi chú quyết định (bắt buộc)',
+  'admin.workerHolds.toWorker': 'Hoàn cọc cho người lao động',
+  'admin.workerHolds.toEmployer': 'Chuyển cọc cho nhà tuyển dụng',
+  'admin.workerHolds.resolved': 'Đã xử lý khiếu nại',
   'admin.settings.loadError': 'Không tải được cài đặt này. Thử lại sau.',
   'admin.topupBonus.title': 'Thưởng nạp ví',
   'admin.topupBonus.status.on':

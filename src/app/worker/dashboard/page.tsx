@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -11,6 +11,8 @@ import { getDataMode } from '@/data/supabaseClient';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWalletStore } from '@/stores/walletStore';
+import { useWorkerDepositStore } from '@/stores/workerDepositStore';
+import { WorkerNoShowDepositAlert } from '@/components/workerDeposit/WorkerNoShowDepositAlert';
 import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink, PageShell } from '@/components/ui';
 import { CancelApplicationDialog } from '@/components/forms/CancelApplicationDialog';
 import { CheckoutDialog } from '@/components/forms/CheckoutDialog';
@@ -120,6 +122,12 @@ function WorkerDashboardContent() {
   // `?modal=wallet` query (cold load) and the same-route notification
   // event (top-up / withdraw / wage-release notifications).
   const [walletLedgerSignal, setWalletLedgerSignal] = useState(0);
+  // P2-1 (0028) — bật cọc người lao động → worker cần nạp ví để đặt cọc.
+  const depositStatus = useWorkerDepositStore((s) => s.status);
+  const refreshDepositStatus = useWorkerDepositStore((s) => s.refresh);
+  useEffect(() => {
+    if (isSupabaseEnv()) void refreshDepositStatus();
+  }, [refreshDepositStatus]);
   // CORE-STABILITY-9 Part 5 — stable "now" sample for the recommended-
   // shifts memo. Captured once per mount via a lazy `useState`
   // initializer so it is NOT an impure `Date.now()` call during render
@@ -819,15 +827,18 @@ function WorkerDashboardContent() {
 
       {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
           this follows the work area + stats (order-3); desktop unchanged. */}
+      {/* P2-1 (0028, T3) — bị đánh vắng ở ca có cọc: cảnh báo để kịp khiếu nại. */}
+      <WorkerNoShowDepositAlert className="order-first mb-6 lg:order-none" />
+
       <section id="wallet" className="order-3 mb-8 scroll-mt-24 lg:order-none">
         {hasCapability('wallet') ? (
-          // Ví mô phỏng (server): worker NHẬN lương (tự cộng khi ca hoàn thành)
-          // + RÚT. Không nạp (worker không giữ cọc). Không giữ tiền client (#7).
+          // Ví (server): worker NHẬN lương (tự cộng khi ca hoàn thành) + RÚT.
+          // Chỉ nạp được khi đang bật cọc người lao động (P2-1). Không giữ tiền client (#7).
           <WalletPanel
             userId={worker.id}
             role="worker"
             openLedgerSignal={walletLedgerSignal}
-            allowTopUp={false}
+            allowTopUp={!!depositStatus?.enabled}
           />
         ) : (
           <NoPaymentNotice />

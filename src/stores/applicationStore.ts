@@ -19,6 +19,7 @@ import { create } from 'zustand';
 import { STORAGE_KEYS, write } from '@/data/persistence';
 import { getDataMode } from '@/data/supabaseClient';
 import { getApplicationRepo } from '@/data/repos/applicationRepo';
+import { applyWithDeposit } from '@/data/repos/workerDepositRepo';
 import { getUserRepo } from '@/data/repos/userRepo';
 import {
   canCancelByQuota,
@@ -500,7 +501,12 @@ interface ApplicationStore {
   // Phase 2 — wrapper ASYNC (supabase: repo RPC + refetch, KHÔNG optimistic;
   // local: gọi method sync cũ, hành vi/test không đổi). UI dùng các wrapper này.
   // -------------------------------------------------------------------------
-  applyAsync(shiftId: string, workerId: string): Promise<Result<Application, string>>;
+  /** `acceptedDeposit` — số cọc worker đã đồng ý (supabase, P2-1). */
+  applyAsync(
+    shiftId: string,
+    workerId: string,
+    acceptedDeposit?: number,
+  ): Promise<Result<Application, string>>;
   /** Trả trạng thái mới (CancelledByWorker | CancellationRequested). */
   withdrawAsync(applicationId: string, reason: string): Promise<Result<string, string>>;
   approveAsync(applicationId: string): Promise<Result<void, string>>;
@@ -2720,10 +2726,14 @@ export const useApplicationStore = create<ApplicationStore>((set, get) => ({
   // -------------------------------------------------------------------------
   // Phase 2 — async wrappers + refetch (supabase mode). KHÔNG optimistic.
   // -------------------------------------------------------------------------
-  async applyAsync(shiftId, workerId) {
+  async applyAsync(shiftId, workerId, acceptedDeposit) {
     if (getDataMode() === 'supabase') {
       try {
-        const id = await getApplicationRepo().apply(shiftId);
+        // P2-1 (0028): có số cọc worker đã đồng ý → RPC trừ ví; không có → RPC
+        // KHÔNG trừ ví (cần cọc thì báo WORKER_DEPOSIT_REQUIRED).
+        const id = acceptedDeposit !== undefined
+          ? await applyWithDeposit(shiftId, acceptedDeposit)
+          : await getApplicationRepo().apply(shiftId);
         await get().refetchForWorker(workerId);
         const app = get().applications.find((a) => a.id === id);
         return app
