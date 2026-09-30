@@ -1,5 +1,8 @@
 # HANDOFF — Session 2026-09-30 (P2-2 thưởng nạp ví + sửa tiêu đề lặp)
 
+> **Phần sau cùng ngày:** `docs/HANDOFF_SESSION_2026-09-30_WEB.md` (webhook 0027 đã
+> push + deploy, menu, đường dẫn EN, VI/EN, sáng/tối) — đọc file đó trước.
+
 > Đọc kèm `CLAUDE.md`, `docs/HANDOFF_SESSION_2026-09-29_P2-3.md` (phần trước) và
 > `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md` (plan P0–P3).
 
