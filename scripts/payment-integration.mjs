@@ -11,11 +11,14 @@
  * ⚠ Database đang dùng chung dev + prod và có TIỀN THẬT: script chỉ tạo user
  * test (email @example.com, mật khẩu ngẫu nhiên), cuối cùng trả lại số dư két
  * đúng phần mình đã làm thay đổi rồi xoá user (mọi dữ liệu xoá dây chuyền).
+ * Từ 0030 DB chặn xoá người có lịch sử tiền → cleanup dọn dữ liệu tiền của user
+ * test trước (scripts/lib/purgeTestMoney.mjs), sau khi đã trả két.
  */
 
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
+import { purgeTestUserMoney } from './lib/purgeTestMoney.mjs';
 
 function loadEnv(p) {
   try {
@@ -318,10 +321,13 @@ async function cleanup() {
     await admin.from('applications').update({ marked_present_by_employer_id: null })
       .in('marked_present_by_employer_id', [...createdUserIds]);
   } catch { /* ignore */ }
+  // 0030: dọn sổ ví / ví / đơn nạp / đơn chi / cọc của user test (két đã trả ở trên).
+  const purgeErrors = await purgeTestUserMoney(admin, createdUserIds);
+  if (purgeErrors.length) { console.error('⚠ Dọn dữ liệu tiền test lỗi:', purgeErrors.join(' | ')); process.exitCode = 1; }
   const leftovers = [];
   for (const id of createdUserIds) {
     try {
-      await admin.auth.admin.deleteUser(id);   // ví/sổ cái/ca/đơn/phiên xoá dây chuyền
+      await admin.auth.admin.deleteUser(id);   // ca/đơn/phiên xoá dây chuyền
       const { data } = await admin.auth.admin.getUserById(id);
       if (data?.user) leftovers.push(id.slice(0, 8));
     } catch { leftovers.push(id.slice(0, 8)); }
