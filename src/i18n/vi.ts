@@ -313,6 +313,15 @@ export const vi: Record<string, string> = {
   'notification.kind.UserWithdrawal': 'Rút tiền khỏi ví',
   // CORE-STABILITY-7 Part 1 - wallet top-up notification.
   'notification.kind.UserTopUp': 'Nạp tiền vào ví',
+  'notification.kind.PaymentReviewCredited': 'Giao dịch nạp đã được cộng sau kiểm tra',
+  'notification.kind.PaymentReviewDismissed': 'Giao dịch nạp không được cộng',
+  // 0031 — thông báo phía server khi admin xử giao dịch nạp cần kiểm tra.
+  'notification.paymentReview.credited.title': 'Đã cộng tiền nạp vào ví',
+  'notification.paymentReview.credited.body':
+    'Giao dịch nạp cho đơn #{code} đã được kiểm tra: cộng {amount} vào ví. Ghi chú: {note}',
+  'notification.paymentReview.dismissed.title': 'Giao dịch nạp đã được xử lý',
+  'notification.paymentReview.dismissed.body':
+    'Giao dịch nạp cho đơn #{code} không được cộng vào ví. Ghi chú của quản trị viên: {note}',
   // CORE-STABILITY-7 Part 1 - employer deposit-paid notification.
   'notification.kind.EmployerDepositPaid': 'Đã giữ cọc cho ca làm',
   // CORE-STABILITY-7 Part 6 - review reported (admin alert).

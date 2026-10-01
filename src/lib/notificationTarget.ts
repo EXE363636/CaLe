@@ -30,6 +30,8 @@ export const WALLET_MODAL = 'wallet';
 const WALLET_KINDS: ReadonlySet<NotificationKind> = new Set([
   'UserTopUp',
   'UserWithdrawal',
+  'PaymentReviewCredited',
+  'PaymentReviewDismissed',
 ]);
 
 /**

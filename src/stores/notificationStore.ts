@@ -9,6 +9,10 @@
 import { create } from 'zustand';
 
 import { STORAGE_KEYS, write } from '@/data/persistence';
+import { listMyNotifications, markMyNotificationsRead } from '@/data/repos/notificationRepo';
+import { toAppNotification } from '@/domain/serverNotification';
+import { t } from '@/i18n/vi';
+import { formatVND } from '@/lib/format';
 import { newPrefixedId } from '@/lib/ids';
 import type { Notification } from '@/types';
 
@@ -29,10 +33,31 @@ interface NotificationStore {
 
   /** Hydrate the slice from a persisted snapshot. */
   hydrate(notifications: Notification[]): void;
+
+  /**
+   * 0031 (chế độ supabase) — nạp thông báo phía server của `userId`, thay phần
+   * server cũ của người đó; thông báo tạo ở client giữ nguyên. Ném khi RPC lỗi
+   * (người gọi tự bỏ qua). Gọi lúc boot + khi quay lại tab, không polling.
+   * `isCurrent`: kiểm lại sau khi RPC trả về — người dùng đã đổi (đăng xuất /
+   * đổi tài khoản giữa chừng) thì bỏ kết quả, không gắn thông báo nhầm người.
+   */
+  refetchServer(userId: string, isCurrent?: () => boolean): Promise<void>;
+
+  /** Bỏ mọi thông báo server khỏi bộ nhớ (đăng xuất / đổi tài khoản). */
+  clearServer(): void;
 }
 
+// Thông báo server không ghi localStorage: nguồn sự thật là server.
 function persist(notifications: Notification[]): void {
-  write(STORAGE_KEYS.notifications, notifications);
+  write(
+    STORAGE_KEYS.notifications,
+    notifications.filter((n) => n.source !== 'server'),
+  );
+}
+
+// Đã đọc trên máy này dù ghi về server lỗi; lần nạp sau server trả lại trạng thái thật.
+function syncReadToServer(ids: string[] | null): void {
+  void markMyNotificationsRead(ids).catch(() => undefined);
 }
 
 export const useNotificationStore = create<NotificationStore>((set, get) => ({
@@ -64,6 +89,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   },
 
   markRead(id) {
+    const target = get().notifications.find((n) => n.id === id);
+    if (target?.source === 'server' && target.serverId && !target.read) {
+      syncReadToServer([target.serverId]);
+    }
     const next = get().notifications.map((n) =>
       n.id === id ? { ...n, read: true } : n,
     );
@@ -72,6 +101,13 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   },
 
   markAllRead(userId) {
+    if (
+      get().notifications.some(
+        (n) => n.userId === userId && n.source === 'server' && !n.read,
+      )
+    ) {
+      syncReadToServer(null);
+    }
     const next = get().notifications.map((n) =>
       n.userId === userId && !n.read ? { ...n, read: true } : n,
     );
@@ -92,5 +128,22 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   hydrate(notifications) {
     set({ notifications });
+  },
+
+  async refetchServer(userId, isCurrent = () => true) {
+    const rows = await listMyNotifications();
+    if (!isCurrent()) return;
+    const fmt = { t: (key: string) => t(key), money: formatVND };
+    const fresh = rows
+      .map((r) => toAppNotification(r, userId, fmt))
+      .filter((n): n is Notification => n !== null);
+    const kept = get().notifications.filter(
+      (n) => !(n.userId === userId && n.source === 'server'),
+    );
+    set({ notifications: [...fresh, ...kept] });
+  },
+
+  clearServer() {
+    set({ notifications: get().notifications.filter((n) => n.source !== 'server') });
   },
 }));

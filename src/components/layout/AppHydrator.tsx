@@ -139,6 +139,12 @@ async function refetchPhase2Supabase(): Promise<void> {
       ...useApplicationStore.getState().applications.map((a) => a.workerId),
     ];
     await refetchReviews(reviewUserIds);
+    // Thông báo phía server (0031: kết quả kiểm tra giao dịch nạp). Lỗi (vd. DB
+    // chưa có 0031) không chặn boot — chuông chỉ thiếu thông báo server.
+    await useNotificationStore
+      .getState()
+      .refetchServer(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
+      .catch(() => undefined);
   }
 }
 

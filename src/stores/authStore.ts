@@ -23,6 +23,7 @@ import { getUserRepo } from '@/data/repos/userRepo';
 import { newPrefixedId } from '@/lib/ids';
 import type { Result, Role, User, Worker, Employer } from '@/types';
 
+import { useNotificationStore } from './notificationStore';
 import { useUserStore } from './userStore';
 
 // ---------------------------------------------------------------------------
@@ -397,6 +398,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Guardrail 4: loại mọi private user Supabase khỏi cache, khôi phục seed —
       // email/phone của user cũ KHÔNG được còn trong bộ nhớ.
       useUserStore.getState().resetToSeedUsers();
+      // Thông báo server (0031: mã đơn, số tiền, ghi chú admin) cũng vậy.
+      useNotificationStore.getState().clearServer();
     }
     set({ currentUserId: null, lastActivityAt: null, pendingOAuth: null });
     persistAuth(null, null);
@@ -523,6 +526,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const current = get().currentUserId;
     if (current && current !== uid) {
       useUserStore.getState().resetToSeedUsers();
+      useNotificationStore.getState().clearServer();
     }
     let user: User | null;
     try {
@@ -553,6 +557,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (event === 'SIGNED_OUT' || !session) {
         // Xoá private user cũ + khôi phục seed (guardrail 4).
         useUserStore.getState().resetToSeedUsers();
+        useNotificationStore.getState().clearServer();
         set({ currentUserId: null, lastActivityAt: null, pendingOAuth: null });
         return;
       }
@@ -575,6 +580,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               } catch {
                 /* ignore */
               }
+              return;
+            }
+            // Vừa đăng nhập: nạp thông báo phía server (0031). Lỗi không chặn.
+            if (event === 'SIGNED_IN') {
+              await useNotificationStore
+                .getState()
+                .refetchServer(uid, () => get().currentUserId === uid)
+                .catch(() => undefined);
             }
           })();
         }, 0);

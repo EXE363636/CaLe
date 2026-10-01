@@ -219,7 +219,13 @@ export type NotificationKind =
    * CORE-STABILITY-7 Part 6 — fired to admins when a user reports a
    * review ("Báo cáo đánh giá"). Deeplinks to the admin dashboard.
    */
-  | 'ReviewReported';
+  | 'ReviewReported'
+  /**
+   * 0031 — thông báo phía server: admin đã xử giao dịch nạp PayOS cần kiểm
+   * tra (0029) — cộng vào ví / không cộng. Deeplink lịch sử ví.
+   */
+  | 'PaymentReviewCredited'
+  | 'PaymentReviewDismissed';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -1061,6 +1067,12 @@ export interface Notification {
    * intentionally-repeatable notifications are unaffected.
    */
   dedupeKey?: string;
+  /**
+   * 0031 — thông báo nạp từ bảng server `user_notifications` (chế độ supabase).
+   * Đánh dấu đã đọc phải ghi về server qua `serverId`.
+   */
+  source?: 'server';
+  serverId?: string;
 }
 
 export interface Dispute {

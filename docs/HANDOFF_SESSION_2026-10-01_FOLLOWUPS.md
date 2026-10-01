@@ -83,3 +83,65 @@ Migration `supabase/migrations/20261001000030_payos_hardening.sql`.
   webhook thử → phải nhận 200 (`unknown-order (ack)`), không phải 500.
 - Sau deploy `admin-users`: xoá thử một tài khoản có đơn nạp → báo "đã có giao dịch tiền
   thật… dùng Khoá tài khoản".
+
+---
+
+## B. Thông báo cho người nạp khi admin xử giao dịch (0031)
+
+Nhánh `feat/payment-review-notify` (tách từ `feat/payos-hardening`).
+Migration `supabase/migrations/20261001000031_user_notifications.sql`.
+
+### B.1 Vì sao cần server
+Thông báo trong app trước đây chỉ nằm trong trình duyệt (`notificationStore`). Ở
+production, admin bấm "Cộng" / "Không cộng" thì thông báo (nếu có) nằm ở máy admin,
+người nạp không nhận được.
+
+### B.2 Server
+- **Bảng `user_notifications`:** `user_id`, `kind`, `params` (jsonb), `dedupe_key`
+  (duy nhất theo người dùng), `read_at`. RLS bật, không policy, không cấp quyền bảng
+  cho client.
+- **Trigger** `payment_review_items_notify`: dòng kiểm tra đổi `Pending → Credited |
+  Dismissed` → ghi thông báo `PaymentReviewCredited` / `PaymentReviewDismissed` cho
+  người nạp (mã đơn, số đã cộng, ghi chú admin). Không đụng logic tiền; chạy trong
+  cùng transaction với việc cộng.
+- **RPC (chỉ của chính mình):** `get_my_notifications()` (≤50 dòng),
+  `mark_my_notifications_read(uuid[] | null)` (≤100 id; null = tất cả).
+- Câu chữ KHÔNG lưu trên server; client dựng theo `vi.ts`
+  (`notification.paymentReview.*`). Sau này thêm loại mới: thêm vào check constraint
+  `kind` + `SERVER_NOTIFICATION_KINDS` + chuỗi `vi.ts`.
+
+### B.3 Client
+- `src/domain/serverNotification.ts` (TDD): `toAppNotification` (điền mẫu một lượt).
+- `src/data/repos/notificationRepo.ts`.
+- `notificationStore`:
+  - `refetchServer(userId, isCurrent)`: bỏ kết quả nếu người dùng đã đổi trong lúc chờ;
+  - `clearServer()`: gọi khi đăng xuất / đổi tài khoản;
+  - `markRead` / `markAllRead` ghi về server;
+  - thông báo server không lưu localStorage.
+- **Nạp khi nào:** lúc mở trang + khi quay lại tab (`AppHydrator`), và khi vừa đăng
+  nhập (`authStore`, sự kiện `SIGNED_IN`). Không polling. Bấm thông báo → lịch sử ví.
+- DB chưa có 0031 → RPC lỗi → bị bỏ qua, chuông chỉ thiếu thông báo server (merge
+  trước push không vỡ trang, nhưng vẫn nên push trước).
+
+### B.4 Kiểm tra
+- Gate:
+  - tsc 0 · lint 0 lỗi (7 cảnh báo có sẵn);
+  - `test:run` 937/937 · `test:time` 22/22;
+  - build OK (33 trang) · e2e 136/136.
+- **Chạy thử DB thật: `bash supabase/dryrun/run-0031.sh` → 13/13** (ghép 0030 + 0031;
+  0030 chạy lại được).
+- **security-reviewer:** không có Nghiêm trọng / Cao / Trung bình. 2 mục Thấp đã sửa:
+  - thông báo server của người cũ còn trong bộ nhớ sau đăng xuất → `clearServer`;
+  - đổi tài khoản giữa lúc nạp → gắn nhầm người → `isCurrent`.
+
+### B.5 Kiểm sau `db push` 0031 (chỉ đọc)
+- `migration list`: 0031 có ở cả 2 cột.
+- Bảng `user_notifications`: RLS bật, `anon` / `authenticated` không có quyền bảng.
+- `_notify_payment_review_resolved`: không cấp cho client. Trigger
+  `payment_review_items_notify` có.
+- **Thử tay:** cần một giao dịch bị đánh dấu thật.
+  1. Admin bấm "Không cộng" kèm ghi chú.
+  2. Người nạp mở lại trang (hoặc quay lại tab): chuông có "Giao dịch nạp đã được
+     xử lý".
+  3. Bấm vào thông báo: mở lịch sử ví.
+  4. Tải lại trang: thông báo vẫn là đã đọc.
