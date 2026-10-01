@@ -2940,6 +2940,55 @@ export const vi: Record<string, string> = {
   'admin.workerHolds.toWorker': 'Hoàn cọc cho người lao động',
   'admin.workerHolds.toEmployer': 'Chuyển cọc cho nhà tuyển dụng',
   'admin.workerHolds.resolved': 'Đã xử lý khiếu nại',
+  // 0029 — giao dịch nạp PayOS cần admin kiểm tra.
+  'admin.paymentReview.title': 'Giao dịch nạp cần kiểm tra',
+  'admin.paymentReview.hint':
+    'PayOS đã báo nhận tiền nhưng giao dịch không khớp đơn nạp nên ví chưa được cộng. Đối chiếu trên trang quản lý PayOS trước khi xử lý.',
+  'admin.paymentReview.order': 'Đơn nạp #{code} · {amount} · {status} · tạo {date}',
+  'admin.paymentReview.user': 'Người nạp: {name} ({role}) · {email}',
+  'admin.paymentReview.paid': 'PayOS báo nhận: {amount}',
+  'admin.paymentReview.paidUnknown': 'PayOS không báo số tiền hợp lệ.',
+  'admin.paymentReview.ref': 'Mã giao dịch: {ref}',
+  'admin.paymentReview.noRef':
+    'Không có mã giao dịch. Kiểm sao kê kỹ để tránh cộng trùng.',
+  'admin.paymentReview.reason.AMOUNT_MISMATCH': 'Số tiền chuyển khác số tiền đơn nạp',
+  'admin.paymentReview.reason.MISSING_REFERENCE': 'PayOS không gửi mã giao dịch',
+  'admin.paymentReview.reason.LINK_MISMATCH': 'Giao dịch thuộc link thanh toán khác',
+  'admin.paymentReview.reason.ORDER_NOT_PAYABLE': 'Tiền về cho đơn đã huỷ hoặc hết hạn',
+  'admin.paymentReview.reason.EXTRA_PAYMENT': 'Chuyển thêm cho đơn đã được cộng',
+  'admin.paymentReview.reason.ALREADY_FLAGGED': 'Chuyển thêm cho đơn đang chờ kiểm tra',
+  'admin.paymentReview.orderStatus.PENDING': 'chờ thanh toán',
+  'admin.paymentReview.orderStatus.PAID': 'đã cộng ví',
+  'admin.paymentReview.orderStatus.CANCELLED': 'đã huỷ',
+  'admin.paymentReview.orderStatus.EXPIRED': 'hết hạn',
+  'admin.paymentReview.orderStatus.FAILED': 'thất bại',
+  'admin.paymentReview.noteLabel': 'Ghi chú (bắt buộc, người nạp sẽ thấy)',
+  'admin.paymentReview.credit': 'Cộng {amount} vào ví',
+  'admin.paymentReview.creditHint':
+    'Cộng đúng số tiền PayOS báo nhận, không kèm thưởng nạp ví.',
+  'admin.paymentReview.dismiss': 'Không cộng (đã xử lý ngoài)',
+  'admin.paymentReview.block.NOTHING_TO_CREDIT': 'Không cộng được vì không rõ số tiền.',
+  'admin.paymentReview.block.DUPLICATE_SUSPECT':
+    'Nghi trùng: đơn này đã được cộng một giao dịch có thể là cùng lần chuyển (PayOS gửi lại thiếu mã). Không cộng tiếp; đối chiếu sao kê. Nếu đúng là trùng thì chọn "Không cộng"; nếu là hai lần chuyển thật, chọn "Không cộng" rồi hoàn tay lần chuyển thừa cho người nạp.',
+  'admin.paymentReview.block.FORBIDDEN':
+    'Đây là giao dịch của chính bạn. Nhờ quản trị viên khác xử lý.',
+  'admin.paymentReview.credited': 'Đã cộng tiền vào ví người nạp',
+  'admin.paymentReview.dismissed': 'Đã ghi nhận không cộng',
+  'wallet.topUp.reviewing':
+    'CaLẻ đã nhận giao dịch nhưng cần kiểm tra thêm (ví dụ số tiền chuyển khác số tiền nạp). Quản trị viên sẽ đối chiếu và cộng ví nếu hợp lệ; kết quả hiện trong ví của bạn. Không cần chuyển khoản lại.',
+  'wallet.topUp.reviewClosed':
+    'Quản trị viên đã kiểm tra giao dịch của đơn này và không cộng vào ví. Xem ghi chú trong ví; đừng chuyển khoản lại cho đơn này.',
+  'wallet.topUp.reviewedPaid': 'Quản trị viên đã kiểm tra và cộng tiền vào ví. Xem số tiền trong lịch sử giao dịch.',
+  'wallet.review.title': 'Giao dịch nạp cần kiểm tra',
+  'wallet.review.hint':
+    'Giao dịch chưa khớp đơn nạp nên ví chưa được cộng tự động. Quản trị viên sẽ đối chiếu và cộng nếu hợp lệ.',
+  'wallet.review.row': 'Chuyển {paid} cho đơn nạp {amount}',
+  'wallet.review.rowUnknown': 'Giao dịch cho đơn nạp {amount}',
+  'wallet.review.status.Pending': 'Đang kiểm tra',
+  'wallet.review.status.Credited': 'Đã cộng {amount}',
+  'wallet.review.status.Dismissed': 'Không cộng',
+  'wallet.review.note': 'Ghi chú: {note}',
+  'wallet.review.support': 'Cần hỏi thêm? Gửi mã đơn #{code} qua trang Hỗ trợ.',
   'admin.settings.loadError': 'Không tải được cài đặt này. Thử lại sau.',
   'admin.topupBonus.title': 'Thưởng nạp ví',
   'admin.topupBonus.status.on':

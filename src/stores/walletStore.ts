@@ -52,6 +52,16 @@ interface MutationContext {
   occurredAt?: string;
 }
 
+/**
+ * Kết quả kiểm một đơn nạp thật (0029):
+ *   PAID           đã cộng (tự động) — đã refetch số dư;
+ *   PAID_REVIEWED  admin cộng tay (đơn từng bị đánh dấu) → số cộng có thể khác số đơn;
+ *   REVIEW         webhook đã nhận nhưng không tự cộng, đang chờ admin;
+ *   REVIEW_CLOSED  admin đã xử lý và không cộng (ghi chú trong ví);
+ *   PENDING        chưa có xác nhận / lỗi mạng.
+ */
+export type TopUpPollState = 'PAID' | 'PAID_REVIEWED' | 'REVIEW' | 'REVIEW_CLOSED' | 'PENDING';
+
 export interface WalletStore {
   wallets: UserWallet[];
   ledger: WalletLedgerEntry[];
@@ -82,6 +92,10 @@ export interface WalletStore {
    * webhook cộng server-side) và trả true. Supabase-only.
    */
   pollRealTopUp(orderCode: number, userId?: string): Promise<boolean>;
+  /**
+   * Như pollRealTopUp nhưng phân biệt đơn bị webhook đánh dấu (0029). Supabase-only.
+   */
+  pollRealTopUpState(orderCode: number, userId?: string): Promise<TopUpPollState>;
   /**
    * MÔ PHỎNG (PAYOS_MOCK): xác nhận "đã chuyển khoản" → server cộng ví ngay →
    * refetch số dư. Trả true nếu ghi nhận thành công. Supabase-only.
@@ -260,17 +274,23 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
   },
 
   async pollRealTopUp(orderCode, userId) {
-    if (getDataMode() !== 'supabase') return false;
+    const state = await get().pollRealTopUpState(orderCode, userId);
+    return state === 'PAID' || state === 'PAID_REVIEWED';
+  },
+
+  async pollRealTopUpState(orderCode, userId) {
+    if (getDataMode() !== 'supabase') return 'PENDING';
     try {
       const order = await getPaymentOrderStatus(orderCode);
       if (order.status === 'PAID') {
         await get().refetchAsync(userId);
-        return true;
+        return order.paidByReview ? 'PAID_REVIEWED' : 'PAID';
       }
-      return false;
+      if (order.needsReview) return 'REVIEW';
+      return order.reviewed ? 'REVIEW_CLOSED' : 'PENDING';
     } catch {
       // No-op an toàn: lỗi mạng không chặn UI; lần poll sau thử lại.
-      return false;
+      return 'PENDING';
     }
   },
 

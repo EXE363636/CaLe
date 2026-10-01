@@ -112,6 +112,9 @@ export async function getPaymentOrderStatus(orderCode: number): Promise<PaymentO
     checkoutUrl: sOpt(o.checkoutUrl),
     qrCode: sOpt(o.qrCode),
     paidAt: sOpt(o.paidAt),
+    needsReview: o.needsReview === true,
+    reviewed: o.reviewed === true,
+    paidByReview: o.paidByReview === true,
   };
 }
 

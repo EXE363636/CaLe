@@ -8,6 +8,8 @@
  * không tự tạo đơn khi mount (tránh tạo đơn trùng khi React chạy effect 2 lần).
  *
  * Thật: bấm nút → poll trạng thái đơn (webhook PayOS đã cộng ví server-side).
+ * Đơn bị webhook đánh dấu cần kiểm tra (0029) → báo "đang kiểm tra", không
+ * mời chuyển khoản lại.
  * Mô phỏng (server PAYOS_MOCK): bấm nút → server cộng ví ngay.
  * KHÔNG dùng timer — kiểm tra theo nút bấm.
  */
@@ -16,6 +18,7 @@ import { useState } from 'react';
 import QRCode from 'react-qr-code';
 import { Button } from '@/components/ui';
 import { formatVND } from '@/lib/format';
+import { t } from '@/i18n/vi';
 import { useWalletStore } from '@/stores/walletStore';
 import type { CreatePaymentResult } from '@/data/repos/paymentRepo';
 
@@ -24,8 +27,12 @@ export interface PayosTopUpQrProps {
   userId: string;
   /** Nhãn dòng "Nạp vào" / mục đích. */
   destinationLabel?: string;
-  /** Gọi khi server xác nhận đã nhận tiền (ví đã được refetch). */
-  onPaid: () => void;
+  /**
+   * Gọi khi server xác nhận đã nhận tiền (ví đã được refetch). `reviewed` = đơn
+   * từng ở trạng thái "đang kiểm tra" rồi được admin cộng → số tiền cộng có thể
+   * khác số tiền đơn, đừng hiện số tiền đơn.
+   */
+  onPaid: (info: { reviewed: boolean }) => void;
   onBack: () => void;
 }
 
@@ -36,23 +43,29 @@ export function PayosTopUpQr({
   onPaid,
   onBack,
 }: PayosTopUpQrProps) {
-  const pollRealTopUp = useWalletStore((s) => s.pollRealTopUp);
+  const pollRealTopUpState = useWalletStore((s) => s.pollRealTopUpState);
   const confirmMockTopUp = useWalletStore((s) => s.confirmMockTopUp);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<null | 'open' | 'closed'>(null);
 
   async function check() {
     if (checking) return;
     setChecking(true);
     setError(null);
-    const paid = order.mock
-      ? await confirmMockTopUp(order.orderCode, userId)
-      : await pollRealTopUp(order.orderCode, userId);
+    const state = order.mock
+      ? (await confirmMockTopUp(order.orderCode, userId)) ? 'PAID' : 'PENDING'
+      : await pollRealTopUpState(order.orderCode, userId);
     setChecking(false);
-    if (paid) {
-      onPaid();
+    if (state === 'PAID' || state === 'PAID_REVIEWED') {
+      onPaid({ reviewed: state === 'PAID_REVIEWED' });
       return;
     }
+    if (state === 'REVIEW' || state === 'REVIEW_CLOSED') {
+      setReviewing(state === 'REVIEW' ? 'open' : 'closed');
+      return;
+    }
+    setReviewing(null);
     setError(
       'Chưa nhận được xác nhận thanh toán. Nếu vừa chuyển khoản, đợi vài giây rồi bấm kiểm tra lại.',
     );
@@ -104,6 +117,15 @@ export function PayosTopUpQr({
         >
           Mở trang thanh toán PayOS
         </a>
+      )}
+
+      {reviewing && (
+        <p
+          role="status"
+          className="rounded-md bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 ring-1 ring-amber-200"
+        >
+          {t(reviewing === 'open' ? 'wallet.topUp.reviewing' : 'wallet.topUp.reviewClosed')}
+        </p>
       )}
 
       {error && (
