@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { en, enPublic, enPublicText, enText } from '@/i18n/en';
 import { enApp, enAppText } from '@/i18n/en-app';
 import { enDashboard, enDashboardText } from '@/i18n/en-dashboard';
+import { enAdmin, enAdminText } from '@/i18n/en-admin';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
 import { vi } from '@/i18n/vi';
 
@@ -61,6 +62,14 @@ const PHASE1_FILES = [
   'src/components/ui/TimeFieldVN.tsx',
   'src/components/ui/HelpPopover.tsx',
   'src/components/ui/PageHelpButton.tsx',
+  // Đợt 2b: trang quản trị (trừ VerificationsPanel — chỉ chế độ demo).
+  'src/app/admin/dashboard/page.tsx',
+  'src/app/admin/dashboard/FeeCampaignCard.tsx',
+  'src/app/admin/dashboard/IdentityReviewPanel.tsx',
+  'src/app/admin/dashboard/PaymentReviewList.tsx',
+  'src/app/admin/dashboard/TopUpBonusCard.tsx',
+  'src/app/admin/dashboard/WorkerDepositCard.tsx',
+  'src/app/admin/dashboard/WorkerHoldContestList.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -145,6 +154,8 @@ describe('i18n English — đợt 2a', () => {
       // Đợt 2b không ghi đè đợt 1 / 2a.
       ...clash(enDashboardText, { ...enPublicText, ...enAppText }),
       ...clash(enDashboard, { ...enPublic, ...enApp }),
+      ...clash(enAdminText, { ...enPublicText, ...enAppText, ...enDashboardText }),
+      ...clash(enAdmin, { ...enPublic, ...enApp, ...enDashboard }),
     ]).toEqual([]);
   });
 
@@ -159,6 +170,10 @@ describe('i18n English — đợt 2a', () => {
       'dispute.category.',
       'application.status.',
       'employerFeedback.tag.',
+      'dispute.status.',
+      'admin.paymentReview.',
+      'admin.accounts.error.',
+      'admin.identity.filter.',
     ];
     const missing = Object.keys(vi).filter(
       (k) => prefixes.some((p) => k.startsWith(p)) && !(k in en),

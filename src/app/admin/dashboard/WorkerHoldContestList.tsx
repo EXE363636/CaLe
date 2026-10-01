@@ -20,9 +20,10 @@ import {
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatDateVN, formatVND } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 export function WorkerHoldContestList() {
+  const t = useT();
   const [items, setItems] = useState<AdminNoShowCase[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [failedKey, setFailedKey] = useState<number | null>(null);
@@ -71,6 +72,7 @@ export function WorkerHoldContestList() {
 }
 
 function CaseItem({ item, onResolved }: { item: AdminNoShowCase; onResolved: () => void }) {
+  const t = useT();
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState<null | 'worker' | 'employer'>(null);
   const withDeposit = item.holdId !== null;

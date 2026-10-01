@@ -14,13 +14,14 @@ import { isFeeFreeActive, vietnamDate } from '@/domain/deposit';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatDateVN } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 function errMsg(e: unknown): string {
   return toastFromStoreError(e instanceof Error ? e.message : 'BACKEND_ERROR');
 }
 
 export function FeeCampaignCard() {
+  const t = useT();
   // undefined = đang tải; null = không có đợt.
   const [until, setUntil] = useState<string | null | undefined>(undefined);
   const [draft, setDraft] = useState('');

@@ -45,7 +45,8 @@ import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { exportSnapshot, importSnapshot } from '@/data/persistence';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { hasCapability } from '@/data/capabilities';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
+import { tCurrent } from '@/i18n/locale';
 import type { Application, Dispute, EscrowStatus, Shift, User } from '@/types';
 
 type Tab = 'analytics' | 'users' | 'shifts' | 'disputes' | 'verifications';
@@ -59,6 +60,7 @@ export default function AdminDashboardPage() {
 }
 
 function AdminDashboardContent() {
+  const t = useT();
   useLifecycleSync();
   const [tab, setTab] = useState<Tab>('analytics');
 
@@ -375,6 +377,7 @@ function AnalyticsPanel({
   onJumpToShifts: (filter: AdminShiftFilter) => void;
   onJumpToDisputes: () => void;
 }) {
+  const t = useT();
   const users = useUserStore((s) => s.users);
   const shifts = useShiftStore((s) => s.shifts);
   const disputes = useApplicationStore((s) => s.disputes);
@@ -517,6 +520,7 @@ function StatCard({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
+  const t = useT();
   const baseClasses = [
     'group relative overflow-hidden rounded-3xl border border-gray-100 p-5 text-left w-full shadow-card',
     highlight
@@ -580,6 +584,8 @@ function StatCard({
  * Mã lạ → thông báo chung UNKNOWN (không rò chi tiết kỹ thuật ra UI).
  */
 function accountErrorMessage(code: string): string {
+  // Gọi trong xử lý kết quả thao tác (client) → theo ngôn ngữ đang hiển thị.
+  const t = tCurrent;
   const key = `admin.accounts.error.${code}`;
   const msg = t(key);
   return msg === key ? t('admin.accounts.error.UNKNOWN') : msg;
@@ -590,6 +596,7 @@ function UsersPanel({
 }: {
   initialFilter?: 'all' | 'worker' | 'employer' | 'admin';
 }) {
+  const t = useT();
   const users = useUserStore((s) => s.users);
   const suspend = useAdminStore((s) => s.suspend);
   const reactivate = useAdminStore((s) => s.reactivate);
@@ -922,6 +929,7 @@ function displayNameOf(user: User): string {
 }
 
 function CreateAccountForm({ onCreated }: { onCreated: () => void }) {
+  const t = useT();
   const createUserAsync = useAdminStore((s) => s.createUserAsync);
   const [role, setRole] = useState<'worker' | 'employer'>('worker');
   const [email, setEmail] = useState('');
@@ -1032,6 +1040,7 @@ function DeleteAccountModal({
   onClose: () => void;
   onConfirm: (userId: string) => Promise<boolean>;
 }) {
+  const t = useT();
   const [retype, setRetype] = useState('');
   const [deleting, setDeleting] = useState(false);
 
@@ -1122,6 +1131,7 @@ function UserRow({
   canDelete?: boolean;
   onDelete?: () => void;
 }) {
+  const t = useT();
   const adjustReputation = useAdminStore((s) => s.adjustReputation);
   const ratingsOn = hasCapability('ratings');
   // Worker-only row state. For non-workers `currentScore` is always 0; the
@@ -1354,6 +1364,7 @@ function ShiftsPanel({
   /** Báo bộ lọc lên dashboard để giữ trong URL (Back về đúng bộ lọc). */
   onFilterChange?: (filter: AdminShiftFilter) => void;
 }) {
+  const t = useT();
   const shifts = useShiftStore((s) => s.shifts);
   const lastSyncAt = useShiftStore((s) => s.lastLifecycleSyncAt);
   const users = useUserStore((s) => s.users);
@@ -1521,6 +1532,7 @@ function ShiftRow({
   /** Chỉ có khi đang lọc "Chưa khớp": số người còn thiếu + có gấp không. */
   unfilledInfo?: { missing: number; urgent: boolean };
 }) {
+  const t = useT();
   const overrideEscrow = useAdminStore((s) => s.overrideEscrow);
   const escrowOn = hasCapability('payments');
   const [editing, setEditing] = useState(false);
@@ -1639,6 +1651,7 @@ function ShiftRow({
 // ---------------------------------------------------------------------------
 
 function DisputesPanel() {
+  const t = useT();
   const disputes = useApplicationStore((s) => s.disputes);
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);
@@ -1698,6 +1711,7 @@ function DisputesPanel() {
  * the underlying review.
  */
 function ReportedReviewsCard() {
+  const t = useT();
   const reports = useReviewReportStore((s) => s.reports);
   const resolve = useReviewReportStore((s) => s.resolve);
   const feedback = useEmployerFeedbackStore((s) => s.feedback);
@@ -1795,6 +1809,8 @@ function DisputeRow({
   workerName: string;
   employerName: string;
 }) {
+  const t = useT();
+  const tx = useTx();
   const resolveDispute = useAdminStore((s) => s.resolveDispute);
   const requestMoreEvidence = useAdminStore((s) => s.requestMoreEvidence);
   const [expanded, setExpanded] = useState(false);
@@ -1869,7 +1885,7 @@ function DisputeRow({
           <p className="text-sm font-semibold text-gray-900">
             {shiftTitle}
             <span className="ml-2 text-xs font-normal text-orange-700">
-              {expanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
+              {expanded ? tx('▲ Thu gọn') : tx('▼ Xem chi tiết')}
             </span>
           </p>
           <p className="mt-0.5 text-xs text-gray-500">
@@ -1893,11 +1909,11 @@ function DisputeRow({
             </p>
           )}
           <p className="mt-2 text-sm text-gray-700">
-            <span className="font-medium">Lý do:</span> {dispute.reason}
+            <span className="font-medium">{tx('Lý do:')}</span> {dispute.reason}
           </p>
           {dispute.resolutionNote && (
             <p className="mt-1 text-sm text-gray-600">
-              <span className="font-medium">Ghi chú:</span> {dispute.resolutionNote}
+              <span className="font-medium">{tx('Ghi chú:')}</span> {dispute.resolutionNote}
             </p>
           )}
         </button>
@@ -1919,29 +1935,29 @@ function DisputeRow({
       {expanded && (
         <div className="mt-3 flex flex-col gap-3 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs text-gray-700">
           <dl className="grid grid-cols-1 gap-1 sm:grid-cols-[max-content_1fr] sm:gap-x-3">
-            <dt className="font-medium">Ngày / giờ ca:</dt>
+            <dt className="font-medium">{tx('Ngày / giờ ca:')}</dt>
             <dd>
               {shift
                 ? `${formatDateVN(shift.date)} • ${formatTimeVN(shift.startTime)}–${formatTimeVN(shift.endTime)}`
                 : '—'}
             </dd>
-            <dt className="font-medium">Địa điểm:</dt>
+            <dt className="font-medium">{tx('Địa điểm:')}</dt>
             <dd>{shift?.location ?? '—'}</dd>
-            <dt className="font-medium">Người lao động:</dt>
+            <dt className="font-medium">{tx('Người lao động:')}</dt>
             <dd>{workerName}</dd>
-            <dt className="font-medium">Nhà tuyển dụng:</dt>
+            <dt className="font-medium">{tx('Nhà tuyển dụng:')}</dt>
             <dd>{employerName}</dd>
-            <dt className="font-medium">Mô tả bằng chứng:</dt>
+            <dt className="font-medium">{tx('Mô tả bằng chứng:')}</dt>
             <dd className="whitespace-pre-line">{dispute.evidenceDescription || '—'}</dd>
-            <dt className="font-medium">Tệp bằng chứng:</dt>
+            <dt className="font-medium">{tx('Tệp bằng chứng:')}</dt>
             <dd className="break-all font-mono">{dispute.evidenceFileName || '—'}</dd>
             <dt className="font-medium">Check-in:</dt>
             <dd>{dispute.id === 'dispute-001' ? '08:30:00 10/07/2026' : VN_DT(application?.checkInAt)}</dd>
-            <dt className="font-medium">Xác nhận có mặt:</dt>
+            <dt className="font-medium">{tx('Xác nhận có mặt:')}</dt>
             <dd>{VN_DT(application?.markedPresentAt)}</dd>
             <dt className="font-medium">Check-out:</dt>
             <dd>{dispute.id === 'dispute-001' ? '16:45:00 10/07/2026' : VN_DT(application?.checkOutAt)}</dd>
-            <dt className="font-medium">Ghi chú bàn giao:</dt>
+            <dt className="font-medium">{tx('Ghi chú bàn giao:')}</dt>
             <dd className="whitespace-pre-line">{application?.workerCheckoutNote || '—'}</dd>
           </dl>
 
@@ -2005,14 +2021,14 @@ function DisputeRow({
                   variant={outcome === 'ResolvedReleased' ? 'primary' : 'secondary'}
                   onClick={() => setOutcome('ResolvedReleased')}
                 >
-                  Thanh toán cho người lao động
+                  {tx('Thanh toán cho người lao động')}
                 </Button>
                 <Button
                   size="sm"
                   variant={outcome === 'ResolvedRefunded' ? 'primary' : 'secondary'}
                   onClick={() => setOutcome('ResolvedRefunded')}
                 >
-                  Hoàn tiền cho nhà tuyển dụng
+                  {tx('Hoàn tiền cho nhà tuyển dụng')}
                 </Button>
               </div>
               <Textarea
@@ -2117,6 +2133,7 @@ function DisputeRow({
  * Mock-only — no backend, no real fetch. All persistence is localStorage.
  */
 function SnapshotDevUtility() {
+  const t = useT();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [importing, setImporting] = useState(false);
 

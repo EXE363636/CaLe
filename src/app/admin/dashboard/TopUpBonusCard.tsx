@@ -15,13 +15,14 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 function errMsg(e: unknown): string {
   return toastFromStoreError(e instanceof Error ? e.message : 'BACKEND_ERROR');
 }
 
 export function TopUpBonusCard() {
+  const t = useT();
   const [rule, setRule] = useState<TopUpBonusRule | null>(null);
   const [minText, setMinText] = useState('');
   const [amountText, setAmountText] = useState('');

@@ -22,7 +22,7 @@ import {
 import { formatDateVN, formatLogDateTime } from '@/lib/format';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 type Filter = 'Pending' | 'Approved' | 'Rejected';
 const FILTERS: Filter[] = ['Pending', 'Approved', 'Rejected'];
@@ -42,6 +42,7 @@ function errMsg(e: unknown): string {
 
 /** Lỗi tải dữ liệu + nút thử lại — khác hẳn trạng thái "không có dữ liệu". */
 function LoadError({ onRetry }: { onRetry: () => void }) {
+  const t = useT();
   return (
     <div
       role="alert"
@@ -60,6 +61,7 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
 // ---------------------------------------------------------------------------
 
 function SettingsCard() {
+  const t = useT();
   const [s, setS] = useState<VerificationSettings | null>(null);
   const [cap, setCap] = useState('');
   const [saving, setSaving] = useState(false);
@@ -206,6 +208,7 @@ function Toggle({
 // ---------------------------------------------------------------------------
 
 function ReviewQueue() {
+  const t = useT();
   const [filter, setFilter] = useState<Filter>('Pending');
   const [items, setItems] = useState<IdentityReviewItem[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -281,6 +284,7 @@ function ReviewQueue() {
 }
 
 function ReviewItem({ item, onDone }: { item: IdentityReviewItem; onDone: () => void }) {
+  const t = useT();
   const [urls, setUrls] = useState<Record<string, string> | null>(null);
   const [reason, setReason] = useState('');
   const [rejecting, setRejecting] = useState(false);

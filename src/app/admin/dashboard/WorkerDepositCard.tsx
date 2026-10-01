@@ -19,7 +19,7 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 function errMsg(e: unknown): string {
   return toastFromStoreError(e instanceof Error ? e.message : 'BACKEND_ERROR');
@@ -28,6 +28,7 @@ function errMsg(e: unknown): string {
 const digits = (s: string): number => (/^\d+$/.test(s) ? Number(s) : -1);
 
 export function WorkerDepositCard() {
+  const t = useT();
   const [data, setData] = useState<AdminWorkerDepositSettings | null>(null);
   const [ratioText, setRatioText] = useState('');
   const [maxText, setMaxText] = useState('');

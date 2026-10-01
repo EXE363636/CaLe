@@ -27,12 +27,13 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
 import { useAuthStore } from '@/stores/authStore';
-import { t, vi } from '@/i18n/vi';
+import { vi } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 // Điền một lượt: tên người dùng đặt (vd "{email}") không làm sai dòng thông tin.
-const fill = (key: string, map: Record<string, string>) => fillTemplate(t(key), map);
 
 export function PaymentReviewList() {
+  const t = useT();
   const [items, setItems] = useState<AdminPaymentReview[] | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [failedKey, setFailedKey] = useState<number | null>(null);
@@ -82,6 +83,8 @@ export function PaymentReviewList() {
 }
 
 function ReviewItem({ item, onResolved }: { item: AdminPaymentReview; onResolved: () => void }) {
+  const t = useT();
+  const fill = (key: string, map: Record<string, string>) => fillTemplate(t(key), map);
   const adminId = useAuthStore((s) => s.currentUserId) ?? '';
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState<null | 'credit' | 'dismiss'>(null);
@@ -103,7 +106,7 @@ function ReviewItem({ item, onResolved }: { item: AdminPaymentReview; onResolved
     }
   }
 
-  const role = vi[`role.${item.userRole}`] ?? item.userRole;
+  const role = vi[`role.${item.userRole}`] ? t(`role.${item.userRole}`) : item.userRole;
   const blockMsg = creditBlock && creditBlock !== 'ALREADY_REVIEWED'
     ? t(`admin.paymentReview.block.${creditBlock}`)
     : null;

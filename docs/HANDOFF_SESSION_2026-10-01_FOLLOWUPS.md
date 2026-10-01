@@ -7,7 +7,8 @@
 1. Ba nhánh xếp chồng, merge đúng thứ tự (mỗi nhánh tách từ nhánh trước):
    1. `feat/payos-hardening` — migration **0030** (mục A);
    2. `feat/payment-review-notify` — migration **0031** (mục B);
-   3. `feat/i18n-phase2` — không đụng DB (mục C).
+   3. `feat/i18n-phase2` — không đụng DB (mục C);
+   4. `feat/i18n-phase2b` — không đụng DB (mục D).
 2. **0030, 0031 CHƯA `db push`.** Thứ tự cho mỗi migration:
    1. chạy thử: `bash supabase/dryrun/run-00NN.sh` (mọi dòng "ok");
    2. chủ dự án duyệt;
@@ -186,9 +187,51 @@ Nhánh `feat/i18n-phase2` (tách từ `feat/payment-review-notify`).
   - `test:run` 942/942 · `test:time` 22/22;
   - build OK (33 trang) · e2e 137/137.
 
-### C.4 Còn lại (đợt 2b)
+### C.4 Còn lại (đợt 2b → đã làm phần lớn, xem mục D)
 - Dashboard người lao động / nhà tuyển dụng: khoảng 210 khoá + 200 dòng chữ viết cứng.
 - Admin: khoảng 150 khoá. Ưu tiên thấp vì người dùng là đội nội bộ.
 - Cẩm nang (bài viết dài).
 - Các hộp thoại con của chi tiết ca, trang hồ sơ, đăng ca.
 - ⚠️ **Nhờ người đọc lại bản tiếng Anh**, nhất là lỗi ví / rút tiền.
+
+---
+
+## D. VI/EN đợt 2b (không đụng DB)
+
+Nhánh `feat/i18n-phase2b` (tách từ `feat/i18n-phase2`).
+
+### D.1 Đã dịch
+- **Dashboard người lao động** (`/worker/dashboard`) và **nhà tuyển dụng**
+  (`/employer/dashboard`), kèm:
+  - các hộp thoại: huỷ đơn, check-out, đánh giá nhà tuyển dụng;
+  - thẻ thông báo, cảnh báo cọc vắng mặt;
+  - ô ngày / giờ (thông báo lỗi), nút và popover hướng dẫn.
+  - Bản dịch ở `src/i18n/en-dashboard.ts`.
+- **Trang quản trị** (`/admin/dashboard`), bản dịch ở `src/i18n/en-admin.ts`, gồm:
+  - các thẻ cài đặt: miễn phí theo đợt, thưởng nạp ví, cọc người lao động;
+  - xác thực CCCD, giao dịch nạp cần kiểm tra, khiếu nại cọc.
+
+### D.2 Kiểm tra
+- `i18nEnglish.test.ts`:
+  - thêm toàn bộ file trên;
+  - kiểm "không ghi đè" mở rộng cho cả 4 bộ từ điển;
+  - khoá ghép động thêm: `application.status.*`, `employerFeedback.tag.*`,
+    `dispute.status.*`, `admin.paymentReview.*`, `admin.accounts.error.*`.
+- e2e: dashboard người lao động bằng tiếng Anh.
+- Gate:
+  - tsc 0 · lint 0 lỗi (7 cảnh báo có sẵn);
+  - `test:run` 942/942 · `test:time` 22/22;
+  - build OK (33 trang) · e2e 138/138.
+
+### D.3 Còn lại
+- `VerificationsPanel`: khoảng 92 chuỗi viết cứng, chỉ dùng ở chế độ demo / local.
+- **Cẩm nang**: bài viết dài, nên dịch có người đọc lại.
+- Các trang khác:
+  - hồ sơ worker / employer, đăng ca `/employer/shifts/new`, quản lý ca
+    `/employer/shifts/[id]`;
+  - lịch, thanh toán, đánh giá;
+  - trang thông tin (about, faq, terms, privacy…);
+  - các hộp thoại khiếu nại.
+- Câu trong dữ liệu domain (vd. nhãn phương thức xác minh, lý do tính sẵn) vẫn là
+  tiếng Việt.
+

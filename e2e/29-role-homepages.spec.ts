@@ -221,6 +221,16 @@ test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
     await expect(page.getByText('Pay for the whole shift')).toBeVisible();
     await expect(page.getByRole('link', { name: /Back/ })).toBeVisible();
   });
+  test('đợt 2b: dashboard người lao động hiện tiếng Anh', async ({ page, seedState, loginAs, gotoApp }) => {
+    await page.setViewportSize(DESKTOP);
+    await seedState(buildSnapshot());
+    await loginAs(ACCOUNTS.worker.id);
+    await gotoApp('/worker/dashboard');
+    await page.getByRole('button', { name: 'Switch to English' }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Hello,');
+    await expect(page.getByText('Reputation score', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Upcoming shifts', { exact: true }).first()).toBeVisible();
+  });
 });
 
 test.describe('Nút giao diện sáng / tối', () => {
