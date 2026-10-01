@@ -11,6 +11,7 @@
  */
 
 import { enApp, enAppText } from './en-app';
+import { enDashboard, enDashboardText } from './en-dashboard';
 
 export const enPublic: Record<string, string> = {
   // --- Chung / điều hướng ---------------------------------------------------
@@ -338,5 +339,9 @@ export const enPublicText: Record<string, string> = {
     'The demo does not support password resets. Use a demo account on the log in page.',
 };
 
-export const en: Record<string, string> = { ...enPublic, ...enApp };
-export const enText: Record<string, string> = { ...enPublicText, ...enAppText };
+export const en: Record<string, string> = { ...enPublic, ...enApp, ...enDashboard };
+export const enText: Record<string, string> = {
+  ...enPublicText,
+  ...enAppText,
+  ...enDashboardText,
+};

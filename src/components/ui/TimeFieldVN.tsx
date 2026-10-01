@@ -24,7 +24,8 @@
  */
 
 import { forwardRef, useEffect, useState, type InputHTMLAttributes } from 'react';
-import { t } from '@/i18n/vi';
+// Chỉ dùng trong xử lý sự kiện / effect (client) → theo ngôn ngữ đang hiển thị.
+import { tCurrent as t } from '@/i18n/locale';
 
 const HHMM_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
 

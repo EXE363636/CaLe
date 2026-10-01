@@ -17,7 +17,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { handleNotificationClick } from '@/lib/notificationAction';
 import { formatLogDateTime } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { Notification } from '@/types';
 
 interface DashboardNotificationCardProps {
@@ -30,6 +30,7 @@ export function DashboardNotificationCard({
   notification,
   onRead,
 }: DashboardNotificationCardProps) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
 

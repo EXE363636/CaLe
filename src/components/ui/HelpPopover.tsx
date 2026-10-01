@@ -50,7 +50,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Modal } from './Modal';
 import { Button } from './Button';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 
 export interface HelpPopoverProps {
   /** Modal title — "Điểm uy tín", "Đơn chờ duyệt", etc. */
@@ -79,6 +79,8 @@ export function HelpPopover({
   ariaLabel,
   className = '',
 }: HelpPopoverProps) {
+  const t = useT();
+  const tx = useTx();
   const [open, setOpen] = useState(false);
 
   return (
@@ -95,7 +97,7 @@ export function HelpPopover({
           setOpen(true);
         }}
         onMouseDown={(e) => e.stopPropagation()}
-        aria-label={ariaLabel ?? `Giải thích: ${title}`}
+        aria-label={ariaLabel ?? tx('Giải thích: {title}').replace('{title}', title)}
         aria-haspopup="dialog"
         aria-expanded={open}
         className={[

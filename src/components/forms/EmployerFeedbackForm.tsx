@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import { Button, StarRating, Textarea } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { EmployerFeedbackTag } from '@/types';
 
 interface EmployerFeedbackFormProps {
@@ -36,6 +36,7 @@ export function EmployerFeedbackForm({
   loading = false,
   className = '',
 }: EmployerFeedbackFormProps) {
+  const t = useT();
   const [stars, setStars] = useState<number>(0);
   const [comment, setComment] = useState('');
   const [tags, setTags] = useState<Set<EmployerFeedbackTag>>(new Set());

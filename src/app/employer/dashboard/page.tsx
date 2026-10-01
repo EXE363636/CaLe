@@ -29,7 +29,8 @@ import { useModalFromQuery } from '@/lib/useModalFromQuery';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { getUserInitials } from '@/lib/initials';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
+import { tCurrent } from '@/i18n/locale';
 import type { Application, Shift } from '@/types';
 
 export default function EmployerDashboardPage() {
@@ -41,6 +42,8 @@ export default function EmployerDashboardPage() {
 }
 
 function EmployerDashboardContent() {
+  const t = useT();
+  const tx = useTx();
   useLifecycleSync();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
@@ -91,9 +94,10 @@ function EmployerDashboardContent() {
         refundedShiftsRef.current.add(sh.id);
         const refunded = await refundForShiftAsync(sh.id, currentUserId);
         if (refunded) {
+          // Hiệu ứng phụ (hoàn cọc) — dùng tCurrent để đổi ngôn ngữ không chạy lại effect.
           showSuccess(
-            t('employer.dashboard.refund.title'),
-            t('employer.dashboard.refund.desc').replace('{title}', sh.title),
+            tCurrent('employer.dashboard.refund.title'),
+            tCurrent('employer.dashboard.refund.desc').replace('{title}', sh.title),
           );
         }
       }
@@ -601,11 +605,11 @@ function EmployerDashboardContent() {
           {statDetail === 'deposits' ? (
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium text-gray-600">
-                CA ĐANG CHỜ THANH TOÁN
+                {tx('CA ĐANG CHỜ THANH TOÁN')}
               </p>
               {activeShifts.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-3 text-center text-xs text-gray-500">
-                  Không có ca nào đang giữ tiền chờ thanh toán.
+                  {tx('Không có ca nào đang giữ tiền chờ thanh toán.')}
                 </div>
               ) : (
                 <ul className="flex flex-col gap-2">
@@ -913,6 +917,7 @@ function ShiftListModal({
   shifts: Shift[];
   applications?: Application[];
 }) {
+  const t = useT();
   return (
     <Modal open={open} onClose={onClose} title={title} titleAccessory={titleAccessory}>
       <div className="flex flex-col gap-3 text-sm text-gray-700">
@@ -1023,6 +1028,7 @@ function StatTile({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
+  const t = useT();
   // Quieter — stat tiles are calm: white surface, soft border, no tinted
   // wash and no saturated gradient chips. Colour is a small accent on the
   // icon glyph + the value only (DESIGN.md: One Orange / status-as-accent).
@@ -1164,6 +1170,8 @@ function LiveVerificationChips({
   worker: Worker;
   workerDocuments: WorkerVerificationDocument[];
 }) {
+  const t = useT();
+  const tx = useTx();
   const summary = useMemo(
     () => getWorkerVerificationSummary(worker, workerDocuments),
     [worker, workerDocuments],
@@ -1183,12 +1191,12 @@ function LiveVerificationChips({
           key={m.type}
           className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
         >
-          Đã xác minh · {m.label}
+          {tx('Đã xác minh')} · {m.label}
         </span>
       ))}
       {summary.pendingCount > 0 && (
         <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-          {summary.pendingCount} đang chờ duyệt
+          {summary.pendingCount} {tx('đang chờ duyệt')}
         </span>
       )}
     </>
@@ -1204,6 +1212,7 @@ function EmployerPenaltyLedger({
 }: {
   employerShifts: Shift[];
 }) {
+  const tx = useTx();
   const penaltyEntries = useMemo(() => {
     return employerShifts
       .filter(
@@ -1222,7 +1231,7 @@ function EmployerPenaltyLedger({
   return (
     <div className="flex flex-col gap-2">
       <p className="text-sm font-semibold text-red-700">
-        Phí hủy ca sau khi đã duyệt người
+        {tx('Phí hủy ca sau khi đã duyệt người')}
       </p>
       <ul className="flex flex-col gap-2">
         {penaltyEntries.slice(0, 5).map((shift) => (
@@ -1245,7 +1254,7 @@ function EmployerPenaltyLedger({
                   {Math.round(
                     (shift.employerCancellationPenaltyRate ?? 0) * 100,
                   )}
-                  % tiền cọc
+                  {tx('% tiền cọc')}
                 </p>
                 <p className="text-sm font-bold text-red-800">
                   -{formatVND(shift.employerCancellationPenaltyAmount ?? 0)}
@@ -1254,11 +1263,11 @@ function EmployerPenaltyLedger({
             </div>
             {shift.employerCancellationReason && (
               <p className="mt-1.5 text-xs text-red-800/90">
-                Lý do: {shift.employerCancellationReason}
+                {tx('Lý do: {reason}').replace('{reason}', shift.employerCancellationReason)}
               </p>
             )}
             <p className="mt-0.5 text-xs italic text-red-700/70">
-              Phí hủy do ca đã có người lao động được duyệt.
+              {tx('Phí hủy do ca đã có người lao động được duyệt.')}
             </p>
           </li>
         ))}

@@ -39,7 +39,7 @@ import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { getUserInitials } from '@/lib/initials';
 import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { canReviewApplication } from '@/domain/reviewEligibility';
 import { submitReviewAsync, useReviewBackendStore } from '@/lib/reviewSync';
 import { ShiftReviewStatus } from '@/components/shift/ShiftReviewStatus';
@@ -55,6 +55,8 @@ export default function WorkerDashboardPage() {
 }
 
 function WorkerDashboardContent() {
+  const t = useT();
+  const tx = useTx();
   useLifecycleSync();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
@@ -486,7 +488,7 @@ function WorkerDashboardContent() {
     }
     // Sort descending so the most-recent event is first.
     return events.sort((a, b) => b.at.localeCompare(a.at));
-  }, [worker, myApps, shifts]);
+  }, [worker, myApps, shifts, t]);
 
   // Hồ sơ chưa tải xong (supabase cold load) → trạng thái đang tải có
   // thông báo cho trình đọc màn hình, thay vì trang trắng.
@@ -1773,7 +1775,7 @@ function WorkerDashboardContent() {
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-gray-900">
-                            {shift?.title ?? 'Ca làm'}
+                            {shift?.title ?? tx('Ca làm')}
                           </p>
                           {employerName && (
                             <p className="mt-0.5 truncate text-xs text-orange-700">
@@ -1890,7 +1892,7 @@ function WorkerDashboardContent() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-gray-900">
-                              {shift?.title ?? 'Ca làm'}
+                              {shift?.title ?? tx('Ca làm')}
                             </p>
                             {employerName && (
                               <p className="mt-0.5 truncate text-xs text-orange-700">
@@ -1998,6 +2000,7 @@ function StatTile({
   onClick?: () => void;
   ariaLabel?: string;
 }) {
+  const t = useT();
   // Quieter — stat tiles are calm: white surface, soft border, no tinted
   // wash and no saturated gradient chips. Colour is a small accent on the
   // icon glyph + the value only (DESIGN.md: One Orange / status-as-accent).
@@ -2142,6 +2145,7 @@ function UpcomingShiftCard({
   onCheckOut: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const nowIso = new Date().toISOString();
   // Gate thống nhất: CTA chấm công chỉ hiện khi capability attendance bật
   // (production = có RPC thật). Time gate quyết định thời điểm hiển thị.
@@ -2292,6 +2296,7 @@ function HistoryShiftCard({
   reason?: string;
   note: string;
 }) {
+  const t = useT();
   return (
     <Link
       href={`/shifts/${shift.id}`}
@@ -2327,6 +2332,7 @@ function PendingApplicationCard({
   application: Application;
   shift: Shift;
 }) {
+  const t = useT();
   return (
     <Card>
       <div className="flex items-start justify-between gap-2">
@@ -2362,6 +2368,7 @@ function RejectedApplicationCard({
   application: Application;
   shift: Shift;
 }) {
+  const t = useT();
   return (
     <Card>
       <div className="flex items-start justify-between gap-2">

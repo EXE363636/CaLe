@@ -31,7 +31,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button, Modal } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 export interface PageHelpSection {
   /** Section heading — already translated by the caller. */
@@ -72,6 +72,7 @@ export function PageHelpButton({
   cta,
   className = '',
 }: PageHelpButtonProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
 
   // Phase 9Y — `sections` wins when both shapes are present.

@@ -49,7 +49,8 @@ import {
   validateCheckoutPayload,
   type CheckoutPayload,
 } from '@/domain/evidence';
-import { CHECKOUT_CHECKLIST_ITEMS_VI, t } from '@/i18n/vi';
+import { CHECKOUT_CHECKLIST_ITEMS_VI } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import type { Application, EvidenceRequirement, Shift } from '@/types';
 
@@ -103,6 +104,8 @@ export function CheckoutDialog({
   loading = false,
   errorMessage = null,
 }: CheckoutDialogProps) {
+  const t = useT();
+  const tx = useTx();
   // The validator and the checklist template both default to the
   // safest interpretation when the requirement is missing — we mirror
   // that in the UI by treating an undefined level as `'None'`.
@@ -326,13 +329,13 @@ export function CheckoutDialog({
             disabled. */}
         <p className="sr-only">
           {checklistRequired
-            ? 'Checklist bắt buộc — tích đầy đủ các mục để bật nút gửi.'
+            ? tx('Checklist bắt buộc — tích đầy đủ các mục để bật nút gửi.')
             : ''}
           {noteRequired
-            ? ' Ghi chú bàn giao bắt buộc — nhập ít nhất 1 ký tự.'
+            ? ' ' + tx('Ghi chú bàn giao bắt buộc — nhập ít nhất 1 ký tự.')
             : ''}
           {fileRequired
-            ? ' Tên tệp ảnh bàn giao bắt buộc — nhập tên tệp.'
+            ? ' ' + tx('Tên tệp ảnh bàn giao bắt buộc — nhập tên tệp.')
             : ''}
         </p>
       </form>

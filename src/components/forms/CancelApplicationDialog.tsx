@@ -16,7 +16,7 @@ import { Modal, Button, Textarea } from '@/components/ui';
 import { classifyCancellation } from '@/domain/reputation';
 import { requiresEmployerApprovalToCancel } from '@/domain/timeGates';
 import { canCancelByQuota, type QuotaUsage } from '@/domain/cancellationQuota';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import type { Application, Shift } from '@/types';
 
 interface CancelApplicationDialogProps {
@@ -43,6 +43,8 @@ export function CancelApplicationDialog({
   loading = false,
   quota,
 }: CancelApplicationDialogProps) {
+  const t = useT();
+  const tx = useTx();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -96,7 +98,7 @@ export function CancelApplicationDialog({
     <Modal open={open} onClose={onClose} title={t('cancel.confirm.title')}>
       <div className="flex flex-col gap-4">
         <p className="text-sm text-gray-700">
-          Bạn sắp huỷ đơn ứng tuyển ca <span className="font-semibold">{shift.title}</span>.
+          {tx('Bạn sắp huỷ đơn ứng tuyển ca')} <span className="font-semibold">{shift.title}</span>.
         </p>
 
         {/* Quota indicator — always shown when the parent supplied usage,

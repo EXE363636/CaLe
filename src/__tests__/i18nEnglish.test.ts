@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import { en, enPublic, enPublicText, enText } from '@/i18n/en';
 import { enApp, enAppText } from '@/i18n/en-app';
+import { enDashboard, enDashboardText } from '@/i18n/en-dashboard';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
 import { vi } from '@/i18n/vi';
 
@@ -48,6 +49,18 @@ const PHASE1_FILES = [
   'src/components/wallet/PayoutHealthBanner.tsx',
   'src/components/wallet/NoPaymentNotice.tsx',
   'src/app/shifts/[id]/page.tsx',
+  // Đợt 2b (01/10): dashboard người lao động / nhà tuyển dụng.
+  'src/app/worker/dashboard/page.tsx',
+  'src/app/employer/dashboard/page.tsx',
+  'src/components/forms/CancelApplicationDialog.tsx',
+  'src/components/forms/CheckoutDialog.tsx',
+  'src/components/forms/EmployerFeedbackForm.tsx',
+  'src/components/layout/DashboardNotificationCard.tsx',
+  'src/components/workerDeposit/WorkerNoShowDepositAlert.tsx',
+  'src/components/ui/DateFieldVN.tsx',
+  'src/components/ui/TimeFieldVN.tsx',
+  'src/components/ui/HelpPopover.tsx',
+  'src/components/ui/PageHelpButton.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -124,11 +137,15 @@ describe('i18n English — đợt 1', () => {
 
 describe('i18n English — đợt 2a', () => {
   it('đợt 2a không ghi đè câu của đợt 1 (vd. nhãn menu "Người lao động" → "Workers")', () => {
-    const textClash = Object.keys(enAppText).filter(
-      (k) => k in enPublicText && enPublicText[k] !== enAppText[k],
-    );
-    const keyClash = Object.keys(enApp).filter((k) => k in enPublic && enPublic[k] !== enApp[k]);
-    expect([...textClash, ...keyClash]).toEqual([]);
+    const clash = (later: Record<string, string>, earlier: Record<string, string>) =>
+      Object.keys(later).filter((k) => k in earlier && earlier[k] !== later[k]);
+    expect([
+      ...clash(enAppText, enPublicText),
+      ...clash(enApp, enPublic),
+      // Đợt 2b không ghi đè đợt 1 / 2a.
+      ...clash(enDashboardText, { ...enPublicText, ...enAppText }),
+      ...clash(enDashboard, { ...enPublic, ...enApp }),
+    ]).toEqual([]);
   });
 
   it('khoá ghép động có đủ bản tiếng Anh (nhãn trạng thái ca, trạng thái đơn, thông báo server)', () => {
@@ -140,6 +157,8 @@ describe('i18n English — đợt 2a', () => {
       'wallet.withdraw.real.status.',
       'wallet.review.status.',
       'dispute.category.',
+      'application.status.',
+      'employerFeedback.tag.',
     ];
     const missing = Object.keys(vi).filter(
       (k) => prefixes.some((p) => k.startsWith(p)) && !(k in en),

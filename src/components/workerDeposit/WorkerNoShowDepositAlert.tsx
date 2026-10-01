@@ -11,9 +11,10 @@ import Link from 'next/link';
 
 import { getMyNoShowHolds, type WorkerHold } from '@/data/repos/workerDepositRepo';
 import { isSupabaseEnv } from '@/data/supabaseClient';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 export function WorkerNoShowDepositAlert({ className = '' }: { className?: string }) {
+  const t = useT();
   const [holds, setHolds] = useState<WorkerHold[]>([]);
   const supabase = isSupabaseEnv();
 
