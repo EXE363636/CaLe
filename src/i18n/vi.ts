@@ -2834,6 +2834,7 @@ export const vi: Record<string, string> = {
   // Rút tiền THẬT về tài khoản ngân hàng (PayOS Kênh chi) — chế độ supabase.
   'wallet.kind.UserWithdrawalReversed': 'Hoàn tiền rút không thành công',
   'wallet.kind.PlatformFeeReceived': 'Phí dịch vụ nền tảng',
+  'wallet.kind.PlatformFeeTestReversal': 'Đảo phí ca thử nghiệm (script kiểm tra)',
   // P2-2 (0026) — thưởng nạp ví (túi thưởng: chỉ trả phí dịch vụ, không rút).
   'wallet.kind.TopUpBonus': 'Thưởng nạp ví',
   'wallet.kind.PromoFeeUsed': 'Dùng tiền thưởng trả phí dịch vụ',

@@ -21,7 +21,7 @@
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { purgeTestUserMoney } from './lib/purgeTestMoney.mjs';
+import { cleanupTestMoney } from './lib/purgeTestMoney.mjs';
 
 function loadEnv(p) {
   try {
@@ -302,10 +302,14 @@ async function deleteAndVerify(id) {
 async function cleanup() {
   // 0030: DB chặn xoá người có lịch sử tiền → dọn sổ ví / ví / cọc của user test trước
   // (trước cả xoá ca: worker_holds khoá ngoại tới ca kiểu restrict).
-  const purgeErrors = await purgeTestUserMoney(admin, createdUserIds);
-  if (purgeErrors.length) {
-    console.error('⚠ Dọn dữ liệu tiền test lỗi:', purgeErrors.join(' | '));
+  // Script này không làm đổi két (ca chèn thẳng, không có phiên cọc) → bankDelta 0.
+  // Bước nào lỗi (vd. có cọc của người dùng thật trên ca test) → dừng, không xoá gì.
+  const money = await cleanupTestMoney(admin, { userIds: createdUserIds });
+  if (!money.ok) {
+    console.error('⚠ CLEANUP DỪNG — dọn dữ liệu tiền test lỗi, KHÔNG xoá user:');
+    for (const e of money.errors) console.error('  - ' + e);
     process.exitCode = 1;
+    return;
   }
   // Xoá ca test của LẦN CHẠY NÀY trước (client_request_id `att-<ts>-`), giảm tải
   // cascade khi xoá employer (tránh lỗi/timeout xoá user sở hữu nhiều ca/đơn).

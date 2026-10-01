@@ -280,6 +280,7 @@ export const enApp: Record<string, string> = {
   'wallet.kind.UserWithdrawal': 'Wallet withdrawal',
   'wallet.kind.UserWithdrawalReversed': 'Failed withdrawal refunded',
   'wallet.kind.PlatformFeeReceived': 'Platform service fee',
+  'wallet.kind.PlatformFeeTestReversal': 'Test shift fee reversed (test script)',
   'wallet.kind.TopUpBonus': 'Top-up bonus',
   'wallet.kind.PromoFeeUsed': 'Bonus used for service fee',
   'wallet.kind.PromoFeeRefund': 'Bonus refunded',

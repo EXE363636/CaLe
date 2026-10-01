@@ -12,13 +12,14 @@
  * test (email @example.com, mật khẩu ngẫu nhiên), cuối cùng trả lại số dư két
  * đúng phần mình đã làm thay đổi rồi xoá user (mọi dữ liệu xoá dây chuyền).
  * Từ 0030 DB chặn xoá người có lịch sử tiền → cleanup dọn dữ liệu tiền của user
- * test trước (scripts/lib/purgeTestMoney.mjs), sau khi đã trả két.
+ * test (scripts/lib/purgeTestMoney.mjs: đảo phí ca test khỏi ví admin, dọn, rồi
+ * mới trả két). Có cọc của người dùng thật trên ca test → dừng, không xoá gì.
  */
 
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
-import { purgeTestUserMoney } from './lib/purgeTestMoney.mjs';
+import { cleanupTestMoney } from './lib/purgeTestMoney.mjs';
 
 function loadEnv(p) {
   try {
@@ -307,23 +308,20 @@ async function run() {
 }
 
 async function cleanup() {
-  // Trả két về như trước khi chạy (chỉ phần do script thay đổi).
-  if (bankDelta !== 0) {
-    const r = await rpc(admin, '_bank_apply', { p_delta: -bankDelta });
-    if (!r.ok) {
-      const { data } = await admin.from('system_bank').select('balance').eq('id', true).single();
-      const { error } = await admin.from('system_bank').update({ balance: (data?.balance ?? 0) - bankDelta }).eq('id', true);
-      if (error) { console.error(`⚠ Không trả lại được két (lệch ${bankDelta}đ) — sửa tay!`); process.exitCode = 1; }
-    }
-  }
   // Gỡ dấu "employer xác nhận có mặt" trỏ tới user test (phòng DB chưa có 0020).
   try {
     await admin.from('applications').update({ marked_present_by_employer_id: null })
       .in('marked_present_by_employer_id', [...createdUserIds]);
   } catch { /* ignore */ }
-  // 0030: dọn sổ ví / ví / đơn nạp / đơn chi / cọc của user test (két đã trả ở trên).
-  const purgeErrors = await purgeTestUserMoney(admin, createdUserIds);
-  if (purgeErrors.length) { console.error('⚠ Dọn dữ liệu tiền test lỗi:', purgeErrors.join(' | ')); process.exitCode = 1; }
+  // 0030: đảo phí ca test, dọn dữ liệu tiền của user test, rồi mới trả két
+  // (bankDelta). Bước nào lỗi → dừng, KHÔNG xoá user (két vẫn khớp ví test còn lại).
+  const money = await cleanupTestMoney(admin, { userIds: createdUserIds, bankDelta });
+  if (!money.ok) {
+    console.error('⚠ CLEANUP DỪNG — dọn dữ liệu tiền test lỗi, KHÔNG xoá user:');
+    for (const e of money.errors) console.error('  - ' + e);
+    process.exitCode = 1;
+    return;
+  }
   const leftovers = [];
   for (const id of createdUserIds) {
     try {

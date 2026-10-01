@@ -1251,6 +1251,8 @@ export type WalletLedgerEntryKind =
   | 'UserWithdrawalReversed'
   /** Phí dịch vụ 10% của một ca → ví admin được chỉ định (migration 0021). */
   | 'PlatformFeeReceived'
+  /** Script tích hợp đảo phí của ca test khỏi ví người nhận phí (scripts/lib/purgeTestMoney.mjs). */
+  | 'PlatformFeeTestReversal'
   /** P2-2 (0026) — thưởng nạp ví vào TÚI THƯỞNG (pocket 'promo'). */
   | 'TopUpBonus'
   /** P2-2 — dùng tiền thưởng trả phí dịch vụ khi giữ cọc (promo, âm). */
