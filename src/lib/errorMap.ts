@@ -168,6 +168,10 @@ export function toastFromStoreError(
     CONTEST_CLOSED: t('workerDeposit.error.CONTEST_CLOSED'),
     NO_WORKER_DEPOSIT: t('feedback.error.wrongStatus'),
     INVALID_STATE_FOR_CONTEST: t('feedback.error.wrongStatus'),
+    // 0029 — admin xử giao dịch nạp cần kiểm tra.
+    NOTHING_TO_CREDIT: t('admin.paymentReview.block.NOTHING_TO_CREDIT'),
+    DUPLICATE_SUSPECT: t('admin.paymentReview.block.DUPLICATE_SUSPECT'),
+    ORDER_NEEDS_REVIEW: t('wallet.topUp.reviewing'),
     SAME_PASSWORD: t('auth.reset.error.same'),
     SESSION_EXPIRED: t('auth.reset.error.expired'),
   };

@@ -1299,6 +1299,12 @@ export interface PaymentOrder {
   checkoutUrl?: string;
   qrCode?: string;
   paidAt?: string;
+  /** 0029: có giao dịch của đơn đang chờ admin kiểm tra (webhook không tự cộng). */
+  needsReview?: boolean;
+  /** 0029: đơn từng có giao dịch bị đánh dấu (kể cả đã xử lý). */
+  reviewed?: boolean;
+  /** 0029: đơn PAID do admin cộng tay (số cộng = số PayOS báo nhận). */
+  paidByReview?: boolean;
 }
 
 /**

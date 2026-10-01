@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Modal } from '@/components/ui';
 import { PayosTopUpQr } from '@/components/payment/PayosTopUpQr';
+import { PaymentReviewNotice } from '@/components/wallet/PaymentReviewNotice';
 import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { showSuccess } from '@/lib/toast';
@@ -245,6 +246,7 @@ export function WalletPanel({
   // bước 'qr' → QR PayOS + "Tôi đã chuyển khoản" (component PayosTopUpQr).
   const [topUpStep, setTopUpStep] = useState<'amount' | 'qr'>('amount');
   const [topUpOrder, setTopUpOrder] = useState<CreatePaymentResult | null>(null);
+  const [reviewSignal, setReviewSignal] = useState(0);
   // CORE-STABILITY-6 Part 3 — withdrawal modal state.
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawText, setWithdrawText] = useState('');
@@ -339,6 +341,8 @@ export function WalletPanel({
 
   /** Đóng + reset modal nạp tiền về bước đầu. */
   function closeTopUp() {
+    // 0029: đơn vừa nạp có thể đã bị đánh dấu cần kiểm tra → đọc lại danh sách.
+    setReviewSignal((n) => n + 1);
     setTopUpOpen(false);
     setTopUpStep('amount');
     setTopUpText('');
@@ -347,7 +351,14 @@ export function WalletPanel({
   }
 
   /** PayOS xác nhận đã nhận tiền (ví đã được refetch trong PayosTopUpQr). */
-  function onTopUpPaid(order: CreatePaymentResult) {
+  function onTopUpPaid(order: CreatePaymentResult, reviewed = false) {
+    // Đơn admin đã kiểm tra rồi cộng: số cộng = số PayOS báo nhận, có thể khác
+    // số tiền đơn → không hiện số tiền đơn (số thật nằm trong sổ ví).
+    if (reviewed) {
+      showSuccess(t('wallet.topUp.reviewedPaid'));
+      closeTopUp();
+      return;
+    }
     showSuccess('Đã nạp tiền vào ví', `+${formatVND(order.amount)}`);
     pushNotification({
       userId,
@@ -615,6 +626,9 @@ export function WalletPanel({
         </div>
       )}
 
+      {/* 0029: giao dịch nạp đang chờ admin kiểm tra / vừa được xử lý. */}
+      {supabase && <PaymentReviewNotice reloadSignal={reviewSignal} />}
+
       {userLedger.length === 0 ? (
         <p className="mt-3 text-sm text-gray-600">
           {t('wallet.balance.empty')}
@@ -679,7 +693,7 @@ export function WalletPanel({
           <PayosTopUpQr
             order={topUpOrder}
             userId={userId}
-            onPaid={() => onTopUpPaid(topUpOrder)}
+            onPaid={({ reviewed }) => onTopUpPaid(topUpOrder, reviewed)}
             onBack={() => {
               setTopUpStep('amount');
               setTopUpOrder(null);

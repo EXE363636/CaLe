@@ -34,6 +34,7 @@ import { FeeCampaignCard } from './FeeCampaignCard';
 import { TopUpBonusCard } from './TopUpBonusCard';
 import { WorkerDepositCard } from './WorkerDepositCard';
 import { WorkerHoldContestList } from './WorkerHoldContestList';
+import { PaymentReviewList } from './PaymentReviewList';
 import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -404,6 +405,8 @@ function AnalyticsPanel({
           allowTopUp={false}
         />
       )}
+      {/* 0029 — giao dịch nạp PayOS cần kiểm tra (ẩn khi không có). */}
+      {isSupabaseEnv() && <PaymentReviewList />}
       {/* P2-3 (F12) — đợt miễn phí dịch vụ (chỉ production có phí). */}
       {isSupabaseEnv() && <FeeCampaignCard />}
       {/* P2-2 (F10) — thưởng nạp ví cho nhà tuyển dụng. */}
