@@ -726,7 +726,7 @@ function WorkerNav({
       <NavLink href="/worker/schedule" pathname={pathname}>
         {t('nav.schedule')}
       </NavLink>
-      <NavLink href="/handbook" pathname={pathname}>
+      <NavLink href="/handbook?for=worker" pathname={pathname}>
         {t('nav.label.handbook')}
       </NavLink>
       <NavLink
@@ -793,7 +793,7 @@ function EmployerNav({
       {/* P0 feedback — bỏ "Ca công khai" (/shifts) khỏi nav employer: mục đích
           xem trước ca như người lao động thấy nay là link "Xem như người lao
           động thấy" trên trang quản lý từng ca (/employer/shifts/[id]). */}
-      <NavLink href="/handbook" pathname={pathname}>
+      <NavLink href="/handbook?for=employer" pathname={pathname}>
         {t('nav.label.handbook')}
       </NavLink>
       <NavLink

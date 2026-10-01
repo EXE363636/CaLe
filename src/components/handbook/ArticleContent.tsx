@@ -1,6 +1,13 @@
 import { HandbookArticleSection } from '@/data/mock/handbookArticles';
 
-export function ArticleContent({ content }: { content: HandbookArticleSection[] }) {
+export function ArticleContent({
+  content,
+  fallbackAlt,
+}: {
+  content: HandbookArticleSection[];
+  /** Chữ thay thế khi mục ảnh không có chú thích / tiêu đề (theo ngôn ngữ). */
+  fallbackAlt: string;
+}) {
   if (!content || content.length === 0) return null;
 
   const renderText = (text: string) => {
@@ -35,7 +42,7 @@ export function ArticleContent({ content }: { content: HandbookArticleSection[] 
           )}
           {section.imageUrl && (
             <figure className="my-8">
-              <img src={section.imageUrl} alt={section.imageCaption || section.heading || 'Minh họa bài viết'} className="w-full rounded-xl object-cover shadow-sm h-auto max-h-[500px]" />
+              <img src={section.imageUrl} alt={section.imageCaption || section.heading || fallbackAlt} className="w-full rounded-xl object-cover shadow-sm h-auto max-h-[500px]" />
               {section.imageCaption && (
                 <figcaption className="mt-3 text-center text-sm text-gray-500 italic">
                   {section.imageCaption}

@@ -408,6 +408,33 @@ export const enAppText: Record<string, string> = {
     'You are an employer. Manage shifts from your dashboard.',
   'Bạn đang xem với tư cách quản trị viên.': 'You are viewing as an administrator.',
   'Ảnh mô phỏng — bản MVP không có upload thật.': 'Mock photo: the MVP has no real uploads.',
+  // Cẩm nang (01/10): hai cẩm nang riêng theo vai trò.
+  'Bài khác cho người lao động': 'More for workers',
+  'Bài khác cho nhà tuyển dụng': 'More for employers',
+  'Bài viết khác': 'More articles',
+  'Bài viết thuộc danh mục "{category}"': 'Articles in "{category}"',
+  'Chuẩn bị cho ca đầu tiên, giữ điểm uy tín, hiểu cách nhận tiền công và đi làm an toàn.':
+    'Prepare for your first shift, protect your reputation score, understand how you get paid and stay safe at work.',
+  'Chọn cẩm nang theo vai trò': 'Choose the handbook for your role',
+  'Cẩm nang người lao động': 'Worker handbook',
+  'Cẩm nang nhà tuyển dụng': 'Employer handbook',
+  'Danh mục cẩm nang người lao động': 'Worker handbook categories',
+  'Danh mục cẩm nang nhà tuyển dụng': 'Employer handbook categories',
+  'Danh mục': 'Categories',
+  'Dành cho người lao động': 'For workers',
+  'Dành cho nhà tuyển dụng': 'For employers',
+  'Hai cẩm nang riêng cho hai vai trò. Chọn cẩm nang dành cho bạn.':
+    'Two separate handbooks for two roles. Choose the one for you.',
+  'Không tìm thấy bài viết nào.': 'No articles found.',
+  'Minh họa bài viết': 'Article illustration',
+  'Quay lại': 'Back to',
+  'Tất cả bài viết': 'All articles',
+  'Viết tin đăng, chọn người phù hợp, hiểu tiền giữ - phí - hoàn tiền và xử lý khi người lao động vắng mặt.':
+    'Write job posts, choose the right people, understand money held, fees and refunds, and handle no-shows.',
+  '{n} bài viết': '{n} articles',
+  '{n} phút đọc': '{n} min read',
+  'Đọc cẩm nang người lao động': 'Read the worker handbook',
+  'Đọc cẩm nang nhà tuyển dụng': 'Read the employer handbook',
   'CaLẻ hiện chưa thu hoặc giữ tiền. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán.':
     'CaLẻ does not collect or hold money yet. Employers and workers agree on the payment method themselves.',
 };

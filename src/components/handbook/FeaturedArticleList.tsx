@@ -1,8 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { HandbookArticle } from '@/data/mock/handbookArticles';
+import type { HandbookArticle } from '@/data/mock/handbookArticles';
+import type { ArticleMetaLabels } from './ArticleCard';
 
-export function FeaturedArticleList({ articles }: { articles: HandbookArticle[] }) {
+export function FeaturedArticleList({
+  articles,
+  meta,
+}: {
+  articles: HandbookArticle[];
+  meta: ArticleMetaLabels;
+}) {
   if (!articles || articles.length === 0) return null;
 
   const mainArticle = articles[0];
@@ -36,7 +43,7 @@ export function FeaturedArticleList({ articles }: { articles: HandbookArticle[] 
           <div className="mt-4 flex items-center gap-3 text-xs text-gray-300">
             <span>{mainArticle.author}</span>
             <span>•</span>
-            <span>{mainArticle.readingTime} phút đọc</span>
+            <span>{meta.readingTime.replace('{n}', String(mainArticle.readingTime))}</span>
           </div>
         </div>
       </Link>

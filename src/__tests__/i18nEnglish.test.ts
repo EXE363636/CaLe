@@ -70,6 +70,9 @@ const PHASE1_FILES = [
   'src/app/admin/dashboard/TopUpBonusCard.tsx',
   'src/app/admin/dashboard/WorkerDepositCard.tsx',
   'src/app/admin/dashboard/WorkerHoldContestList.tsx',
+  // Cẩm nang (01/10) — nội dung bài dịch ở handbookArticlesEn.ts (handbookByRole.test.ts).
+  'src/app/handbook/page.tsx',
+  'src/app/handbook/[slug]/page.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */

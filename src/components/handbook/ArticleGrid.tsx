@@ -1,11 +1,21 @@
-import { HandbookArticle } from '@/data/mock/handbookArticles';
-import { ArticleCard } from './ArticleCard';
+import type { HandbookArticle } from '@/data/mock/handbookArticles';
+import { ArticleCard, type ArticleMetaLabels } from './ArticleCard';
 
-export function ArticleGrid({ articles, title }: { articles: HandbookArticle[], title: string }) {
+export function ArticleGrid({
+  articles,
+  title,
+  emptyText,
+  meta,
+}: {
+  articles: HandbookArticle[];
+  title: string;
+  emptyText: string;
+  meta: ArticleMetaLabels;
+}) {
   if (!articles || articles.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-gray-500">Không tìm thấy bài viết nào.</p>
+        <p className="text-gray-500">{emptyText}</p>
       </div>
     );
   }
@@ -15,7 +25,7 @@ export function ArticleGrid({ articles, title }: { articles: HandbookArticle[], 
       <h2 className="mb-6 text-xl font-bold text-gray-900">{title}</h2>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {articles.map((article) => (
-          <ArticleCard key={article.id} article={article} />
+          <ArticleCard key={article.id} article={article} meta={meta} />
         ))}
       </div>
     </section>

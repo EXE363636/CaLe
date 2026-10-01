@@ -893,7 +893,7 @@ function EvidenceFieldset({
         <HelpPopover
           title={t('help.evidence.title')}
           description={t('help.evidence.description')}
-          learnMoreHref="/handbook/muc-bang-chung-thanh-toan"
+          learnMoreHref="/handbook/chon-muc-bang-chung-khi-dang-ca"
         />
       </div>
       <p className="mb-3 text-xs text-orange-800/80">

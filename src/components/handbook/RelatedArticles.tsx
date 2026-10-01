@@ -1,46 +1,46 @@
-import { HandbookArticle, handbookArticles } from '@/data/mock/handbookArticles';
-import { ArticleCard } from './ArticleCard';
+import { handbookArticles, type HandbookArticle } from '@/data/mock/handbookArticles';
+import type { Locale } from '@/i18n/locale';
+import { localizeArticle } from '@/lib/handbook';
+import { ArticleCard, type ArticleMetaLabels } from './ArticleCard';
 
-export function RelatedArticles({ currentArticleSlug, relatedSlugs }: { currentArticleSlug: string; relatedSlugs: string[] }) {
-  // Try to find the exact related articles
-  let articles = relatedSlugs
-    .map(slug => handbookArticles.find(a => a.slug === slug))
-    .filter((a): a is HandbookArticle => a !== undefined && a.slug !== currentArticleSlug);
-
-  // If not enough, find others in the same category
-  if (articles.length < 3) {
-    const currentArticle = handbookArticles.find(a => a.slug === currentArticleSlug);
-    if (currentArticle) {
-      const more = handbookArticles.filter(
-        a => a.categoryId === currentArticle.categoryId && 
-             a.slug !== currentArticleSlug && 
-             !articles.some(exist => exist.slug === a.slug)
-      );
-      articles = [...articles, ...more].slice(0, 3);
+/**
+ * Bài liên quan — CHỈ lấy bài cùng vai trò với bài đang đọc (không gợi ý bài
+ * của nhà tuyển dụng cho người lao động và ngược lại). Ưu tiên `relatedSlugs`,
+ * rồi cùng danh mục, rồi cùng vai trò.
+ */
+export function RelatedArticles({
+  article,
+  locale,
+  title,
+  meta,
+}: {
+  article: HandbookArticle;
+  locale: Locale;
+  title: string;
+  meta: ArticleMetaLabels;
+}) {
+  const sameAudience = handbookArticles.filter(
+    (a) => a.audience === article.audience && a.slug !== article.slug,
+  );
+  const picked: HandbookArticle[] = [];
+  const add = (list: HandbookArticle[]) => {
+    for (const a of list) {
+      if (picked.length >= 3) return;
+      if (!picked.some((p) => p.slug === a.slug)) picked.push(a);
     }
-  }
+  };
+  add(article.relatedSlugs.map((slug) => sameAudience.find((a) => a.slug === slug)).filter((a): a is HandbookArticle => !!a));
+  add(sameAudience.filter((a) => a.categoryId === article.categoryId));
+  add(sameAudience);
 
-  // If still not enough, just pick some random ones for the same audience
-  if (articles.length < 3) {
-    const currentArticle = handbookArticles.find(a => a.slug === currentArticleSlug);
-    if (currentArticle) {
-      const more = handbookArticles.filter(
-        a => a.audience === currentArticle.audience && 
-             a.slug !== currentArticleSlug && 
-             !articles.some(exist => exist.slug === a.slug)
-      );
-      articles = [...articles, ...more].slice(0, 3);
-    }
-  }
-
-  if (articles.length === 0) return null;
+  if (picked.length === 0) return null;
 
   return (
     <section className="mt-16 border-t border-gray-100 pt-16">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">Bài viết liên quan</h2>
+      <h2 className="mb-6 text-2xl font-bold text-gray-900">{title}</h2>
       <div className="grid gap-6 sm:grid-cols-3">
-        {articles.map((article) => (
-          <ArticleCard key={article.id} article={article} />
+        {picked.map((a) => (
+          <ArticleCard key={a.id} article={localizeArticle(a, locale)} meta={meta} />
         ))}
       </div>
     </section>

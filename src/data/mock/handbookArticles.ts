@@ -28,68 +28,95 @@ export interface HandbookArticle {
   relatedSlugs: string[];
 }
 
+/**
+ * Danh mục cẩm nang — MỖI danh mục thuộc đúng MỘT vai trò. Trang /handbook không
+ * bao giờ trộn bài của người lao động với bài của nhà tuyển dụng (01/10).
+ */
+export interface HandbookCategory {
+  id: string;
+  audience: HandbookAudience;
+  label: string;
+  labelEn: string;
+}
+
+export const HANDBOOK_CATEGORIES: HandbookCategory[] = [
+  { id: 'bat-dau-lam-ca', audience: 'worker', label: 'Bắt đầu làm ca', labelEn: 'Getting started' },
+  { id: 'kinh-nghiem-di-lam', audience: 'worker', label: 'Kinh nghiệm đi làm', labelEn: 'On the job' },
+  { id: 'luong-quyen-loi', audience: 'worker', label: 'Lương, thanh toán & quyền lợi', labelEn: 'Pay & payment' },
+  { id: 'an-toan-nhan-ca', audience: 'worker', label: 'An toàn khi nhận ca', labelEn: 'Staying safe' },
+  { id: 'dang-ca-tuyen-nguoi', audience: 'employer', label: 'Đăng ca & tuyển người', labelEn: 'Posting shifts' },
+  { id: 'duyet-quan-ly', audience: 'employer', label: 'Duyệt & quản lý người lao động', labelEn: 'Choosing & managing workers' },
+  { id: 'coc-phi-thanh-toan', audience: 'employer', label: 'Tiền giữ, phí & thanh toán', labelEn: 'Deposits, fees & payment' },
+  { id: 'xu-ly-su-co', audience: 'employer', label: 'Xử lý sự cố', labelEn: 'Handling problems' },
+];
+
 export const handbookArticles: HandbookArticle[] = [
   {
     id: "evidence-levels",
     slug: "muc-bang-chung-thanh-toan",
-    title: "Hiểu đúng về Mức Bằng Chứng Thanh Toán",
-    excerpt: "Mức bằng chứng là cơ chế bảo vệ quyền lợi cho cả nhà tuyển dụng và người lao động trong quá trình thanh toán tiền công. Cùng tìm hiểu chi tiết về 5 mức bằng chứng trên CaLẻ.",
+    title: "Bằng chứng khi check-out: 5 mức và cách chuẩn bị",
+    excerpt: "Mỗi ca có một mức bằng chứng do nhà tuyển dụng chọn khi đăng ca. Biết trước mức của ca giúp bạn check-out nhanh và được trả công đúng hạn.",
     audience: "worker",
-    categoryId: "chinh-sach-thanh-toan",
-    categoryLabel: "Chính sách thanh toán",
-    tags: ["evidence", "payment", "policy"],
+    categoryId: "luong-quyen-loi",
+    categoryLabel: "Lương, thanh toán & quyền lợi",
+    tags: ["evidence", "payment", "checkout"],
     publishedAt: "2026-07-17T08:00:00.000Z",
+    updatedAt: "2026-10-01T08:00:00.000Z",
     author: "CaLẻ Team",
-    readingTime: 5,
+    readingTime: 4,
     imageUrl: "/images/handbook/unique/safe_art4_shield.png",
-    imageAlt: "Hướng dẫn các mức bằng chứng",
+    imageAlt: "Bằng chứng bàn giao khi kết thúc ca",
     featured: true,
     featuredOrder: 0,
     content: [
       {
         paragraphs: [
-          "Trên CaLẻ, việc thanh toán tiền công dựa trên nguyên tắc tự động hóa và bảo vệ hai chiều. Khi kết thúc ca làm, người lao động sẽ cần xác nhận hoàn thành công việc (check-out). Lúc này, tùy vào tính chất công việc, hệ thống hoặc Nhà tuyển dụng có thể yêu cầu cung cấp các mức bằng chứng (Evidence) khác nhau.",
-          "Mức bằng chứng càng cao thì khả năng xảy ra tranh chấp càng thấp, nhưng bù lại sẽ yêu cầu người lao động mất thêm chút thời gian thao tác."
+          "Khi kết thúc ca, bạn check-out trên CaLẻ. Tuỳ mức bằng chứng nhà tuyển dụng đặt cho ca, bạn có thể phải tích checklist, nhập tên ảnh bàn giao hoặc viết ghi chú bàn giao.",
+          "Mức của từng ca hiện ở trang chi tiết ca, mục \"Quy trình thanh toán & bằng chứng\". Hãy xem trước khi ứng tuyển để chuẩn bị đúng."
         ]
       },
       {
-        heading: "1. Không yêu cầu (None)",
+        heading: "1. Không cần bằng chứng",
         paragraphs: [
-          "Phù hợp với các công việc nhẹ nhàng, rủi ro cực thấp hoặc không có tài sản để bàn giao như: Phát tờ rơi, Nhặt bóng tennis, Phụ dọn bàn cơ bản.",
-          "Ở mức này, bạn chỉ cần bấm nút Check-out là xong. Không cần chụp ảnh, không cần ghi chú thêm gì cả."
+          "Bấm check-out là xong. Bạn chỉ cần báo nhà tuyển dụng khi hoàn thành công việc."
         ]
       },
       {
-        heading: "2. Chỉ cần ghi chú (OptionalNotesOnly)",
+        heading: "2. Chỉ cần checklist hoàn thành",
         paragraphs: [
-          "Phù hợp với các công việc cần trao đổi một chút thông tin với người quản lý ca sau. Ví dụ: Hỗ trợ kho vặt, Phụ bếp.",
-          "Bạn được khuyến khích để lại vài dòng ghi chú (Ví dụ: 'Em đã cất gọn đồ vào góc bếp'). Ghi chú này tuy không bắt buộc, nhưng sẽ giúp quản lý có thiện cảm và đánh giá bạn cao hơn."
+          "Bạn phải tích đủ các mục checklist (đã làm theo mô tả ca, đã báo nhà tuyển dụng kết quả) thì mới gửi check-out được."
         ]
       },
       {
-        heading: "3. Có thể đính kèm ảnh (OptionalPhoto)",
+        heading: "3. Có thể đính kèm ảnh bàn giao",
         paragraphs: [
-          "Đây là mức khuyến nghị cho hầu hết các công việc trên CaLẻ. Bạn có thể tải lên 1-2 bức ảnh chụp lại thành quả công việc của mình.",
-          "Việc chụp ảnh (tuy không bắt buộc) sẽ là 'chiếc phao cứu sinh' cho bạn nếu nhà tuyển dụng đột nhiên khiếu nại rằng bạn làm việc chưa tốt."
+          "Ảnh không bắt buộc. Vẫn nên chụp lại khu vực làm việc lúc bàn giao: nếu sau đó có khiếu nại, đây là căn cứ của bạn."
         ]
       },
       {
-        heading: "4. Bắt buộc chụp ảnh bàn giao (RequiredPhoto)",
+        heading: "4. Bắt buộc đính kèm ảnh bàn giao",
         paragraphs: [
-          "Bắt buộc đối với các công việc đụng chạm đến tiền bạc hoặc tài sản có giá trị (Thu ngân, Kho vận, Giao hàng).",
-          "Hệ thống sẽ không cho phép bạn Check-out nếu chưa tải lên ít nhất một bức ảnh. Hãy chụp lại khu vực làm việc gọn gàng, hoặc biên lai bàn giao tiền mặt."
-        ]
-      },
-      {
-        heading: "5. Bắt buộc Checklist + Ghi chú (RequiredNotesAndPhoto)",
-        paragraphs: [
-          "Mức độ bảo vệ cao nhất. Thường áp dụng cho các công việc quản lý, giám sát hoặc có quy trình bàn giao phức tạp.",
-          "Bạn sẽ phải vừa chụp ảnh minh chứng, vừa viết ghi chú tường trình lại ca làm việc."
+          "Bạn phải nhập tên tệp ảnh bàn giao thì mới check-out được. Thường gặp ở việc có tài sản hoặc hàng hoá cần bàn giao."
         ],
-        note: "Quy tắc vàng: Không chụp mặt khách hàng nếu chưa được phép. Tuyệt đối không chụp các giấy tờ cá nhân, hóa đơn nhạy cảm hay không gian riêng tư của cửa hàng."
+        note: "Hiện CaLẻ chưa tải ảnh lên máy chủ: bạn nhập tên tệp ảnh đã chụp và giữ ảnh trong điện thoại để gửi khi quản trị viên cần đối chiếu."
+      },
+      {
+        heading: "5. Bắt buộc checklist + ghi chú bàn giao",
+        paragraphs: [
+          "Mức chặt nhất, dùng cho việc rủi ro cao như thu ngân, bảo vệ. Bạn phải tích đủ checklist và viết ghi chú bàn giao (tối đa 1.000 ký tự): đã bàn giao gì, cho ai, còn việc gì dở dang."
+        ]
+      },
+      {
+        heading: "Sau khi check-out",
+        bullets: [
+          "Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví của bạn.",
+          "Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công sau 24 giờ kể từ giờ kết thúc ca.",
+          "Nếu nhà tuyển dụng khiếu nại, tiền công được giữ lại chờ quản trị viên xem xét; bạn được phản hồi và gửi thêm bằng chứng."
+        ],
+        note: "Không chụp mặt khách hàng khi chưa được phép. Không chụp giấy tờ cá nhân, hoá đơn có thông tin nhạy cảm hay khu vực riêng tư của cửa hàng."
       }
     ],
-    relatedSlugs: []
+    relatedSlugs: ["cach-tinh-luong-ca-le-va-phu-cap", "lan-dau-nhan-ca-chuan-bi-gi"]
   },
   {
     "id": "1",
@@ -408,7 +435,7 @@ export const handbookArticles: HandbookArticle[] = [
     "excerpt": "Làm thế nào để chắc chắn bạn nhận được đúng phần thù lao xứng đáng với công sức bỏ ra? Cùng mổ xẻ các thành phần tạo nên thu nhập của một ca làm.",
     "audience": "worker",
     "categoryId": "luong-quyen-loi",
-    "categoryLabel": "Lương & quyền lợi",
+    "categoryLabel": "Lương, thanh toán & quyền lợi",
     "tags": [
       "salary",
       "benefits"
@@ -444,15 +471,15 @@ export const handbookArticles: HandbookArticle[] = [
         ]
       },
       {
-        "heading": "3. Phương thức thanh toán thực tế",
+        "heading": "3. Tiền công được trả thế nào trên CaLẻ",
         "paragraphs": [
-          "Bạn cần thống nhất phương thức nhận tiền ngay trong ca làm việc. Thông thường, đối với các nền tảng việc làm kết nối trực tiếp, tiền lương sẽ được chủ quán thanh toán bằng tiền mặt ngay khi bạn kết thúc ca, hoặc chuyển khoản trực tiếp vào tài khoản ngân hàng của bạn trong vòng 24 giờ.",
-          "Hãy đảm bảo mọi thỏa thuận về thời gian trả tiền đều rõ ràng và công khai."
+          "Tiền công của ca đã được nhà tuyển dụng giữ trên CaLẻ ngay từ lúc đăng ca, nên bạn không phải đòi tiền mặt hay chờ chuyển khoản riêng. Sau khi bạn check-out, nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví CaLẻ của bạn; nếu họ không thao tác, hệ thống tự xác nhận và trả sau 24 giờ kể từ giờ kết thúc ca.",
+          "Từ ví, bạn rút về tài khoản ngân hàng qua PayOS (tối thiểu 2.000đ). Đừng nhận trả công \"ngoài app\" thay cho tiền đã giữ trên CaLẻ: khi có tranh chấp, CaLẻ chỉ bảo vệ được khoản tiền đi qua hệ thống."
         ]
       },
       {
         "heading": "Lưu ý khi đối soát",
-        "note": "Khi kết thúc ca, luôn kiểm tra lại số giờ làm việc thực tế cùng quản lý. Nếu có sai lệch do bạn phải ở lại muộn hơn dự kiến, hãy lịch sự yêu cầu cập nhật lại giờ làm trên hệ thống để đảm bảo quyền lợi.",
+        "note": "Tiền công trên CaLẻ tính theo giờ ca đã đăng. Nếu được nhờ ở lại lâu hơn, hãy hỏi rõ trước phần giờ thêm được trả thế nào. Khi tiền công không đúng như ca đã đăng, gửi khiếu nại ngay trên trang ca để quản trị viên xem xét.",
         "paragraphs": []
       }
     ],
@@ -466,8 +493,8 @@ export const handbookArticles: HandbookArticle[] = [
     "title": "Tuyển người cấp tốc: Kỹ năng viết tin đăng thu hút người ứng tuyển tức thì",
     "excerpt": "Cửa hàng đang quá tải và cần bổ sung nhân sự ngay lập tức? Học cách tối ưu hóa bản tin tuyển dụng để thu hút đúng người, đúng việc trong thời gian ngắn nhất.",
     "audience": "employer",
-    "categoryId": "danh-cho-doanh-nghiep",
-    "categoryLabel": "Dành cho doanh nghiệp",
+    "categoryId": "dang-ca-tuyen-nguoi",
+    "categoryLabel": "Đăng ca & tuyển người",
     "tags": [
       "employer",
       "hiring"
@@ -530,8 +557,8 @@ export const handbookArticles: HandbookArticle[] = [
     "title": "Chiến lược duyệt hồ sơ: Chọn đúng người cho ca làm siêu ngắn",
     "excerpt": "Đứng trước hàng chục lượt ứng tuyển, việc ra quyết định nhanh gọn và chính xác đòi hỏi bạn phải nắm vững các chỉ số đánh giá năng lực của người lao động.",
     "audience": "employer",
-    "categoryId": "danh-cho-doanh-nghiep",
-    "categoryLabel": "Dành cho doanh nghiệp",
+    "categoryId": "duyet-quan-ly",
+    "categoryLabel": "Duyệt & quản lý người lao động",
     "tags": [
       "employer",
       "management"
@@ -562,7 +589,7 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "2. Đánh giá tính chuyên nghiệp qua sự chuẩn bị",
         "paragraphs": [
           "Bạn không cần tìm một người có bằng cấp, nhưng bạn cần một người có thái độ nghiêm túc. Điều này thể hiện qua việc họ chăm chút hồ sơ như thế nào. Ảnh đại diện rõ ràng, trang phục lịch sự, phần giới thiệu bản thân đi thẳng vào trọng tâm là những tín hiệu tích cực.",
-          "Nếu một người lao động chủ động nhắn tin thông qua tính năng chat của hệ thống: \"Dạ em đã ứng tuyển, em ở cách quán 2km và có thể qua sớm 15 phút ạ\", đây chắc chắn là một cá nhân đáng tin cậy mà bạn nên duyệt ngay."
+          "Hồ sơ ghi rõ khu vực sinh sống, khung giờ rảnh và đã xác thực số điện thoại cho thấy một người chủ động, dễ liên lạc. Với ca gấp, người ở gần quán và rảnh đúng khung giờ thường là lựa chọn an toàn hơn."
         ]
       },
       {
@@ -584,8 +611,8 @@ export const handbookArticles: HandbookArticle[] = [
     "title": "Văn hóa đánh giá: Chìa khóa xây dựng nguồn nhân sự bền vững",
     "excerpt": "Dành ra 2 phút để đánh giá nhân sự sau mỗi ca làm không chỉ giúp cộng đồng phát triển mà còn là chiến lược giữ chân nhân tài cho riêng cơ sở của bạn.",
     "audience": "employer",
-    "categoryId": "danh-cho-doanh-nghiep",
-    "categoryLabel": "Dành cho doanh nghiệp",
+    "categoryId": "duyet-quan-ly",
+    "categoryLabel": "Duyệt & quản lý người lao động",
     "tags": [
       "employer",
       "management",
@@ -616,7 +643,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "2. Xây dựng một mạng lưới người ứng tuyển tin cậy",
         "paragraphs": [
-          "Mỗi khi bạn đánh giá tốt một người, hệ thống sẽ ghi nhớ sự liên kết đó. Về lâu dài, bạn sẽ tự xây dựng được một tệp \"nhân sự quen\". Bất cứ khi nào bạn đăng ca khẩn cấp, hệ thống có thể ưu tiên thông báo cho những người này.",
+          "Mỗi đánh giá tốt bạn để lại được lưu trên hồ sơ của người đó. Về lâu dài, bạn tự xây dựng được một tệp \"nhân sự quen\": lần sau đăng ca, bạn dễ nhận ra hồ sơ của những người từng làm tốt cho mình và duyệt họ trước.",
           "Việc dùng đi dùng lại những người quen việc giúp bạn cắt giảm hoàn toàn thời gian đào tạo và hướng dẫn lại từ đầu, tối ưu hóa năng suất hoạt động của cửa hàng."
         ]
       },
@@ -638,8 +665,8 @@ export const handbookArticles: HandbookArticle[] = [
     "title": "Khủng hoảng vắng mặt: Cách quản lý xử lý tình huống vỡ ca đột xuất",
     "excerpt": "Nhân sự báo hủy ca trước giờ G là cơn ác mộng lớn nhất. Hãy chuẩn bị các phương án dự phòng để luôn giữ cho hoạt động kinh doanh diễn ra suôn sẻ.",
     "audience": "employer",
-    "categoryId": "danh-cho-doanh-nghiep",
-    "categoryLabel": "Dành cho doanh nghiệp",
+    "categoryId": "xu-ly-su-co",
+    "categoryLabel": "Xử lý sự cố",
     "tags": [
       "employer",
       "management",
@@ -661,8 +688,8 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "1. Hành động ngay lập tức: Đăng ca siêu tốc",
         "paragraphs": [
-          "Đừng lãng phí thời gian để đôi co với người lao động vừa hủy ca. Lập tức vào hệ thống, tái kích hoạt tin đăng tuyển dụng. Lần này, bạn cần sử dụng vũ khí mạnh nhất: Tăng thù lao.",
-          "Việc nhích mức lương lên thêm 10.000đ/giờ so với bình thường sẽ ngay lập tức thu hút sự chú ý của lực lượng lao động dự bị ở khu vực lân cận. Số tiền chênh lệch này là chi phí hoàn toàn xứng đáng để cứu vãn một buổi tối đông khách thay vì để khách hàng phải chờ đợi và phản ánh dịch vụ tệ."
+          "Đừng lãng phí thời gian đôi co với người vừa hủy ca. Khi người lao động hủy, vị trí đó được mở lại và ca vẫn hiện cho người khác ứng tuyển. Nếu sát giờ (không sửa được ca trong vòng 24 giờ trước giờ bắt đầu), hãy đăng thêm một ca mới cho phần việc còn thiếu với mức thù lao hấp dẫn hơn.",
+          "Một ca gấp trả cao hơn thường lệ khoảng 10.000đ/giờ sẽ nhanh chóng thu hút người lao động đang rảnh ở khu vực lân cận. Số tiền chênh lệch này là chi phí hoàn toàn xứng đáng để cứu vãn một buổi tối đông khách thay vì để khách hàng phải chờ đợi và phản ánh dịch vụ tệ."
         ],
         "imageUrl": "/images/handbook/unique/new_inline_art1.png",
         "imageCaption": "Luôn có phương án dự phòng và xử lý khéo léo khi nhân sự bất ngờ hủy ca."
@@ -670,15 +697,15 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "2. Xử lý triệt để vi phạm của nhân sự",
         "paragraphs": [
-          "Chỉ sau khi mọi thứ đã được sắp xếp ổn thỏa và kết thúc giờ cao điểm, bạn mới tiến hành xử lý nhân sự vi phạm. Hãy sử dụng tính năng \"Báo cáo vắng mặt không lý do chính đáng\" trên ứng dụng.",
-          "Nền tảng được thiết kế để bảo vệ quyền lợi của bạn. Việc báo cáo sẽ làm giảm điểm uy tín của tài khoản đó, thậm chí khóa tính năng nhận việc nếu vi phạm nhiều lần, tạo ra sự răn đe cần thiết đối với ý thức kỷ luật của người lao động."
+          "Chỉ sau khi mọi thứ đã ổn thỏa và qua giờ cao điểm, bạn mới xử lý trường hợp vi phạm. Nếu người đã được duyệt không đến mà không báo, hãy đánh dấu \"Vắng mặt\" trên trang quản lý ca (được phép từ 15 phút sau giờ bắt đầu ca).",
+          "Vắng mặt không báo trừ 20 điểm uy tín của người đó; điểm dưới 50 thì tạm thời không ứng tuyển được ca mới. Phần tiền công của vị trí vắng mặt được hoàn về ví của bạn. Người lao động có quyền khiếu nại nếu cho rằng bị đánh dấu sai, nên hãy đánh dấu trung thực."
         ]
       },
       {
         "heading": "3. Phương pháp phòng ngừa chủ động",
         "paragraphs": [
-          "Quản lý giỏi là người không để khủng hoảng xảy ra. Bạn có thể áp dụng chiến lược \"Xác nhận kép\". Trước ca làm khoảng 3 tiếng, hãy gửi một tin nhắn ngắn gọn: \"Chào em, 18h tối nay em nhớ đến làm đúng giờ nhé, áo thun tối màu em nha\". Việc này không chỉ nhắc nhở người ứng tuyển mà còn giúp bạn dò xét phản ứng của họ.",
-          "Thứ hai, hãy luôn duy trì mối quan hệ tốt với những bạn sinh viên từng làm việc chăm chỉ tại quán. Lưu số điện thoại hoặc kết nối Zalo với họ. Trong những tình huống khẩn cấp \"cháy\" nhân sự, một cuộc gọi nhờ vả những người quen việc luôn hiệu quả hơn việc tìm kiếm người lạ từ đầu."
+          "Quản lý giỏi là người không để khủng hoảng xảy ra. Khi đăng ca, hãy ghi rõ người phụ trách tại chỗ và số điện thoại để người lao động báo sớm nếu có sự cố, thay vì im lặng vắng mặt. Mô tả ca càng rõ (trang phục, giờ có mặt, việc cần làm), người nhận ca càng ít bỏ ngang.",
+          "Thứ hai, hãy giữ quan hệ tốt với những người từng làm chăm chỉ tại quán: đánh giá họ tốt sau ca và ưu tiên duyệt họ khi họ ứng tuyển lại. Với ca quan trọng, tuyển dư một người cũng là cách dự phòng: vị trí không có người làm được hoàn tiền về ví."
         ]
       }
     ],
@@ -686,5 +713,144 @@ export const handbookArticles: HandbookArticle[] = [
       "cach-dang-tin-tuyen-nguoi-ngan-han",
       "cach-chon-nguoi-phu-hop-cho-ca-ngan-han"
     ]
-  }
+  },
+  {
+    id: "employer-evidence-levels",
+    slug: "chon-muc-bang-chung-khi-dang-ca",
+    title: "Chọn mức bằng chứng khi đăng ca",
+    excerpt: "Mức bằng chứng quyết định người lao động phải gửi gì khi check-out. Chọn đúng mức giúp bạn có căn cứ đối chiếu mà không làm khó người làm.",
+    audience: "employer",
+    categoryId: "dang-ca-tuyen-nguoi",
+    categoryLabel: "Đăng ca & tuyển người",
+    tags: ["evidence", "checkout", "posting"],
+    publishedAt: "2026-10-01T08:00:00.000Z",
+    author: "CaLẻ Team",
+    readingTime: 4,
+    imageUrl: "/images/handbook/unique/dieu_can_kiem_tra.png",
+    imageAlt: "Nhà tuyển dụng chọn mức bằng chứng khi đăng ca",
+    featured: false,
+    content: [
+      {
+        paragraphs: [
+          "Khi đăng ca, mục \"Bằng chứng sau ca\" cho bạn chọn một trong 5 mức. Đây là những gì người lao động phải gửi khi check-out. Hệ thống tự gợi ý một mức theo loại công việc; bạn giữ nguyên hoặc đổi."
+        ]
+      },
+      {
+        heading: "Hệ thống gợi ý thế nào",
+        bullets: [
+          "Việc rủi ro thấp (phát tờ rơi, hỗ trợ sự kiện): Chỉ cần checklist hoàn thành.",
+          "Việc rủi ro vừa (phục vụ, pha chế, kho vận): Có thể đính kèm ảnh bàn giao.",
+          "Việc rủi ro cao (thu ngân, bảo vệ): Bắt buộc checklist + ghi chú bàn giao. Với loại việc này, hệ thống không cho chọn mức thấp hơn."
+        ]
+      },
+      {
+        heading: "5 mức và khi nào nên dùng",
+        bullets: [
+          "Không cần bằng chứng: việc đơn giản, không có gì cần bàn giao.",
+          "Chỉ cần checklist hoàn thành: người lao động xác nhận đã làm theo mô tả ca và đã báo bạn kết quả.",
+          "Có thể đính kèm ảnh bàn giao: khuyến khích chụp ảnh nhưng không bắt buộc. Phù hợp với phần lớn ca.",
+          "Bắt buộc đính kèm ảnh bàn giao: có tài sản, hàng hoá hoặc khu vực cần đối chiếu sau ca.",
+          "Bắt buộc checklist + ghi chú bàn giao: có tiền mặt, tài sản giá trị hoặc quy trình bàn giao nhiều bước."
+        ]
+      },
+      {
+        heading: "Mẹo để bằng chứng có ích",
+        bullets: [
+          "Checklist khi check-out là mẫu chung (đã làm theo mô tả ca, đã báo kết quả…). Vì vậy hãy ghi rõ việc cần làm và tiêu chí bàn giao ngay trong mô tả ca.",
+          "Không yêu cầu ảnh có mặt khách hàng hay giấy tờ cá nhân.",
+          "Hiện ảnh bàn giao là tên tệp người lao động khai; ảnh thật nằm trên máy họ. Khi có khiếu nại, quản trị viên có thể đề nghị hai bên gửi bổ sung."
+        ]
+      },
+      {
+        heading: "Sau khi người lao động check-out",
+        paragraphs: [
+          "Bạn xác nhận hoàn thành để trả công, hoặc khiếu nại nếu có vấn đề. Nếu bạn không thao tác, hệ thống tự xác nhận và trả công sau 24 giờ kể từ giờ kết thúc ca. Khi có khiếu nại, tiền công được giữ lại chờ quản trị viên xử lý."
+        ]
+      }
+    ],
+    relatedSlugs: ["giu-coc-phi-dich-vu-va-hoan-tien", "cach-dang-tin-tuyen-nguoi-ngan-han"]
+  },
+  {
+    id: "employer-deposit-fee",
+    slug: "giu-coc-phi-dich-vu-va-hoan-tien",
+    title: "Tiền giữ khi đăng ca, phí dịch vụ và hoàn tiền",
+    excerpt: "Khi đăng ca, CaLẻ giữ tiền công cùng phí dịch vụ từ ví của bạn. Bài này giải thích tiền đi đâu, khi nào trả cho người lao động và khi nào được hoàn lại.",
+    audience: "employer",
+    categoryId: "coc-phi-thanh-toan",
+    categoryLabel: "Tiền giữ, phí & thanh toán",
+    tags: ["deposit", "fee", "refund", "wallet"],
+    publishedAt: "2026-10-01T08:00:00.000Z",
+    author: "CaLẻ Team",
+    readingTime: 5,
+    imageUrl: "/images/handbook/unique/flat_salary.png",
+    imageAlt: "Tiền giữ, phí dịch vụ và hoàn tiền cho nhà tuyển dụng",
+    featured: true,
+    featuredOrder: 1,
+    content: [
+      {
+        heading: "1. Nạp ví",
+        paragraphs: [
+          "Bạn nạp tiền vào ví bằng mã QR PayOS, quét bằng app ngân hàng. Tiền vào ví ngay khi PayOS báo đã nhận.",
+          "Hãy chuyển đúng số tiền của mã QR. Nếu chuyển lệch số tiền, chuyển vào mã đã hết hạn hoặc chuyển hai lần, giao dịch sẽ chuyển sang \"cần kiểm tra\". Quản trị viên đối chiếu rồi cộng ví hoặc liên hệ hoàn tiền; kết quả hiện trong ví và trên chuông thông báo."
+        ]
+      },
+      {
+        heading: "2. Đăng ca: giữ tiền công + phí dịch vụ",
+        paragraphs: [
+          "Khi bấm Đăng, hệ thống giữ từ ví tổng tiền công của ca (lương theo giờ × số giờ × số người cần tuyển) cộng phí dịch vụ 10%. Ví dụ: tiền công 200.000đ thì giữ 220.000đ.",
+          "Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền. Ví thiếu thì nạp thêm trước khi đăng."
+        ],
+        bullets: [
+          "Trong đợt miễn phí dịch vụ (nếu CaLẻ đang có), ca đủ điều kiện không tính phí.",
+          "Tiền thưởng nạp ví (nếu có chương trình) chỉ dùng để trả phí dịch vụ, không rút được."
+        ]
+      },
+      {
+        heading: "3. Sau ca: trả công cho người lao động",
+        bullets: [
+          "Bạn xác nhận hoàn thành thì tiền công vào ví người lao động, phí dịch vụ được tính cho phần ca đó.",
+          "Nếu bạn không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt.",
+          "Nếu có khiếu nại, tiền của phần đó được giữ lại tới khi quản trị viên xử lý."
+        ]
+      },
+      {
+        heading: "4. Khi nào tiền được hoàn về ví",
+        paragraphs: [
+          "Vị trí không có người, người lao động vắng mặt, ca bị huỷ hoặc hết hạn: phần tiền công và phí dịch vụ của phần đó được hoàn về ví của bạn. Phí 10% chỉ tính trên phần ca có người làm."
+        ]
+      },
+      {
+        heading: "5. Sửa và huỷ ca",
+        bullets: [
+          "Không sửa được ca trong vòng 24 giờ trước giờ bắt đầu.",
+          "Không huỷ được ca trong vòng 6 giờ trước giờ bắt đầu nếu ca đã có người ứng tuyển hoặc được duyệt.",
+          "Huỷ ca thì tiền giữ được hoàn về ví. Người lao động đã sắp xếp lịch cho ca của bạn, nên hãy báo sớm và ghi rõ lý do."
+        ]
+      },
+      {
+        heading: "6. Rút tiền",
+        paragraphs: [
+          "Bạn rút số dư về tài khoản ngân hàng qua PayOS, tối thiểu 2.000đ. Tiền thưởng nạp ví không rút được. Kiểm kỹ ngân hàng và số tài khoản: chuyển nhầm không lấy lại được."
+        ],
+        note: "Giao dịch nạp, giữ tiền, trả công và rút tiền trên CaLẻ là tiền thật qua PayOS. Khi cần hỏi hỗ trợ, hãy gửi kèm mã đơn nạp (#…) trong lịch sử ví."
+      }
+    ],
+    relatedSlugs: ["chon-muc-bang-chung-khi-dang-ca", "xu-ly-khi-nguoi-lao-dong-huy-ca"]
+  },
 ];
+
+/** Danh mục của một vai trò (theo thứ tự hiển thị). */
+export function handbookCategoriesFor(audience: HandbookAudience): HandbookCategory[] {
+  return HANDBOOK_CATEGORIES.filter((c) => c.audience === audience);
+}
+
+/** Bài của MỘT vai trò, có thể lọc thêm theo danh mục của vai trò đó. */
+export function handbookArticlesFor(audience: HandbookAudience, categoryId?: string): HandbookArticle[] {
+  return handbookArticles.filter(
+    (a) => a.audience === audience && (!categoryId || a.categoryId === categoryId),
+  );
+}
+
+export function isHandbookAudience(value: unknown): value is HandbookAudience {
+  return value === 'worker' || value === 'employer';
+}
