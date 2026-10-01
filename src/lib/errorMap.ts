@@ -159,6 +159,15 @@ export function toastFromStoreError(
     IDENTITY_ALREADY_VERIFIED: t('verify.id.error.IDENTITY_ALREADY_VERIFIED'),
     UPLOAD_FAILED: t('verify.id.error.UPLOAD_FAILED'),
     ALREADY_REVIEWED: t('feedback.error.wrongStatus'),
+    // 0028 — cọc người lao động.
+    WORKER_DEPOSIT_REQUIRED: t('workerDeposit.error.REQUIRED'),
+    WORKER_DEPOSIT_CHANGED: t('workerDeposit.error.CHANGED'),
+    WORKER_DEPOSIT_INSUFFICIENT: t('workerDeposit.error.INSUFFICIENT'),
+    WORKER_DEPOSIT_SETTLED: t('workerDeposit.error.SETTLED'),
+    WORKER_DEPOSIT_LIMIT: t('workerDeposit.error.LIMIT'),
+    CONTEST_CLOSED: t('workerDeposit.error.CONTEST_CLOSED'),
+    NO_WORKER_DEPOSIT: t('feedback.error.wrongStatus'),
+    INVALID_STATE_FOR_CONTEST: t('feedback.error.wrongStatus'),
     SAME_PASSWORD: t('auth.reset.error.same'),
     SESSION_EXPIRED: t('auth.reset.error.expired'),
   };

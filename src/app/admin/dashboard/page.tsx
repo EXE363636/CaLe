@@ -32,6 +32,8 @@ import { VerificationsPanel } from './VerificationsPanel';
 import { IdentityReviewPanel } from './IdentityReviewPanel';
 import { FeeCampaignCard } from './FeeCampaignCard';
 import { TopUpBonusCard } from './TopUpBonusCard';
+import { WorkerDepositCard } from './WorkerDepositCard';
+import { WorkerHoldContestList } from './WorkerHoldContestList';
 import { PayoutHealthBanner } from '@/components/wallet/PayoutHealthBanner';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -406,6 +408,9 @@ function AnalyticsPanel({
       {isSupabaseEnv() && <FeeCampaignCard />}
       {/* P2-2 (F10) — thưởng nạp ví cho nhà tuyển dụng. */}
       {isSupabaseEnv() && <TopUpBonusCard />}
+      {/* P2-1 (F9) — khiếu nại cọc vắng mặt (ẩn khi không có) + cài đặt cọc người lao động. */}
+      {isSupabaseEnv() && <WorkerHoldContestList />}
+      {isSupabaseEnv() && <WorkerDepositCard />}
       {/* 8 ô (supabase) → 4 cột; 10 ô (local) → 5 cột ở màn rộng — không để hàng lẻ. */}
       <div
         className={[
