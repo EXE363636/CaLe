@@ -1,5 +1,6 @@
 /**
- * Giao dịch nạp PayOS cần admin kiểm tra — logic thuần, khớp migration 0029.
+ * Giao dịch nạp PayOS cần admin kiểm tra — logic thuần, khớp migration 0029
+ * (+ 0030: mã giao dịch trùng đơn khác, số tiền ngoài int4, đơn PAID trước 0027).
  *
  * Từ 0027 webhook không cộng ví khi giao dịch lệch (số tiền, mã giao dịch, link,
  * đơn đã huỷ, chuyển lần hai…): đơn bị đặt `needs_review` và mỗi giao dịch được
@@ -15,6 +16,8 @@ export const PAYMENT_REVIEW_REASONS = [
   'ORDER_NOT_PAYABLE',
   'EXTRA_PAYMENT',
   'ALREADY_FLAGGED',
+  // 0030: mã giao dịch đã gắn với đơn khác (PayOS dùng lại mã) — không gắn lại.
+  'DUPLICATE_TXN_REF',
 ] as const;
 export type PaymentReviewReason = (typeof PAYMENT_REVIEW_REASONS)[number];
 
@@ -45,6 +48,32 @@ export function formatReviewNote(
   txnRef: string | null,
 ): string {
   return `${reason} paid=${paidAmount === null ? 'null' : paidAmount} ref=${txnRef ?? '-'}`;
+}
+
+const INT4_MAX = 2147483647;
+
+/**
+ * Số tiền PayOS báo nhận → số nguyên dùng được (cột integer); ngoài [1, int4]
+ * hoặc không phải số nguyên → null (giao dịch vẫn được ghi để admin xem, nhưng
+ * không cộng được). Khớp `v_paid` trong credit_wallet_from_payos (0030): trước
+ * 0030 số vượt int4 làm RPC lỗi → webhook 500 → PayOS gửi lại mãi.
+ */
+export function toPaidAmountInt(raw: number | null): number | null {
+  if (raw === null || !Number.isInteger(raw) || raw < 1 || raw > INT4_MAX) return null;
+  return raw;
+}
+
+/** PayOS gửi lại webhook trong khoảng này (giờ). */
+export const PAYOS_RETRY_WINDOW_HOURS = 24;
+
+/**
+ * Đơn PAID trước 0027 (không lưu mã giao dịch): webhook tới cho đơn đó chỉ coi là
+ * PayOS gửi lại khi đơn được trả trong 24 giờ qua; muộn hơn → giao dịch mới, ghi
+ * dòng kiểm tra (trước 0030 bị nuốt thành ALREADY_PAID).
+ */
+export function isLegacyPaidRetry(paidAtIso: string | null, nowIso: string): boolean {
+  if (!paidAtIso) return false;
+  return Date.parse(nowIso) - Date.parse(paidAtIso) < PAYOS_RETRY_WINDOW_HOURS * 3600_000;
 }
 
 const NOTE_RE = /^([A-Z_]+) paid=(null|\d+) ref=(\S+)$/;
@@ -104,13 +133,24 @@ export function paymentReviewDismissBlock(
  *   - dòng không mã: có dòng không mã bất kỳ, hoặc dòng có mã cùng số tiền,
  *     hoặc đơn đã được cộng tự động đúng số tiền đó (`autoCreditedAmount`);
  *   - dòng có mã: có dòng không mã cùng số tiền.
- * Khớp điều kiện DUPLICATE_SUSPECT trong admin_resolve_payment_review (0029).
+ * 0030 thêm (`opts`):
+ *   - `txnRefResolvedElsewhere`: mã của dòng đã được xử ở ĐƠN KHÁC — cộng tự
+ *     động, admin cộng, hoặc admin "không cộng" (= đã hoàn tay) → cùng một lần
+ *     chuyển, nghi trùng;
+ *   - `legacyCreditedAmount`: số tiền đơn khi đơn PAID kiểu cũ (trước 0027 / lối
+ *     mock: không mã, không paid_amount, không có dòng Credited nào xử trước hoặc
+ *     cùng lúc đơn được trả — người gọi tự xét điều kiện này) — dòng có mã hay
+ *     không mã cùng số tiền đó đều nghi trùng.
+ * Khớp _payment_review_duplicate_suspect (0029, 0030).
  */
 export function isDuplicateSuspect(
   item: PaymentReviewItemLike,
   orderItems: ReadonlyArray<PaymentReviewItemLike>,
   autoCreditedAmount: number | null,
+  opts: { txnRefResolvedElsewhere?: boolean; legacyCreditedAmount?: number | null } = {},
 ): boolean {
+  if (opts.legacyCreditedAmount != null && opts.legacyCreditedAmount === item.paidAmount) return true;
+  if (item.txnRef !== null && opts.txnRefResolvedElsewhere) return true;
   const credited = orderItems.filter(
     (o) => o.id !== item.id && o.orderId === item.orderId && o.status === 'Credited',
   );

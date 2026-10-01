@@ -72,8 +72,8 @@ Deno.serve(async (req: Request) => {
       .eq('order_code', orderCode)
       .maybeSingle();
     if (selErr) return fail('ORDER_LOOKUP_FAILED', 500, selErr.message);
-    if (!order) return fail('ORDER_NOT_FOUND', 404);
-    if (order.user_id !== caller.id) return fail('NOT_OWNER', 403);
+    // Đơn của người khác báo y như không có đơn (0030: không đoán được mã đơn).
+    if (!order || order.user_id !== caller.id) return fail('ORDER_NOT_FOUND', 404);
 
     // Cộng ví qua RPC idempotent (đơn đã PAID -> no-op, trả ALREADY_PAID).
     const { data: rpcData, error: rpcErr } = await admin.rpc('credit_wallet_from_payment', {

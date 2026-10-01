@@ -17,6 +17,7 @@
  *   - delete       : xoá vĩnh viễn Worker/Employer KHÔNG có lịch sử (ca/đơn).
  *                    Có lịch sử → USER_HAS_HISTORY (admin dùng "Khoá" thay thế,
  *                    vì schema cascade có thể xoá lây ca/đơn của người khác).
+ *                    Có lịch sử tiền (ví/sổ ví/nạp/chi/cọc) → USER_HAS_MONEY_HISTORY (0030).
  *   - setSuspended : khoá/mở khoá (giữ nguyên tài khoản + lịch sử).
  *
  * Bảo mật/bất biến:
@@ -207,6 +208,14 @@ async function handleDelete(admin: any, body: any, callerId: string): Promise<Re
   if ((shiftCount ?? 0) > 0 || (appCount ?? 0) > 0) {
     return fail('USER_HAS_HISTORY', 409);
   }
+
+  // 0030: có lịch sử tiền thật (ví ≠ 0, sổ ví, nạp đã trả, chi, cọc) → không xoá
+  // (cascade sẽ xoá ví + sổ ví). DB cũng chặn bằng trigger; kiểm trước để báo rõ.
+  const { data: hasMoney, error: mErr } = await admin.rpc('_user_has_money_history', {
+    p_user_id: userId,
+  });
+  if (mErr) return fail('SERVER_ERROR', 500, mErr.message);
+  if (hasMoney === true) return fail('USER_HAS_MONEY_HISTORY', 409);
 
   // Xoá thật user Auth → cascade public.users + profiles (FK on delete cascade).
   const { error: dErr } = await admin.auth.admin.deleteUser(userId);

@@ -581,6 +581,8 @@ export const vi: Record<string, string> = {
   'admin.accounts.error.INVALID_ROLE': 'Chỉ tạo được Người lao động hoặc Nhà tuyển dụng.',
   'admin.accounts.error.USER_HAS_HISTORY':
     'Tài khoản đã có ca làm hoặc đơn ứng tuyển nên không thể xoá. Hãy dùng "Khoá tài khoản" để ngăn hoạt động mới mà vẫn giữ lịch sử.',
+  'admin.accounts.error.USER_HAS_MONEY_HISTORY':
+    'Tài khoản đã có giao dịch tiền thật (ví, nạp, rút hoặc cọc) nên không thể xoá. Hãy dùng "Khoá tài khoản" để giữ lịch sử đối soát.',
   'admin.accounts.error.CANNOT_DELETE_ADMIN': 'Không thể xoá tài khoản quản trị viên.',
   'admin.accounts.error.CANNOT_DELETE_SELF': 'Bạn không thể tự xoá tài khoản đang đăng nhập.',
   'admin.accounts.error.CANNOT_SUSPEND_ADMIN': 'Không thể khoá tài khoản quản trị viên.',
@@ -2943,7 +2945,7 @@ export const vi: Record<string, string> = {
   // 0029 — giao dịch nạp PayOS cần admin kiểm tra.
   'admin.paymentReview.title': 'Giao dịch nạp cần kiểm tra',
   'admin.paymentReview.hint':
-    'PayOS đã báo nhận tiền nhưng giao dịch không khớp đơn nạp nên ví chưa được cộng. Đối chiếu trên trang quản lý PayOS trước khi xử lý.',
+    'PayOS đã báo nhận tiền nhưng giao dịch không khớp đơn nạp nên ví chưa được cộng. Đối chiếu trên trang quản lý PayOS trước khi xử lý. Một mã giao dịch đã "Không cộng" ở đơn này sẽ bị coi là đã xử lý ở mọi đơn khác, nên chỉ bấm khi chắc chắn.',
   'admin.paymentReview.order': 'Đơn nạp #{code} · {amount} · {status} · tạo {date}',
   'admin.paymentReview.user': 'Người nạp: {name} ({role}) · {email}',
   'admin.paymentReview.paid': 'PayOS báo nhận: {amount}',
@@ -2957,6 +2959,8 @@ export const vi: Record<string, string> = {
   'admin.paymentReview.reason.ORDER_NOT_PAYABLE': 'Tiền về cho đơn đã huỷ hoặc hết hạn',
   'admin.paymentReview.reason.EXTRA_PAYMENT': 'Chuyển thêm cho đơn đã được cộng',
   'admin.paymentReview.reason.ALREADY_FLAGGED': 'Chuyển thêm cho đơn đang chờ kiểm tra',
+  'admin.paymentReview.reason.DUPLICATE_TXN_REF':
+    'Mã giao dịch này đã gắn với một đơn nạp khác (PayOS gửi trùng). Đối chiếu sao kê trước khi cộng.',
   'admin.paymentReview.orderStatus.PENDING': 'chờ thanh toán',
   'admin.paymentReview.orderStatus.PAID': 'đã cộng ví',
   'admin.paymentReview.orderStatus.CANCELLED': 'đã huỷ',

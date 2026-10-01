@@ -5,11 +5,13 @@ import {
   fillTemplate,
   formatReviewNote,
   isDuplicateSuspect,
+  isLegacyPaidRetry,
   parseReviewReasonNotes,
   paymentReviewCreditBlock,
   paymentReviewDismissBlock,
   paymentReviewSummary,
   shouldRecordReviewItem,
+  toPaidAmountInt,
   type PaymentReviewItemLike,
 } from '@/domain/paymentReview';
 
@@ -29,11 +31,50 @@ const item = (over: Partial<PaymentReviewItemLike> = {}): PaymentReviewItemLike 
   ...over,
 });
 
-describe('PAYMENT_REVIEW_REASONS — khớp 6 lý do của 0027', () => {
-  it('đủ 6 lý do', () => {
-    expect([...PAYMENT_REVIEW_REASONS].sort()).toEqual(
-      ['ALREADY_FLAGGED', 'AMOUNT_MISMATCH', 'EXTRA_PAYMENT', 'LINK_MISMATCH', 'MISSING_REFERENCE', 'ORDER_NOT_PAYABLE'],
+describe('PAYMENT_REVIEW_REASONS — 6 lý do của 0027 + DUPLICATE_TXN_REF (0030)', () => {
+  it('đủ 7 lý do', () => {
+    expect([...PAYMENT_REVIEW_REASONS].sort()).toEqual([
+      'ALREADY_FLAGGED',
+      'AMOUNT_MISMATCH',
+      'DUPLICATE_TXN_REF',
+      'EXTRA_PAYMENT',
+      'LINK_MISMATCH',
+      'MISSING_REFERENCE',
+      'ORDER_NOT_PAYABLE',
+    ]);
+  });
+});
+
+describe('toPaidAmountInt — số tiền PayOS báo, ngoài khoảng int4 → null (0030, webhook không lỗi 500 lặp)', () => {
+  it('số nguyên dương trong int4 → giữ nguyên', () => {
+    expect(toPaidAmountInt(50000)).toBe(50000);
+    expect(toPaidAmountInt(2147483647)).toBe(2147483647);
+  });
+  it('vượt int4, ≤ 0, số lẻ, không phải số hữu hạn, null → null', () => {
+    for (const v of [2147483648, 1e21, 0, -5, 1.5, Number.NaN, Number.POSITIVE_INFINITY, null]) {
+      expect(toPaidAmountInt(v)).toBeNull();
+    }
+  });
+  it('property: kết quả luôn null hoặc số nguyên trong [1, 2147483647]', () => {
+    fc.assert(
+      fc.property(fc.oneof(fc.double(), fc.integer(), fc.constant(null)), (v) => {
+        const r = toPaidAmountInt(v);
+        return r === null || (Number.isInteger(r) && r >= 1 && r <= 2147483647 && r === v);
+      }),
     );
+  });
+});
+
+describe('isLegacyPaidRetry — đơn PAID trước 0027 (không có mã giao dịch) chỉ coi là PayOS gửi lại trong 24 giờ', () => {
+  const now = '2026-10-01T12:00:00.000Z';
+  it('trả trong 24 giờ → gửi lại (không ghi gì)', () => {
+    expect(isLegacyPaidRetry('2026-10-01T00:00:00.000Z', now)).toBe(true);
+    expect(isLegacyPaidRetry('2026-09-30T12:00:00.001Z', now)).toBe(true);
+  });
+  it('quá 24 giờ hoặc không có giờ trả → giao dịch mới (ghi dòng kiểm tra)', () => {
+    expect(isLegacyPaidRetry('2026-09-30T12:00:00.000Z', now)).toBe(false);
+    expect(isLegacyPaidRetry('2026-09-24T09:55:22.377Z', now)).toBe(false);
+    expect(isLegacyPaidRetry(null, now)).toBe(false);
   });
 });
 
@@ -118,6 +159,21 @@ describe('isDuplicateSuspect — cùng một lần chuyển có thể bị ghi 2
 
   it('dòng CÓ mã: dòng có mã khác đã cộng / cộng tự động không làm nghi trùng (mã khác = giao dịch khác)', () => {
     expect(isDuplicateSuspect(item(), [credited({ txnRef: 'FT9', paidAmount: 50000 })], 50000)).toBe(false);
+  });
+
+  it('mã giao dịch đã được xử ở ĐƠN KHÁC — cộng hoặc "không cộng" (đã hoàn tay) → nghi trùng', () => {
+    const cur = item({ reason: 'DUPLICATE_TXN_REF' });
+    expect(isDuplicateSuspect(cur, [], null, { txnRefResolvedElsewhere: true })).toBe(true);
+    expect(isDuplicateSuspect(cur, [], null, { txnRefResolvedElsewhere: false })).toBe(false);
+    // Không mã thì cờ này không áp dụng.
+    expect(isDuplicateSuspect(item({ txnRef: null }), [], null, { txnRefResolvedElsewhere: true })).toBe(false);
+  });
+
+  it('đơn PAID trước 0027 (không biết mã đã cộng): dòng có mã HAY không mã cùng số tiền đơn → nghi trùng', () => {
+    const opts = { legacyCreditedAmount: 50000 };
+    expect(isDuplicateSuspect(item({ reason: 'EXTRA_PAYMENT', paidAmount: 50000 }), [], null, opts)).toBe(true);
+    expect(isDuplicateSuspect(item({ reason: 'EXTRA_PAYMENT', txnRef: null, paidAmount: 50000 }), [], null, opts)).toBe(true);
+    expect(isDuplicateSuspect(item({ reason: 'EXTRA_PAYMENT', paidAmount: 20000 }), [], null, opts)).toBe(false);
   });
 
   it('chỉ xét dòng Credited của CÙNG đơn, khác chính nó', () => {
