@@ -8,8 +8,10 @@
    1. `feat/payos-hardening` — migration **0030** (mục A);
    2. `feat/payment-review-notify` — migration **0031** (mục B);
    3. `feat/i18n-phase2` — không đụng DB (mục C);
-   4. `feat/i18n-phase2b` — không đụng DB (mục D).
-2. **0030, 0031 CHƯA `db push`.** Thứ tự cho mỗi migration:
+   4. `feat/i18n-phase2b` — không đụng DB (mục D);
+   5. `feat/integration-scripts-cleanup` — chỉ script kiểm tích hợp (mục E.1);
+   6. `feat/bank-bigint` — migration **0032** (mục E.2).
+2. **0030, 0031, 0032 CHƯA `db push`.** Thứ tự cho mỗi migration:
    1. chạy thử: `bash supabase/dryrun/run-00NN.sh` (mọi dòng "ok");
    2. chủ dự án duyệt;
    3. `npx supabase db push` (người làm);
@@ -234,4 +236,55 @@ Nhánh `feat/i18n-phase2b` (tách từ `feat/i18n-phase2`).
   - các hộp thoại khiếu nại.
 - Câu trong dữ liệu domain (vd. nhãn phương thức xác minh, lý do tính sẵn) vẫn là
   tiếng Việt.
+
+---
+
+## E. Script kiểm tích hợp + két bigint (0032)
+
+### E.1 `feat/integration-scripts-cleanup` (không đụng DB)
+- **Vì sao:** từ 0030, DB chặn xoá người có lịch sử tiền. `npm run test:payment` /
+  `test:attendance` (chạy trên DB dùng chung với production) không xoá được user test.
+- **`scripts/lib/purgeTestMoney.mjs` → `cleanupTestMoney`.** Dừng ở bước lỗi đầu tiên;
+  dừng thì không xoá gì.
+  1. Chỉ nhận user email `@example.com`.
+  2. Ca test có cọc / khiếu nại của **người dùng thật** → dừng, in id để hoàn qua luồng
+     chuẩn. Không bao giờ xoá cọc của người không phải user test.
+  3. Đảo phí 10% của ca test khỏi ví người nhận phí:
+     - ví trừ, két cộng, sổ ví ghi `PlatformFeeTestReversal`;
+     - chạy lại được, không đảo hai lần.
+     - Trước đây mỗi lần chạy `test:payment` để lại khoảng 45.000 đ phí ảo trong ví admin.
+  4. Xoá dữ liệu tiền của chính user test.
+  5. Trả két phần script đã đổi (`bankDelta`). Đã bỏ đường trả két đọc-sửa-ghi.
+- **security-reviewer 2 lượt:**
+  - Lượt 1 có **1 Nghiêm trọng**: bản đầu xoá `worker_holds` theo `employer_id` → có
+    thể xoá cọc của người lao động thật ứng tuyển ca test. Đã sửa.
+  - Lượt 1 có thêm 1 Cao (phí ảo vào ví admin), có từ 0021. Đã sửa.
+  - Lượt 2 chỉ còn Trung bình / Thấp. Đã sửa: chạy lại an toàn, dừng ở lỗi đầu tiên.
+- **Kiểm production (chỉ đọc, 01/10):**
+  - cờ cọc người lao động đang tắt;
+  - chỉ có 1 dòng phí (4.545 đ) gắn ca thật, không có phí ảo cần đảo tay.
+- **Chưa chạy script thật:** chạy sau khi push 0030, lúc ít giao dịch. Script tạo ca
+  test công khai trong vài giây.
+- **Còn mở (Thấp):**
+  - `bankDelta` tính trong bộ nhớ, không đối chiếu sổ;
+  - script dừng giữa chừng thì pg_cron có thể chốt ca test sau bước dọn;
+  - đảo phí gồm 2 lệnh RPC riêng (ví rồi két). Lệnh két lỗi → script báo "SỬA TAY"
+    kèm số tiền.
+
+### E.2 `feat/bank-bigint` — migration 0032
+- `system_bank.balance` (két = tổng tiền nạp) chuyển `integer → bigint`. Trước đây két
+  vượt khoảng 2,1 tỷ đồng thì `_bank_apply` tràn số → webhook PayOS lỗi 500 lặp.
+  `lock_timeout 5s` cho khoá ALTER.
+- **Chạy thử DB thật: `bash supabase/dryrun/run-0032.sh` → 6/6.**
+  - Kịch bản 00 tái hiện lỗi tràn TRƯỚC 0032.
+  - Sau 0032: webhook cộng ví được khi két lớn hơn 2,1 tỷ đồng.
+- security-reviewer: không có lỗi. Push lúc ít giao dịch (ALTER khoá hàng két vài giây).
+- **Kiểm sau push (chỉ đọc):**
+  - `migration list` có 0032;
+  - `select data_type from information_schema.columns where table_name='system_bank' and column_name='balance'` → `bigint`;
+  - webhook thử của PayOS vẫn 200.
+- **Còn mở:**
+  - ví nhận phí 10% của admin gom phí toàn sàn, vẫn `integer` (cùng `sync_platform_fees`
+    dùng int);
+  - khoảng 21 tỷ đồng tiền công đã chốt mới chạm trần → làm khi cần.
 
