@@ -4,10 +4,15 @@
 > ngày) và `docs/HANDOFF_SESSION_2026-09-28_FEEDBACK.md` (mục 3 P2-1 + mục 5 câu 4).
 
 ## 0. Trạng thái
-- Nhánh `feat/p2-1-worker-deposit` (tách từ `main` = `b9d11f4`). Chưa merge.
-- Migration **`20260930000028_worker_deposit.sql` CHƯA `db push`**. Cờ
-  `require_worker_deposit` mặc định **TẮT** → push xong mọi luồng cũ chạy y hệt.
-- `npx supabase migration list` (30/09): 0001–0027 đủ cả 2 cột; 0028 chỉ có local.
+- Nhánh `feat/p2-1-worker-deposit` (tách từ `main` = `b9d11f4`), **đã merge vào
+  `main` (01/10)**.
+- Migration **`20260930000028_worker_deposit.sql` ĐÃ `db push` (01/10)**. Cờ
+  `require_worker_deposit` vẫn **TẮT** → mọi luồng cũ chạy y hệt.
+- Kiểm sau push (01/10, chỉ đọc): `migration list` 0001–0028 đủ cả 2 cột; cờ tắt, các
+  mức đúng mặc định; `worker_holds` / `no_show_contests` / 3 loại sổ ví mới đều trống;
+  RLS bật; trigger `applications_worker_hold` + job `cale-worker-holds` có; hàm nội bộ
+  (`_*`, `apply_before_worker_deposit_guard`) không cấp cho `anon`/`authenticated`.
+- **Chưa thử tay `apply` trên production khi cờ tắt** (chủ dự án chưa test được).
 - Gate: tsc 0 · lint 0 lỗi (7 cảnh báo có sẵn) · `test:run` 876/876 · `test:time`
   22/22 · build OK (33 trang) · e2e 136/136 (chạy trên bản sao, xem mục 5).
 - **Chạy thử trên DB thật (transaction + rollback): 54/54 đạt.** Kiểm sau đó: không
@@ -100,12 +105,8 @@
 - **VI/EN:** các màn trên thuộc đợt 2 (chưa dịch).
 
 ## 4. Việc tiếp theo
-1. **Chủ dự án duyệt → commit → push → `npx supabase db push`** (người viết tự
-   chạy). Kiểm sau push:
-   - `migration list` có 0028 cả 2 cột;
-   - cờ `require_worker_deposit = false`;
-   - không có dòng nào trong `worker_holds`;
-   - `apply` vẫn chạy khi cờ tắt.
+1. ~~Commit → push → `db push` → kiểm sau push~~ (xong 01/10). **Còn:** thử tay 1
+   lần ứng tuyển trên production khi cờ tắt — phải chạy y như trước, không trừ ví.
 2. **Trước khi bật cờ trên production:**
    - Thử tay bằng 1 worker + 1 NTD thật với số nhỏ: ứng tuyển có cọc → huỷ → hoàn;
      vắng mặt → khiếu nại → admin xử.
