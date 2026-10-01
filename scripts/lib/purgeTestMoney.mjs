@@ -67,12 +67,18 @@ export async function cleanupTestMoney(admin, { userIds, bankDelta = 0 }) {
     }
     if (errors.length) return { ok: false, errors };
 
-    // 3. Đảo phí nền tảng của ca test (ví người nhận phí −, két +).
+    // 3. Đảo phí nền tảng của ca test (ví người nhận phí −, két +). Chạy lại được:
+    //    ca đã có dòng PlatformFeeTestReversal của cùng người nhận thì bỏ qua.
     const fees =
       (await run('phí ca test', admin.from('wallet_ledger').select('user_id, amount, shift_id')
         .eq('kind', 'PlatformFeeReceived').in('shift_id', shiftIds))) ?? [];
+    const reversed =
+      (await run('phí đã đảo', admin.from('wallet_ledger').select('user_id, shift_id')
+        .eq('kind', 'PlatformFeeTestReversal').in('shift_id', shiftIds))) ?? [];
     if (errors.length) return { ok: false, errors };
+    const done = new Set(reversed.map((r) => `${r.user_id}:${r.shift_id}`));
     for (const f of fees) {
+      if (done.has(`${f.user_id}:${f.shift_id}`)) continue;
       const w = await admin.rpc('_wallet_apply', {
         p_user: f.user_id, p_amount: -f.amount, p_kind: 'PlatformFeeTestReversal',
         p_shift: f.shift_id, p_app: null, p_note: 'Đảo phí ca test của script tích hợp',
@@ -86,15 +92,21 @@ export async function cleanupTestMoney(admin, { userIds, bankDelta = 0 }) {
     }
   }
 
-  // 4. Dữ liệu tiền của chính user test (lọc theo user_id / worker_id của họ).
-  await run('no_show_contests', admin.from('no_show_contests').delete().in('worker_id', ids));
-  await run('worker_holds', admin.from('worker_holds').delete().in('worker_id', ids));
-  await run('payment_review_items', admin.from('payment_review_items').delete().in('user_id', ids));
-  await run('payout_orders', admin.from('payout_orders').delete().in('user_id', ids));
-  await run('payment_orders', admin.from('payment_orders').delete().in('user_id', ids));
-  await run('wallet_ledger', admin.from('wallet_ledger').delete().in('user_id', ids));
-  await run('wallets', admin.from('wallets').delete().in('user_id', ids));
-  if (errors.length) return { ok: false, errors };
+  // 4. Dữ liệu tiền của chính user test (lọc theo user_id / worker_id của họ),
+  //    theo thứ tự khoá ngoại; dừng ngay ở bước lỗi đầu tiên.
+  const purge = [
+    ['no_show_contests', 'worker_id'],
+    ['worker_holds', 'worker_id'],
+    ['payment_review_items', 'user_id'],
+    ['payout_orders', 'user_id'],
+    ['payment_orders', 'user_id'],
+    ['wallet_ledger', 'user_id'],
+    ['wallets', 'user_id'],
+  ];
+  for (const [table, col] of purge) {
+    await run(table, admin.from(table).delete().in(col, ids));
+    if (errors.length) return { ok: false, errors };
+  }
 
   // 5. Trả két (chỉ biểu thức nguyên tử trong SQL; không đọc-sửa-ghi từ JS).
   if (bankDelta !== 0) {
