@@ -47,6 +47,22 @@ export function makeTx(locale: Locale): TFunction {
   return (viText: string) => translateText(locale, viText);
 }
 
+/**
+ * Ngôn ngữ đang hiển thị, đọc từ `<html lang>` (root layout đặt theo cookie,
+ * nút VI/EN làm mới lại). Dành cho code ngoài React — `errorMap`, store — không
+ * dùng được hook `useT`. Server / test (không có `document`) → tiếng Việt.
+ */
+export function currentLocale(): Locale {
+  if (typeof document === 'undefined') return DEFAULT_LOCALE;
+  return normalizeLocale(document.documentElement.lang);
+}
+
+/** `t` theo ngôn ngữ đang hiển thị (xem `currentLocale`). */
+export const tCurrent: TFunction = (key: string) => translate(currentLocale(), key);
+
+/** `tx` theo ngôn ngữ đang hiển thị — chỉ dùng trong xử lý sự kiện, không trong render. */
+export const txCurrent: TFunction = (viText: string) => translateText(currentLocale(), viText);
+
 /** Khoá có trong `en.ts` nhưng không có trong `vi.ts` (gõ nhầm khoá) — dùng trong test. */
 export function unknownEnglishKeys(): string[] {
   return Object.keys(en).filter((k) => !(k in vi));

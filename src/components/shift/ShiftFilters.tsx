@@ -4,7 +4,7 @@ import { useId, useState } from 'react';
 import { Select, Input, Button, DateFieldVN } from '@/components/ui';
 import type { SelectOption } from '@/components/ui';
 import type { FilterCriteria } from '@/domain/filter';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 
 interface ShiftFiltersProps {
   criteria: FilterCriteria;
@@ -27,6 +27,8 @@ export function ShiftFilters({
   locationOptions,
   className = '',
 }: ShiftFiltersProps) {
+  const t = useT();
+  const tx = useTx();
   const [open, setOpen] = useState(false);
   const panelId = useId();
 
@@ -103,7 +105,11 @@ export function ShiftFilters({
           {jobTypeOptions && jobTypeOptions.length > 0 ? (
             <Select
               label={t('form.filterJobType')}
-              options={[{ value: '', label: t('shifts.filters.any') }, ...jobTypeOptions]}
+              options={[
+                { value: '', label: t('shifts.filters.any') },
+                // Loại công việc là dữ liệu tiếng Việt (giá trị lọc giữ nguyên), chỉ dịch nhãn.
+                ...jobTypeOptions.map((o) => ({ ...o, label: tx(o.label) })),
+              ]}
               value={criteria.jobType ?? ''}
               onChange={(e) => update({ jobType: e.target.value || undefined })}
             />

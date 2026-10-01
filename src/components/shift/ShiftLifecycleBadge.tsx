@@ -17,7 +17,7 @@
  */
 
 import { Badge } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import {
   getShiftLifecycleState,
   getShiftStatusBadge,
@@ -47,6 +47,7 @@ export function ShiftLifecycleBadge({
   nowIso,
   className,
 }: ShiftLifecycleBadgeProps) {
+  const t = useT();
   const now = nowIso ?? new Date().toISOString();
   const state = getShiftLifecycleState(shift, applications, now);
   const info = getShiftStatusBadge(state);

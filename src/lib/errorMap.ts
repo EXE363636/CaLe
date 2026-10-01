@@ -11,7 +11,8 @@
  * from any layer (form submit, store callback, page effect).
  */
 
-import { t } from '@/i18n/vi';
+// Đợt 2a VI/EN: theo ngôn ngữ đang hiển thị (<html lang>), không cần hook.
+import { tCurrent as t } from '@/i18n/locale';
 
 /**
  * Phase 10C — `EVIDENCE_REQUIRED` is a structured error so the

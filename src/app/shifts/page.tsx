@@ -14,7 +14,7 @@ import { ShiftFilters } from '@/components/shift/ShiftFilters';
 import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
 import { Button, EmptyState, PageShell } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { ApplicationStatus, Shift, Worker } from '@/types';
 import type { FilterCriteria } from '@/domain/filter';
 
@@ -24,6 +24,7 @@ const JOB_TYPE_OPTIONS = [
 ].map((v) => ({ value: v, label: v }));
 
 export default function ShiftsPage() {
+  const t = useT();
   useLifecycleSync();
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);

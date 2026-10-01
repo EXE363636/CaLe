@@ -18,7 +18,8 @@ import { PaymentReviewNotice } from '@/components/wallet/PaymentReviewNotice';
 import { formatVND } from '@/lib/format';
 import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
+import { tCurrent, txCurrent } from '@/i18n/locale';
 import { getDataMode } from '@/data/supabaseClient';
 import type { CreatePaymentResult } from '@/data/repos/paymentRepo';
 import { getTopUpBonus, type TopUpBonusInfo } from '@/data/repos/topupBonusRepo';
@@ -100,18 +101,23 @@ function formatOccurredAt(iso: string): string {
   return DATE_FMT.format(d);
 }
 
-/** Map mã lỗi server (supabase / PayOS) sang copy tiếng Việt. */
+/**
+ * Map mã lỗi server (supabase / PayOS) sang câu cho người dùng. Chỉ gọi trong xử
+ * lý sự kiện (client) → dịch theo ngôn ngữ đang hiển thị, không cần hook.
+ */
 function mapWalletErr(raw: string): string {
+  const t = tCurrent;
+  const tx = txCurrent;
   if (raw.includes('INSUFFICIENT_BALANCE')) return t('wallet.withdraw.error.insufficient');
   if (raw.includes('INVALID_AMOUNT')) return t('wallet.topUp.error.invalid');
   if (raw.includes('INVALID_BANK')) return t('wallet.withdraw.real.error.bank');
   if (raw.includes('INVALID_ACCOUNT')) return t('wallet.withdraw.real.error.account');
   if (raw.includes('PAYOUT_REJECTED')) return t('wallet.withdraw.real.error.rejected');
   if (raw.includes('PAYOS_REJECTED') || raw.includes('PAYOS_UNREACHABLE')) {
-    return 'Không tạo được mã thanh toán PayOS. Vui lòng thử lại sau.';
+    return tx('Không tạo được mã thanh toán PayOS. Vui lòng thử lại sau.');
   }
-  if (raw.includes('NOT_CONFIGURED')) return 'Cổng thanh toán chưa được cấu hình. Vui lòng liên hệ hỗ trợ.';
-  return 'Không thực hiện được. Vui lòng thử lại.';
+  if (raw.includes('NOT_CONFIGURED')) return tx('Cổng thanh toán chưa được cấu hình. Vui lòng liên hệ hỗ trợ.');
+  return tx('Không thực hiện được. Vui lòng thử lại.');
 }
 
 function entryToneClass(amount: number): string {
@@ -121,6 +127,7 @@ function entryToneClass(amount: number): string {
 }
 
 function LedgerRow({ entry }: { entry: WalletLedgerEntry }) {
+  const t = useT();
   const sign = entry.amount > 0 ? '+' : entry.amount < 0 ? '-' : '';
   return (
     <li className="flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs">
@@ -162,6 +169,8 @@ export function WalletPanel({
   openLedgerSignal = 0,
   className = '',
 }: WalletPanelProps) {
+  const t = useT();
+  const tx = useTx();
   const ledger = useWalletStore((s) => s.ledger);
   const wallets = useWalletStore((s) => s.wallets);
   const topUp = useWalletStore((s) => s.topUp);
@@ -359,11 +368,11 @@ export function WalletPanel({
       closeTopUp();
       return;
     }
-    showSuccess('Đã nạp tiền vào ví', `+${formatVND(order.amount)}`);
+    showSuccess(tx('Đã nạp tiền vào ví'), `+${formatVND(order.amount)}`);
     pushNotification({
       userId,
       kind: 'UserTopUp',
-      title: 'Đã nạp tiền vào ví',
+      title: tx('Đã nạp tiền vào ví'),
       body: `${t('wallet.kind.UserTopUp')}: +${formatVND(order.amount)}`,
       link: walletHistoryLink(role),
       dedupeKey: `PayosTopUp:${order.orderCode}`,

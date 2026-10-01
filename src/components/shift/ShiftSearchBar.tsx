@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 interface ShiftSearchBarProps {
   value: string;
@@ -30,6 +30,7 @@ function SearchIcon() {
 }
 
 export function ShiftSearchBar({ value, onSearch, className = '' }: ShiftSearchBarProps) {
+  const t = useT();
   const [draft, setDraft] = useState(value);
 
   // Sync external value changes (e.g. clear filters)

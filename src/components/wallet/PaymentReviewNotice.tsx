@@ -12,12 +12,11 @@ import { useEffect, useState } from 'react';
 import { listMyPaymentReviews, type MyPaymentReview } from '@/data/repos/paymentReviewRepo';
 import { fillTemplate, paymentReviewSummary } from '@/domain/paymentReview';
 import { formatVND } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 const RECENT_MS = 30 * 86_400_000;
 const MAX_ROWS = 3;
 
-const fill = (key: string, map: Record<string, string>) => fillTemplate(t(key), map);
 
 function tone(status: MyPaymentReview['status']): string {
   if (status === 'Credited') return 'bg-green-50 text-green-800 ring-green-200';
@@ -26,6 +25,8 @@ function tone(status: MyPaymentReview['status']): string {
 }
 
 export function PaymentReviewNotice({ reloadSignal = 0 }: { reloadSignal?: number }) {
+  const t = useT();
+  const fill = (key: string, map: Record<string, string>) => fillTemplate(t(key), map);
   const [rows, setRows] = useState<MyPaymentReview[]>([]);
 
   useEffect(() => {

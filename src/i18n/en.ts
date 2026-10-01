@@ -7,9 +7,12 @@
  *   → câu tiếng Anh. Khoá của bảng là NGUYÊN VĂN câu tiếng Việt; sửa câu tiếng
  *   Việt trong code thì sửa khoá ở đây theo (test i18nEnglish kiểm).
  * - Tiền tệ vẫn viết `đ` (VND) như bản tiếng Việt; không dùng `VNĐ` / `₫`.
+ * - Đợt 2a (lỗi, danh sách / chi tiết ca, chuông, ví) nằm ở `en-app.ts`, gộp ở cuối.
  */
 
-export const en: Record<string, string> = {
+import { enApp, enAppText } from './en-app';
+
+export const enPublic: Record<string, string> = {
   // --- Chung / điều hướng ---------------------------------------------------
   'site.name': 'CaLẻ',
   'btn.close': 'Close',
@@ -214,7 +217,7 @@ export const en: Record<string, string> = {
 };
 
 /** Câu tiếng Việt viết cứng trong code → tiếng Anh (xem `translateText`). */
-export const enText: Record<string, string> = {
+export const enPublicText: Record<string, string> = {
   // Menu (NavBar / MobileNav) + footer
   'Trang chủ': 'Home',
   'Chính': 'Main',
@@ -334,3 +337,6 @@ export const enText: Record<string, string> = {
   'Bản demo không hỗ trợ đặt lại mật khẩu. Dùng tài khoản demo ở trang đăng nhập.':
     'The demo does not support password resets. Use a demo account on the log in page.',
 };
+
+export const en: Record<string, string> = { ...enPublic, ...enApp };
+export const enText: Record<string, string> = { ...enPublicText, ...enAppText };

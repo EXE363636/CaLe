@@ -130,6 +130,30 @@ export function formatRelativeDayVN(date: string, now: Date = new Date()): strin
   return `${WEEKDAY_VN[d.getDay()]}, ${dd}/${m}${sameYear ? '' : `/${y}`}`;
 }
 
+const WEEKDAY_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * VI/EN đợt 2a — như `formatRelativeDayVN` nhưng theo ngôn ngữ đang hiển thị:
+ * EN là "Today" / "Tomorrow" / "Fri, 26/09" (giữ thứ tự ngày/tháng như bản Việt).
+ */
+export function formatRelativeDay(
+  date: string,
+  locale: 'vi' | 'en',
+  now: Date = new Date(),
+): string {
+  if (locale === 'vi' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return formatRelativeDayVN(date, now);
+  }
+  const d = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return '';
+  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  if (date === localYmd(now)) return 'Today';
+  if (date === localYmd(tomorrow)) return 'Tomorrow';
+  const [y, m, dd] = date.split('-');
+  const sameYear = Number(y) === now.getFullYear();
+  return `${WEEKDAY_EN[d.getDay()]}, ${dd}/${m}${sameYear ? '' : `/${y}`}`;
+}
+
 /**
  * Predicate: is a session expired given `now` and the user's last activity?
  *

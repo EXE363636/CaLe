@@ -145,3 +145,50 @@ người nạp không nhận được.
      xử lý".
   3. Bấm vào thông báo: mở lịch sử ví.
   4. Tải lại trang: thông báo vẫn là đã đọc.
+
+---
+
+## C. VI/EN đợt 2a (không đụng DB)
+
+Nhánh `feat/i18n-phase2` (tách từ `feat/payment-review-notify`).
+
+### C.1 Đã dịch
+| Phần | File |
+|---|---|
+| Thông báo lỗi (toast) | `src/lib/errorMap.ts` (dùng `tCurrent`) |
+| Danh sách ca | `src/app/shifts/page.tsx`, `ShiftFilters`, `ShiftSearchBar` (tên loại công việc dịch nhãn, giá trị lọc giữ tiếng Việt) |
+| Thẻ ca + nhãn trạng thái | `ShiftCard` (ngày "Today / Tomorrow / Fri, 26/09"), `ShiftLifecycleBadge`, `ShiftReviewStatus` |
+| Chi tiết ca | `src/app/shifts/[id]/page.tsx` (chưa gồm các hộp thoại con: check-out, khiếu nại, phản hồi…) |
+| Chuông thông báo | `NotificationBell` + thông báo server 0031 dựng câu theo ngôn ngữ đang hiển thị |
+| Ví | `WalletPanel`, `PaymentReviewNotice`, `PayoutHealthBanner`, `NoPaymentNotice` |
+
+### C.2 Cơ chế mới
+- `src/i18n/en-app.ts`: `enApp` / `enAppText`, gộp vào `en` / `enText` trong `en.ts`.
+- `tCurrent` / `txCurrent` (`locale.ts`): đọc `<html lang>`. Dùng cho code ngoài React
+  (`errorMap`, store, xử lý sự kiện). **Không dùng trong render**: server luôn ra tiếng
+  Việt → lệch hydrate.
+- `formatRelativeDay(date, locale)` (`lib/format.ts`).
+- Thông báo / toast tạo ở client lưu câu theo ngôn ngữ lúc tạo. Đổi ngôn ngữ sau đó
+  không dịch lại thông báo cũ.
+
+### C.3 Test
+- `i18nEnglish.test.ts` thêm 3 kiểm:
+  - các file đợt 2a nằm trong danh sách kiểm;
+  - khoá ghép động có đủ bản tiếng Anh: `shift.lifecycle.*`, `apply.applied.*`,
+    `wallet.kind.*`, `wallet.withdraw.real.status.*`, `wallet.review.status.*`,
+    `dispute.category.*`, `notification.paymentReview.*`;
+  - **đợt 2a không ghi đè câu đợt 1.** Lỗi thật đã bắt được: "Người lao động" là nhãn
+    menu "Workers".
+- `formatRelativeDay.test.ts`.
+- e2e `29-role-homepages`: `/shifts` + thẻ ca + chi tiết ca bằng tiếng Anh.
+- Gate:
+  - tsc 0 · lint 0 lỗi;
+  - `test:run` 942/942 · `test:time` 22/22;
+  - build OK (33 trang) · e2e 137/137.
+
+### C.4 Còn lại (đợt 2b)
+- Dashboard người lao động / nhà tuyển dụng: khoảng 210 khoá + 200 dòng chữ viết cứng.
+- Admin: khoảng 150 khoá. Ưu tiên thấp vì người dùng là đội nội bộ.
+- Cẩm nang (bài viết dài).
+- Các hộp thoại con của chi tiết ca, trang hồ sơ, đăng ca.
+- ⚠️ **Nhờ người đọc lại bản tiếng Anh**, nhất là lỗi ví / rút tiền.

@@ -7,7 +7,7 @@
  */
 
 import { StarRating } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 interface ShiftReviewStatusProps {
   /** Số sao bạn đã chấm đối phương (undefined = chưa chấm). */
@@ -25,6 +25,7 @@ export function ShiftReviewStatus({
   counterpartName,
   className = '',
 }: ShiftReviewStatusProps) {
+  const t = useT();
   if (givenStars === undefined && receivedStars === undefined) return null;
 
   return (
@@ -47,6 +48,7 @@ export function ShiftReviewStatus({
 }
 
 function ReviewStat({ label, stars }: { label: string; stars?: number }) {
+  const t = useT();
   return (
     <div className="contents">
       <dt className="text-gray-600">{label}</dt>

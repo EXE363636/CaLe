@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { handleNotificationClick } from '@/lib/notificationAction';
 import { formatLogDateTime } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { Notification } from '@/types';
 
 function BellIcon({ className = '' }: { className?: string }) {
@@ -28,6 +28,7 @@ function BellIcon({ className = '' }: { className?: string }) {
 }
 
 export function NotificationBell() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);

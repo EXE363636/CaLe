@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { Card, Badge, type BadgeTone } from '@/components/ui';
 import { ShiftLifecycleBadge } from './ShiftLifecycleBadge';
 import { EscrowStatusBadge } from './EscrowStatusBadge';
-import { formatVND, formatDateVN, formatRelativeDayVN, formatTimeVN } from '@/lib/format';
+import { formatVND, formatDateVN, formatRelativeDay, formatTimeVN } from '@/lib/format';
 import { hoursBetween } from '@/domain/deposit';
-import { t } from '@/i18n/vi';
+import { t as tVi } from '@/i18n/vi';
+import { useLocale, useT, useTx } from '@/i18n/LocaleProvider';
 import type { Application, ApplicationStatus, Shift } from '@/types';
 
 /**
@@ -144,13 +145,16 @@ export function ShiftCard({
   applications = [],
   nowIso,
 }: ShiftCardProps) {
+  const t = useT();
+  const tx = useTx();
+  const locale = useLocale();
   // "Rõ tiền": tổng tiền công cả ca (lương/giờ × số giờ) là con số chính;
   // hoursBetween trả 0 với ca qua đêm / giờ sai → khi đó chỉ hiện lương/giờ.
   const hours = hoursBetween(shift.startTime, shift.endTime);
   const perShift = hours > 0 ? Math.round(shift.hourlyWage * hours) : null;
   const hoursLabel = t('shiftCard.hours').replace(
     '{n}',
-    new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(hours),
+    new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN', { maximumFractionDigits: 1 }).format(hours),
   );
   const slotsLeft = Math.max(0, shift.positionsTotal - shift.positionsFilled);
   const legacyButton = !href && !!onClick;
@@ -221,8 +225,9 @@ export function ShiftCard({
             <Badge tone="danger">{t('shiftCard.conflict')}</Badge>
           )}
           {!isConflict && matchLabel && (
-            <Badge tone={matchLabel === t('availability.match.veryGood') ? 'success' : matchLabel === t('availability.match.good') ? 'info' : 'warning'}>
-              {matchLabel}
+            // matchLabel là chữ tiếng Việt tính sẵn ở domain → so với bản Việt, hiện qua tx.
+            <Badge tone={matchLabel === tVi('availability.match.veryGood') ? 'success' : matchLabel === tVi('availability.match.good') ? 'info' : 'warning'}>
+              {tx(matchLabel)}
             </Badge>
           )}
           {!isConflict && fitsAvailability && (
@@ -258,7 +263,7 @@ export function ShiftCard({
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
         <span className="flex items-center gap-1">
           <CalendarIcon />
-          <span className="font-medium text-gray-900">{formatRelativeDayVN(shift.date)}</span>
+          <span className="font-medium text-gray-900">{formatRelativeDay(shift.date, locale)}</span>
         </span>
         <span className="flex items-center gap-1 tabular-nums">
           <ClockIcon />

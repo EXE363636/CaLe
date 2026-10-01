@@ -153,6 +153,9 @@ npx tsc --noEmit     # type-check
   `await getTx()` (server) thay cho `t` của `vi.ts`. Thêm/sửa chữ trên các màn này → thêm
   bản tiếng Anh vào `src/i18n/en.ts` (`en` theo khoá, `enText` theo câu Việt viết cứng);
   test `i18nEnglish.test.ts` sẽ báo nếu thiếu. Màn chưa chuyển vẫn dùng `t` (luôn tiếng Việt).
+  Đợt 2a (01/10): `errorMap`, `/shifts`, thẻ ca, nhãn trạng thái, chuông, ví, `/shifts/[id]`
+  — bản dịch ở `src/i18n/en-app.ts` (không ghi đè câu đợt 1). Code ngoài React (`errorMap`,
+  store, xử lý sự kiện) dùng `tCurrent` / `txCurrent` (đọc `<html lang>`), KHÔNG dùng trong render.
 - **Giao diện tối (30/09):** `<html data-theme="dark">`, chỉ đổi biến màu trong
   `globals.css` (không dùng `dark:`). Thêm màu hex/gradient mới trong CSS thì thêm bản tối
   ở khối `:root[data-theme="dark"]`; xem DESIGN.md mục "Giao diện tối".

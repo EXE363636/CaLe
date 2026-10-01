@@ -10,7 +10,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { en, enText } from '@/i18n/en';
+import { en, enPublic, enPublicText, enText } from '@/i18n/en';
+import { enApp, enAppText } from '@/i18n/en-app';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
 import { vi } from '@/i18n/vi';
 
@@ -33,6 +34,20 @@ const PHASE1_FILES = [
   'src/components/layout/Footer.tsx',
   'src/components/layout/AuthSidePanel.tsx',
   'src/components/auth/GoogleSignInButton.tsx',
+  // Đợt 2a (01/10): lỗi, danh sách ca, thẻ ca, nhãn trạng thái, chuông.
+  'src/lib/errorMap.ts',
+  'src/app/shifts/page.tsx',
+  'src/components/shift/ShiftCard.tsx',
+  'src/components/shift/ShiftLifecycleBadge.tsx',
+  'src/components/shift/ShiftFilters.tsx',
+  'src/components/shift/ShiftSearchBar.tsx',
+  'src/components/shift/ShiftReviewStatus.tsx',
+  'src/components/layout/NotificationBell.tsx',
+  'src/components/wallet/WalletPanel.tsx',
+  'src/components/wallet/PaymentReviewNotice.tsx',
+  'src/components/wallet/PayoutHealthBanner.tsx',
+  'src/components/wallet/NoPaymentNotice.tsx',
+  'src/app/shifts/[id]/page.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -104,5 +119,40 @@ describe('i18n English — đợt 1', () => {
     expect(translateText('en', 'Bảng giá')).toBe('Pricing');
     expect(translateText('en', 'Câu chưa dịch')).toBe('Câu chưa dịch');
     expect(translateText('vi', 'Bảng giá')).toBe('Bảng giá');
+  });
+});
+
+describe('i18n English — đợt 2a', () => {
+  it('đợt 2a không ghi đè câu của đợt 1 (vd. nhãn menu "Người lao động" → "Workers")', () => {
+    const textClash = Object.keys(enAppText).filter(
+      (k) => k in enPublicText && enPublicText[k] !== enAppText[k],
+    );
+    const keyClash = Object.keys(enApp).filter((k) => k in enPublic && enPublic[k] !== enApp[k]);
+    expect([...textClash, ...keyClash]).toEqual([]);
+  });
+
+  it('khoá ghép động có đủ bản tiếng Anh (nhãn trạng thái ca, trạng thái đơn, thông báo server)', () => {
+    const prefixes = [
+      'shift.lifecycle.',
+      'apply.applied.',
+      'notification.paymentReview.',
+      'wallet.kind.',
+      'wallet.withdraw.real.status.',
+      'wallet.review.status.',
+      'dispute.category.',
+    ];
+    const missing = Object.keys(vi).filter(
+      (k) => prefixes.some((p) => k.startsWith(p)) && !(k in en),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('loại công việc và nhãn mức phù hợp (chữ tiếng Việt tính sẵn) có trong enText', () => {
+    for (const text of ['Phục vụ', 'Pha chế', 'Kho vận', 'Hỗ trợ sự kiện', 'Phát tờ rơi', 'Bảo vệ', 'Thu ngân', 'Khác']) {
+      expect(enText[text], text).toBeTruthy();
+    }
+    for (const key of ['availability.match.veryGood', 'availability.match.good', 'availability.match.consider']) {
+      expect(enText[vi[key]], key).toBe(en[key]);
+    }
   });
 });

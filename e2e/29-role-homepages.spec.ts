@@ -203,6 +203,24 @@ test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
     await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
   });
+  test('đợt 2a: danh sách ca + thẻ ca + chi tiết ca hiện tiếng Anh', async ({ page, seedState, gotoApp }) => {
+    await page.setViewportSize(DESKTOP);
+    await seedState(buildSnapshot({ shifts: [openShift(1)] }));
+    await gotoApp('/shifts');
+    await page.getByRole('button', { name: 'Switch to English' }).click();
+
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find shifts');
+    await expect(page.getByPlaceholder('Search by shift name or place...')).toBeVisible();
+    const card = page.locator('a[href="/shifts/e2e-home-shift-1"]');
+    await expect(card.getByText('Hiring', { exact: true })).toBeVisible();
+    await expect(card.getByText('2/2 spots left')).toBeVisible();
+    await expect(card.getByText('whole shift')).toBeVisible();
+
+    await card.click();
+    await page.waitForURL('**/shifts/e2e-home-shift-1');
+    await expect(page.getByText('Pay for the whole shift')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Back/ })).toBeVisible();
+  });
 });
 
 test.describe('Nút giao diện sáng / tối', () => {

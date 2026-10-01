@@ -12,9 +12,10 @@
 import { useEffect, useState } from 'react';
 import { getPayoutHealth, type PayoutHealth } from '@/data/repos/walletRepo';
 import { formatLogDateTime } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 export function PayoutHealthBanner() {
+  const t = useT();
   const [health, setHealth] = useState<PayoutHealth | null>(null);
 
   useEffect(() => {

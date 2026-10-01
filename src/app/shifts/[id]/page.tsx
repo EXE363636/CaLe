@@ -34,7 +34,7 @@ import { canCheckIn, canCheckOut, isLateCheckout } from '@/domain/timeGates';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError, showInfo } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
-import { t } from '@/i18n/vi';
+import { useLocale, useT, useTx } from '@/i18n/LocaleProvider';
 import { tSettlement } from '@/lib/settlementCopy';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
@@ -67,6 +67,7 @@ export default function ShiftDetailPage({ params }: Props) {
 }
 
 function ShiftDetailLoading() {
+  const t = useT();
   return (
     <div
       className="mx-auto max-w-3xl px-4 py-16 text-center text-sm text-gray-500"
@@ -83,6 +84,9 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   // Phase 10A-Fix-10: roll lifecycle (incl. expire stale Pending) on
   // mount so a worker arriving via a notification deep-link sees the
   // correct application status without needing a hard refresh.
+  const t = useT();
+  const tx = useTx();
+  const locale = useLocale();
   useLifecycleSync();
   const users = useUserStore((s) => s.users);
   const currentUserId = useAuthStore((s) => s.currentUserId);
@@ -139,7 +143,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
   const reviewBackend = useReviewBackendStore((s) => s.available);
   const employerUser = users.find((u) => u.id === shift.employerId);
   const employer = asEmployer(employerUser);
-  const employerName = employer?.companyName ?? 'Nhà tuyển dụng';
+  const employerName = employer?.companyName ?? t('role.employer');
 
   const currentUser = currentUserId ? users.find((u) => u.id === currentUserId) : null;
   const worker = asWorker(currentUser ?? undefined);
@@ -481,7 +485,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         ) : (
           <InfoItem
             label={t('shifts.detail.hourlyOnly')}
-            value={`${formatVND(shift.hourlyWage)}/giờ`}
+            value={`${formatVND(shift.hourlyWage)}${t('common.perHour')}`}
             highlight
             className={isRecruiting ? undefined : 'col-span-2 sm:col-span-1'}
           />
@@ -522,7 +526,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
       {/* Description */}
       {shift.description && (
-        <Section title="Mô tả công việc">
+        <Section title={tx('Mô tả công việc')}>
           <p className="text-sm text-gray-700 whitespace-pre-line">{shift.description}</p>
         </Section>
       )}
@@ -559,10 +563,10 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           reason + the protection note. The banner is public-safe:
           only the employer-supplied reason is shown. */}
       {shift.status === 'Cancelled' && shift.cancelledBy === 'employer' && (
-        <Section title="Ca làm đã bị hủy">
+        <Section title={tx('Ca làm đã bị hủy')}>
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
             <p>
-              <span className="font-semibold">Đã hủy bởi nhà tuyển dụng</span>
+              <span className="font-semibold">{tx('Đã hủy bởi nhà tuyển dụng')}</span>
               {shift.cancelledAt && (
                 <span className="ml-2 text-xs text-red-800/80">
                   ({formatDateVN(shift.cancelledAt.slice(0, 10))})
@@ -571,15 +575,15 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
             </p>
             {shift.employerCancellationReason && (
               <p className="mt-2 text-sm">
-                <span className="font-medium">Lý do:</span>{' '}
+                <span className="font-medium">{tx('Lý do:')}</span>{' '}
                 {shift.employerCancellationReason}
               </p>
             )}
             {shift.employerCancelledAfterApproval && (
               <p className="mt-2 text-xs leading-relaxed text-red-800">
-                Bạn không bị trừ điểm uy tín hoặc hạn mức hủy vì ca do nhà
-                tuyển dụng hủy. Hệ thống đã tự động bảo vệ quyền lợi của
-                bạn.
+                {tx(
+                  'Bạn không bị trừ điểm uy tín hoặc hạn mức hủy vì ca do nhà tuyển dụng hủy. Hệ thống đã tự động bảo vệ quyền lợi của bạn.',
+                )}
               </p>
             )}
           </div>
@@ -599,7 +603,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
       <div className="mt-8 rounded-xl border border-gray-200 bg-white p-5 shadow-card">
         {!currentUserId && (
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-gray-600">Đăng nhập để ứng tuyển ca làm này.</p>
+            <p className="text-sm text-gray-600">{tx('Đăng nhập để ứng tuyển ca làm này.')}</p>
             <div className="flex gap-3">
               <ButtonLink href="/login" variant="primary">{t('btn.login')}</ButtonLink>
               <ButtonLink href="/register?role=worker" variant="secondary">{t('btn.register')}</ButtonLink>
@@ -611,12 +615,12 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           <p className="text-sm text-gray-500">
             {isOwner
               ? t('shift.detail.ownerPreviewNote')
-              : 'Bạn là nhà tuyển dụng. Quản lý ca tại trang tổng quan của bạn.'}
+              : tx('Bạn là nhà tuyển dụng. Quản lý ca tại trang tổng quan của bạn.')}
           </p>
         )}
 
         {currentUser?.role === 'admin' && (
-          <p className="text-sm text-gray-500">Bạn đang xem với tư cách quản trị viên.</p>
+          <p className="text-sm text-gray-500">{tx('Bạn đang xem với tư cách quản trị viên.')}</p>
         )}
 
         {worker && !myApp && <VerificationGateNotice action="apply" />}
@@ -925,10 +929,10 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
                           >
                             <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
                               {r.side === 'worker'
-                                ? 'Người lao động'
-                                : 'Nhà tuyển dụng'}
+                                ? t('role.worker')
+                                : t('role.employer')}
                               {' · '}
-                              {new Intl.DateTimeFormat('vi-VN', {
+                              {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'vi-VN', {
                                 day: '2-digit',
                                 month: '2-digit',
                                 year: 'numeric',
@@ -1189,6 +1193,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ---------------------------------------------------------------------------
 
 function WorkplaceCard({ shift }: { shift: Shift }) {
+  const t = useT();
+  const tx = useTx();
   // Ảnh địa điểm là tên-tệp giả (chưa có upload thật). Ở supabase/production
   // KHÔNG hiển thị (kể cả dữ liệu cũ) để không coi chuỗi filename là ảnh thật.
   const hasImage =
@@ -1235,7 +1241,7 @@ function WorkplaceCard({ shift }: { shift: Shift }) {
                 {shift.workplaceImageLabel}
               </p>
               <p className="mt-0.5 text-xs italic text-orange-800/80">
-                Ảnh mô phỏng — bản MVP không có upload thật.
+                {tx('Ảnh mô phỏng — bản MVP không có upload thật.')}
               </p>
             </div>
           </div>

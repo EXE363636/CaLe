@@ -11,7 +11,7 @@ import { create } from 'zustand';
 import { STORAGE_KEYS, write } from '@/data/persistence';
 import { listMyNotifications, markMyNotificationsRead } from '@/data/repos/notificationRepo';
 import { toAppNotification } from '@/domain/serverNotification';
-import { t } from '@/i18n/vi';
+import { tCurrent } from '@/i18n/locale';
 import { formatVND } from '@/lib/format';
 import { newPrefixedId } from '@/lib/ids';
 import type { Notification } from '@/types';
@@ -133,7 +133,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   async refetchServer(userId, isCurrent = () => true) {
     const rows = await listMyNotifications();
     if (!isCurrent()) return;
-    const fmt = { t: (key: string) => t(key), money: formatVND };
+    const fmt = { t: tCurrent, money: formatVND };
     const fresh = rows
       .map((r) => toAppNotification(r, userId, fmt))
       .filter((n): n is Notification => n !== null);
