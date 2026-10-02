@@ -10,7 +10,9 @@
    3. `feat/i18n-phase2` — không đụng DB (mục C);
    4. `feat/i18n-phase2b` — không đụng DB (mục D);
    5. `feat/integration-scripts-cleanup` — chỉ script kiểm tích hợp (mục E.1);
-   6. `feat/bank-bigint` — migration **0032** (mục E.2).
+   6. `feat/bank-bigint` — migration **0032** (mục E.2);
+   7. `feat/handbook-by-role`, 8. `feat/i18n-phase2c`, 9. `feat/i18n-phase2d` — không đụng DB
+      (xem `docs/HANDOFF_2026-10-02_VIEC_DINH_LAM.md`).
 2. **0030, 0031, 0032 CHƯA `db push`.** Thứ tự cho mỗi migration:
    1. chạy thử: `bash supabase/dryrun/run-00NN.sh` (mọi dòng "ok");
    2. chủ dự án duyệt;
@@ -288,3 +290,10 @@ Nhánh `feat/i18n-phase2b` (tách từ `feat/i18n-phase2`).
     dùng int);
   - khoảng 21 tỷ đồng tiền công đã chốt mới chạm trần → làm khi cần.
 
+---
+
+## F. Sau ngày 01/10 → xem `docs/HANDOFF_2026-10-02_VIEC_DINH_LAM.md`
+- Cẩm nang tách người lao động / nhà tuyển dụng (`feat/handbook-by-role`).
+- VI/EN đợt 2c: trang thông tin (`feat/i18n-phase2c`).
+- VI/EN đợt 2d phần 1 (`feat/i18n-phase2d`).
+- Việc định làm: dịch nốt, chat (kế hoạch đã duyệt), tìm nguồn ca từ hội nhóm.
