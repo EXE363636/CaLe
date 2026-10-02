@@ -7,7 +7,7 @@
 
 import { Button, Modal } from '@/components/ui';
 import { formatVND } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 interface Props {
   open: boolean;
@@ -18,6 +18,7 @@ interface Props {
 }
 
 export function WorkerDepositConfirmModal({ open, amount, loading, onConfirm, onClose }: Props) {
+  const t = useT();
   return (
     <Modal open={open} onClose={onClose} title={t('workerDeposit.confirm.title')}>
       <p className="text-sm text-gray-700">

@@ -34,7 +34,7 @@ import {
 } from '@/domain/skillScore';
 import { averageRating } from '@/domain/rating';
 import { SkillProgressBar } from './SkillProgressBar';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { hasCapability } from '@/data/capabilities';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
@@ -73,6 +73,7 @@ export function WorkerSummaryRow({
   jobCategory,
   className = '',
 }: WorkerSummaryRowProps) {
+  const t = useT();
   const workerDocuments = useVerificationStore((s) => s.workerDocuments);
   const summary = useMemo(
     () => getWorkerVerificationSummary(worker, workerDocuments),

@@ -17,7 +17,7 @@
 
 import { useMemo } from 'react';
 import { Card, StarRating, Badge } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { averageRating } from '@/domain/rating';
 import {
   getWorkerVerificationSummary,
@@ -33,6 +33,8 @@ export interface WorkerProfileCardProps {
 }
 
 export function WorkerProfileCard({ worker, className = '' }: WorkerProfileCardProps) {
+  const t = useT();
+  const tx = useTx();
   const avg = averageRating(worker.ratingsReceived);
   const workerDocuments = useVerificationStore((s) => s.workerDocuments);
   const summary = useMemo(
@@ -61,9 +63,9 @@ export function WorkerProfileCard({ worker, className = '' }: WorkerProfileCardP
           <Badge tone="info">{t('verification.phone')}</Badge>
         )}
         {summary.identityVerified ? (
-          <Badge tone="success">Đã xác minh danh tính</Badge>
+          <Badge tone="success">{tx('Đã xác minh danh tính')}</Badge>
         ) : (
-          <Badge tone="neutral">Chưa xác minh danh tính</Badge>
+          <Badge tone="neutral">{tx('Chưa xác minh danh tính')}</Badge>
         )}
         {summary.approvedMethods.map((m) => (
           <span

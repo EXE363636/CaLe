@@ -41,7 +41,7 @@ import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { tSettlement } from '@/lib/settlementCopy';
 import { canReviewApplication } from '@/domain/reviewEligibility';
 import { submitReviewAsync, useReviewBackendStore } from '@/lib/reviewSync';
@@ -62,6 +62,7 @@ export default function EmployerShiftDetailPage({ params }: Props) {
 }
 
 function EmployerShiftDetailInner({ params }: Props) {
+  const t = useT();
   const { id } = use(params);
   const shift = useShiftStore((s) => s.shifts.find((sh) => sh.id === id));
   const currentUserId = useAuthStore((s) => s.currentUserId);
@@ -133,6 +134,7 @@ function EmployerShiftDetailInner({ params }: Props) {
 }
 
 function ManageShiftContent({ shift }: { shift: Shift }) {
+  const t = useT();
   useLifecycleSync();
   const router = useRouter();
   const users = useUserStore((s) => s.users);
@@ -1592,6 +1594,7 @@ function ApplicationActionButtons({
   onApproveCancellation: () => void;
   onRejectCancellation: () => void;
 }) {
+  const t = useT();
   // Cancellation-request decision — always takes precedence over other
   // states because the application is currently held in
   // `CancellationRequested` and nothing else can happen until the employer
@@ -1801,6 +1804,7 @@ function ShiftTimelineSection({
 }: {
   timeline?: Shift['timeline'];
 }) {
+  const t = useT();
   if (!timeline || timeline.length === 0) return null;
   // Newest first so an employer auditing the lineage reads the most
   // recent event without scrolling.

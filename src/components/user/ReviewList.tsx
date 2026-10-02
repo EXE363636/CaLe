@@ -18,7 +18,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { formatLogDateTime } from '@/lib/format';
 import { showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { EmployerFeedbackTag } from '@/types';
 
 export interface ReviewItem {
@@ -75,6 +75,7 @@ export function ReviewList({
   emptyText,
   showSummary = true,
 }: ReviewListProps) {
+  const t = useT();
   const reports = useReviewReportStore((s) => s.reports);
   const submitReport = useReviewReportStore((s) => s.submit);
   const currentUserId = useAuthStore((s) => s.currentUserId);

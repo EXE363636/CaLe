@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { StarRating, Button, Textarea } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 
 interface RatingFormProps {
   onSubmit: (rating: { stars: 1 | 2 | 3 | 4 | 5; feedback?: string }) => void;
@@ -11,6 +11,8 @@ interface RatingFormProps {
 }
 
 export function RatingForm({ onSubmit, loading = false, className = '' }: RatingFormProps) {
+  const t = useT();
+  const tx = useTx();
   const [stars, setStars] = useState<number>(0);
   const [feedback, setFeedback] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -50,7 +52,7 @@ export function RatingForm({ onSubmit, loading = false, className = '' }: Rating
         onChange={(e) => setFeedback(e.target.value)}
         maxLength={500}
         rows={3}
-        placeholder="Nhận xét về người lao động..."
+        placeholder={tx('Nhận xét về người lao động...')}
       />
 
       <Button

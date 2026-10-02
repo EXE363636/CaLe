@@ -49,7 +49,7 @@ import {
 } from '@/domain/week';
 import { formatDateVN } from '@/lib/format';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import {
   getShiftLifecycleState,
   getShiftStatusBadge,
@@ -127,6 +127,7 @@ export default function EmployerSchedulePage() {
 }
 
 function SchedulePageContent() {
+  const t = useT();
   const router = useRouter();
 
   useLifecycleSync();
@@ -176,7 +177,7 @@ function SchedulePageContent() {
         variant: LIFECYCLE_VARIANT[state],
       };
     });
-  }, [myShifts, applications]);
+  }, [myShifts, applications, t]);
 
   if (!currentUserId) return null;
 

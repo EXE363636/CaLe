@@ -11,7 +11,7 @@ import Link from 'next/link';
 import type { WorkerDepositStatus } from '@/data/repos/workerDepositRepo';
 import { workerDepositLimitReached } from '@/domain/workerDeposit';
 import { formatVND } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 import { formatVnDate } from './vnTime';
 
@@ -26,6 +26,7 @@ interface Props {
 }
 
 export function WorkerDepositApplyNotice({ status, amount, className = '' }: Props) {
+  const t = useT();
   if (!status.enabled) return null;
 
   if (!status.needsDeposit || amount <= 0) {

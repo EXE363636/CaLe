@@ -50,7 +50,8 @@ import { getWorkerReputation } from '@/stores/userStore';
 import { useToastStore } from '@/stores/toastStore';
 import { showSuccess } from '@/lib/toast';
 import { navigateWithIntent } from '@/lib/notificationAction';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
+import type { TFunction } from '@/i18n/locale';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import type { Admin, Employer, User, Worker } from '@/types';
 
@@ -63,7 +64,7 @@ interface MenuItem {
   label: string;
 }
 
-function workerItems(): MenuItem[] {
+function workerItems(t: TFunction): MenuItem[] {
   return [
     { href: '/worker/dashboard', label: t('nav.userMenu.worker.dashboard') },
     { href: '/worker/profile', label: t('nav.userMenu.worker.profile') },
@@ -83,7 +84,7 @@ function workerItems(): MenuItem[] {
   ];
 }
 
-function employerItems(): MenuItem[] {
+function employerItems(t: TFunction): MenuItem[] {
   return [
     {
       href: '/employer/dashboard',
@@ -104,7 +105,7 @@ function employerItems(): MenuItem[] {
   ];
 }
 
-function adminItems(): MenuItem[] {
+function adminItems(t: TFunction): MenuItem[] {
   return [
     { href: '/admin/dashboard', label: t('nav.userMenu.admin.dashboard') },
     {
@@ -139,13 +140,13 @@ function avatarUrlFor(user: User): string | undefined {
   return undefined;
 }
 
-function roleLabel(user: User): string {
+function roleLabel(user: User, t: TFunction): string {
   if (user.role === 'worker') return t('role.worker');
   if (user.role === 'employer') return t('role.employer');
   return t('role.admin');
 }
 
-function trustChip(user: User): { label: string; tone: 'good' | 'warn' | 'neutral' } {
+function trustChip(user: User, t: TFunction): { label: string; tone: 'good' | 'warn' | 'neutral' } {
   if (user.role === 'worker') {
     // Cluster 2 · BUG 3 (Req 2.3): read through the single shared source so
     // the trust chip matches the worker dashboard / employer badges exactly.
@@ -180,6 +181,7 @@ function chipClasses(tone: 'good' | 'warn' | 'neutral'): string {
 // ---------------------------------------------------------------------------
 
 export function UserMenu() {
+  const t = useT();
   const pathname = usePathname() ?? '';
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -192,10 +194,10 @@ export function UserMenu() {
   // Per-role item list, derived from the current user's role.
   const items: MenuItem[] = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.role === 'worker') return workerItems();
-    if (currentUser.role === 'employer') return employerItems();
-    return adminItems();
-  }, [currentUser]);
+    if (currentUser.role === 'worker') return workerItems(t);
+    if (currentUser.role === 'employer') return employerItems(t);
+    return adminItems(t);
+  }, [currentUser, t]);
 
   const cancelClose = useCallback(() => {
     if (closeTimerRef.current) {
@@ -266,8 +268,8 @@ export function UserMenu() {
 
   const name = displayName(currentUser);
   const avatarUrl = avatarUrlFor(currentUser);
-  const role = roleLabel(currentUser);
-  const chip = trustChip(currentUser);
+  const role = roleLabel(currentUser, t);
+  const chip = trustChip(currentUser, t);
 
   function handleLogout() {
     logout();

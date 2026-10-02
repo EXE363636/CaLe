@@ -29,7 +29,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button, Modal, Textarea } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import {
   EMPLOYER_DISPUTE_CATEGORIES,
   WORKER_DISPUTE_CATEGORIES,
@@ -79,6 +79,7 @@ export function DisputeDialog({
   errorMessage = null,
   defaultCategory,
 }: DisputeDialogProps) {
+  const t = useT();
   const categories =
     side === 'employer'
       ? EMPLOYER_DISPUTE_CATEGORIES

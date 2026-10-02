@@ -28,7 +28,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Button, Modal, Textarea, Input } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 const REASON_MAX = 1000;
 const EVIDENCE_DESCRIPTION_MAX = 2000;
@@ -63,6 +63,7 @@ export function DisputeResponseDialog({
   loading = false,
   errorMessage = null,
 }: DisputeResponseDialogProps) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [evidenceDescription, setEvidenceDescription] = useState('');
   const [evidenceFileName, setEvidenceFileName] = useState('');

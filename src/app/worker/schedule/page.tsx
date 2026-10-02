@@ -63,7 +63,7 @@ import {
   type SlotConfig,
 } from '@/domain/week';
 import { isSupabaseEnv } from '@/data/supabaseClient';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -133,6 +133,7 @@ export default function WorkerSchedulePage() {
 }
 
 function SchedulePageContent() {
+  const t = useT();
   const router = useRouter();
   const currentUserId = useAuthStore((s) => s.currentUserId);
 
@@ -256,7 +257,7 @@ function SchedulePageContent() {
     }
 
     return out;
-  }, [myBlocks, myCalendarApplications, shiftIndex]);
+  }, [myBlocks, myCalendarApplications, shiftIndex, t]);
 
   const flatList = useMemo(() => {
     return [...myBlocks].sort((a, b) =>
@@ -649,6 +650,7 @@ function SchedulePageContent() {
 // ---------------------------------------------------------------------------
 
 function LockedChip() {
+  const t = useT();
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-1.5 py-0.5 text-xs font-semibold text-orange-700 ring-1 ring-orange-200">
       <svg
@@ -680,6 +682,7 @@ function BlockRow({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const t = useT();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
@@ -771,6 +774,7 @@ function ScheduleBlockDialog({
   myBlocks: ScheduleBlock[];
   onClose: () => void;
 }) {
+  const t = useT();
   const add = useScheduleStore((s) => s.add);
   const update = useScheduleStore((s) => s.update);
 

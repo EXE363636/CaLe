@@ -10,12 +10,13 @@ import { useEffect } from 'react';
 import { Card } from '@/components/ui';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { formatVND } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { useWorkerDepositStore } from '@/stores/workerDepositStore';
 
 import { formatVnDate } from './vnTime';
 
 export function WorkerDepositStatusCard({ className = '' }: { className?: string }) {
+  const t = useT();
   const status = useWorkerDepositStore((s) => s.status);
   const refresh = useWorkerDepositStore((s) => s.refresh);
   const supabase = isSupabaseEnv();

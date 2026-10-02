@@ -16,7 +16,7 @@
 import { useMemo } from 'react';
 import { Badge, StarRating } from '@/components/ui';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { hasCapability } from '@/data/capabilities';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import type { Employer } from '@/types';
@@ -30,6 +30,7 @@ export function EmployerTrustPanel({
   employer,
   onOpenProfile,
 }: EmployerTrustPanelProps) {
+  const t = useT();
   // Stable raw selector — filter and average inside `useMemo` so we
   // never feed Zustand a fresh-array selector (HANDOFF Section 11 rule).
   const allFeedback = useEmployerFeedbackStore((s) => s.feedback);

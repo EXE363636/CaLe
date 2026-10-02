@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Button, Badge } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { ApplicationStatus, VerificationFlag, ShiftStatus } from '@/types';
 import { canApplyToShifts } from '@/domain/reputation';
 import { isSupabaseEnv } from '@/data/supabaseClient';
@@ -37,6 +37,7 @@ export function ApplicationActions({
   error = null,
   className = '',
 }: ApplicationActionsProps) {
+  const t = useT();
   const wrap = ['flex flex-col items-start gap-2', className].join(' ');
 
   // Outcome states — the worker is already past applying, so these come

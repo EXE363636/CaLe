@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { formatMonthYearVN, monthGrid, todayIso } from '@/domain/week';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 /**
  * Sidebar mini-month calendar.
@@ -61,6 +61,7 @@ export function MiniMonthCalendar({
   onSelectDate,
   className = '',
 }: MiniMonthCalendarProps) {
+  const t = useT();
   // Default visible month = month of selectedDateIso. Re-sync only when the
   // *month* of the selected date changes externally (so internal Prev/Next
   // navigation isn't clobbered while the user keeps the same selected day).

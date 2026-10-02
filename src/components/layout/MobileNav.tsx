@@ -76,6 +76,7 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
 import { showSuccess } from '@/lib/toast';
 import { useToastStore } from '@/stores/toastStore';
 import { t } from '@/i18n/vi';
+import type { TFunction } from '@/i18n/locale';
 import { useT, useTx } from '@/i18n/LocaleProvider';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import type { Admin, Employer, User, Worker } from '@/types';
@@ -276,13 +277,13 @@ function avatarUrlFor(user: User): string | undefined {
   return undefined;
 }
 
-function roleLabel(user: User): string {
+function roleLabel(user: User, t: TFunction): string {
   if (user.role === 'worker') return t('role.worker');
   if (user.role === 'employer') return t('role.employer');
   return t('role.admin');
 }
 
-function trustChip(user: User): { label: string; tone: 'good' | 'warn' | 'neutral' } {
+function trustChip(user: User, t: TFunction): { label: string; tone: 'good' | 'warn' | 'neutral' } {
   if (user.role === 'worker') {
     const score = (user as Worker).reputationScore;
     return {
@@ -573,10 +574,11 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
 // ---------------------------------------------------------------------------
 
 function UserSummaryCard({ user }: { user: User }) {
+  const t = useT();
   const name = displayName(user);
   const avatarUrl = avatarUrlFor(user);
-  const role = roleLabel(user);
-  const chip = trustChip(user);
+  const role = roleLabel(user, t);
+  const chip = trustChip(user, t);
 
   return (
     <div className="flex items-start gap-3 rounded-xl border border-orange-100 bg-orange-50 px-3 py-3 shadow-sm">

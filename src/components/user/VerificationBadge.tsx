@@ -8,7 +8,7 @@
  */
 
 import { Badge } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { VerificationFlag } from '@/types';
 
 export interface VerificationBadgeProps {
@@ -26,6 +26,7 @@ export function VerificationBadge({
   verifications,
   className = '',
 }: VerificationBadgeProps) {
+  const t = useT();
   return (
     <div className={`flex flex-wrap gap-1 ${className}`}>
       {verifications.length === 0 ? (

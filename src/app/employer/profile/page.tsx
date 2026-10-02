@@ -22,7 +22,7 @@ import { EmployerFeedbackList } from '@/components/user/EmployerFeedbackList';
 import { formatDateVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
 import { notifyAdmins } from '@/lib/adminNotifications';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
 import type {
@@ -39,6 +39,8 @@ export default function EmployerProfilePage() {
 }
 
 function EmployerProfileContent() {
+  const t = useT();
+  const tx = useTx();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const updateProfile = useUserStore((s) => s.updateProfile);
@@ -55,7 +57,7 @@ function EmployerProfileContent() {
     const res = await updateProfile(employer!.id, patch as ProfilePatch);
     setSaving(false);
     if (!res.ok) {
-      showError('Không lưu được thay đổi. Vui lòng thử lại.');
+      showError(tx('Không lưu được thay đổi. Vui lòng thử lại.'));
       return;
     }
     setEditing(false);
@@ -76,7 +78,7 @@ function EmployerProfileContent() {
       {!editing ? (
         <Card>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Thông tin doanh nghiệp</h2>
+            <h2 className="font-semibold text-gray-900">{tx('Thông tin doanh nghiệp')}</h2>
             <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
               {t('btn.edit')}
             </Button>
@@ -85,17 +87,17 @@ function EmployerProfileContent() {
           <dl className="flex flex-col gap-3 text-sm">
             <Field label={t('form.companyName')} value={employer.companyName} />
             <Field label={t('form.businessType')} value={employer.businessType} />
-            <Field label="Mô tả" value={employer.description || 'Chưa có'} />
+            <Field label={tx('Mô tả')} value={employer.description || tx('Chưa có')} />
             <Field label="Email" value={employer.email} />
             <Field label={t('form.phone')} value={employer.phone} />
             <Field label="Tham gia" value={formatDateVN(employer.createdAt)} />
             <div className="flex items-center justify-between">
-              <dt className="text-gray-500">Xác minh doanh nghiệp</dt>
+              <dt className="text-gray-500">{tx('Xác minh doanh nghiệp')}</dt>
               <dd>
                 {employer.verifiedBusiness ? (
-                  <Badge tone="success">Đã xác minh</Badge>
+                  <Badge tone="success">{tx('Đã xác minh')}</Badge>
                 ) : (
-                  <Badge tone="neutral">Chưa xác minh</Badge>
+                  <Badge tone="neutral">{tx('Chưa xác minh')}</Badge>
                 )}
               </dd>
             </div>
@@ -146,13 +148,15 @@ function EditForm({
   onSave: (patch: Record<string, unknown>) => void;
   saving?: boolean;
 }) {
+  const t = useT();
+  const tx = useTx();
   const [companyName, setCompanyName] = useState(employer.companyName);
   const [businessType, setBusinessType] = useState(employer.businessType);
   const [description, setDescription] = useState(employer.description ?? '');
 
   return (
     <Card>
-      <h2 className="mb-4 font-semibold text-gray-900">Chỉnh sửa thông tin</h2>
+      <h2 className="mb-4 font-semibold text-gray-900">{tx('Chỉnh sửa thông tin')}</h2>
       <div className="flex flex-col gap-4">
         <Input
           label={t('form.companyName')}
@@ -167,7 +171,7 @@ function EditForm({
           required
         />
         <Textarea
-          label="Mô tả"
+          label={tx('Mô tả')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={500}
@@ -216,6 +220,7 @@ function UnderstaffedPolicyCard({
   onSave: (patch: Record<string, unknown>) => void;
   saving?: boolean;
 }) {
+  const t = useT();
   const current = employer.understaffedPolicy ?? 'RunWithApproved';
   const [choice, setChoice] = useState(current);
 
@@ -329,6 +334,8 @@ function EmployerVerificationCard({
 }: {
   employer: NonNullable<ReturnType<typeof asEmployer>>;
 }) {
+  const t = useT();
+  const tx = useTx();
   const docs = useVerificationStore((s) => s.employerDocuments);
   const submit = useVerificationStore((s) => s.submitEmployerDocument);
   const submitTypeChange = useVerificationStore(
@@ -382,7 +389,7 @@ function EmployerVerificationCard({
   function handleFirstSet() {
     updateUser(employer.id, { employerType10A: firstSetChoice });
     showSuccess(
-      `Đã chọn loại tài khoản: ${employerTypeLabel(firstSetChoice)}. Loại tài khoản sẽ được khoá; nếu cần đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.`,
+      tx('Đã chọn loại tài khoản: {type}. Loại tài khoản sẽ được khoá; nếu cần đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.').replace('{type}', employerTypeLabel(firstSetChoice)),
     );
   }
 
@@ -390,7 +397,7 @@ function EmployerVerificationCard({
     if (!resolvedType) {
       // Phase 10A-Fix-4 — validation error must use error tone, not
       // green success.
-      showError('Vui lòng chọn loại tài khoản trước khi nộp tài liệu.');
+      showError(tx('Vui lòng chọn loại tài khoản trước khi nộp tài liệu.'));
       return;
     }
     submit(employer.id, {
@@ -405,7 +412,7 @@ function EmployerVerificationCard({
       title: 'Nhà tuyển dụng gửi xác minh mới',
       body: `${employer.companyName} đã gửi tài liệu ${employerDocLabel(documentType)}.`,
     });
-    showSuccess('Đã gửi tài liệu xác minh (mô phỏng).');
+    showSuccess(tx('Đã gửi tài liệu xác minh (mô phỏng).'));
   }
 
   function handleSubmitChange() {
@@ -419,12 +426,12 @@ function EmployerVerificationCard({
     if (!r.ok) {
       const msg =
         r.error === 'SAME_TYPE'
-          ? 'Loại tài khoản mới phải khác loại hiện tại.'
+          ? tx('Loại tài khoản mới phải khác loại hiện tại.')
           : r.error === 'REASON_REQUIRED'
-            ? 'Vui lòng nhập lý do.'
+            ? tx('Vui lòng nhập lý do.')
             : r.error === 'ALREADY_PENDING'
-              ? 'Bạn đã có một yêu cầu đang chờ duyệt.'
-              : `Không thể gửi yêu cầu: ${r.error}`;
+              ? tx('Bạn đã có một yêu cầu đang chờ duyệt.')
+              : tx('Không thể gửi yêu cầu: {error}').replace('{error}', r.error);
       // Phase 10A-Fix-4 — validation error must use error tone.
       showError(msg);
       return;
@@ -436,7 +443,7 @@ function EmployerVerificationCard({
       title: 'Có yêu cầu đổi loại tài khoản',
       body: `${employer.companyName} muốn đổi từ ${employerTypeLabel(r.value.currentType)} sang ${employerTypeLabel(r.value.requestedType)}.`,
     });
-    showSuccess('Đã gửi yêu cầu đổi loại tài khoản. Quản trị viên sẽ xem xét.');
+    showSuccess(tx('Đã gửi yêu cầu đổi loại tài khoản. Quản trị viên sẽ xem xét.'));
     setChangeOpen(false);
     setChangeReason('');
   }
@@ -446,12 +453,10 @@ function EmployerVerificationCard({
     return (
       <Card className="mt-6">
         <h2 className="mb-1 font-semibold text-gray-900">
-          Xác minh nhà tuyển dụng
+          {tx('Xác minh nhà tuyển dụng')}
         </h2>
         <p className="mb-3 text-xs leading-relaxed text-gray-500">
-          Chọn loại tài khoản phù hợp nhất. Loại tài khoản dùng để xác định
-          giấy tờ cần xác minh và sẽ được khoá sau khi bạn xác nhận; nếu cần
-          đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.
+          {tx('Chọn loại tài khoản phù hợp nhất. Loại tài khoản dùng để xác định giấy tờ cần xác minh và sẽ được khoá sau khi bạn xác nhận; nếu cần đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.')}
         </p>
         {/* Phase 10A-Fix-3 — note that this picker is only a legacy
             fallback. New accounts pick their type at registration. */}
@@ -471,7 +476,7 @@ function EmployerVerificationCard({
           ))}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-gray-600">
-          {TYPE_HINT[firstSetChoice]}
+          {tx(TYPE_HINT[firstSetChoice])}
         </p>
         <Button
           size="sm"
@@ -479,7 +484,7 @@ function EmployerVerificationCard({
           className="mt-3"
           onClick={handleFirstSet}
         >
-          Xác nhận và khoá loại tài khoản
+          {tx('Xác nhận và khoá loại tài khoản')}
         </Button>
       </Card>
     );
@@ -489,29 +494,28 @@ function EmployerVerificationCard({
   return (
     <Card className="mt-6">
       <h2 className="mb-1 font-semibold text-gray-900">
-        Xác minh nhà tuyển dụng
+        {tx('Xác minh nhà tuyển dụng')}
       </h2>
       <p className="mb-3 text-xs leading-relaxed text-gray-500">
-        Loại tài khoản quyết định giấy tờ cần xác minh và không tự đổi được
-        sau khi chọn. Nếu chọn nhầm, hãy gửi yêu cầu để quản trị viên xem xét.
+        {tx('Loại tài khoản quyết định giấy tờ cần xác minh và không tự đổi được sau khi chọn. Nếu chọn nhầm, hãy gửi yêu cầu để quản trị viên xem xét.')}
       </p>
 
       <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
-          Loại tài khoản hiện tại
+          {tx('Loại tài khoản hiện tại')}
         </p>
         <p className="mt-1 text-sm font-bold text-gray-900">
           {employerTypeLabel(resolvedType)}
         </p>
         <p className="mt-1 text-xs leading-relaxed text-gray-600">
-          {TYPE_HINT[resolvedType]}
+          {tx(TYPE_HINT[resolvedType])}
         </p>
         <div className="mt-3">
           {pendingChange ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              <span className="font-semibold">Đang chờ duyệt:</span>{' '}
-              Yêu cầu đổi sang {employerTypeLabel(pendingChange.requestedType)}.
-              Lý do: {pendingChange.reason}
+              <span className="font-semibold">{tx('Đang chờ duyệt:')}</span>{' '}
+              {tx('Yêu cầu đổi sang {type}.').replace('{type}', employerTypeLabel(pendingChange.requestedType))}{' '}
+              {tx('Lý do: {reason}').replace('{reason}', pendingChange.reason)}
             </div>
           ) : (
             <Button
@@ -527,7 +531,7 @@ function EmployerVerificationCard({
                 setChangeOpen(true);
               }}
             >
-              Yêu cầu đổi loại tài khoản
+              {tx('Yêu cầu đổi loại tài khoản')}
             </Button>
           )}
         </div>
@@ -535,7 +539,7 @@ function EmployerVerificationCard({
 
       <div className="mt-4 flex flex-col gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          Tài liệu cần nộp
+          {tx('Tài liệu cần nộp')}
         </p>
         {TYPE_DOC_OPTIONS[resolvedType].map((docType) => {
           const latest = own
@@ -557,7 +561,7 @@ function EmployerVerificationCard({
               </div>
               {latest?.rejectionReason && (
                 <p className="mt-1 text-xs text-red-600">
-                  Lý do: {latest.rejectionReason}
+                  {tx('Lý do: {reason}').replace('{reason}', latest.rejectionReason ?? '')}
                 </p>
               )}
               {(status === 'NotSubmitted' ||
@@ -570,8 +574,8 @@ function EmployerVerificationCard({
                   onClick={() => handleSubmitMock(docType)}
                 >
                   {status === 'NotSubmitted'
-                    ? 'Gửi tài liệu (mô phỏng)'
-                    : 'Gửi lại'}
+                    ? tx('Gửi tài liệu (mô phỏng)')
+                    : tx('Gửi lại')}
                 </Button>
               )}
             </div>
@@ -582,7 +586,7 @@ function EmployerVerificationCard({
       {own.length > 0 && (
         <div className="mt-4">
           <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-            Tất cả tài liệu đã gửi
+            {tx('Tất cả tài liệu đã gửi')}
           </p>
           <ul className="mt-2 flex flex-col gap-1 text-xs">
             {own.map((d) => (
@@ -604,23 +608,23 @@ function EmployerVerificationCard({
       )}
 
       <p className="mt-4 text-xs italic leading-relaxed text-gray-500">
-        Trong bản MVP, tài liệu là mô phỏng — không có upload thật.
+        {tx('Trong bản MVP, tài liệu là mô phỏng — không có upload thật.')}
       </p>
 
       {/* Type-change request modal */}
       <Modal
         open={changeOpen}
         onClose={() => setChangeOpen(false)}
-        title="Yêu cầu đổi loại tài khoản"
+        title={tx('Yêu cầu đổi loại tài khoản')}
       >
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <p>
-            Loại hiện tại:{' '}
+            {tx('Loại hiện tại:')}{' '}
             <span className="font-semibold">{employerTypeLabel(resolvedType)}</span>
           </p>
           <div>
             <p className="mb-1 text-xs font-medium text-gray-700">
-              Loại mới
+              {tx('Loại mới')}
             </p>
             <div className="flex flex-wrap gap-2">
               {EMPLOYER_TYPES.filter((t) => t !== resolvedType).map((t) => (
@@ -635,22 +639,22 @@ function EmployerVerificationCard({
               ))}
             </div>
             <p className="mt-2 text-xs leading-relaxed text-gray-600">
-              {TYPE_HINT[changeRequested]}
+              {tx(TYPE_HINT[changeRequested])}
             </p>
           </div>
           <Textarea
-            label="Lý do (bắt buộc)"
+            label={tx('Lý do (bắt buộc)')}
             value={changeReason}
             onChange={(e) => setChangeReason(e.target.value)}
-            placeholder="Ví dụ: Doanh nghiệp đã được đăng ký chính thức nên cần chuyển sang loại Doanh nghiệp."
+            placeholder={tx('Ví dụ: Doanh nghiệp đã được đăng ký chính thức nên cần chuyển sang loại Doanh nghiệp.')}
             rows={3}
           />
           <div className="mt-1 flex justify-end gap-2">
             <Button size="sm" variant="ghost" onClick={() => setChangeOpen(false)}>
-              Huỷ
+              {tx('Huỷ')}
             </Button>
             <Button size="sm" variant="primary" onClick={handleSubmitChange}>
-              Gửi yêu cầu
+              {tx('Gửi yêu cầu')}
             </Button>
           </div>
         </div>

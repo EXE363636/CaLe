@@ -23,7 +23,8 @@ import { compressImage } from '@/lib/compressImage';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { showSuccess } from '@/lib/toast';
 import { isValidVNPhone, sanitizePhoneInput } from '@/lib/validate';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
+import { tCurrent } from '@/i18n/locale';
 import { useAccountVerificationStore } from '@/stores/accountVerificationStore';
 
 interface Props {
@@ -33,6 +34,7 @@ interface Props {
 }
 
 export function AccountVerificationCard({ userId, role, className = '' }: Props) {
+  const t = useT();
   const status = useAccountVerificationStore((s) => s.status);
   const refresh = useAccountVerificationStore((s) => s.refresh);
 
@@ -69,6 +71,7 @@ export function AccountVerificationCard({ userId, role, className = '' }: Props)
 }
 
 function StatusBadge({ kind }: { kind: 'verified' | 'none' | 'pending' | 'rejected' }) {
+  const t = useT();
   if (kind === 'verified') return <Badge tone="success">{t('verify.status.verified')}</Badge>;
   if (kind === 'pending') return <Badge tone="warning">{t('verify.status.pending')}</Badge>;
   if (kind === 'rejected') return <Badge tone="danger">{t('verify.status.rejected')}</Badge>;
@@ -78,17 +81,17 @@ function StatusBadge({ kind }: { kind: 'verified' | 'none' | 'pending' | 'reject
 function otpMessage(e: unknown): string {
   if (e instanceof OtpError) {
     if (e.code === 'OTP_COOLDOWN') {
-      return t('verify.otp.error.OTP_COOLDOWN').replace('{seconds}', String(e.retryAfter ?? 60));
+      return tCurrent('verify.otp.error.OTP_COOLDOWN').replace('{seconds}', String(e.retryAfter ?? 60));
     }
     if (e.code === 'OTP_INVALID' && typeof e.attemptsLeft === 'number') {
-      return t('verify.otp.error.OTP_INVALID_LEFT').replace('{count}', String(e.attemptsLeft));
+      return tCurrent('verify.otp.error.OTP_INVALID_LEFT').replace('{count}', String(e.attemptsLeft));
     }
     const key = `verify.otp.error.${e.code}`;
-    const msg = t(key);
+    const msg = tCurrent(key);
     if (msg !== key) return msg;
     return toastFromStoreError(e.code);
   }
-  return t('feedback.error.generic');
+  return tCurrent('feedback.error.generic');
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +109,7 @@ function PhoneSection({
   required: boolean;
   onVerified: () => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(phone);
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -318,6 +322,7 @@ function IdentitySection({
   required: boolean;
   onSubmitted: () => void;
 }) {
+  const t = useT();
   const [fullName, setFullName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [dob, setDob] = useState('');

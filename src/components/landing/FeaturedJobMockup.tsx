@@ -39,7 +39,8 @@ import { useHydrationStore } from '@/stores/hydrationStore';
 import { hasCapability } from '@/data/capabilities';
 import { selectAvailableShiftsForRecruiting, effectiveFilledCount } from '@/domain/shiftAvailability';
 import { formatDateVN, formatTimeVN, formatVND } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
+import type { TFunction } from '@/i18n/locale';
 import type { Application, Shift } from '@/types';
 
 /**
@@ -73,7 +74,10 @@ const ACTIVE_UPCOMING_STATUSES = [
  *   - <= 0    → null (caller should drop the chip; the shift is no
  *                  longer eligible to be featured anyway)
  */
-export function formatFeaturedCountdown(diffMs: number): string | null {
+export function formatFeaturedCountdown(
+  diffMs: number,
+  tx: TFunction = (viText) => viText,
+): string | null {
   if (!Number.isFinite(diffMs) || diffMs <= 0) return null;
   const totalSec = Math.floor(diffMs / 1000);
   const days = Math.floor(totalSec / 86_400);
@@ -82,20 +86,21 @@ export function formatFeaturedCountdown(diffMs: number): string | null {
 
   if (days >= 1) {
     const hh = String(hours).padStart(2, '0');
-    return `Bắt đầu sau ${days} ngày ${hh} giờ`;
+    return tx('Bắt đầu sau {days} ngày {hh} giờ').replace('{days}', String(days)).replace('{hh}', String(hh));
   }
   if (hours >= 1) {
     const mm = String(mins).padStart(2, '0');
-    return `Bắt đầu sau ${hours} giờ ${mm} phút`;
+    return tx('Bắt đầu sau {hours} giờ {mm} phút').replace('{hours}', String(hours)).replace('{mm}', String(mm));
   }
   // Under 1 hour — show MM:SS so the urgency reads.
   const sec = totalSec % 60;
   const mm = String(mins).padStart(2, '0');
   const ss = String(sec).padStart(2, '0');
-  return `Bắt đầu sau ${mm}:${ss} phút`;
+  return tx('Bắt đầu sau {mm}:{ss} phút').replace('{mm}', String(mm)).replace('{ss}', String(ss));
 }
 
 export function FeaturedJobMockup() {
+  const t = useT();
   // Stable raw selectors (HANDOFF.md Section 11). Filter / pick happens
   // in useMemo so we never feed Zustand a fresh-array selector.
   const shifts = useShiftStore((s) => s.shifts);
@@ -291,6 +296,8 @@ function FeaturedCardBody({
   applications: Application[];
   mounted: boolean;
 }) {
+  const t = useT();
+  const tx = useTx();
   // Phase 10A-Fix-6 — slot label now uses the canonical effective
   // occupancy and reads as "Còn X/Y vị trí" instead of the ambiguous
   // "{filled}/{total} người". `effectiveFilledCount` reconciles a
@@ -305,8 +312,8 @@ function FeaturedCardBody({
     const startMs = new Date(`${shift.date}T${shift.startTime}:00`).getTime();
     if (!Number.isFinite(startMs)) return null;
     // eslint-disable-next-line react-hooks/purity -- intentional live countdown to shift start; gated behind `mounted` and re-sampled via parent `tick`
-    return formatFeaturedCountdown(startMs - Date.now());
-  }, [mounted, shift.date, shift.startTime]);
+    return formatFeaturedCountdown(startMs - Date.now(), tx);
+  }, [mounted, shift.date, shift.startTime, tx]);
   return (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -377,6 +384,7 @@ function FeaturedCardBody({
 }
 
 function FeaturedFallbackBody() {
+  const t = useT();
   return (
     <>
       <div className="flex items-start justify-between gap-3">

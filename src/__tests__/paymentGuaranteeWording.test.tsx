@@ -68,11 +68,22 @@
  * Footer and payments-page surfaces ARE rendered (they have no router deps).
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
 import { Footer } from '@/components/layout/Footer';
 import EmployerPaymentsPage from '@/app/employer/payments/page';
+
+// Trang /employer/payments là server component bất đồng bộ đọc ngôn ngữ từ
+// cookie (`getTx`); ngoài Next không có request nên cố định tiếng Việt.
+vi.mock('@/i18n/server', async () => {
+  const { makeT, makeTx } = await import('@/i18n/locale');
+  return {
+    getLocale: async () => 'vi',
+    getT: async () => makeT('vi'),
+    getTx: async () => makeTx('vi'),
+  };
+});
 import { NAV_GROUPS } from '@/components/layout/NavBar';
 
 // ---------------------------------------------------------------------------
@@ -164,8 +175,8 @@ describe('Property 6 (Bug Condition): Footer payment-guarantee wording + demo no
 // ---------------------------------------------------------------------------
 
 describe('Property 6 (Bug Condition): /employer/payments wording + demo note', () => {
-  it('the page title uses clearer wording (not "Đảm bảo thanh toán")', () => {
-    render(<EmployerPaymentsPage />);
+  it('the page title uses clearer wording (not "Đảm bảo thanh toán")', async () => {
+    render(await EmployerPaymentsPage());
     const heading = screen.getByRole('heading', { level: 1 });
 
     // EXPECTED (post-fix): the primary label (page title) is standardized.
@@ -173,8 +184,8 @@ describe('Property 6 (Bug Condition): /employer/payments wording + demo note', (
     expect(lc(heading.textContent)).not.toContain(CONFUSING_LABEL);
   });
 
-  it('the page includes the no-real-transactions demo note', () => {
-    const { container } = render(<EmployerPaymentsPage />);
+  it('the page includes the no-real-transactions demo note', async () => {
+    const { container } = render(await EmployerPaymentsPage());
 
     // EXPECTED (post-fix): the page carries the mandatory demo note.
     // CURRENT (unfixed): the disclaimer reads "Mọi giao dịch tiền tệ … là mô

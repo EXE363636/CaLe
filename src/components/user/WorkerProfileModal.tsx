@@ -26,7 +26,7 @@ import {
 } from '@/stores';
 import { averageRating } from '@/domain/rating';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { hasCapability } from '@/data/capabilities';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
@@ -41,6 +41,7 @@ interface WorkerProfileModalProps {
 }
 
 export function WorkerProfileModal({ open, onClose, worker }: WorkerProfileModalProps) {
+  const t = useT();
   // Phase 10A-Fix-4 — read the verification slice so the modal always
   // shows current admin-approval state. We compute the public-safe
   // summary inside `useMemo` to keep the selector return stable.

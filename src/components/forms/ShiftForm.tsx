@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { Input, Select, Textarea, Button, DateFieldVN, TimeFieldVN, HelpPopover } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN, formatVND } from '@/lib/format';
 import { useFeeSettings } from '@/lib/useFeeSettings';
 import {
@@ -116,7 +116,7 @@ interface ShiftFormProps {
   onSaveDraft?: (values: ShiftFormValues) => void;
 }
 
-const JOB_TYPE_OPTIONS = [
+const JOB_TYPES = [
   'Phục vụ',
   'Pha chế',
   'Kho vận',
@@ -125,7 +125,7 @@ const JOB_TYPE_OPTIONS = [
   'Bảo vệ',
   'Thu ngân',
   'Khác',
-].map((v) => ({ value: v, label: v }));
+];
 
 const DEFAULT_VALUES: ShiftFormValues = {
   title: '',
@@ -212,6 +212,8 @@ export function ShiftForm({
   onValuesChange,
   onSaveDraft,
 }: ShiftFormProps) {
+  const t = useT();
+  const tx = useTx();
   // Item 5 — production (supabase): chưa có upload ảnh thật → ẩn trường ảnh
   // địa điểm giả và không bắt buộc nó.
   const supabase = isSupabaseEnv();
@@ -448,8 +450,8 @@ export function ShiftForm({
           label={t('form.jobType')}
           value={values.jobType}
           onChange={(e) => set('jobType', e.target.value)}
-          options={JOB_TYPE_OPTIONS}
-          placeholder="Chọn loại công việc"
+          options={JOB_TYPES.map((v) => ({ value: v, label: tx(v) }))}
+          placeholder={tx('Chọn loại công việc')}
           error={errors.jobType}
         />
 
@@ -581,7 +583,7 @@ export function ShiftForm({
               >
                 <p className="font-semibold">
                   {t('shiftForm.wage.recommendedMin.title')}:{' '}
-                  {recommendedHourlyMinimum(values.jobType).toLocaleString('vi-VN')}đ/giờ
+                  {recommendedHourlyMinimum(values.jobType).toLocaleString('vi-VN')}{tx('đ/giờ')}
                 </p>
                 <p className="mt-1 leading-relaxed">
                   {t('shiftForm.wage.recommendedMin.warning')}
@@ -693,7 +695,7 @@ export function ShiftForm({
               value={values.onSiteContactName}
               onChange={(e) => set('onSiteContactName', e.target.value)}
               error={errors.onSiteContactName}
-              placeholder="Anh Liêm — quản lý"
+              placeholder={tx('Anh Liêm — quản lý')}
               required
             />
             <Input
@@ -850,6 +852,7 @@ function EvidenceFieldset({
   error,
   onChange,
 }: EvidenceFieldsetProps) {
+  const t = useT();
   const suggestion = jobType
     ? suggestedEvidenceForJobType(jobType)
     : undefined;

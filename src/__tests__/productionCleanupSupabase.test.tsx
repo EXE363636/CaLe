@@ -28,6 +28,17 @@ vi.mock('next/navigation', () => ({
 
 import { Footer } from '@/components/layout/Footer';
 import EmployerPaymentsPage from '@/app/employer/payments/page';
+
+// Trang /employer/payments là server component bất đồng bộ đọc ngôn ngữ từ
+// cookie (`getTx`); ngoài Next không có request nên cố định tiếng Việt.
+vi.mock('@/i18n/server', async () => {
+  const { makeT, makeTx } = await import('@/i18n/locale');
+  return {
+    getLocale: async () => 'vi',
+    getT: async () => makeT('vi'),
+    getTx: async () => makeTx('vi'),
+  };
+});
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
 import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import LoginPage from '@/app/login/page';
@@ -98,9 +109,9 @@ describe('B5 — footer honest note by data mode', () => {
 // ---------------------------------------------------------------------------
 
 describe('B4 — /employer/payments content by data mode', () => {
-  it('supabase: nội dung trung thực, không "mô phỏng / ký quỹ / MVP / escrow"', () => {
+  it('supabase: nội dung trung thực, không "mô phỏng / ký quỹ / MVP / escrow"', async () => {
     setMode('supabase');
-    const { container } = render(<EmployerPaymentsPage />);
+    const { container } = render(await EmployerPaymentsPage());
     const text = lc(container.textContent);
     expect(text).toContain('giữ cọc tiền công');
     expect(text).toContain('xác nhận hoàn thành');
@@ -110,9 +121,9 @@ describe('B4 — /employer/payments content by data mode', () => {
     expect(text).not.toContain('escrow');
   });
 
-  it('local: vẫn mô tả mô hình giữ tiền mô phỏng (giữ nguyên cho demo)', () => {
+  it('local: vẫn mô tả mô hình giữ tiền mô phỏng (giữ nguyên cho demo)', async () => {
     setMode('local');
-    const { container } = render(<EmployerPaymentsPage />);
+    const { container } = render(await EmployerPaymentsPage());
     expect(lc(container.textContent)).toContain('mô phỏng');
   });
 });

@@ -1,4 +1,4 @@
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 interface CalendarLegendProps {
   /** Audience for this legend — drives which color/label entries are shown. */
@@ -85,6 +85,7 @@ const employerEntries: LegendEntry[] = [
  * breaking the build.
  */
 export function CalendarLegend({ variant, className }: CalendarLegendProps) {
+  const t = useT();
   const entries = variant === 'worker' ? workerEntries : employerEntries;
 
   return (

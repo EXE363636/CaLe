@@ -38,7 +38,7 @@ import {
 import { averageRating } from '@/domain/rating';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
 import { formatDateVN, formatLogDateTime } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import type { Admin, Employer, User, Worker } from '@/types';
 
 interface AdminUserProfileModalProps {
@@ -55,6 +55,7 @@ export function AdminUserProfileModal({
   user,
   isSelf = false,
 }: AdminUserProfileModalProps) {
+  const t = useT();
   if (!user) return null;
 
   // Title is generic — the body branches on role below.
@@ -74,6 +75,7 @@ export function AdminUserProfileModal({
 // ---------------------------------------------------------------------------
 
 function WorkerBody({ worker }: { worker: Worker }) {
+  const t = useT();
   const avg = averageRating(worker.ratingsReceived);
   // Phase 10A-Fix-5 — live verification summary so admin sees the
   // current approval state inline. Full doc detail still lives in the
@@ -306,6 +308,7 @@ function WorkerBody({ worker }: { worker: Worker }) {
 // ---------------------------------------------------------------------------
 
 function AdminAdjustmentHistoryList({ worker }: { worker: Worker }) {
+  const t = useT();
   const entries = worker.cancellationHistory
     .filter((r) => r.reasonNote?.startsWith('[Admin set'))
     .map((r) => {
@@ -358,6 +361,7 @@ function AdminAdjustmentHistoryList({ worker }: { worker: Worker }) {
 // ---------------------------------------------------------------------------
 
 function EmployerBody({ employer }: { employer: Employer }) {
+  const t = useT();
   const allShifts = useShiftStore((s) => s.shifts);
 
   const stats = useMemo(() => {
@@ -474,6 +478,7 @@ function EmployerBody({ employer }: { employer: Employer }) {
 // ---------------------------------------------------------------------------
 
 function AdminBody({ admin, isSelf }: { admin: Admin; isSelf: boolean }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center gap-3">
@@ -510,6 +515,7 @@ function AdminBody({ admin, isSelf }: { admin: Admin; isSelf: boolean }) {
 // ---------------------------------------------------------------------------
 
 function ServerVerificationSection({ userId }: { userId: string }) {
+  const t = useT();
   const [data, setData] = useState<{ key: string; value: AdminUserVerification } | null>(null);
   const [failedKey, setFailedKey] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -598,10 +604,11 @@ function ServerVerificationSection({ userId }: { userId: string }) {
 }
 
 function SuspensionBadge({ suspended }: { suspended: boolean }) {
+  const tx = useTx();
   return suspended ? (
-    <Badge tone="danger">Tạm khoá</Badge>
+    <Badge tone="danger">{tx('Tạm khoá')}</Badge>
   ) : (
-    <Badge tone="success">Hoạt động</Badge>
+    <Badge tone="success">{tx('Hoạt động')}</Badge>
   );
 }
 

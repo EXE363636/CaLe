@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 
 import { isSupabaseEnv } from '@/data/supabaseClient';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { useAccountVerificationStore } from '@/stores/accountVerificationStore';
 import { useCurrentUser } from '@/stores/authStore';
 
@@ -21,6 +21,7 @@ interface Props {
 }
 
 export function VerificationGateNotice({ action, className = '' }: Props) {
+  const t = useT();
   const user = useCurrentUser();
   const status = useAccountVerificationStore((s) => s.status);
   const refresh = useAccountVerificationStore((s) => s.refresh);

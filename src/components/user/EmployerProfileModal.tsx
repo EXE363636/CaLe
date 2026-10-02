@@ -18,7 +18,7 @@ import {
 } from '@/stores';
 import { getPublicEmployerWorkplacePhotos } from '@/domain/postingReadiness';
 import { formatDateVN } from '@/lib/format';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { Employer, EmployerType } from '@/types';
 
 interface EmployerProfileModalProps {
@@ -32,6 +32,7 @@ export function EmployerProfileModal({
   onClose,
   employer,
 }: EmployerProfileModalProps) {
+  const t = useT();
   // Always select the shifts array (stable reference) — `useMemo` derives
   // the per-employer counts so the selector itself never returns a fresh
   // array (Zustand snapshot stability).
@@ -223,6 +224,7 @@ function EmployerTypeChip({
     | undefined;
   legacyType: EmployerType | undefined;
 }) {
+  const t = useT();
   // Phase 10A-Fix-3 — prefer the canonical 4-shape label. Falls back
   // to the Phase-6 2-shape label only for ancient seed records that
   // somehow have neither field set.

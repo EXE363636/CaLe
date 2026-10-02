@@ -24,7 +24,7 @@ import { noShowForfeitDeadline } from '@/domain/workerDeposit';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { formatVND } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 import { formatVnDateTime, vnShiftInstantIso } from './vnTime';
 
@@ -53,6 +53,7 @@ export function WorkerDepositContestPanel({
   onLoaded,
   className = '',
 }: Props) {
+  const t = useT();
   const [data, setData] = useState<Loaded | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -184,10 +185,12 @@ export function WorkerDepositContestPanel({
 }
 
 function AdminNote({ note }: { note: string }) {
+  const t = useT();
   return <p className="mt-1">{t('workerDeposit.contest.adminNote').replace('{note}', () => note)}</p>;
 }
 
 function ContestForm({ applicationId, onSent }: { applicationId: string; onSent: () => void }) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);

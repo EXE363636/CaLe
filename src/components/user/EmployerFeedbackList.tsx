@@ -11,7 +11,7 @@
 
 import { useMemo } from 'react';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { ReviewList } from './ReviewList';
 
 interface EmployerFeedbackListProps {
@@ -21,6 +21,7 @@ interface EmployerFeedbackListProps {
 }
 
 export function EmployerFeedbackList({ employerId, limit = 5 }: EmployerFeedbackListProps) {
+  const t = useT();
   const all = useEmployerFeedbackStore((s) => s.feedback);
   const items = useMemo(
     () => all.filter((f) => f.toEmployerId === employerId),

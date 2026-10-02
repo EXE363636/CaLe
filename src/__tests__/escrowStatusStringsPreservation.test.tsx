@@ -43,7 +43,7 @@
  * only the `/employer/payments` HREF, never the label text.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
 import { escrowLabel } from '@/i18n/vi';
@@ -51,6 +51,17 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { Footer } from '@/components/layout/Footer';
 import { NAV_GROUPS } from '@/components/layout/NavBar';
 import EmployerPaymentsPage from '@/app/employer/payments/page';
+
+// Trang /employer/payments là server component bất đồng bộ đọc ngôn ngữ từ
+// cookie (`getTx`); ngoài Next không có request nên cố định tiếng Việt.
+vi.mock('@/i18n/server', async () => {
+  const { makeT, makeTx } = await import('@/i18n/locale');
+  return {
+    getLocale: async () => 'vi',
+    getT: async () => makeT('vi'),
+    getTx: async () => makeTx('vi'),
+  };
+});
 import type { EscrowStatus } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -123,8 +134,8 @@ describe('Property 15 (Preservation): /employer/payments route still resolves', 
     expect(typeof EmployerPaymentsPage).toBe('function');
   });
 
-  it('the page renders to a valid page (an <h1> heading is present)', () => {
-    render(<EmployerPaymentsPage />);
+  it('the page renders to a valid page (an <h1> heading is present)', async () => {
+    render(await EmployerPaymentsPage());
     // A rendered <h1> proves the module resolves to a real, mountable page —
     // independent of the h1's exact wording (which the fix is allowed to change).
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();

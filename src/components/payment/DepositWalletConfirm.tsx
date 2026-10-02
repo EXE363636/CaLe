@@ -23,7 +23,8 @@ import { useWalletStore } from '@/stores/walletStore';
 import { getPaymentProvider, listPaymentChannels } from '@/data/payments';
 import type { CreatePaymentResult } from '@/data/repos/paymentRepo';
 import { splitDepositFunding } from '@/domain/topupBonus';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
+import { txCurrent } from '@/i18n/locale';
 
 /** PayOS: số tiền nạp tối thiểu. */
 const PAYOS_MIN_AMOUNT = 2000;
@@ -32,19 +33,19 @@ function mapDepositErr(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e);
   const map: Record<string, string> = {
     INSUFFICIENT_BALANCE:
-      'Số dư ví không đủ để giữ cọc. Vui lòng nạp thêm vào ví rồi thử lại.',
-    SHIFT_IN_PAST: 'Ca đã qua giờ bắt đầu, không thể đăng. Vui lòng chỉnh lại thời gian.',
+      txCurrent('Số dư ví không đủ để giữ cọc. Vui lòng nạp thêm vào ví rồi thử lại.'),
+    SHIFT_IN_PAST: txCurrent('Ca đã qua giờ bắt đầu, không thể đăng. Vui lòng chỉnh lại thời gian.'),
     // Phiên cũ (theo clientRequestId) không dùng lại được — phải gửi lại form
     // để trang cha tạo mã yêu cầu mới; bấm "Xác nhận" lần nữa sẽ lỗi y hệt.
     SESSION_EXPIRED:
-      'Phiên giữ cọc đã hết hạn (30 phút). Bấm "Quay lại chỉnh sửa" rồi gửi lại form để tạo phiên mới.',
-    NOT_OWNER: 'Bạn không có quyền với phiên này.',
-    CHANNEL_NOT_AVAILABLE: 'Chưa có kênh thanh toán khả dụng. Vui lòng liên hệ hỗ trợ.',
-    PAYOS_REJECTED: 'Không tạo được mã thanh toán PayOS. Vui lòng thử lại sau.',
-    PAYOS_UNREACHABLE: 'Không kết nối được PayOS. Vui lòng thử lại sau.',
+      txCurrent('Phiên giữ cọc đã hết hạn (30 phút). Bấm "Quay lại chỉnh sửa" rồi gửi lại form để tạo phiên mới.'),
+    NOT_OWNER: txCurrent('Bạn không có quyền với phiên này.'),
+    CHANNEL_NOT_AVAILABLE: txCurrent('Chưa có kênh thanh toán khả dụng. Vui lòng liên hệ hỗ trợ.'),
+    PAYOS_REJECTED: txCurrent('Không tạo được mã thanh toán PayOS. Vui lòng thử lại sau.'),
+    PAYOS_UNREACHABLE: txCurrent('Không kết nối được PayOS. Vui lòng thử lại sau.'),
   };
   for (const k of Object.keys(map)) if (raw.includes(k)) return map[k];
-  return 'Không đăng được ca. Vui lòng thử lại.';
+  return txCurrent('Không đăng được ca. Vui lòng thử lại.');
 }
 
 export interface DepositWalletConfirmProps {
@@ -73,6 +74,8 @@ export function DepositWalletConfirm({
   onPaid,
   onCancel,
 }: DepositWalletConfirmProps) {
+  const t = useT();
+  const tx = useTx();
   const provider = getPaymentProvider();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const wallets = useWalletStore((s) => s.wallets);
@@ -131,7 +134,7 @@ export function DepositWalletConfirm({
       if (session.amount !== amount) {
         setServerAmount(session.amount);
         setError(
-          `Phí dịch vụ vừa thay đổi — số tiền cần giữ là ${formatVND(session.amount)}. Bấm xác nhận lại để đăng ca.`,
+          tx('Phí dịch vụ vừa thay đổi — số tiền cần giữ là {amount}. Bấm xác nhận lại để đăng ca.').replace('{amount}', formatVND(session.amount)),
         );
         return;
       }
@@ -167,11 +170,11 @@ export function DepositWalletConfirm({
   if (topUpOrder && currentUserId) {
     return (
       <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-6 shadow-card">
-        <h2 className="mb-3 font-semibold text-orange-950">Nạp phần còn thiếu để giữ cọc</h2>
+        <h2 className="mb-3 font-semibold text-orange-950">{tx('Nạp phần còn thiếu để giữ cọc')}</h2>
         <PayosTopUpQr
           order={topUpOrder}
           userId={currentUserId}
-          destinationLabel="Ví của bạn (để giữ cọc ca này)"
+          destinationLabel={tx('Ví của bạn (để giữ cọc ca này)')}
           onPaid={() => setTopUpOrder(null)}
           onBack={() => setTopUpOrder(null)}
         />
@@ -182,15 +185,15 @@ export function DepositWalletConfirm({
   // ---- Bước xác nhận (ví đủ / thiếu) ---------------------------------------
   return (
     <div className="mb-6 rounded-2xl border border-orange-200 bg-orange-50 p-6 shadow-card">
-      <h2 className="font-semibold text-orange-950">Xác nhận đăng ca — giữ cọc từ ví</h2>
+      <h2 className="font-semibold text-orange-950">{tx('Xác nhận đăng ca — giữ cọc từ ví')}</h2>
 
       <dl className="mt-4 flex flex-col gap-1.5 rounded-xl bg-white px-4 py-3 text-sm ring-1 ring-orange-100">
         <div className="flex items-center justify-between">
-          <dt className="text-gray-600">Số dư ví</dt>
+          <dt className="text-gray-600">{tx('Số dư ví')}</dt>
           <dd className="font-semibold tabular-nums text-gray-900">{formatVND(balance)}</dd>
         </div>
         <div className="flex items-center justify-between">
-          <dt className="text-gray-600">Khoản cần giữ cọc</dt>
+          <dt className="text-gray-600">{tx('Khoản cần giữ cọc')}</dt>
           <dd className="font-semibold tabular-nums text-orange-700">{formatVND(amount)}</dd>
         </div>
         {promoUse > 0 && (
@@ -207,7 +210,7 @@ export function DepositWalletConfirm({
         )}
         {enough && (
           <div className="flex items-center justify-between border-t border-gray-100 pt-1.5">
-            <dt className="text-gray-600">Số dư sau khi giữ cọc</dt>
+            <dt className="text-gray-600">{tx('Số dư sau khi giữ cọc')}</dt>
             <dd className="font-semibold tabular-nums text-gray-900">
               {formatVND(balance - cashNeeded)}
             </dd>
@@ -218,15 +221,17 @@ export function DepositWalletConfirm({
       {/* P0 feedback F5 — cách hoàn tiền đã nói ở khối tóm tắt dưới form;
           ở đây chỉ nhắc điều mới: máy chủ tính lại số tiền. */}
       <p className="mt-2 text-xs text-gray-500">
-        Máy chủ tính lại chính xác số tiền khi giữ cọc.
+        {tx('Máy chủ tính lại chính xác số tiền khi giữ cọc.')}
       </p>
 
       {!enough && (
         <div className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200">
-          Ví không đủ để giữ cọc. Cần thêm <strong>{formatVND(shortfall)}</strong>. Nạp phần
-          còn thiếu bằng QR chuyển khoản
-          {topUpAmount > shortfall ? ` (tối thiểu ${formatVND(PAYOS_MIN_AMOUNT)})` : ''}, rồi
-          quay lại xác nhận đăng ca.
+          {tx('Ví không đủ để giữ cọc. Cần thêm')} <strong>{formatVND(shortfall)}</strong>.{' '}
+          {tx('Nạp phần còn thiếu bằng QR chuyển khoản')}
+          {topUpAmount > shortfall
+            ? ' ' + tx('(tối thiểu {amount})').replace('{amount}', formatVND(PAYOS_MIN_AMOUNT))
+            : ''}
+          {tx(', rồi quay lại xác nhận đăng ca.')}
         </div>
       )}
 
@@ -246,7 +251,7 @@ export function DepositWalletConfirm({
             disabled={loading}
             onClick={handleConfirmWallet}
           >
-            Xác nhận đăng ca — giữ cọc {formatVND(amount)}
+            {tx('Xác nhận đăng ca — giữ cọc {amount}').replace('{amount}', formatVND(amount))}
           </Button>
         ) : (
           <Button
@@ -257,7 +262,7 @@ export function DepositWalletConfirm({
             disabled={loading}
             onClick={openTopUp}
           >
-            Nạp {formatVND(topUpAmount)} qua QR
+            {tx('Nạp {amount} qua QR').replace('{amount}', formatVND(topUpAmount))}
           </Button>
         )}
         <Button
@@ -267,7 +272,7 @@ export function DepositWalletConfirm({
           onClick={onCancel}
           disabled={loading}
         >
-          Quay lại chỉnh sửa
+          {tx('Quay lại chỉnh sửa')}
         </Button>
       </div>
     </div>

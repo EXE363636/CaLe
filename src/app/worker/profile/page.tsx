@@ -27,7 +27,7 @@ import { SkillProgressBar } from '@/components/user/SkillProgressBar';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { formatDateVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AccountVerificationCard } from '@/components/verification/AccountVerificationCard';
 import { WorkerDepositStatusCard } from '@/components/workerDeposit/WorkerDepositStatusCard';
@@ -50,6 +50,7 @@ export default function WorkerProfilePage() {
 }
 
 function WorkerProfileContent() {
+  const t = useT();
   const currentUserId = useAuthStore((s) => s.currentUserId);
   const users = useUserStore((s) => s.users);
   const updateUser = useUserStore((s) => s.updateUser);
@@ -267,6 +268,8 @@ function BasicInfoCard({
   onSave: (patch: Partial<Worker>) => void;
   saving?: boolean;
 }) {
+  const t = useT();
+  const tx = useTx();
   const [bio, setBio] = useState(worker.bio ?? '');
   const [skillsText, setSkillsText] = useState(worker.skills.join(', '));
   const [jobTypesText, setJobTypesText] = useState(worker.preferredJobTypes.join(', '));
@@ -376,21 +379,21 @@ function BasicInfoCard({
           hint={t('worker.profile.edit.commaHint')}
           value={skillsText}
           onChange={(e) => setSkillsText(e.target.value)}
-          placeholder="phục vụ, pha chế, thu ngân"
+          placeholder={tx('phục vụ, pha chế, thu ngân')}
         />
         <Input
           label={t('form.preferredJobTypes')}
           hint={t('worker.profile.edit.commaHint')}
           value={jobTypesText}
           onChange={(e) => setJobTypesText(e.target.value)}
-          placeholder="Phục vụ, Pha chế"
+          placeholder={tx('Phục vụ, Pha chế')}
         />
         <Input
           label={t('form.preferredLocations')}
           hint={t('worker.profile.edit.commaHint')}
           value={locationsText}
           onChange={(e) => setLocationsText(e.target.value)}
-          placeholder="Quận 1, Quận 3"
+          placeholder={tx('Quận 1, Quận 3')}
         />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onCancel} disabled={saving}>
@@ -428,6 +431,7 @@ function ProfileField({
 }
 
 function MissingValue({ onAdd }: { onAdd: () => void }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -504,6 +508,7 @@ function WorkerIdentityVerificationCard({
   worker: Worker;
   onTogglePhone: (flag: VerificationFlag) => void;
 }) {
+  const tx = useTx();
   const docs = useVerificationStore((s) => s.workerDocuments);
   const submit = useVerificationStore((s) => s.submitWorkerDocument);
   const users = useUserStore((s) => s.users);
@@ -526,9 +531,9 @@ function WorkerIdentityVerificationCard({
   }, [own]);
 
   const types: { type: WorkerIdentityDocumentType; description: string }[] = [
-    { type: 'NationalId', description: 'CCCD / CMND — phổ biến nhất, nhận trên mọi loại ca.' },
-    { type: 'StudentCard', description: 'Thẻ sinh viên — phù hợp nếu bạn đang đi học.' },
-    { type: 'DriverLicense', description: 'Bằng lái xe — dùng được khi không có CCCD/CMND.' },
+    { type: 'NationalId', description: tx('CCCD / CMND — phổ biến nhất, nhận trên mọi loại ca.') },
+    { type: 'StudentCard', description: tx('Thẻ sinh viên — phù hợp nếu bạn đang đi học.') },
+    { type: 'DriverLicense', description: tx('Bằng lái xe — dùng được khi không có CCCD/CMND.') },
   ];
 
   const [submitting, setSubmitting] = useState<WorkerIdentityDocumentType | null>(
@@ -553,7 +558,7 @@ function WorkerIdentityVerificationCard({
       title: 'Có yêu cầu xác minh mới',
       body: `${worker.fullName} đã gửi xác minh bằng ${workerDocLabel(type)}.`,
     });
-    showSuccess('Đã gửi tài liệu xác minh (mô phỏng). Quản trị viên sẽ duyệt.');
+    showSuccess(tx('Đã gửi tài liệu xác minh (mô phỏng). Quản trị viên sẽ duyệt.'));
     setSubmitting(null);
   }
 
@@ -561,11 +566,9 @@ function WorkerIdentityVerificationCard({
 
   return (
     <Card>
-      <h2 className="mb-1 font-semibold text-gray-900">Xác minh</h2>
+      <h2 className="mb-1 font-semibold text-gray-900">{tx('Xác minh')}</h2>
       <p className="mb-3 text-xs leading-relaxed text-gray-500">
-        Bạn chỉ cần dùng một trong các giấy tờ hợp lệ để xác minh danh tính.
-        Nếu giấy tờ đã được duyệt, bạn không cần tải lại trừ khi muốn bổ sung
-        phương thức khác.
+        {tx('Bạn chỉ cần dùng một trong các giấy tờ hợp lệ để xác minh danh tính. Nếu giấy tờ đã được duyệt, bạn không cần tải lại trừ khi muốn bổ sung phương thức khác.')}
       </p>
 
       {/* Phone verification row — Phase 10A-Fix-6 merged from the
@@ -578,15 +581,14 @@ function WorkerIdentityVerificationCard({
       <div className="mb-3 rounded-lg bg-gray-50 px-3 py-2 text-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="font-medium text-gray-900">
-            Xác minh số điện thoại
+            {tx('Xác minh số điện thoại')}
           </span>
           <Badge tone={phoneVerified ? 'success' : 'neutral'}>
-            {phoneVerified ? 'Đã xác minh' : 'Chưa xác minh'}
+            {phoneVerified ? tx('Đã xác minh') : tx('Chưa xác minh')}
           </Badge>
         </div>
         <p className="mt-1 text-xs text-gray-500">
-          Cần thiết trước khi ứng tuyển. Trong bản MVP đây chỉ là mô phỏng,
-          không gửi OTP thật.
+          {tx('Cần thiết trước khi ứng tuyển. Trong bản MVP đây chỉ là mô phỏng, không gửi OTP thật.')}
         </p>
         {/* Honesty — this is a simulated verification toggle for the demo
             (no real OTP is sent). The label says so explicitly and the
@@ -598,13 +600,13 @@ function WorkerIdentityVerificationCard({
           className="mt-2 justify-start"
         >
           {phoneVerified
-            ? '✓ Đã xác minh (mô phỏng) — bấm để hoàn tác'
-            : 'Mô phỏng xác minh SĐT (demo)'}
+            ? tx('✓ Đã xác minh (mô phỏng) — bấm để hoàn tác')
+            : tx('Mô phỏng xác minh SĐT (demo)')}
         </Button>
       </div>
 
       <p className="mb-2 text-xs font-semibold text-gray-700">
-        Xác minh danh tính
+        {tx('Xác minh danh tính')}
       </p>
       <div className="flex flex-col gap-2">
         {types.map(({ type, description }) => {
@@ -629,7 +631,7 @@ function WorkerIdentityVerificationCard({
               <p className="mt-1 text-xs text-gray-500">{description}</p>
               {doc?.rejectionReason && (
                 <p className="mt-1 text-xs text-red-600">
-                  Lý do: {doc.rejectionReason}
+                  {tx('Lý do: {reason}').replace('{reason}', doc.rejectionReason ?? '')}
                 </p>
               )}
               {(status === 'NotSubmitted' || status === 'Rejected' || status === 'NeedsMoreInfo') && (
@@ -641,8 +643,8 @@ function WorkerIdentityVerificationCard({
                   onClick={() => handleSubmitMock(type)}
                 >
                   {status === 'NotSubmitted'
-                    ? 'Gửi tài liệu (mô phỏng)'
-                    : 'Gửi lại'}
+                    ? tx('Gửi tài liệu (mô phỏng)')
+                    : tx('Gửi lại')}
                 </Button>
               )}
             </div>
@@ -650,9 +652,7 @@ function WorkerIdentityVerificationCard({
         })}
       </div>
       <p className="mt-3 text-xs italic leading-relaxed text-gray-500">
-        Trong bản MVP, tài liệu là mô phỏng — không có upload thật.
-        Quản trị viên là người duy nhất xem tài liệu đầy đủ; nhà tuyển dụng
-        chỉ thấy huy hiệu và số đăng ký dạng rút gọn.
+        {tx('Trong bản MVP, tài liệu là mô phỏng — không có upload thật. Quản trị viên là người duy nhất xem tài liệu đầy đủ; nhà tuyển dụng chỉ thấy huy hiệu và số đăng ký dạng rút gọn.')}
       </p>
     </Card>
   );

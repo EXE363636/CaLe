@@ -17,7 +17,7 @@
  */
 
 import { Button } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 export type CalendarView = 'day' | 'week' | 'agenda';
 
@@ -48,6 +48,7 @@ export function CalendarToolbar({
   actions,
   className = '',
 }: CalendarToolbarProps) {
+  const t = useT();
   return (
     <div
       className={[

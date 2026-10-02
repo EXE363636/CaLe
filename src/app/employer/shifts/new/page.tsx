@@ -31,7 +31,7 @@ import { formatNumberVNInput, parseVNNumberInput } from '@/lib/numberVN';
 import { isValidVNPhone } from '@/lib/validate';
 import { formatVND, formatLogDateTime } from '@/lib/format';
 import { showError, showSuccess } from '@/lib/toast';
-import { t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import type { EmployerType10A, ShiftDraft } from '@/types';
 import { VerificationGateNotice } from '@/components/verification/VerificationGateNotice';
 
@@ -44,6 +44,8 @@ export default function NewShiftPage() {
 }
 
 function NewShiftContent() {
+  const t = useT();
+  const tx = useTx();
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromParam = searchParams?.get('from') ?? null;
@@ -544,12 +546,10 @@ function NewShiftContent() {
         </header>
         <Card>
           <h2 className="mb-2 font-semibold text-gray-900">
-            Cần chọn loại tài khoản trước khi đăng ca
+            {tx('Cần chọn loại tài khoản trước khi đăng ca')}
           </h2>
           <p className="mb-3 text-sm leading-relaxed text-gray-600">
-            Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca.
-            Loại tài khoản giúp xác định giấy tờ cần xác minh, mức cọc
-            và quy tắc an toàn cho người lao động.
+            {tx('Vui lòng chọn loại tài khoản nhà tuyển dụng trước khi đăng ca. Loại tài khoản giúp xác định giấy tờ cần xác minh, mức cọc và quy tắc an toàn cho người lao động.')}
           </p>
           <ButtonLink href="/employer/profile" variant="primary" size="md">
               {t('posting.readiness.cta.profile')}
@@ -603,7 +603,8 @@ function NewShiftContent() {
       {!createdShiftId && sourceShift && (
         <Card className="mb-4 border-orange-200 bg-orange-50">
           <p className="text-sm text-orange-900">
-            <strong>Đang tạo ca mới từ:</strong> {sourceShift.title}. Vui lòng chọn ngày giờ mới trước khi giữ cọc.
+            <strong>{tx('Đang tạo ca mới từ:')}</strong> {sourceShift.title}.{' '}
+            {tx('Vui lòng chọn ngày giờ mới trước khi giữ cọc.')}
           </p>
         </Card>
       )}
@@ -883,6 +884,7 @@ function ReadinessChecklist({
   };
   blockers: string[];
 }) {
+  const t = useT();
   // Pick which checklist items apply to the current type.
   const items: Array<{ key: string; label: string; ok: boolean }> = [
     {
@@ -1001,6 +1003,7 @@ function TrustExplainerCard({
   trust: 'low' | 'medium' | 'high';
   ratio: number;
 }) {
+  const t = useT();
   return (
     <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50 p-5 shadow-card">
       <div className="flex items-start gap-3">
@@ -1046,6 +1049,7 @@ function DepositConfirmCard({
   onConfirm: () => void;
   loading?: boolean;
 }) {
+  const t = useT();
   // Reverse-calculate the full-wage figure so the breakdown line shows
   // both the gross amount and the discounted deposit. Avoids re-passing
   // the original form values through props.

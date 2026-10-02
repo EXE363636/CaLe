@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react';
 import { Modal, Button, Textarea } from '@/components/ui';
-import { t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 
 interface RejectApplicationDialogProps {
   open: boolean;
@@ -32,6 +32,7 @@ export function RejectApplicationDialog({
   onConfirm,
   loading = false,
 }: RejectApplicationDialogProps) {
+  const t = useT();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
