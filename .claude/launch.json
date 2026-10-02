@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "cale-dev-local",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set NEXT_PUBLIC_DATA_MODE=local&& set NEXT_DIST_DIR=.next-local&& npx next dev -p 3200"],
+      "port": 3200
     }
   ]
 }
