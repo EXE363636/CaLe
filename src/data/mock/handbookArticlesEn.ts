@@ -43,7 +43,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
       {
         heading: '3. Handover photo optional',
         paragraphs: [
-          'A photo is not required. It is still worth photographing your work area at handover: if there is a dispute later, it is your evidence.',
+          'A photo is not required. It is still worth photographing your work area at handover: if a problem comes up later, it is your evidence.',
         ],
       },
       {
@@ -64,7 +64,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         bullets: [
           'When the employer confirms completion, your pay goes into your wallet.',
           'If the employer does nothing, the system confirms automatically and pays you 24 hours after the shift ends.',
-          'If the employer raises a dispute, your pay is held while an administrator reviews it; you can respond and send more evidence.',
+          'If there is a problem with the shift, contact the CaLẻ support team via the Support page and include evidence (handover photo, check-in time).',
         ],
         note: 'Do not photograph customers’ faces without permission. Do not photograph personal documents, invoices with sensitive details or private areas of the shop.',
       },
@@ -326,12 +326,12 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         heading: '3. How pay works on CaLẻ',
         paragraphs: [
           'The employer has already held the pay for the shift on CaLẻ when posting it, so you do not need to chase cash or wait for a private transfer. After you check out, the employer confirms completion and the pay goes into your CaLẻ wallet; if they do nothing, the system confirms and pays you 24 hours after the shift ends.',
-          'From your wallet, you withdraw to your bank account via PayOS (minimum 2.000đ). Do not accept "off-app" payment instead of the money held on CaLẻ: in a dispute, CaLẻ can only protect money that went through the system.',
+          'From your wallet, you withdraw to your bank account via PayOS (minimum 2.000đ). Do not accept "off-app" payment instead of the money held on CaLẻ: if something goes wrong, CaLẻ can only help with money that went through the system.',
         ],
       },
       {
         heading: 'When checking your pay',
-        note: 'Pay on CaLẻ is based on the hours of the posted shift. If you are asked to stay longer, ask first how the extra time will be paid. If your pay does not match the posted shift, file a dispute on the shift page for an administrator to review.',
+        note: 'Pay on CaLẻ is based on the hours of the posted shift. If you are asked to stay longer, ask first how the extra time will be paid. If your pay does not match the posted shift, contact the CaLẻ support team via the Support page.',
       },
     ],
   },
@@ -479,7 +479,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         heading: '2. Deal with the no-show properly',
         paragraphs: [
           'Only once everything is sorted and the rush is over should you deal with the problem. If an approved worker did not come and did not tell you, mark them "Absent" on the shift management page (allowed from 15 minutes after the shift starts).',
-          'A no-show without notice costs the worker 20 reputation points; below 50 they temporarily cannot apply for new shifts. The pay for the absent spot is refunded to your wallet. Workers can dispute if they think the mark is wrong, so mark honestly.',
+          'A no-show without notice costs the worker 20 reputation points, and other employers see that score when reviewing applicants. The pay for the absent spot is refunded to your wallet. Workers can contact the CaLẻ support team if they think the mark is wrong, so mark honestly.',
         ],
       },
       {
@@ -526,13 +526,13 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         bullets: [
           'The check-out checklist is a standard template (did the work as described, reported the result…). So put the tasks and handover criteria clearly in the shift description.',
           'Do not ask for photos showing customers or personal documents.',
-          'For now, the handover photo is a file name the worker enters; the real photo stays on their phone. In a dispute, the administrator may ask both sides to send more.',
+          'For now, the handover photo is a file name the worker enters; the real photo stays on their phone. If a problem comes up, the support team may ask both sides to send more.',
         ],
       },
       {
         heading: 'After the worker checks out',
         paragraphs: [
-          'Confirm completion to pay the worker, or raise a dispute if something is wrong. If you do nothing, the system confirms automatically and pays 24 hours after the shift ends. During a dispute, the pay is held until an administrator resolves it.',
+          'Confirm completion to pay the worker. If you do nothing, the system confirms automatically and pays 24 hours after the shift ends. If something is wrong, contact the CaLẻ support team as soon as possible.',
         ],
       },
     ],
@@ -567,7 +567,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         bullets: [
           'When you confirm completion, the pay goes into the worker’s wallet and the service fee is charged for that part of the shift.',
           'If you do not confirm, the system settles about 24 hours after the shift ends: workers who checked in are paid, those who did not check in are marked absent.',
-          'If there is a dispute, the money for that part is held until an administrator resolves it.',
+          'If something is wrong with the shift, contact the CaLẻ support team via the Support page before the system settles it.',
         ],
       },
       {

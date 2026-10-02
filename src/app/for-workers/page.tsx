@@ -2,7 +2,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
 import { RoleHomeCta } from '@/components/landing/RoleHomeCta';
-import { LatestShifts } from '@/components/landing/LatestShifts';
+import { LandingProofView } from '@/components/landing/LandingProof';
+import { proofCopy } from '@/components/landing/proofData';
+import { TypeOnView } from '@/components/landing/TypeOnView';
 import { WorkerPreview } from '@/components/landing/LandingPreview';
 import {
   LandingChecks,
@@ -11,7 +13,8 @@ import {
   LandingMoneyFlow,
   LandingSteps,
 } from '@/components/landing/LandingSections';
-import { getT, getTx } from '@/i18n/server';
+import { getLocale, getT, getTx } from '@/i18n/server';
+import { shareMeta } from '@/lib/shareMeta';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
@@ -21,17 +24,25 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  *      + minh hoạ giao diện trên điện thoại.
  *   2. Cách hoạt động: 4 bước từ tìm ca tới nhận tiền.
  *   3. 3 lợi ích có ảnh (F3 — ảnh stock Unsplash, xem docs/IMAGE_CREDITS.md).
- *   4. 6 ca mới nhất (thật, cùng luật lọc với /shifts).
+ *   4. Tiền công của bạn: tiền công ca ví dụ + phí 0 đ + quy định huỷ ca.
  *   5. Làm theo ca mà vẫn yên tâm: những gì app làm cho bạn.
- *   6. Tiền công của bạn: ví dụ số + quy định huỷ ca.
- *   7. Câu hỏi thường gặp.
- *   8. Dải chuyển sang trang nhà tuyển dụng.
+ *   6. Câu hỏi thường gặp.
+ *   7. Dải chuyển sang trang nhà tuyển dụng.
+ * (02/10: bỏ khối "6 ca mới nhất" — sàn còn ít ca; nút "Xem ca đang tuyển" ở màn
+ * đầu dẫn thẳng tới /shifts.)
  * Khách chủ lực là sinh viên → câu ngắn, lời thường. Chỉ nói tính năng chạy ở
  * CẢ demo lẫn production (`data/capabilities.ts`).
  */
+// Thẻ chia sẻ link (ảnh: opengraph-image.png cạnh file này).
+export const metadata = shareMeta(
+  'Tìm ca làm ngắn hạn gần bạn — CaLẻ',
+  'Không mất phí. Biết trước tổng tiền cả ca trước khi ứng tuyển, check-in ngay trên điện thoại.',
+);
+
 export default async function WorkerHomePage() {
   const t = await getT();
   const tx = await getTx();
+  const locale = await getLocale();
   const supabase = isSupabaseEnv();
   const benefits = [
     {
@@ -163,23 +174,37 @@ export default async function WorkerHomePage() {
         </div>
       </section>
 
-      {/* 4. 6 ca mới nhất — nền trắng */}
-      <section className="bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="worker-latest">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-            <h2 id="worker-latest" className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              {t('workerHome.latest.title')}
-            </h2>
-            <Link
-              href="/shifts"
-              className="inline-flex min-h-[44px] items-center text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-            >
-              {t('workerHome.latest.viewAll')} →
-            </Link>
-          </div>
-          <LatestShifts />
-        </div>
-      </section>
+      {/* 4. Tiền công của bạn — nền trắng */}
+      <LandingMoneyFlow
+        id="worker-money"
+        title={tx('Tiền công của bạn')}
+        typedTitle
+        lead={tx('Ví dụ một ca 4 giờ, 45.000 đ mỗi giờ.')}
+        stages={[
+          // Một ô cho cả hành trình của số tiền (02/10: hai ô "trước ca" / "khi xong"
+          // cùng 180.000 đ đứng cạnh nhau đọc như lặp lại).
+          {
+            label: tx('Tiền công ca này'),
+            amount: '180.000 đ',
+            body: supabase
+              ? tx('Nhà tuyển dụng giữ sẵn trên CaLẻ trước khi ca hiện ra. Về ví của bạn khi nhà tuyển dụng xác nhận, hoặc tự động sau 24 giờ.')
+              : tx('Được giữ sẵn trước khi ca hiện ra, ghi vào ví của bạn khi ca xong (mô phỏng).'),
+          },
+          {
+            label: tx('Phí của bạn'),
+            amount: '0 đ',
+            body: supabase
+              ? tx('Tìm ca, ứng tuyển và nhận tiền đều không mất phí. Rút số dư về ngân hàng khi cần.')
+              : tx('Tìm ca và ứng tuyển không mất phí. Bản demo chưa rút được tiền thật.'),
+          },
+        ]}
+        rulesTitle={tx('Huỷ ca đã nhận')}
+        rules={[
+          tx('Ca còn hơn 3 giờ nữa mới bắt đầu: bạn tự huỷ được.'),
+          tx('Trong vòng 3 giờ: gửi yêu cầu huỷ, nhà tuyển dụng đồng ý thì mới huỷ; trong lúc chờ bạn vẫn giữ chỗ.'),
+          tx('Không đến mà không báo: bị tính vắng mặt và không nhận tiền công.'),
+        ]}
+      />
 
       {/* 5. Làm theo ca mà vẫn yên tâm — nền kem */}
       <LandingFeatures
@@ -222,43 +247,7 @@ export default async function WorkerHomePage() {
         ]}
       />
 
-      {/* 6. Tiền công của bạn — nền trắng */}
-      <LandingMoneyFlow
-        id="worker-money"
-        title={tx('Tiền công của bạn')}
-        lead={tx('Ví dụ một ca 4 giờ, 45.000 đ mỗi giờ.')}
-        stages={[
-          {
-            label: tx('Trước khi ca hiện ra'),
-            amount: '180.000 đ',
-            body: supabase
-              ? tx('đã được nhà tuyển dụng giữ sẵn trên CaLẻ.')
-              : tx('đã được giữ sẵn (mô phỏng).'),
-          },
-          {
-            label: tx('Khi ca xong'),
-            amount: '180.000 đ',
-            body: supabase
-              ? tx('vào ví của bạn khi nhà tuyển dụng xác nhận, hoặc tự động sau 24 giờ.')
-              : tx('được ghi vào ví của bạn (mô phỏng).'),
-          },
-          {
-            label: tx('Phí của bạn'),
-            amount: '0 đ',
-            body: supabase
-              ? tx('Tìm ca, ứng tuyển và nhận tiền đều không mất phí. Rút số dư về ngân hàng khi cần.')
-              : tx('Tìm ca và ứng tuyển không mất phí. Bản demo chưa rút được tiền thật.'),
-          },
-        ]}
-        rulesTitle={tx('Huỷ ca đã nhận')}
-        rules={[
-          tx('Ca còn hơn 3 giờ nữa mới bắt đầu: bạn tự huỷ được.'),
-          tx('Trong vòng 3 giờ: gửi yêu cầu huỷ, nhà tuyển dụng đồng ý thì mới huỷ; trong lúc chờ bạn vẫn giữ chỗ.'),
-          tx('Không đến mà không báo: bị tính vắng mặt và không nhận tiền công.'),
-        ]}
-      />
-
-      {/* 7. Câu hỏi thường gặp — nền kem */}
+      {/* 6. Câu hỏi thường gặp — nền trắng */}
       <LandingFaq
         id="worker-faq"
         title={tx('Câu hỏi thường gặp')}
@@ -289,12 +278,18 @@ export default async function WorkerHomePage() {
             a: tx('Được. Ca còn hơn 3 giờ nữa mới bắt đầu thì bạn tự huỷ; sát giờ hơn thì gửi yêu cầu và chờ nhà tuyển dụng đồng ý.'),
           },
         ]}
+        white
       />
 
-      {/* 8. Dải chuyển vai trò — khối mực */}
+      {/* Ảnh tự chụp + lời chia sẻ thật của phía này — tự ẩn khi chưa có (proofData.ts). */}
+      <LandingProofView id="worker-proof" copy={proofCopy(tx)} locale={locale} audience="worker" />
+
+      {/* 7. Dải chuyển vai trò — khối mực */}
       <section className="bg-ink px-4 py-10 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <p className="text-lg font-semibold">{t('workerHome.switch.text')}</p>
+          <p className="text-lg font-semibold">
+            <TypeOnView text={t('workerHome.switch.text')} />
+          </p>
           <Link
             href="/for-employers"
             className="cta-arrow-nudge inline-flex min-h-[48px] items-center gap-1.5 rounded-xl bg-white px-5 text-sm font-semibold text-gray-900 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"

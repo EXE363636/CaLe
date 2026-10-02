@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useUserStore } from '@/stores/userStore';
 import { useApplicationStore } from '@/stores/applicationStore';
@@ -16,6 +17,7 @@ import { OpenShiftsEmpty } from '@/components/shift/OpenShiftsEmpty';
 import { Button, EmptyState, PageShell } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useT } from '@/i18n/LocaleProvider';
+import { jobTypeFromSlug } from '@/lib/jobTypeSlug';
 import type { ApplicationStatus, Shift, Worker } from '@/types';
 import type { FilterCriteria } from '@/domain/filter';
 
@@ -33,7 +35,13 @@ export default function ShiftsPage() {
   const scheduleBlocks = useScheduleStore((s) => s.blocks);
   const currentUserId = useAuthStore((s) => s.currentUserId);
 
-  const [criteria, setCriteria] = useState<FilterCriteria>({});
+  // `/shifts?viec=pha-che` (thẻ loại việc ở trang chủ, 02/10) → lọc sẵn loại việc.
+  // Chỉ đọc lúc mở trang; sau đó người dùng đổi bộ lọc như thường.
+  const searchParams = useSearchParams();
+  const [criteria, setCriteria] = useState<FilterCriteria>(() => {
+    const jobType = jobTypeFromSlug(searchParams.get('viec'));
+    return jobType ? { jobType } : {};
+  });
   const [searchText, setSearchText] = useState('');
   // CORE-STABILITY-9 Part 5 — sort mode. 'default' keeps the existing
   // preferred-location-then-soonest sort; 'availability' ranks by the

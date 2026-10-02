@@ -1,5 +1,6 @@
 import { getTx } from '@/i18n/server';
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
+import { isSupabaseEnv } from '@/data/supabaseClient';
 
 export default async function DisputesPage() {
   const tx = await getTx();
@@ -24,7 +25,11 @@ export default async function DisputesPage() {
       </InfoSection>
 
       <InfoSection title={tx('Cách mở yêu cầu')}>
-        {tx('Vào trang chi tiết ca làm liên quan và bấm "Báo cáo sự cố". Mô tả tình huống cụ thể, thời điểm xảy ra, và đính kèm chứng cứ nếu có (ảnh màn hình, lịch check-in/out, đoạn hội thoại trong app).')}
+        {/* Bản thật chưa có nút "Báo cáo sự cố" (capabilities.disputes = false) và chưa có
+            nhắn tin trong app → mở yêu cầu qua đội hỗ trợ. */}
+        {isSupabaseEnv()
+          ? tx('Liên hệ đội hỗ trợ CaLẻ qua trang Liên hệ hỗ trợ. Mô tả tình huống cụ thể, thời điểm xảy ra, và đính kèm chứng cứ nếu có (ảnh màn hình, giờ check-in/out).')
+          : tx('Vào trang chi tiết ca làm liên quan và bấm "Báo cáo sự cố". Mô tả tình huống cụ thể, thời điểm xảy ra, và đính kèm chứng cứ nếu có (ảnh màn hình, lịch check-in/out, đoạn hội thoại trong app).')}
       </InfoSection>
 
       <InfoSection title={tx('Quy trình xét xử')}>
@@ -38,8 +43,11 @@ export default async function DisputesPage() {
         />
       </InfoSection>
 
-      <InfoSection title={tx('Hệ quả với điểm uy tín')}>
-        {tx('Tuỳ kết quả tranh chấp, điểm uy tín có thể được giữ nguyên, điều chỉnh hoặc tạm khoá tài khoản nếu có vi phạm nghiêm trọng. Mọi điều chỉnh điểm đều được ghi lại trong lịch sử tài khoản cùng lý do.')}
+      {/* Bản thật: điểm uy tín chỉ tạm tính phía người dùng, chưa có điều chỉnh / lịch sử điểm. */}
+      <InfoSection title={isSupabaseEnv() ? tx('Hệ quả với tài khoản') : tx('Hệ quả với điểm uy tín')}>
+        {isSupabaseEnv()
+          ? tx('Tuỳ kết quả xem xét, quản trị viên có thể tạm khoá tài khoản nếu có vi phạm nghiêm trọng.')
+          : tx('Tuỳ kết quả tranh chấp, điểm uy tín có thể được giữ nguyên, điều chỉnh hoặc tạm khoá tài khoản nếu có vi phạm nghiêm trọng. Mọi điều chỉnh điểm đều được ghi lại trong lịch sử tài khoản cùng lý do.')}
       </InfoSection>
 
       <InfoSection title={tx('Phản hồi quyết định')}>

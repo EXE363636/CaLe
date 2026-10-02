@@ -1,6 +1,8 @@
 /**
  * Các khối nội dung của trang vai trò (`/for-workers`, `/for-employers`).
  *
+ * `LandingMoneyFlow` có thể cho tiêu đề "đánh máy" khi cuộn tới (`typedTitle`).
+ *
  * Chỉ trình bày — câu chữ do trang (server) dựng bằng `getTx()` rồi truyền vào,
  * để test i18n quét được câu `tx('…')` ngay trong file trang. Không có hook nên
  * dùng được cả ở server component.
@@ -13,6 +15,7 @@ import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
 
 import { MotionGroup } from './MotionGroup';
+import { TypeOnView } from './TypeOnView';
 
 // ---------------------------------------------------------------------------
 // Icon — nét vẽ thống nhất 1.75, 24×24
@@ -241,6 +244,7 @@ export function LandingMoneyFlow({
   rulesTitle,
   rules,
   footnote,
+  typedTitle = false,
 }: {
   id: string;
   title: string;
@@ -249,19 +253,26 @@ export function LandingMoneyFlow({
   rulesTitle?: string;
   rules?: string[];
   footnote?: string;
+  /** Tiêu đề "đánh máy" khi cuộn tới (`TypeOnView`) — dùng cho khối lời hứa chính của trang. */
+  typedTitle?: boolean;
 }) {
   return (
     <section aria-labelledby={id} className="bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            {title}
+            {typedTitle ? <TypeOnView text={title} /> : title}
           </h2>
           {lead && <p className="mt-3 text-base leading-relaxed text-gray-600">{lead}</p>}
         </div>
         {/* Khi cuộn tới: các chặng hiện theo dòng tiền, số tiền được quét ra. */}
         <MotionGroup>
-          <ol className="mt-10 grid overflow-hidden rounded-3xl bg-orange-50 ring-1 ring-orange-100 md:grid-cols-3">
+          <ol
+            className={[
+              'mt-10 grid overflow-hidden rounded-3xl bg-orange-50 ring-1 ring-orange-100',
+              stages.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3',
+            ].join(' ')}
+          >
             {stages.map((s, i) => (
               <li
                 key={s.label}
@@ -309,6 +320,7 @@ export function LandingFaq({
   items,
   more,
   white = false,
+  wide = false,
 }: {
   id: string;
   title: string;
@@ -316,45 +328,60 @@ export function LandingFaq({
   more?: { href: string; label: string };
   /** Nền trắng thay cho nền kem của trang (để các khối xen kẽ). */
   white?: boolean;
+  /** Theo mép trái chung max-w-6xl: tiêu đề bên trái, danh sách bên phải (trang chủ). */
+  wide?: boolean;
 }) {
   return (
     <section
       aria-labelledby={id}
       className={['px-4 py-14 sm:px-6 sm:py-20 lg:px-8', white ? 'bg-white' : ''].join(' ')}
     >
-      <div className="mx-auto max-w-3xl">
+      <div
+        className={
+          wide
+            ? 'mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16'
+            : 'mx-auto max-w-3xl'
+        }
+      >
         <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           {title}
         </h2>
-        <div className="mt-8 divide-y divide-orange-200/70 rounded-2xl bg-white shadow-card ring-1 ring-gray-200">
-          {items.map((it) => (
-            <details key={it.q} className="group px-5 sm:px-6">
-              <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-semibold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 [&::-webkit-details-marker]:hidden">
-                {it.q}
-                <svg
-                  className="h-5 w-5 shrink-0 text-orange-700 transition-transform group-open:rotate-45 motion-reduce:transition-none"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <path d="M10 4v12M4 10h12" />
-                </svg>
-              </summary>
-              <p className="pb-5 text-sm leading-relaxed text-gray-600">{it.a}</p>
-            </details>
-          ))}
-        </div>
-        {more && (
-          <Link
-            href={more.href}
-            className="mt-6 inline-flex min-h-[44px] items-center text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+        <div>
+          <div
+            className={[
+              'mt-8 divide-y divide-orange-200/70 rounded-2xl bg-white shadow-card ring-1 ring-gray-200',
+              wide ? 'lg:mt-0' : '',
+            ].join(' ')}
           >
-            {more.label} →
-          </Link>
-        )}
+            {items.map((it) => (
+              <details key={it.q} className="group px-5 sm:px-6">
+                <summary className="flex min-h-[56px] cursor-pointer list-none items-center justify-between gap-4 py-4 text-base font-semibold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 [&::-webkit-details-marker]:hidden">
+                  {it.q}
+                  <svg
+                    className="h-5 w-5 shrink-0 text-orange-700 transition-transform group-open:rotate-45 motion-reduce:transition-none"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M10 4v12M4 10h12" />
+                  </svg>
+                </summary>
+                <p className="pb-5 text-sm leading-relaxed text-gray-600">{it.a}</p>
+              </details>
+            ))}
+          </div>
+          {more && (
+            <Link
+              href={more.href}
+              className="mt-6 inline-flex min-h-[44px] items-center text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              {more.label} →
+            </Link>
+          )}
+        </div>
       </div>
     </section>
   );

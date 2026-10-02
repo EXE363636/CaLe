@@ -9,6 +9,7 @@
  *       Trang chủ · Tìm ca làm · Người lao động ▾ · Nhà tuyển dụng ▾ ·
  *       An toàn & hướng dẫn ▾ · Hỗ trợ
  *     Right side: Đăng nhập · Đăng ký · primary CTA "Đăng ca tuyển"
+ *     (trên /for-workers và /shifts: "Đăng ký để nhận ca"; ở "/" không có nút — 02/10)
  *     (Phase 9T: the right CTA targets employers so the worker side
  *     uses the middle "Tìm ca làm" link and the right CTA balances
  *     the audiences without two competing "find a shift" buttons).
@@ -595,13 +596,27 @@ export function NavBar() {
               {/* Phase 9T — "Tìm ca làm" nằm trong dropdown "Người lao
                   động", so this primary CTA is dedicated to the employer
                   side. Two clear paths, no duplicate "find a shift" CTA
-                  fighting itself for attention. */}
-              <Link
-                href="/register?role=employer"
-                className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
-              >
-                {tx('Đăng ca tuyển')}
-              </Link>
+                  fighting itself for attention.
+                  02/10 — trên các trang dành cho người lao động (khách),
+                  nút cam đổi sang phía người lao động: nút "Đăng ca tuyển"
+                  ở đó giành chú ý với nút đăng ký của chính trang. Trang chủ
+                  "/" chung cho hai phía và màn đầu đã có hai cửa vai trò →
+                  không có nút này. */}
+              {pathname === '/' ? null : isPathActive(pathname, '/for-workers') || isPathActive(pathname, '/shifts') ? (
+                <Link
+                  href="/register?role=worker"
+                  className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                >
+                  {tx('Đăng ký để nhận ca')}
+                </Link>
+              ) : (
+                <Link
+                  href="/register?role=employer"
+                  className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                >
+                  {tx('Đăng ca tuyển')}
+                </Link>
+              )}
             </div>
           )}
 
@@ -857,7 +872,8 @@ function AdminNav({ pathname }: { pathname: string }) {
 // Primitives
 // ---------------------------------------------------------------------------
 
-function navLinkClasses(active: boolean): string {
+/** `brandHover`: rê chuột lên nền cam nhạt thay cho xám (Đăng nhập / Đăng ký — 02/10, nền xám khó thấy). */
+function navLinkClasses(active: boolean, brandHover = false): string {
   return [
     // Phase 9T — `whitespace-nowrap` prevents long Vietnamese labels
     // (Hỗ trợ, Tổng quan admin, Lịch tuyển dụng…) from wrapping onto
@@ -875,7 +891,9 @@ function navLinkClasses(active: boolean): string {
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
     active
       ? 'bg-orange-50 text-orange-800'
-      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+      : brandHover
+        ? 'text-gray-600 hover:bg-orange-100 hover:text-orange-800'
+        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
   ].join(' ');
 }
 
@@ -943,7 +961,7 @@ function NavButton({
 }) {
   const active = pathname === href;
   return (
-    <Link href={href} className={navLinkClasses(active)}>
+    <Link href={href} className={navLinkClasses(active, true)}>
       {children}
     </Link>
   );

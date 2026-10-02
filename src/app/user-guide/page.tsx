@@ -381,11 +381,16 @@ export default async function UserGuidePage() {
           id="worker-cancellation-quota"
           eyebrow={tx('Người lao động')}
           title={tx('Hạn mức huỷ ca')}
-          bullets={[
-            tx('Tối đa 3 lần huỷ trong 7 ngày và 10 lần trong 30 ngày.'),
-            tx('Điểm uy tín 80–94: 4/tuần, 12/tháng. Điểm 95–100: 5/tuần, 14/tháng.'),
-          ]}
-          example={tx('7 ngày qua đã huỷ 2 ca → còn 1 lượt.')}
+          bullets={
+            // Bản thật chưa có hạn mức huỷ (capabilities.ratings = false: điểm uy tín / hạn mức chưa có server).
+            REAL_MONEY
+              ? [tx('Bản thật chưa giới hạn số lần huỷ. Mỗi lần huỷ trong 24 giờ trước ca vẫn bị trừ 10 điểm uy tín.'), tx('Còn hơn 3 giờ trước ca thì tự huỷ; trong vòng 3 giờ cần nhà tuyển dụng đồng ý.')]
+              : [
+                  tx('Tối đa 3 lần huỷ trong 7 ngày và 10 lần trong 30 ngày.'),
+                  tx('Điểm uy tín 80–94: 4/tuần, 12/tháng. Điểm 95–100: 5/tuần, 14/tháng.'),
+                ]
+          }
+          example={REAL_MONEY ? tx('Huỷ một ca bắt đầu sau 2 giờ nữa → gửi yêu cầu, chờ nhà tuyển dụng đồng ý.') : tx('7 ngày qua đã huỷ 2 ca → còn 1 lượt.')}
         />
       </GuideGroup>
 

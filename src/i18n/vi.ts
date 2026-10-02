@@ -821,7 +821,7 @@ export const vi: Record<string, string> = {
   'workerHome.hero.browse': 'Xem ca đang tuyển',
   'workerHome.hero.haveAccount': 'Đã có tài khoản?',
   'workerHome.benefits.title': 'Vì sao nên làm qua CaLẻ',
-  'workerHome.benefit.fast.alt': 'Nhân viên quầy đồ ăn đang mỉm cười phục vụ khách',
+  'workerHome.benefit.fast.alt': 'Nhân viên quầy nước ở Hội An đang rót nước mời khách',
   'workerHome.benefit.fast.title': 'Nhận việc nhanh',
   'workerHome.benefit.fast.desc': 'Ứng tuyển trong vài giây, biết kết quả ngay khi nhà tuyển dụng duyệt.',
   'workerHome.benefit.pay.alt': 'Người đàn ông mỉm cười cầm điện thoại trên phố',

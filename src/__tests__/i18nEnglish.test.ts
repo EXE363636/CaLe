@@ -20,6 +20,7 @@ import { enPages, enPagesText } from '@/i18n/en-pages';
 import { enRoles, enRolesText } from '@/i18n/en-roles';
 import { enUiText } from '@/i18n/en-ui';
 import { enLandingText } from '@/i18n/en-landing';
+import { LANDING_SAMPLE_TEXTS } from '@/components/landing/landingSamples';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
 import { CHECKOUT_CHECKLIST_ITEMS_VI, vi } from '@/i18n/vi';
 import {
@@ -42,7 +43,6 @@ const PHASE1_FILES = [
   'src/app/forgot-password/page.tsx',
   'src/components/landing/RoleSwitch.tsx',
   'src/components/landing/UrgentShifts.tsx',
-  'src/components/landing/LatestShifts.tsx',
   'src/components/layout/NavBar.tsx',
   'src/components/layout/MobileNav.tsx',
   'src/components/layout/Footer.tsx',
@@ -149,6 +149,14 @@ const PHASE1_FILES = [
   'src/components/shift/OpenShiftsEmpty.tsx',
   'src/components/landing/RoleHomeCta.tsx',
   'src/components/landing/LandingPreview.tsx',
+  'src/components/landing/HomeReceipt.tsx',
+  'src/components/landing/homeJobs.ts',
+  'src/components/landing/proofData.ts',
+  'src/components/landing/whyData.ts',
+  'src/components/landing/featureData.ts',
+  'src/components/landing/OpenShiftCount.tsx',
+  'src/components/landing/MoneyFlowDiagram.tsx',
+  'src/components/landing/JobRing.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -370,5 +378,12 @@ describe('i18n English — đợt 2d', () => {
       'CN',
     ];
     expect(labels.filter((s) => !(s in enText))).toEqual([]);
+  });
+});
+
+describe('minh hoạ landing — ca mẫu', () => {
+  it('mọi tên ca / thứ trong ca mẫu đều có bản tiếng Anh', () => {
+    const missing = LANDING_SAMPLE_TEXTS.filter((s) => !enText[s]);
+    expect(missing).toEqual([]);
   });
 });

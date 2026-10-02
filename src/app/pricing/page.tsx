@@ -79,7 +79,7 @@ export default async function PricingPage() {
               {tx('Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.')}
             </Faq>
             <Faq q={tx('Khi nào người lao động nhận tiền?')}>
-              {tx('Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt. Ca đang có tranh chấp chờ quản trị viên xử lý.')}
+              {tx('Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt.')}
             </Faq>
             <Faq q={tx('Có gói trả phí nào khác không?')}>
               {tx('Chưa. Hiện chỉ có mức phí ở trên.')}

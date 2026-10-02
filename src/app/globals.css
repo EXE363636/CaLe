@@ -1474,3 +1474,388 @@ summary::-webkit-details-marker {
     transition: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Trang chủ — biên nhận ca (02/10), đi cùng `HomeReceipt` + `src/app/page.tsx`.
+ *
+ *   - `.receipt-tear`: đường xé giữa đầu và thân biên nhận — hai khuyết tròn
+ *     cùng màu nền trang (đổi theo giao diện tối qua `--background`).
+ *   - Biên nhận tự diễn vòng đời ca bằng JS (`usePlayback` trong HomeReceipt);
+ *     ở đây chỉ có dấu ✓ đối soát tự vẽ (`.receipt-check`).
+ *   - `.home-explain`: mục giải thích sáng lên khi rê / focus dòng biên nhận
+ *     cùng đích (`:has()`), hoặc khi vừa bấm tới (`:target`).
+ * ------------------------------------------------------------------------- */
+.receipt-tear::before,
+.receipt-tear::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background-color: var(--background);
+  transform: translateY(-50%);
+}
+.receipt-tear::before {
+  left: -0.75rem;
+}
+.receipt-tear::after {
+  right: -0.75rem;
+}
+/* Dấu ✓ đối soát tự vẽ mỗi lần biên nhận tới bước "hoàn thành" (HomeReceipt
+ * gắn lại phần tử khi đổi bước, nên animation chạy lại theo vòng lặp). */
+@keyframes receipt-check {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.receipt-check {
+  stroke-dasharray: 1;
+  animation: receipt-check 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 200ms;
+}
+/* Bấm dòng biên nhận → mục giải thích "đáp xuống": loé sáng rồi dịu về màu đang chọn. */
+@keyframes explain-arrive {
+  from {
+    background-color: var(--color-orange-100);
+    box-shadow: 0 0 0 3px var(--color-orange-300);
+  }
+  to {
+    background-color: var(--color-orange-50);
+    box-shadow: 0 0 0 1px var(--color-orange-200);
+  }
+}
+@keyframes explain-num-arrive {
+  from {
+    transform: scale(1.18);
+  }
+  to {
+    transform: none;
+  }
+}
+.home-explain:target {
+  animation: explain-arrive 900ms ease-out;
+}
+.home-explain:target .explain-num {
+  animation: explain-num-arrive 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.home-explain {
+  scroll-margin-top: 6rem;
+  transition:
+    background-color 300ms ease-out,
+    box-shadow 300ms ease-out;
+}
+.home-explain .explain-num {
+  transition:
+    background-color 300ms ease-out,
+    color 300ms ease-out;
+}
+.home-explain:target,
+:root:has([data-receipt-line='home-hold']:is(:hover, :focus-visible)) #home-hold,
+:root:has([data-receipt-line='home-paid']:is(:hover, :focus-visible)) #home-paid,
+:root:has([data-receipt-line='home-fee']:is(:hover, :focus-visible)) #home-fee,
+:root:has([data-receipt-line='home-refund']:is(:hover, :focus-visible)) #home-refund {
+  background-color: var(--color-orange-50);
+  box-shadow: 0 0 0 1px var(--color-orange-200);
+}
+.home-explain:target .explain-num,
+:root:has([data-receipt-line='home-hold']:is(:hover, :focus-visible)) #home-hold .explain-num,
+:root:has([data-receipt-line='home-paid']:is(:hover, :focus-visible)) #home-paid .explain-num,
+:root:has([data-receipt-line='home-fee']:is(:hover, :focus-visible)) #home-fee .explain-num,
+:root:has([data-receipt-line='home-refund']:is(:hover, :focus-visible)) #home-refund .explain-num {
+  background-color: var(--brand);
+  color: #37373b;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Đứng yên; giữ đổi màu khi tới mục (explain-arrive chỉ đổi màu). */
+  .receipt-check,
+  .home-explain:target .explain-num {
+    animation: none;
+  }
+  .home-explain,
+  .home-explain .explain-num {
+    transition: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.home-explain) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Trang chủ — vòng thẻ loại việc (02/10), đi cùng `JobRing`. Lớp phủ tối dưới chữ
+ * nằm trên ảnh ở CẢ hai giao diện nên màu cố định, không đổi theo `data-theme`.
+ * Hai mép vòng mờ dần vào nền (mask, không phụ thuộc màu nền).
+ * ------------------------------------------------------------------------- */
+.job-ring {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+}
+.job-ring:not([data-ready]) .job-ring-card {
+  visibility: hidden;
+}
+.job-ring-card {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+.job-scrim {
+  background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.45) 55%, rgba(0, 0, 0, 0) 100%);
+}
+
+/* ---------------------------------------------------------------------------
+ * Chữ "đánh máy" khi cuộn tới (`TypeOnView`, 02/10). Chữ thật trong suốt giữ
+ * chỗ, phần đã gõ vẽ đè bằng `::before` (attr). Con trỏ cam, không chiếm
+ * chỗ (margin âm) để dòng không xuống hàng khác bản giữ chỗ; gõ xong mờ dần
+ * rồi tắt. Giảm chuyển động thì component không vẽ con trỏ.
+ * ------------------------------------------------------------------------- */
+.type-ghost {
+  color: transparent;
+}
+.type-overlay::before {
+  content: attr(data-typed);
+}
+.type-caret {
+  display: inline-block;
+  width: 3px;
+  height: 0.95em;
+  margin-left: 2px;
+  margin-right: -5px;
+  vertical-align: -0.1em;
+  border-radius: 1px;
+  background-color: var(--brand);
+}
+.type-caret-out {
+  animation: type-caret-fade 0.3s ease-out 0.6s forwards;
+}
+@keyframes type-caret-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Nền trang chủ đổi màu khi cuộn (`ToneScroll`, 02/10). Mỗi khối khai báo
+ * `data-tone`; vùng bọc chuyển dần sang tông của khối đang ở giữa màn hình.
+ * Bám bộ màu thương hiệu: kem nền (`--background`), trắng bề mặt, và các tông pha
+ * từ cam `--brand` / `--brand-soft`. Khai báo một lần: các biến gốc đã có bản tối
+ * trong khối `:root[data-theme="dark"]` nên tông tự đổi theo giao diện.
+ * ------------------------------------------------------------------------- */
+:root {
+  --tone-cream: var(--background);
+  --tone-paper: var(--color-white);
+  --tone-apricot: var(--color-orange-50);
+  --tone-peach: color-mix(in oklab, var(--brand-soft) 55%, var(--background));
+}
+.tone-scroll {
+  transition: background-color 900ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tone-scroll {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Số liệu "Vì sao CaLẻ ra đời?" (`StatValue`, 02/10): số đếm lên khi cuộn tới bằng
+ * màu chữ thường, đếm xong chuyển dần sang cam đậm `orange-700` (đủ tương phản cho
+ * chữ lớn; cam thương hiệu `--brand` quá nhạt để làm chữ). Chưa chạy JS / giảm chuyển
+ * động / đã thấy lúc tải → cam sẵn.
+ * ------------------------------------------------------------------------- */
+.stat-count::before {
+  content: attr(data-v);
+}
+.stat-mark {
+  color: var(--color-orange-700);
+  transition: color 700ms ease-out 100ms;
+}
+.stat-mark[data-phase='armed'],
+.stat-mark[data-phase='counting'] {
+  color: var(--color-gray-900);
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stat-mark {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Sơ đồ dòng tiền (`MoneyFlowDiagram`, 02/10) ở khối "Tiền của một ca đi về đâu?".
+ * Đường nối: rãnh xám + phần tô cam `--brand` + chấm tiền chạy dọc đường. Đường
+ * chính dọc trên điện thoại, ngang từ lg; nhánh ngắn tới từng ô luôn ngang; thanh
+ * gom ba nhánh (bus) luôn dọc, tô tới tâm ô đang tới (ô cao 72px, cách 12px →
+ * tâm 36 / 120 / 204px). Ô đích sáng lên trễ ~0,3 giây để khớp lúc chấm tới nơi.
+ * ------------------------------------------------------------------------- */
+.flow-link,
+.flow-stub,
+.flow-bus {
+  background-color: var(--color-gray-200);
+}
+.flow-fill,
+.flow-bus-fill {
+  background-color: var(--brand);
+}
+.flow-fill {
+  transform-origin: top left;
+  transform: scaleY(0);
+  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.flow-stub .flow-fill {
+  transform: scaleX(0);
+}
+.flow-link.is-on .flow-fill,
+.flow-stub.is-on .flow-fill {
+  transform: none;
+}
+.flow-bus-fill {
+  height: 0;
+  transition: height 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.money-flow[data-step='2'] .flow-bus-fill {
+  height: 17.65%; /* 36 / 204 */
+}
+.money-flow[data-step='3'] .flow-bus-fill {
+  height: 58.82%; /* 120 / 204 */
+}
+.money-flow[data-step='4'] .flow-bus-fill,
+.money-flow[data-step='5'] .flow-bus-fill {
+  height: 100%;
+}
+.flow-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background-color: var(--brand);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 30%, transparent);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+.flow-link.is-on .flow-dot {
+  animation: flow-dot-y 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.flow-stub .flow-dot {
+  left: 0;
+  top: 50%;
+}
+.flow-stub.is-on .flow-dot {
+  animation: flow-dot-x 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes flow-dot-y {
+  0% { top: 0; opacity: 1; }
+  80% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes flow-dot-x {
+  0% { left: 0; opacity: 1; }
+  80% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+@media (min-width: 1024px) {
+  .flow-link .flow-fill {
+    transform: scaleX(0);
+  }
+  .flow-link .flow-dot {
+    left: 0;
+    top: 50%;
+  }
+  .flow-link.is-on .flow-dot {
+    animation-name: flow-dot-x;
+  }
+  .money-flow[data-step='2'] .flow-bus-fill {
+    height: 0;
+  }
+  .money-flow[data-step='3'] .flow-bus-fill {
+    height: 50%;
+  }
+}
+.flow-node {
+  transition: box-shadow 500ms ease 300ms;
+}
+/* Thẻ giải thích cùng số sáng theo bước đang chạy (khối nền cam đào → viền cam,
+ * giữ nền trắng để thẻ không chìm vào nền). */
+[data-flow-step='1'] #home-hold,
+[data-flow-step='2'] #home-paid,
+[data-flow-step='3'] #home-fee,
+[data-flow-step='4'] #home-refund {
+  box-shadow: 0 0 0 2px var(--color-orange-300);
+}
+[data-flow-step='1'] #home-hold .explain-num,
+[data-flow-step='2'] #home-paid .explain-num,
+[data-flow-step='3'] #home-fee .explain-num,
+[data-flow-step='4'] #home-refund .explain-num {
+  background-color: var(--brand);
+  color: #37373b;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-fill,
+  .flow-bus-fill,
+  .flow-node {
+    transition: none;
+  }
+  .flow-dot {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Trang chủ — xuất hiện có nhịp (03/10). Không thêm vòng lặp mới: chỉ các phần
+ * đang đứng yên hiện ra MỘT lần.
+ *   - `.hero-in`: màn đầu hiện lần lượt khi tải trang (CSS thuần, trễ theo `--i`).
+ *   - `.m-rise` / `.m-tick` (cùng `MotionGroup`): mục trồi lên lần lượt khi cuộn tới,
+ *     dấu ✓ tự vẽ. Chỉ ẩn khi khối mang `data-motion="armed"` → bản server / lỗi
+ *     JS / giảm chuyển động luôn thấy đủ nội dung.
+ * ------------------------------------------------------------------------- */
+.hero-in {
+  animation: hero-in 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+[data-motion='armed'] .m-rise {
+  opacity: 0;
+  transform: translateY(18px);
+  /* Giữ cả chuyển màu nền / bóng (thẻ giải thích sáng theo sơ đồ dòng tiền). */
+  transition:
+    opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 300ms ease-out,
+    box-shadow 300ms ease-out;
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+[data-motion='armed'][data-in] .m-rise {
+  opacity: 1;
+  transform: none;
+}
+[data-motion='armed'] .m-tick path {
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+  transition: stroke-dashoffset 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--i, 0) * 90ms + 260ms);
+}
+[data-motion='armed'][data-in] .m-tick path {
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-in {
+    animation: none;
+  }
+  [data-motion='armed'] .m-rise,
+  [data-motion='armed'] .m-tick path {
+    opacity: 1;
+    transform: none;
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+}

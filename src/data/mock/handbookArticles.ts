@@ -90,7 +90,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         heading: "3. Có thể đính kèm ảnh bàn giao",
         paragraphs: [
-          "Ảnh không bắt buộc. Vẫn nên chụp lại khu vực làm việc lúc bàn giao: nếu sau đó có khiếu nại, đây là căn cứ của bạn."
+          "Ảnh không bắt buộc. Vẫn nên chụp lại khu vực làm việc lúc bàn giao: nếu sau đó có vấn đề, đây là căn cứ của bạn."
         ]
       },
       {
@@ -111,7 +111,7 @@ export const handbookArticles: HandbookArticle[] = [
         bullets: [
           "Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví của bạn.",
           "Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công sau 24 giờ kể từ giờ kết thúc ca.",
-          "Nếu nhà tuyển dụng khiếu nại, tiền công được giữ lại chờ quản trị viên xem xét; bạn được phản hồi và gửi thêm bằng chứng."
+          "Nếu có vấn đề về ca, liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ và gửi kèm bằng chứng (ảnh bàn giao, giờ check-in)."
         ],
         note: "Không chụp mặt khách hàng khi chưa được phép. Không chụp giấy tờ cá nhân, hoá đơn có thông tin nhạy cảm hay khu vực riêng tư của cửa hàng."
       }
@@ -474,12 +474,12 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "3. Tiền công được trả thế nào trên CaLẻ",
         "paragraphs": [
           "Tiền công của ca đã được nhà tuyển dụng giữ trên CaLẻ ngay từ lúc đăng ca, nên bạn không phải đòi tiền mặt hay chờ chuyển khoản riêng. Sau khi bạn check-out, nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví CaLẻ của bạn; nếu họ không thao tác, hệ thống tự xác nhận và trả sau 24 giờ kể từ giờ kết thúc ca.",
-          "Từ ví, bạn rút về tài khoản ngân hàng qua PayOS (tối thiểu 2.000đ). Đừng nhận trả công \"ngoài app\" thay cho tiền đã giữ trên CaLẻ: khi có tranh chấp, CaLẻ chỉ bảo vệ được khoản tiền đi qua hệ thống."
+          "Từ ví, bạn rút về tài khoản ngân hàng qua PayOS (tối thiểu 2.000đ). Đừng nhận trả công \"ngoài app\" thay cho tiền đã giữ trên CaLẻ: khi có vấn đề, CaLẻ chỉ hỗ trợ được khoản tiền đi qua hệ thống."
         ]
       },
       {
         "heading": "Lưu ý khi đối soát",
-        "note": "Tiền công trên CaLẻ tính theo giờ ca đã đăng. Nếu được nhờ ở lại lâu hơn, hãy hỏi rõ trước phần giờ thêm được trả thế nào. Khi tiền công không đúng như ca đã đăng, gửi khiếu nại ngay trên trang ca để quản trị viên xem xét.",
+        "note": "Tiền công trên CaLẻ tính theo giờ ca đã đăng. Nếu được nhờ ở lại lâu hơn, hãy hỏi rõ trước phần giờ thêm được trả thế nào. Khi tiền công không đúng như ca đã đăng, liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ.",
         "paragraphs": []
       }
     ],
@@ -698,7 +698,7 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "2. Xử lý triệt để vi phạm của nhân sự",
         "paragraphs": [
           "Chỉ sau khi mọi thứ đã ổn thỏa và qua giờ cao điểm, bạn mới xử lý trường hợp vi phạm. Nếu người đã được duyệt không đến mà không báo, hãy đánh dấu \"Vắng mặt\" trên trang quản lý ca (được phép từ 15 phút sau giờ bắt đầu ca).",
-          "Vắng mặt không báo trừ 20 điểm uy tín của người đó; điểm dưới 50 thì tạm thời không ứng tuyển được ca mới. Phần tiền công của vị trí vắng mặt được hoàn về ví của bạn. Người lao động có quyền khiếu nại nếu cho rằng bị đánh dấu sai, nên hãy đánh dấu trung thực."
+          "Vắng mặt không báo trừ 20 điểm uy tín của người đó, và nhà tuyển dụng khác thấy điểm này khi duyệt. Phần tiền công của vị trí vắng mặt được hoàn về ví của bạn. Người lao động có thể liên hệ đội hỗ trợ CaLẻ nếu cho rằng bị đánh dấu sai, nên hãy đánh dấu trung thực."
         ]
       },
       {
@@ -758,13 +758,13 @@ export const handbookArticles: HandbookArticle[] = [
         bullets: [
           "Checklist khi check-out là mẫu chung (đã làm theo mô tả ca, đã báo kết quả…). Vì vậy hãy ghi rõ việc cần làm và tiêu chí bàn giao ngay trong mô tả ca.",
           "Không yêu cầu ảnh có mặt khách hàng hay giấy tờ cá nhân.",
-          "Hiện ảnh bàn giao là tên tệp người lao động khai; ảnh thật nằm trên máy họ. Khi có khiếu nại, quản trị viên có thể đề nghị hai bên gửi bổ sung."
+          "Hiện ảnh bàn giao là tên tệp người lao động khai; ảnh thật nằm trên máy họ. Khi có vấn đề, đội hỗ trợ có thể đề nghị hai bên gửi bổ sung."
         ]
       },
       {
         heading: "Sau khi người lao động check-out",
         paragraphs: [
-          "Bạn xác nhận hoàn thành để trả công, hoặc khiếu nại nếu có vấn đề. Nếu bạn không thao tác, hệ thống tự xác nhận và trả công sau 24 giờ kể từ giờ kết thúc ca. Khi có khiếu nại, tiền công được giữ lại chờ quản trị viên xử lý."
+          "Bạn xác nhận hoàn thành để trả công. Nếu bạn không thao tác, hệ thống tự xác nhận và trả công sau 24 giờ kể từ giờ kết thúc ca. Có vấn đề thì liên hệ đội hỗ trợ CaLẻ càng sớm càng tốt."
         ]
       }
     ],
@@ -810,7 +810,7 @@ export const handbookArticles: HandbookArticle[] = [
         bullets: [
           "Bạn xác nhận hoàn thành thì tiền công vào ví người lao động, phí dịch vụ được tính cho phần ca đó.",
           "Nếu bạn không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt.",
-          "Nếu có khiếu nại, tiền của phần đó được giữ lại tới khi quản trị viên xử lý."
+          "Có vấn đề với ca thì liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ trước khi hệ thống tự chốt."
         ]
       },
       {

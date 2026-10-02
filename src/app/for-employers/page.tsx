@@ -2,6 +2,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
 import { RoleHomeCta } from '@/components/landing/RoleHomeCta';
+import { LandingProofView } from '@/components/landing/LandingProof';
+import { proofCopy } from '@/components/landing/proofData';
+import { TypeOnView } from '@/components/landing/TypeOnView';
 import { EmployerPreview } from '@/components/landing/LandingPreview';
 import {
   LandingChecks,
@@ -10,7 +13,8 @@ import {
   LandingMoneyFlow,
   LandingSteps,
 } from '@/components/landing/LandingSections';
-import { getT, getTx } from '@/i18n/server';
+import { getLocale, getT, getTx } from '@/i18n/server';
+import { shareMeta } from '@/lib/shareMeta';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
@@ -27,9 +31,16 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  * Chỉ nói tính năng chạy ở CẢ demo lẫn production (`data/capabilities.ts`).
  * Không hiện "quán đang dùng" / số liệu khách cho tới khi có khách thật đồng ý.
  */
+// Thẻ chia sẻ link (ảnh: opengraph-image.png cạnh file này).
+export const metadata = shareMeta(
+  'Cần người làm theo ca? — CaLẻ',
+  'Đăng ca theo giờ, duyệt từng người, chỉ trả cho người đã làm. Phần không dùng được hoàn về ví.',
+);
+
 export default async function EmployerHomePage() {
   const t = await getT();
   const tx = await getTx();
+  const locale = await getLocale();
   const supabase = isSupabaseEnv();
   const benefits = [
     {
@@ -156,7 +167,8 @@ export default async function EmployerHomePage() {
       {/* 4. Tiền đi đâu — nền trắng */}
       <LandingMoneyFlow
         id="employer-money"
-        title={tx('Tiền của bạn đi đâu')}
+        title={tx('Tiền của bạn đi đâu?')}
+        typedTitle
         lead={
           supabase
             ? tx('Ví dụ một ca có tiền công 200.000 đ. Phí 10% chỉ tính trên phần ca có người làm.')
@@ -274,7 +286,7 @@ export default async function EmployerHomePage() {
           {
             q: tx('Khi nào người lao động nhận tiền?'),
             a: supabase
-              ? tx('Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt. Ca đang có tranh chấp chờ quản trị viên xử lý.')
+              ? tx('Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt.')
               : tx('Khi bạn xác nhận hoàn thành ca, tiền công được ghi vào ví người làm (mô phỏng).'),
           },
           {
@@ -296,11 +308,16 @@ export default async function EmployerHomePage() {
         ]}
       />
 
+      {/* Ảnh tự chụp + lời chia sẻ thật của phía này — tự ẩn khi chưa có (proofData.ts). */}
+      <LandingProofView id="employer-proof" copy={proofCopy(tx)} locale={locale} audience="employer" white />
+
       {/* 8. Khối mực — CTA + chuyển vai trò */}
       <section className="bg-ink px-4 py-10 text-white sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <p className="text-lg font-semibold">{t('employerHome.final.text')}</p>
+            <p className="text-lg font-semibold">
+              <TypeOnView text={t('employerHome.final.text')} />
+            </p>
             <p className="mt-1 text-sm text-white/70">
               {t('employerHome.switch.text')}{' '}
               <Link href="/for-workers" className="font-semibold text-white underline-offset-2 hover:underline">

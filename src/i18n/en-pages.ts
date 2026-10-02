@@ -392,4 +392,26 @@ export const enPagesText: Record<string, string> = {
   'Vào trang Liên hệ hỗ trợ, đội ngũ CaLẻ sẽ xem và phản hồi.': 'Go to the Contact support page; the CaLẻ team will look into it and reply.',
   'Bấm "Báo cáo vấn đề" trên trang quản lý ca; quản trị viên xem xét theo Chính sách xử lý tranh chấp.':
     'Tap "Report a problem" on the shift management page; an administrator reviews it under the Dispute policy.',
+  // 03/10 — bản thật chưa có luồng khiếu nại trong app: mở yêu cầu qua đội hỗ trợ.
+  'Vào trang Liên hệ hỗ trợ, mô tả sự việc và gửi kèm bằng chứng (ảnh bàn giao, giờ check-in). Đội ngũ CaLẻ sẽ xem và phản hồi.':
+    'Go to the Support page, describe what happened and include evidence (handover photo, check-in time). The CaLẻ team will review it and reply.',
+  'Liên hệ đội hỗ trợ CaLẻ qua trang Liên hệ hỗ trợ. Mô tả tình huống cụ thể, thời điểm xảy ra, và đính kèm chứng cứ nếu có (ảnh màn hình, giờ check-in/out).':
+    'Contact the CaLẻ support team via the Support page. Describe the situation and when it happened, and attach evidence if you have it (screenshots, check-in/out times).',
+  // 03/10 — bản thật: điểm uy tín chỉ tạm tính (không chặn ứng tuyển, chưa có hạn mức huỷ / điều chỉnh điểm), chưa có boost.
+  'Bạn cần xác thực số điện thoại trước khi ứng tuyển ca đầu tiên. Ca đã đủ người hoặc đã bắt đầu thì không nhận thêm đơn.':
+    'You need to verify your phone number before applying for your first shift. Shifts that are already full or have already started no longer accept applications.',
+  'Có. Còn hơn 3 giờ nữa mới bắt đầu thì bạn tự huỷ được; trong vòng 3 giờ cần nhà tuyển dụng đồng ý. Huỷ trong 24 giờ trước ca bị trừ 10 điểm uy tín. Chi tiết tại "Quy định huỷ ca".':
+    'Yes. More than 3 hours before the start you can cancel yourself; within 3 hours the employer has to agree. Cancelling within 24 hours of the shift costs 10 reputation points. Details are in "Cancellation rules".',
+  'Hãy đảm bảo ca đã được giữ cọc và công khai (kiểm tra trạng thái hiển thị "Đang tuyển"). Mô tả ca rõ ràng, mức lương theo thị trường khu vực. Nếu cần thay đổi mô tả, dùng nút Chỉnh sửa trước 24h.':
+    'Make sure the shift has its deposit held and is public (check that it shows "Hiring"). Describe the shift clearly and set pay in line with the local market. If you need to change the description, use the Edit button at least 24 hours ahead.',
+  'Hệ quả với tài khoản':
+    'Consequences for the account',
+  'Tuỳ kết quả xem xét, quản trị viên có thể tạm khoá tài khoản nếu có vi phạm nghiêm trọng.':
+    'Depending on the outcome, an administrator may temporarily lock an account for a serious violation.',
+  'Bản thật chưa giới hạn số lần huỷ. Mỗi lần huỷ trong 24 giờ trước ca vẫn bị trừ 10 điểm uy tín.':
+    'The live version does not limit how many times you cancel yet. Each cancellation within 24 hours of a shift still costs 10 reputation points.',
+  'Còn hơn 3 giờ trước ca thì tự huỷ; trong vòng 3 giờ cần nhà tuyển dụng đồng ý.':
+    'More than 3 hours before the shift you can cancel yourself; within 3 hours the employer has to agree.',
+  'Huỷ một ca bắt đầu sau 2 giờ nữa → gửi yêu cầu, chờ nhà tuyển dụng đồng ý.':
+    'Cancelling a shift that starts in 2 hours → send a request and wait for the employer to agree.',
 };

@@ -87,7 +87,7 @@ export const enPublic: Record<string, string> = {
   'workerHome.benefits.title': 'Why work through CaLẻ',
   'workerHome.benefit.fast.title': 'Get hired fast',
   'workerHome.benefit.fast.desc': 'Apply in seconds and hear back as soon as the employer approves.',
-  'workerHome.benefit.fast.alt': 'A smiling food counter worker serving a customer',
+  'workerHome.benefit.fast.alt': 'A drinks-stall worker in Hoi An pouring a drink for a customer',
   'workerHome.benefit.pay.title': 'Paid to your wallet after each shift',
   'workerHome.benefit.pay.desc':
     'When the shift is done, your wages go to your CaLẻ wallet. Withdraw to your bank anytime.',
@@ -250,6 +250,7 @@ export const enPublicText: Record<string, string> = {
   'Quy định huỷ ca': 'Cancellation rules',
   'Các mốc thời gian và hạn mức huỷ ca': 'Cancellation deadlines and limits',
   'Đăng ca tuyển': 'Post a shift',
+  'Đăng ký để nhận ca': 'Sign up to get shifts',
   'Tạo ca làm và mời người lao động': 'Create a shift and invite workers',
   'Quy trình tạo ca và giữ tiền ca làm (mô phỏng)': 'Creating a shift and holding wages (simulated)',
   'Quản lý người ứng tuyển': 'Manage applicants',
@@ -329,8 +330,8 @@ export const enPublicText: Record<string, string> = {
   'Khi bạn đăng ca. Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền.':
     'When you post a shift. The shift is shown to workers only after the full amount is held.',
   'Khi nào người lao động nhận tiền?': 'When do workers get paid?',
-  'Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt. Ca đang có tranh chấp chờ quản trị viên xử lý.':
-    'When the employer confirms the shift is done. If the employer does not confirm, the system settles it about 24 hours after the shift ends: people who checked in are paid, people who did not are marked absent. Disputed shifts wait for an administrator.',
+  'Khi nhà tuyển dụng xác nhận hoàn thành. Nếu nhà tuyển dụng không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt.':
+    'When the employer confirms the shift is done. If the employer does not confirm, the system settles it about 24 hours after the shift ends: people who checked in are paid, people who did not are marked absent.',
   'Có gói trả phí nào khác không?': 'Are there other paid plans?',
   'Chưa. Hiện chỉ có mức phí ở trên.': 'Not yet. The fee above is the only one.',
 

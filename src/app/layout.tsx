@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { shareMeta } from "@/lib/shareMeta";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppHydrator } from "@/components/layout/AppHydrator";
@@ -19,9 +20,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // Đường dẫn tuyệt đối cho og:image. Trên Vercel, Next tự dùng tên miền production
+  // khi biến này trống; đặt NEXT_PUBLIC_SITE_URL nếu chạy nơi khác.
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
   title: "CaLẻ",
   description:
     "Nền tảng kết nối nhà tuyển dụng và người lao động cho các ca làm ngắn hạn tại Việt Nam.",
+  // Thẻ chia sẻ link mặc định (trang nào không tự đặt) — xem src/lib/shareMeta.ts.
+  ...shareMeta(
+    "CaLẻ — Việc làm ngắn hạn, rõ ca – rõ tiền",
+    "Nền tảng kết nối nhà tuyển dụng và người lao động cho các ca làm ngắn hạn tại Việt Nam.",
+  ),
   // Favicon/app icons (src/app: favicon.ico, icon.svg, apple-icon.png) được Next
   // tự nhận. Manifest cho Android/PWA (icon 192/512 trong public/).
   manifest: "/site.webmanifest",

@@ -18,11 +18,14 @@ export default async function FaqPage() {
       </InfoSection>
 
       <InfoSection title={tx('Tại sao tôi không ứng tuyển được một số ca?')}>
-        {tx('Bạn cần xác minh số điện thoại trước khi ứng tuyển ca đầu tiên, và điểm uy tín cần ≥ 50. Một số ca cũng yêu cầu xác minh thêm CMND/CCCD hoặc thẻ sinh viên — thông tin này hiển thị ở phần chi tiết ca làm.')}
+        {/* Bản thật không chặn theo điểm uy tín và chưa có xác minh giấy tờ (capabilities). */}
+        {isSupabaseEnv()
+          ? tx('Bạn cần xác thực số điện thoại trước khi ứng tuyển ca đầu tiên. Ca đã đủ người hoặc đã bắt đầu thì không nhận thêm đơn.')
+          : tx('Bạn cần xác minh số điện thoại trước khi ứng tuyển ca đầu tiên, và điểm uy tín cần ≥ 50. Một số ca cũng yêu cầu xác minh thêm CMND/CCCD hoặc thẻ sinh viên — thông tin này hiển thị ở phần chi tiết ca làm.')}
       </InfoSection>
 
       <InfoSection title={tx('Tôi có thể huỷ ca đã ứng tuyển không?')}>
-        {tx('Có, nhưng quy định khác nhau theo thời điểm huỷ. Huỷ trước giờ bắt đầu hơn 24h không bị trừ điểm; huỷ sát giờ trong vòng 24h sẽ bị trừ −10 điểm uy tín và có thể cần nhà tuyển dụng đồng ý. Chi tiết tại "Quy định huỷ ca".')}
+        {tx('Có. Còn hơn 3 giờ nữa mới bắt đầu thì bạn tự huỷ được; trong vòng 3 giờ cần nhà tuyển dụng đồng ý. Huỷ trong 24 giờ trước ca bị trừ 10 điểm uy tín. Chi tiết tại "Quy định huỷ ca".')}
       </InfoSection>
 
       <InfoSection title={tx('Khi nào tôi nhận được tiền công?')}>
@@ -32,11 +35,17 @@ export default async function FaqPage() {
       </InfoSection>
 
       <InfoSection title={tx('Tôi đăng ca xong nhưng chưa ai ứng tuyển, làm sao bây giờ?')}>
-        {tx('Hãy đảm bảo ca đã được giữ cọc và công khai (kiểm tra trạng thái hiển thị "Đang tuyển"). Mô tả ca rõ ràng, mức lương theo thị trường khu vực, và sử dụng lượt boost (nếu có) để ưu tiên hiển thị. Nếu cần thay đổi mô tả, dùng nút Chỉnh sửa trước 24h.')}
+        {/* Bản thật chưa có lượt boost. */}
+        {isSupabaseEnv()
+          ? tx('Hãy đảm bảo ca đã được giữ cọc và công khai (kiểm tra trạng thái hiển thị "Đang tuyển"). Mô tả ca rõ ràng, mức lương theo thị trường khu vực. Nếu cần thay đổi mô tả, dùng nút Chỉnh sửa trước 24h.')
+          : tx('Hãy đảm bảo ca đã được giữ cọc và công khai (kiểm tra trạng thái hiển thị "Đang tuyển"). Mô tả ca rõ ràng, mức lương theo thị trường khu vực, và sử dụng lượt boost (nếu có) để ưu tiên hiển thị. Nếu cần thay đổi mô tả, dùng nút Chỉnh sửa trước 24h.')}
       </InfoSection>
 
       <InfoSection title={tx('Tôi gặp tranh chấp với người lao động/nhà tuyển dụng — phải làm sao?')}>
-        {tx('Mở chi tiết ca làm và bấm "Báo cáo sự cố". Quản trị viên sẽ xem xét hồ sơ, đánh giá từ cả hai bên và quyết định trả tiền cọc cho người lao động hoặc hoàn lại cho nhà tuyển dụng. Vui lòng tham khảo "Chính sách xử lý tranh chấp" để biết quy trình.')}
+        {/* Bản thật chưa có luồng "Báo cáo sự cố" trong app (capabilities.disputes = false). */}
+        {isSupabaseEnv()
+          ? tx('Vào trang Liên hệ hỗ trợ, mô tả sự việc và gửi kèm bằng chứng (ảnh bàn giao, giờ check-in). Đội ngũ CaLẻ sẽ xem và phản hồi.')
+          : tx('Mở chi tiết ca làm và bấm "Báo cáo sự cố". Quản trị viên sẽ xem xét hồ sơ, đánh giá từ cả hai bên và quyết định trả tiền cọc cho người lao động hoặc hoàn lại cho nhà tuyển dụng. Vui lòng tham khảo "Chính sách xử lý tranh chấp" để biết quy trình.')}
       </InfoSection>
     </InfoPage>
   );
