@@ -291,18 +291,15 @@ test.describe('Role homepages', () => {
     // Local/demo: lợi ích tiền nói rõ là mô phỏng.
     await expect(page.getByText('Ca hoàn thành, tiền công vào ví (mô phỏng trong bản demo).')).toBeVisible();
 
-    // "Tiền công của bạn": đúng 2 ô — tiền công cả ca + phí của bạn (0 đ).
+    // 03/10: "Tiền về tay bạn khi nào?" — sơ đồ 5 chặng (PayoutTimeline) thay cho 2 ô
+    // "Tiền công của bạn" / "Phí của bạn". Trạng thái cuối của sơ đồ: e2e/35.
     const money = page.locator('section[aria-labelledby="worker-money"]');
-    await expect(money.getByRole('heading', { level: 2, name: 'Tiền công của bạn' })).toBeVisible();
-    const stages = money.locator('ol > li');
-    await expect(stages).toHaveCount(2);
-    await expect(stages.nth(0)).toContainText('Tiền công ca này');
-    await expect(stages.nth(0)).toContainText('180.000 đ');
-    await expect(stages.nth(0)).toContainText('(mô phỏng)');
-    await expect(stages.nth(1)).toContainText('Phí của bạn');
-    await expect(stages.nth(1)).toContainText('0 đ');
-    await expect(money.locator('ol')).toHaveClass(/md:grid-cols-2/);
-    // Nhãn ô cũ (bản 3 ô) không còn trên trang.
+    await expect(money.getByRole('heading', { level: 2, name: 'Tiền về tay bạn khi nào?' })).toBeVisible();
+    await expect(money.locator('figure ol > li')).toHaveCount(5);
+    await expect(money).toContainText('180.000 đ (mô phỏng)');
+    // Ô cũ (bản 2 ô, bản 3 ô) không còn trên trang.
+    await expect(page.getByText('Tiền công của bạn', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Phí của bạn', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Trước khi ca hiện ra', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Khi ca xong', { exact: true })).toHaveCount(0);
 
@@ -353,7 +350,7 @@ test.describe('Role homepages', () => {
     await expect(empty.getByRole('listitem')).toHaveCount(3);
   });
 
-  test('/for-employers: switch marks employer, CTA goes to employer register, demo pricing is 0đ', async ({
+  test('/for-employers: switch marks employer, CTA goes to employer register, demo fee shown in shift playground', async ({
     page,
     seedState,
     gotoApp,
@@ -369,21 +366,24 @@ test.describe('Role homepages', () => {
       'href',
       '/register?role=employer',
     );
-    const pricing = page.locator('section[aria-labelledby="employer-pricing"]');
-    await expect(pricing.getByText('0đ', { exact: true })).toBeVisible();
-    await expect(pricing).toContainText('chưa thu phí');
-    // Tiêu đề câu hỏi kết thúc bằng "?" (02/10).
+    // 03/10: khối bảng giá riêng (employer-pricing, "0đ"/"10%") và "Tiền của bạn đi
+    // đâu?" đã bỏ; phí demo nằm trong form thử đăng ca ("Một ca tốn bao nhiêu?").
     const money = page.locator('section[aria-labelledby="employer-money"]');
-    await expect(money.getByRole('heading', { level: 2, name: 'Tiền của bạn đi đâu?', exact: true })).toBeVisible();
+    await expect(money.getByRole('heading', { level: 2, name: 'Một ca tốn bao nhiêu?', exact: true })).toBeVisible();
+    await expect(money.getByText('Bản demo chưa thu phí', { exact: true })).toBeVisible();
+    await expect(page.locator('section[aria-labelledby="employer-pricing"], #employer-pricing')).toHaveCount(0);
+    await expect(page.getByText('Tiền của bạn đi đâu?', { exact: true })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Switch to English' }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(money.getByRole('heading', { level: 2, name: 'Where does your money go?', exact: true })).toBeVisible();
+    await expect(money.getByRole('heading', { level: 2, name: 'What does a shift cost?', exact: true })).toBeVisible();
   });
 
-  // Nút cam bên phải header (khách, desktop ≥ xl): trên trang của người lao động
-  // (/for-workers, /shifts và trang con) là "Đăng ký để nhận ca"; nơi khác "Đăng ca tuyển".
-  test('guest header CTA: worker pages → "Đăng ký để nhận ca", "/" → none, elsewhere → "Đăng ca tuyển"', async ({
+  // Nút cam bên phải header (khách, desktop ≥ xl) — 03/10: khách chỉ có "Đăng nhập" +
+  // MỘT nút cam đăng ký trên mọi trang. Trang của người lao động (/for-workers, /shifts
+  // và trang con): "Đăng ký để nhận ca"; /for-employers: "Đăng ký để đăng ca"; nơi khác
+  // (kể cả "/"): "Đăng ký". Không còn "Đăng ca tuyển" cho khách. Chi tiết ở e2e/36.
+  test('guest header CTA: worker pages → "Đăng ký để nhận ca", /for-employers → "Đăng ký để đăng ca", elsewhere → "Đăng ký"', async ({
     page,
     seedState,
     gotoApp,
@@ -391,34 +391,30 @@ test.describe('Role homepages', () => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot({ shifts: [openShift(1)] }));
     const header = page.locator('header').first();
-    const workerCta = header.locator('a[href="/register?role=worker"]');
-    const employerCta = header.locator('a[href="/register?role=employer"]');
+    const register = header.locator('a[href^="/register"]');
+    const postShift = header.getByRole('link', { name: 'Đăng ca tuyển' });
 
-    for (const path of ['/for-workers', '/shifts', '/shifts/e2e-home-shift-1']) {
+    const cases: Array<[string, string, string]> = [
+      ['/for-workers', 'Đăng ký để nhận ca', '/register?role=worker'],
+      ['/shifts', 'Đăng ký để nhận ca', '/register?role=worker'],
+      ['/shifts/e2e-home-shift-1', 'Đăng ký để nhận ca', '/register?role=worker'],
+      ['/for-employers', 'Đăng ký để đăng ca', '/register?role=employer'],
+      ['/', 'Đăng ký', '/register'],
+      ['/about', 'Đăng ký', '/register'],
+    ];
+    for (const [path, label, href] of cases) {
       await gotoApp(path);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      await expect(workerCta, path).toBeVisible();
-      await expect(workerCta, path).toHaveText('Đăng ký để nhận ca');
-      await expect(employerCta, path).toHaveCount(0);
-    }
-
-    // Trang chủ chung cho hai phía: màn đầu đã có hai cửa vai trò → menu không có nút cam.
-    await gotoApp('/');
-    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(header.getByRole('link', { name: 'Đăng ký', exact: true })).toBeVisible();
-    await expect(employerCta).toHaveCount(0);
-    await expect(workerCta).toHaveCount(0);
-
-    for (const path of ['/for-employers', '/about']) {
-      await gotoApp(path);
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      await expect(employerCta, path).toBeVisible();
-      await expect(employerCta, path).toHaveText('Đăng ca tuyển');
-      await expect(workerCta, path).toHaveCount(0);
+      await expect(register, path).toHaveCount(1);
+      await expect(register, path).toBeVisible();
+      await expect(register, path).toHaveText(label);
+      await expect(register, path).toHaveAttribute('href', href);
+      await expect(register, path).toHaveClass(/bg-orange-500/);
+      await expect(postShift, path).toHaveCount(0);
     }
 
     await gotoApp('/for-workers');
-    await workerCta.click();
+    await register.click();
     await page.waitForURL('**/register?role=worker');
   });
 

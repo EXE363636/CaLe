@@ -183,11 +183,11 @@ export const enLandingText: Record<string, string> = {
   'Đã check-out · chờ xác nhận': 'Checked out · awaiting confirmation',
   'Hoàn thành · tiền đã về ví': 'Completed · paid to your wallet',
   'Đã xác minh SĐT': 'Phone verified',
-  'Minh hoạ giao diện quản lý ca — tên và số liệu là ví dụ.':
+  'Minh hoạ giao diện quản lý ca. Tên và số liệu là ví dụ.':
     'Illustration of the shift management screen — names and numbers are examples.',
   'Phụ bếp quán lẩu': 'Hotpot kitchen helper',
   'Tiền công cả ca': 'Wages for the whole shift',
-  'Minh hoạ giao diện người lao động — số liệu là ví dụ.':
+  'Minh hoạ giao diện người lao động. Số liệu là ví dụ.':
     'Illustration of the worker screen — numbers are examples.',
 
   // --- / (trang chủ — biên nhận ca, 02/10) ----------------------------------------------
@@ -478,4 +478,391 @@ export const enLandingText: Record<string, string> = {
   'Mưa lớn, cửa hàng lùi ngày khai trương.': 'Heavy rain, so the shop postponed its grand opening.',
   'Đã báo huỷ': 'Notified of cancellation',
   'Đã hoàn về ví': 'Refunded to wallet',
+  // 03/10 — trang vai trò: loại việc, xác thực tự gõ, sơ đồ tiền về tay, thử đăng một ca.
+  'Chọn loại việc bạn muốn làm':
+    'Pick the kind of work you want',
+  'Bấm một loại việc để xem các ca đang tuyển của loại đó. Giờ làm, tiền công và yêu cầu ghi rõ trên từng ca.':
+    'Tap a type of work to see its open shifts. Hours, pay and requirements are spelled out on each shift.',
+  'Xác thực một lần, rồi ứng tuyển bằng một nút':
+    'Verify once, then apply with one tap',
+  'Làm ngay trong trang Hồ sơ, mất vài phút.':
+    'Do it on your Profile page; it takes a few minutes.',
+  'Bản demo dùng giấy tờ mô phỏng; minh hoạ là luồng xác thực của bản thật.':
+    'The demo uses simulated documents; the illustration shows how verification works in the live version.',
+  'Số điện thoại':
+    'Phone number',
+  'Nhập số, nhận mã 6 số qua tin nhắn. Cần làm trước khi ứng tuyển ca đầu tiên.':
+    'Enter your number and get a 6-digit code by text. Needed before you apply for your first shift.',
+  'CCCD, không bắt buộc':
+    'Citizen ID, optional',
+  'Nhà tuyển dụng thấy nhãn "Đã xác minh danh tính" trên hồ sơ của bạn. Khi CaLẻ yêu cầu cọc lúc ứng tuyển, đã xác thực CCCD thì thường được miễn cọc.':
+    'Employers see an "Identity verified" label on your profile. When CaLẻ asks for a deposit to apply, a verified ID usually waives it.',
+  'Nhà tuyển dụng thấy nhãn "Đã xác minh danh tính" trên hồ sơ của bạn. Trong bản demo, xác thực là mô phỏng.':
+    'Employers see an "Identity verified" label on your profile. In the demo, verification is simulated.',
+  'Ảnh giấy tờ được để riêng':
+    'ID photos stay private',
+  'Ảnh CCCD nằm ở kho riêng tư, chỉ quản trị viên xem để duyệt.':
+    'ID photos are kept in private storage; only administrators see them to review.',
+  'Tiền về tay bạn khi nào?':
+    'When does the money reach you?',
+  'Ví dụ một ca 4 giờ, 45.000 đ mỗi giờ: bạn nhận đủ 180.000 đ, không mất phí.':
+    'Example: a 4-hour shift at 45.000 đ an hour. You get the full 180.000 đ, no fees.',
+  'Ví dụ một ca 4 giờ, 45.000 đ mỗi giờ: bạn nhận đủ 180.000 đ (mô phỏng).':
+    'Example: a 4-hour shift at 45.000 đ an hour. You get the full 180.000 đ (simulated).',
+  'Rút tiền về ngân hàng thế nào?':
+    'How do I withdraw to my bank?',
+  'Vào ví, chọn rút tiền và nhập tài khoản ngân hàng nhận. CaLẻ không thu phí rút; mỗi lần rút từ 2.000 đ.':
+    'Open your wallet, choose withdraw and enter the receiving bank account. CaLẻ charges no withdrawal fee; the minimum is 2.000 đ.',
+  'Bản demo chưa rút được tiền thật; số dư trong ví là mô phỏng.':
+    'The demo cannot withdraw real money; the wallet balance is simulated.',
+  'Ứng tuyển có phải đặt cọc không?':
+    'Do I have to pay a deposit to apply?',
+  'Tuỳ thời điểm. CaLẻ có thể yêu cầu một khoản cọc nhỏ khi ứng tuyển để hạn chế nhận ca rồi bỏ; số tiền hiện rõ để bạn đồng ý trước khi gửi đơn. Cọc hoàn đủ khi ca hoàn thành, khi bạn không được chọn, khi bạn huỷ hoặc ca bị huỷ. Vắng mặt không báo thì cọc chuyển cho nhà tuyển dụng; bạn khiếu nại được trong 72 giờ. Đã xác thực CCCD hoặc làm đủ số ca gần đây thì thường được miễn.':
+    'It depends. CaLẻ may ask for a small deposit when you apply, to discourage taking shifts and not showing up; the amount is shown for you to accept before you send the application. It is refunded in full when the shift is completed, when you are not selected, or when you or the employer cancel. If you do not show up without notice, the deposit goes to the employer; you can contest within 72 hours. A verified ID or enough recent completed shifts usually waives it.',
+  'Một ca tốn bao nhiêu?':
+    'What does a shift cost?',
+  'Thử đăng một ca: sửa giờ, lương, số người là thấy ngay số tiền giữ từ ví.':
+    'Try posting a shift: change the hours, pay or headcount and see the amount held from your wallet right away.',
+  'Tiền công cộng phí được giữ từ ví. Ca chỉ hiện cho người lao động khi đã giữ đủ.':
+    'Wages plus the fee are held from your wallet. Workers only see the shift once the full amount is held.',
+  'Tiền công được giữ từ ví (mô phỏng). Ca chỉ hiện cho người lao động khi đã giữ đủ.':
+    'Wages are held from your wallet (simulated). Workers only see the shift once the full amount is held.',
+  'Tiền công vào ví người đã làm. Phí 10% chỉ tính trên phần ca có người làm.':
+    'Wages go to the wallets of the people who worked. The 10% fee only applies to the part of the shift that was worked.',
+  'Tiền công được ghi vào ví người đã làm (mô phỏng). Bản demo chưa thu phí.':
+    'Wages are credited to the wallets of the people who worked (simulated). The demo charges no fee.',
+  'Xác thực tài khoản trước ca đầu tiên':
+    'Verify your account before your first shift',
+  'Làm một lần trong trang Hồ sơ, mất vài phút.':
+    'Do it once on your Profile page; it takes a few minutes.',
+  'Nhập số, nhận mã 6 số qua tin nhắn.':
+    'Enter your number and get a 6-digit code by text.',
+  'CCCD':
+    'Citizen ID',
+  'Gửi họ tên, số CCCD và ba ảnh; quản trị viên duyệt tay. Khi CaLẻ bật yêu cầu này, cần xác thực xong mới đăng được ca.':
+    'Send your full name, ID number and three photos; an administrator reviews them by hand. When CaLẻ turns this requirement on, you need it approved before posting shifts.',
+  'Số ca đã hoàn thành, đánh giá sao từ nhà tuyển dụng khác và trạng thái xác thực SĐT, danh tính của từng người.':
+    'Completed shifts, star ratings from other employers, and phone and identity verification status for each person.',
+  'Xác thực số điện thoại; khi CaLẻ yêu cầu thì xác thực thêm CCCD (quản trị viên duyệt). Rồi nạp tiền vào ví để giữ tiền công khi đăng ca.':
+    'Verify your phone number, and your citizen ID when CaLẻ requires it (reviewed by an administrator). Then top up your wallet so wages can be held when you post.',
+  'Nhà hàng tiệc cưới, Quận 3, TP.HCM':
+    'Wedding restaurant, District 3, HCMC',
+  'Thứ 7 tuần này':
+    'This Saturday',
+  'Phí dịch vụ':
+    'Service fee',
+  'Đăng ca mới':
+    'New shift',
+  'giờ':
+    'h',
+  '(mô phỏng)':
+    '(simulated)',
+  'Nhập giờ kết thúc sau giờ bắt đầu, lương và số người để tính.':
+    'Enter an end time after the start time, the pay and the headcount to calculate.',
+  'Giả sử 1 người không đến':
+    'Suppose 1 person does not show up',
+  'Trả người đã làm':
+    'Paid to those who worked',
+  'Phí trên phần có người làm':
+    'Fee on the part that was worked',
+  'Hoàn về ví của bạn':
+    'Refunded to your wallet',
+  'Giữ tiền và đăng ca':
+    'Hold funds and post',
+  'Ca hiện cho người lao động khi đã giữ đủ tiền.':
+    'Workers see the shift once the full amount is held.',
+  'Minh hoạ form đăng ca — sửa giờ, lương, số người để tính thử. Không gửi đi đâu.':
+    'Illustration of the posting form. Change the hours, pay or headcount to try it; nothing is sent.',
+  'Bảng phí':
+    'Pricing',
+  'Minh hoạ thẻ xác thực. Tên, số điện thoại, số CCCD là ví dụ.':
+    'Illustration of the verification card. The name, phone and ID numbers are examples.',
+  'Nhà tuyển dụng giữ tiền':
+    'The employer holds the money',
+  'Trước khi ca hiện ra cho bạn':
+    'Before the shift is shown to you',
+  'Bạn làm ca':
+    'You work the shift',
+  'Check-in khi đến, check-out khi xong':
+    'Check in on arrival, check out when done',
+  '{n} giờ':
+    '{n} hours',
+  'Xác nhận hoàn thành':
+    'Completion confirmed',
+  'Nhà tuyển dụng bấm, hoặc tự chốt sau 24 giờ':
+    'By the employer, or automatically after 24 hours',
+  'Nhà tuyển dụng bấm xác nhận':
+    'The employer confirms',
+  'Vào ví CaLẻ của bạn':
+    'Into your CaLẻ wallet',
+  'Nhận đủ, không mất phí':
+    'In full, no fees',
+  'Rút về ngân hàng':
+    'Withdraw to your bank',
+  'Khi bạn cần, không mất phí rút':
+    'Whenever you need, no withdrawal fee',
+  'Bản demo chưa rút được tiền thật':
+    'The demo cannot withdraw real money',
+  'Ví dụ: ca 4 giờ × 45.000 đ.':
+    'Example: a 4-hour shift × 45.000 đ.',
+  'Ví dụ: ca 4 giờ × 45.000 đ (mô phỏng).':
+    'Example: a 4-hour shift × 45.000 đ (simulated).',
+  'Đang miễn phí dịch vụ đến hết {date}.':
+    'No service fee until the end of {date}.',
+  'Áp dụng cho ca làm trong vòng 30 ngày sau đợt.':
+    'Applies to shifts within 30 days after the offer ends.',
+  // 03/10 — /for-workers: tìm ca và ứng tuyển (ApplyPreview).
+  'Tìm được ca là ứng tuyển ngay':
+    'Found a shift? Apply right away',
+  'Không cần gửi CV hay nhắn tin hỏi giá.':
+    'No CV to send, no messaging to ask about pay.',
+  'Lọc theo ý bạn':
+    'Filter your way',
+  'Tìm theo tên ca, địa điểm; lọc theo khu vực, loại việc, mức lương.':
+    'Search by shift name or place; filter by area, type of work and pay.',
+  'Thấy hết trước khi bấm':
+    'See everything before you tap',
+  'Tổng tiền cả ca, giờ làm, địa điểm và yêu cầu ghi ngay trên ca.':
+    'Total pay, hours, location and requirements are right on the shift.',
+  'Một nút ứng tuyển':
+    'One tap to apply',
+  'Đơn chờ nhà tuyển dụng duyệt; được duyệt hay không, trạng thái đổi ngay trên trang Tổng quan.':
+    'The employer reviews your application; approved or not, the status updates right away on your Overview page.',
+  'Xác thực một lần trước ca đầu tiên':
+    'Verify once before your first shift',
+  'Phục vụ quán cà phê':
+    'Café service',
+  'Thứ 7 · {time}':
+    'Saturday · {time}',
+  'Chủ nhật · {time}':
+    'Sunday · {time}',
+  'phục vụ':
+    'service',
+  'Quận 3':
+    'District 3',
+  'Tìm ca làm':
+    'Find shifts',
+  'Không cần kinh nghiệm':
+    'No experience needed',
+  'Chờ nhà tuyển dụng duyệt':
+    'Waiting for the employer to review',
+  'Minh hoạ trang tìm ca. Ca, quán và số tiền là ví dụ.':
+    'Illustration of the shift search page. Shifts, venues and amounts are examples.',
+  // 03/10 — an toàn & hỗ trợ, lương tham khảo, sửa câu cho đúng bản thật.
+  'An toàn và hỗ trợ':
+    'Safety and support',
+  'An toàn khi làm theo ca':
+    'Staying safe on shift work',
+  'Tiền công được giữ trước, xác minh tài khoản và những lưu ý khi đi làm.':
+    'Wages held up front, account verification and tips for the day of the shift.',
+  'Cần hỗ trợ?':
+    'Need help?',
+  'Email, hotline và cách phản ánh khi có vấn đề trong ca.':
+    'Email, hotline and how to report a problem with a shift.',
+  'Không cần để ứng tuyển. Khi CaLẻ yêu cầu cọc lúc ứng tuyển, đã xác thực CCCD thì thường được miễn cọc.':
+    'Not needed to apply. When CaLẻ asks for a deposit to apply, a verified ID usually waives it.',
+  'Số ca đã làm với bạn, số lần vắng mặt và điểm sao trung bình từ các đánh giá sau ca của từng người.':
+    'Shifts each person has worked with you, their no-shows, and their average star rating from post-shift reviews.',
+  '{money}/giờ':
+    '{money}/hour',
+  '{rating} · {n} đánh giá': '{rating} · {n} reviews',
+  'Đăng ký để đăng ca': 'Sign up to post shifts',
+  // 03/10 — đánh giá hai chiều, điểm uy tín / kỹ năng (ReviewPreview, ReputationPreview).
+  'Làm tốt thì được ghi nhận':
+    'Good work gets noticed',
+  'Sau mỗi ca, hai bên chấm sao và viết nhận xét cho nhau trong 14 ngày. Nhà tuyển dụng khác thấy điểm sao của bạn khi duyệt người.':
+    'After each shift, both sides rate each other with stars and a comment within 14 days. Other employers see your star rating when reviewing applicants.',
+  'Đánh giá hai chiều sau mỗi ca':
+    'Two-way reviews after every shift',
+  'Bạn chấm người lao động, người lao động chấm quán, trong 14 ngày sau ca. Điểm sao hiện trên thẻ ứng viên khi bạn duyệt người ở ca sau.':
+    'You rate the worker and the worker rates your venue, within 14 days of the shift. Star ratings show on applicant cards when you review people for later shifts.',
+  'Đến sớm, làm nhanh, khách khen.':
+    'Arrived early, worked fast, guests were happy.',
+  'Quán chỉ việc rõ ràng, trả đúng giờ.':
+    'Clear instructions, paid on time.',
+  'Quán chấm {name}':
+    'The venue rates {name}',
+  '{name} chấm quán':
+    '{name} rates the venue',
+  'Đã gửi':
+    'Sent',
+  'Sao của {name} hiện trên thẻ ứng viên khi nhà tuyển dụng khác duyệt người.':
+    "{name}'s stars show on the applicant card when other employers review applicants.",
+  'Nhận xét về quán hiện trên trang chi tiết ca của quán.':
+    "Comments about the venue show on the venue's shift pages.",
+  'Minh hoạ đánh giá sau ca. Tên và nhận xét là ví dụ.':
+    'Illustration of post-shift reviews. Names and comments are examples.',
+  'Hồ sơ của bạn':
+    'Your profile',
+  'Hồ sơ ứng viên':
+    'Applicant profile',
+  'Hoàn thành ca Phục vụ quán cà phê':
+    'Completed a café service shift',
+  'Hoàn thành ca +5 · huỷ trong 24 giờ trước ca −10 · vắng mặt không báo −20':
+    'Completed shift +5 · cancel within 24 hours −10 · no-show without notice −20',
+  'Kỹ năng':
+    'Skills',
+  'ca 5 sao':
+    '5-star shift',
+  'Cấp {level}':
+    'Level {level}',
+  'Lên cấp!':
+    'Level up!',
+  'Bản thật chưa tính điểm uy tín và kỹ năng; minh hoạ theo bản demo.':
+    'The live version does not calculate reputation or skills yet; this follows the demo.',
+  'Minh hoạ điểm uy tín và kỹ năng. Số liệu là ví dụ.':
+    'Illustration of reputation and skills. Figures are examples.',
+  // 03/10 — dải cuối trang theo người xem (RoleBand).
+  'Sẵn sàng nhận ca đầu tiên?': 'Ready for your first shift?',
+  'Tìm ca tiếp theo?': 'Looking for your next shift?',
+  'Cần thêm người cho ca tới?': 'Need more people for your next shift?',
+  'Trang này dành cho người lao động.': 'This page is for workers.',
+  'Trang này dành cho nhà tuyển dụng.': 'This page is for employers.',
+  // 03/10 — đăng ca / nhận ca 3 bước (ShiftPostPlayground, ApplyPreview).
+  "Bưng món, dọn bàn cho tiệc 40 bàn; làm theo hướng dẫn của quản lý sảnh.":
+    "Serve dishes and clear tables at a 40-table banquet, following the hall manager.",
+  "Áo sơ mi trắng, quần đen, giày kín mũi. Không cần kinh nghiệm.":
+    "White shirt, black trousers, closed shoes. No experience needed.",
+  "Chị Hạnh, quản lý sảnh":
+    "Ms Hạnh, hall manager",
+  "{time} hôm trước":
+    "{time} the day before",
+  "{time} hôm sau":
+    "{time} the next day",
+  "Các bước đăng một ca":
+    "Steps to post a shift",
+  "Điền ca":
+    "Fill in",
+  "Tuyển người":
+    "Hiring",
+  "Ngày làm & sau ca":
+    "Shift day & after",
+  "Đủ để giữ":
+    "Enough to hold",
+  "Thiếu {amount}: ca được lưu nháp, nạp thêm rồi đăng":
+    "{amount} short. The shift is saved as a draft; top up, then post",
+  "Người lao động thấy ca của bạn như sau:":
+    "Workers see your shift like this:",
+  "mỗi người":
+    "per person",
+  "Người ứng tuyển":
+    "Applicants",
+  "{a}/{n} người đã duyệt":
+    "{a}/{n} approved",
+  "Sửa ca được tới {edit}. Huỷ được tới {cancel} (6 giờ trước ca); sau đó, nếu đã có người ứng tuyển thì không huỷ được.":
+    "You can edit until {edit}. You can cancel until {cancel} (6 hours before); after that, a shift with applicants cannot be cancelled.",
+  "Sửa lại":
+    "Edit",
+  "Tiếp: ngày làm":
+    "Next: shift day",
+  "Check-in":
+    "Check-in",
+  "Người lao động bấm check-in khi tới; bạn xác nhận có mặt từng người. Ai không đến, bạn đánh dấu vắng mặt.":
+    "Workers check in when they arrive; you confirm each one is present. Mark anyone who does not show up as absent.",
+  "Ca diễn ra":
+    "Shift in progress",
+  "Trang quản lý ca cho thấy ai đang làm.":
+    "The shift page shows who is working.",
+  "Bạn bấm xác nhận là tiền công vào ví người làm. Không bấm thì hệ thống tự chốt lúc {time}.":
+    "Confirm and wages go to the workers’ wallets. If you do not, the system settles automatically at {time}.",
+  "Bạn bấm xác nhận là tiền công được ghi vào ví người làm (mô phỏng).":
+    "Confirm and wages are credited to the workers’ wallets (simulated).",
+  "14 ngày":
+    "14 days",
+  "Chấm sao và nhận xét cho từng người; họ cũng chấm quán của bạn.":
+    "Rate and comment on each person; they rate your venue too.",
+  "Minh hoạ đăng ca. Sửa giờ, lương, số người để tính thử; không gửi đi đâu.":
+    "Illustration of posting a shift. Change the hours, pay or headcount to try it; nothing is sent.",
+  "Các bước nhận một ca":
+    "Steps to take a shift",
+  "Tìm ca":
+    "Find",
+  "Sau khi ứng tuyển":
+    "After applying",
+  "Pha nước theo công thức của quán, bưng nước, dọn bàn giờ cao điểm sáng.":
+    "Make drinks from the café’s recipes, serve them and clear tables in the morning rush.",
+  "Không cần kinh nghiệm. Mặc áo quán phát.":
+    "No experience needed. Wear the shirt the café provides.",
+  "Anh Tuấn, quản lý quán":
+    "Mr Tuấn, café manager",
+  "4,7 · 12 đánh giá về quán":
+    "4.7 · 12 reviews of the venue",
+  "Chủ quán dễ chịu, chỉ việc rõ ràng, trả đúng giờ.":
+    "Friendly owner, clear instructions, paid on time.",
+  "Tự huỷ được tới {time} (3 giờ trước ca); sau đó cần nhà tuyển dụng đồng ý.":
+    "You can cancel yourself until {time} (3 hours before); after that the employer has to agree.",
+  "Nếu CaLẻ yêu cầu cọc, số tiền hiện để bạn đồng ý trước khi gửi.":
+    "If CaLẻ asks for a deposit, the amount is shown for you to accept before sending.",
+  "Bây giờ":
+    "Now",
+  "Chờ nhà tuyển dụng duyệt; trạng thái đổi ngay trên trang Tổng quan.":
+    "Waiting for the employer; the status updates right away on your Overview page.",
+  "Khi được duyệt":
+    "Once approved",
+  "Tự huỷ được tới {time}; sau đó cần nhà tuyển dụng đồng ý.":
+    "You can cancel yourself until {time}; after that the employer has to agree.",
+  "Check-in tại quán":
+    "Check in at the venue",
+  "Tới nơi, bấm check-in trên điện thoại. Không đến mà không báo bị tính vắng mặt.":
+    "Check in on your phone when you arrive. Not showing up without notice counts as a no-show.",
+  "Check-out":
+    "Check-out",
+  "Xong ca, bấm check-out.":
+    "Check out when the shift ends.",
+  "Sau ca":
+    "After",
+  "Nhà tuyển dụng xác nhận là tiền vào ví; không ai bấm thì tự chốt lúc {time}.":
+    "The employer confirms and the money goes to your wallet; if nobody does, it settles automatically at {time}.",
+  "Nhà tuyển dụng xác nhận là tiền được ghi vào ví (mô phỏng).":
+    "The employer confirms and the money is credited to your wallet (simulated).",
+  "Chấm sao cho quán; quán cũng chấm bạn.":
+    "Rate the venue; it rates you too.",
+  'Chưa tính': 'Not yet calculated',
+  // 03/10 — "sau ca" 4 bước (ReviewFlowPreview).
+  "Mỗi ca xong để lại dấu vết cho ca sau.":
+    "Every finished shift counts towards the next one.",
+  "Hai bên chấm nhau":
+    "Both sides rate each other",
+  "Trong 14 ngày sau ca, quán chấm sao cho bạn và bạn chấm quán. Gửi rồi không sửa được.":
+    "Within 14 days of the shift, the venue rates you and you rate the venue. Reviews cannot be edited once sent.",
+  "Điểm sao đi theo bạn":
+    "Your stars go with you",
+  "Nhà tuyển dụng khác thấy điểm sao trung bình của bạn khi duyệt người ở ca sau.":
+    "Other employers see your average stars when reviewing applicants for later shifts.",
+  "Uy tín và kỹ năng":
+    "Reputation and skills",
+  "Sắp có: điểm uy tín theo lịch sử ca và cấp kỹ năng theo từng loại việc.":
+    "Coming soon: a reputation score from your shift history and skill levels per type of work.",
+  "Điểm uy tín cộng trừ theo lịch sử ca; kỹ năng lên cấp theo số ca và số sao.":
+    "Reputation goes up and down with your shift history; skills level up with shifts and stars.",
+  "Ca sau bạn biết người mình sắp duyệt đã làm thế nào.":
+    "Next time, you know how the person you are approving has worked before.",
+  "Trong 14 ngày sau ca, bạn chấm sao cho người lao động và họ chấm quán. Gửi rồi không sửa được.":
+    "Within 14 days of the shift, you rate the worker and they rate your venue. Reviews cannot be edited once sent.",
+  "Điểm sao trên thẻ ứng viên":
+    "Stars on the applicant card",
+  "Khi duyệt người ở ca sau, bạn thấy điểm sao trung bình từ các nhà tuyển dụng trước.":
+    "When reviewing people for later shifts, you see their average stars from previous employers.",
+  "Sắp có: điểm uy tín theo lịch sử ca và cấp kỹ năng theo từng loại việc của người lao động.":
+    "Coming soon: a reputation score from each worker’s shift history and skill levels per type of work.",
+  "Điểm uy tín của người lao động cộng trừ theo lịch sử ca; kỹ năng lên cấp theo số ca và số sao.":
+    "A worker’s reputation goes up and down with their shift history; skills level up with shifts and stars.",
+  "Các bước sau một ca":
+    "Steps after a shift",
+  "Quán chấm":
+    "Venue rates",
+  "Người làm chấm":
+    "Worker rates",
+  "Sao hiện ra":
+    "Where stars show",
+  "Uy tín, kỹ năng":
+    "Reputation, skills",
+  "Nhà tuyển dụng khác thấy trên thẻ ứng viên:":
+    "Other employers see on the applicant card:",
+  "Người tìm ca thấy trên trang chi tiết ca của quán:":
+    "People looking for shifts see on the venue's shift page:",
+  "Minh hoạ đánh giá sau ca. Phần uy tín, kỹ năng theo bản demo, bản thật chưa tính.":
+    "Illustration of post-shift reviews. Reputation and skills follow the demo; the live version does not calculate them yet.",
+  "Minh hoạ đánh giá sau ca. Tên, nhận xét và số liệu là ví dụ.":
+    "Illustration of post-shift reviews. Names, comments and figures are examples.",
 };

@@ -1,7 +1,12 @@
 /**
  * Các khối nội dung của trang vai trò (`/for-workers`, `/for-employers`).
  *
- * `LandingMoneyFlow` có thể cho tiêu đề "đánh máy" khi cuộn tới (`typedTitle`).
+ * `LandingMoneyFlow` có thể cho tiêu đề "đánh máy" khi cuộn tới (`typedTitle`) và
+ * thay các chặng bằng một sơ đồ (`diagram`).
+ *
+ * `tone` (03/10): trang bọc trong `ToneScroll` → khối để nền trong suốt và khai báo
+ * `data-tone` (nền cả trang đổi màu theo khối đang xem, như trang chủ). Không có
+ * `tone` → nền riêng như cũ.
  *
  * Chỉ trình bày — câu chữ do trang (server) dựng bằng `getTx()` rồi truyền vào,
  * để test i18n quét được câu `tx('…')` ngay trong file trang. Không có hook nên
@@ -16,6 +21,11 @@ import type { CSSProperties, ReactNode } from 'react';
 
 import { MotionGroup } from './MotionGroup';
 import { TypeOnView } from './TypeOnView';
+
+/** Nền của khối: theo `ToneScroll` khi có `tone`, không thì nền riêng `fallback`. */
+function sectionBg(tone: string | undefined, fallback: string) {
+  return tone ? '' : fallback;
+}
 
 // ---------------------------------------------------------------------------
 // Icon — nét vẽ thống nhất 1.75, 24×24
@@ -32,7 +42,9 @@ export type LandingIcon =
   | 'phone'
   | 'star'
   | 'clock'
-  | 'gift';
+  | 'gift'
+  | 'shield'
+  | 'help';
 
 const ICON_PATHS: Record<LandingIcon, ReactNode> = {
   profile: (
@@ -95,6 +107,18 @@ const ICON_PATHS: Record<LandingIcon, ReactNode> = {
       <path d="M12 7.5V12l3 2" />
     </>
   ),
+  shield: (
+    <>
+      <path d="M12 3.5 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6l-7-2.5Z" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.75 9.5a2.4 2.4 0 0 1 4.6.9c0 1.6-2.35 2.1-2.35 3.6M12 16.75v.01" />
+    </>
+  ),
   gift: (
     <>
       <rect x="4" y="9" width="16" height="11" rx="2" />
@@ -148,14 +172,16 @@ export function LandingSteps({
   title,
   lead,
   steps,
+  tone,
 }: {
   id: string;
   title: string;
   lead?: string;
   steps: Array<{ title: string; body: string }>;
+  tone?: string;
 }) {
   return (
-    <section aria-labelledby={id} className="bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+    <section aria-labelledby={id} data-tone={tone} className={[sectionBg(tone, 'bg-white'), 'px-4 py-14 sm:px-6 sm:py-20 lg:px-8'].join(' ')}>
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -199,14 +225,16 @@ export function LandingFeatures({
   title,
   lead,
   items,
+  tone,
 }: {
   id: string;
   title: string;
   lead?: string;
   items: Array<{ icon: LandingIcon; title: string; body: string }>;
+  tone?: string;
 }) {
   return (
-    <section aria-labelledby={id} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+    <section aria-labelledby={id} data-tone={tone} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
         <div className="lg:sticky lg:top-28 lg:self-start">
           <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -245,11 +273,16 @@ export function LandingMoneyFlow({
   rules,
   footnote,
   typedTitle = false,
+  diagram,
+  tone,
 }: {
   id: string;
   title: string;
   lead?: string;
-  stages: Array<{ label: string; amount: string; body: string }>;
+  stages?: Array<{ label: string; amount: string; body: string }>;
+  /** Sơ đồ thay cho các chặng (vd `PayoutTimeline`). */
+  diagram?: ReactNode;
+  tone?: string;
   rulesTitle?: string;
   rules?: string[];
   footnote?: string;
@@ -257,7 +290,7 @@ export function LandingMoneyFlow({
   typedTitle?: boolean;
 }) {
   return (
-    <section aria-labelledby={id} className="bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+    <section aria-labelledby={id} data-tone={tone} className={[sectionBg(tone, 'bg-white'), 'px-4 py-14 sm:px-6 sm:py-20 lg:px-8'].join(' ')}>
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -265,32 +298,35 @@ export function LandingMoneyFlow({
           </h2>
           {lead && <p className="mt-3 text-base leading-relaxed text-gray-600">{lead}</p>}
         </div>
+        {diagram}
         {/* Khi cuộn tới: các chặng hiện theo dòng tiền, số tiền được quét ra. */}
-        <MotionGroup>
-          <ol
-            className={[
-              'mt-10 grid overflow-hidden rounded-3xl bg-orange-50 ring-1 ring-orange-100',
-              stages.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3',
-            ].join(' ')}
-          >
-            {stages.map((s, i) => (
-              <li
-                key={s.label}
-                style={{ '--i': i } as CSSProperties}
-                className={[
-                  'm-stage relative p-6 sm:p-8',
-                  i > 0 ? 'border-t border-orange-200/70 md:border-l md:border-t-0' : '',
-                ].join(' ')}
-              >
-                <p className="text-sm font-semibold text-orange-800">{s.label}</p>
-                <p className="m-amount mt-2 text-3xl font-bold leading-tight tracking-tight text-gray-900 tabular-nums sm:text-4xl">
-                  {s.amount}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-gray-700">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-        </MotionGroup>
+        {stages && stages.length > 0 && (
+          <MotionGroup>
+            <ol
+              className={[
+                'mt-10 grid overflow-hidden rounded-3xl bg-orange-50 ring-1 ring-orange-100',
+                stages.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3',
+              ].join(' ')}
+            >
+              {stages.map((s, i) => (
+                <li
+                  key={s.label}
+                  style={{ '--i': i } as CSSProperties}
+                  className={[
+                    'm-stage relative p-6 sm:p-8',
+                    i > 0 ? 'border-t border-orange-200/70 md:border-l md:border-t-0' : '',
+                  ].join(' ')}
+                >
+                  <p className="text-sm font-semibold text-orange-800">{s.label}</p>
+                  <p className="m-amount mt-2 text-3xl font-bold leading-tight tracking-tight text-gray-900 tabular-nums sm:text-4xl">
+                    {s.amount}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-gray-700">{s.body}</p>
+                </li>
+              ))}
+            </ol>
+          </MotionGroup>
+        )}
         {rules && rules.length > 0 && (
           <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             {rulesTitle && <h3 className="text-base font-semibold text-gray-900">{rulesTitle}</h3>}
@@ -321,6 +357,7 @@ export function LandingFaq({
   more,
   white = false,
   wide = false,
+  tone,
 }: {
   id: string;
   title: string;
@@ -330,11 +367,13 @@ export function LandingFaq({
   white?: boolean;
   /** Theo mép trái chung max-w-6xl: tiêu đề bên trái, danh sách bên phải (trang chủ). */
   wide?: boolean;
+  tone?: string;
 }) {
   return (
     <section
       aria-labelledby={id}
-      className={['px-4 py-14 sm:px-6 sm:py-20 lg:px-8', white ? 'bg-white' : ''].join(' ')}
+      data-tone={tone}
+      className={['px-4 py-14 sm:px-6 sm:py-20 lg:px-8', white && !tone ? 'bg-white' : ''].join(' ')}
     >
       <div
         className={
@@ -382,6 +421,55 @@ export function LandingFaq({
             </Link>
           )}
         </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// An toàn & hỗ trợ — hai lối tắt tới /safety và /support (03/10)
+// ---------------------------------------------------------------------------
+
+export function LandingHelp({
+  id,
+  title,
+  items,
+  tone,
+}: {
+  id: string;
+  title: string;
+  items: Array<{ href: string; icon: LandingIcon; title: string; body: string }>;
+  tone?: string;
+}) {
+  return (
+    <section aria-labelledby={id} data-tone={tone} className="px-4 pb-14 sm:px-6 sm:pb-20 lg:px-8">
+      <div className="mx-auto max-w-3xl">
+        <h2 id={id} className="sr-only">
+          {title}
+        </h2>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {items.map((it) => (
+            <li key={it.href}>
+              <Link
+                href={it.href}
+                className="group flex h-full gap-4 rounded-2xl bg-white p-5 shadow-card ring-1 ring-black/5 transition-shadow hover:ring-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 motion-reduce:transition-none"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700 ring-1 ring-orange-100">
+                  <LandingIconGlyph name={it.icon} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-base font-semibold text-gray-900">
+                    {it.title}{' '}
+                    <span aria-hidden="true" className="inline-block text-orange-700 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none">
+                      →
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-sm leading-relaxed text-gray-600">{it.body}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

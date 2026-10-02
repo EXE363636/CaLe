@@ -49,15 +49,17 @@ export const LANDING_SAMPLE_SHIFTS: LandingSampleShift[] = [
 ];
 
 /** 8 tài khoản người lao động mẫu (tên + chữ viết tắt cho ảnh đại diện). */
-export const LANDING_SAMPLE_WORKERS: Array<{ name: string; initials: string }> = [
-  { name: 'Minh Anh', initials: 'MA' },
-  { name: 'Quốc Bảo', initials: 'QB' },
-  { name: 'Thu Hà', initials: 'TH' },
-  { name: 'Gia Huy', initials: 'GH' },
-  { name: 'Ngọc Trâm', initials: 'NT' },
-  { name: 'Đức Long', initials: 'ĐL' },
-  { name: 'Khánh Linh', initials: 'KL' },
-  { name: 'Hoàng Nam', initials: 'HN' },
+/** `rating` / `shifts`: điểm sao trung bình + số đánh giá — thứ nhà tuyển dụng thấy
+ *  trên thẻ ứng viên ở CẢ demo lẫn bản thật (đánh giá hai chiều, 0024). */
+export const LANDING_SAMPLE_WORKERS: Array<{ name: string; initials: string; rating: number; reviews: number }> = [
+  { name: 'Minh Anh', initials: 'MA', rating: 4.8, reviews: 12 },
+  { name: 'Quốc Bảo', initials: 'QB', rating: 4.6, reviews: 7 },
+  { name: 'Thu Hà', initials: 'TH', rating: 4.9, reviews: 21 },
+  { name: 'Gia Huy', initials: 'GH', rating: 4.5, reviews: 4 },
+  { name: 'Ngọc Trâm', initials: 'NT', rating: 4.7, reviews: 9 },
+  { name: 'Đức Long', initials: 'ĐL', rating: 4.4, reviews: 5 },
+  { name: 'Khánh Linh', initials: 'KL', rating: 5, reviews: 3 },
+  { name: 'Hoàng Nam', initials: 'HN', rating: 4.8, reviews: 15 },
 ];
 
 /** Ca mẫu thứ `round` tính từ `start` (vòng quanh danh sách). */

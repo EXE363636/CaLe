@@ -112,6 +112,24 @@ async function measure(page: import('@playwright/test').Page) {
   });
 }
 
+/**
+ * 03/10 — việc chính của vai trò đã đăng nhập ("Đăng ca" / "Tìm ca làm") là nút cam ở
+ * vùng phải header: hiện, nằm ngoài thanh menu giữa và không đè lên nó.
+ */
+async function expectRightCta(page: import('@playwright/test').Page, label: string, width: number) {
+  const header = page.locator('header').first();
+  const cta = header.getByRole('link', { name: label, exact: true });
+  await expect(cta, `"${label}" button @${width}`).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: label, exact: true }),
+  ).toHaveCount(0);
+  const navBox = await page.getByRole('navigation', { name: 'Main navigation' }).boundingBox();
+  const ctaBox = await cta.boundingBox();
+  expect(navBox && ctaBox && ctaBox.x - (navBox.x + navBox.width), `nav↔"${label}" gap @${width}`).toBeGreaterThanOrEqual(
+    GAP_MIN,
+  );
+}
+
 test.describe('HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no overlap', () => {
   for (const [width, height] of DESKTOP) {
     test(`worker desktop nav @${width}x${height}`, async ({
@@ -132,6 +150,9 @@ test.describe('HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no over
       expect(m.logoNavGap, `logo↔nav gap @${width}`).toBeGreaterThanOrEqual(GAP_MIN);
       expect(m.navRightGap, `nav↔right gap @${width}`).toBeGreaterThanOrEqual(GAP_MIN);
       expect(m.visibleNavLinks, `nav links @${width}`).toBeGreaterThan(0);
+      // 03/10 — "Tìm ca làm" rời thanh menu, thành nút cam ở vùng phải.
+      expect(m.navLinkTexts, `no "Tìm ca làm" in nav @${width}`).not.toContain('Tìm ca làm');
+      await expectRightCta(page, 'Tìm ca làm', width);
       expect(m.headerHeight, `header height @${width}`).toBeGreaterThan(40);
       expect(m.headerHeight, `header height @${width}`).toBeLessThan(120);
     });
@@ -169,15 +190,18 @@ test.describe('HEADER-NAV-LAYOUT-3: desktop/laptop shows horizontal nav, no over
       // (handbook) was added to the top nav (6→7), then P0 feedback removed
       // "Ca công khai" (7→6; preview now lives on the employer shift page).
       // The employer nav must fit one row at >= 1280px without a hamburger.
-      expect(m.visibleNavLinks, `nav links @${width}`).toBe(6);
+      // 03/10 — "Đăng ca" rời thanh menu (6→5), thành nút cam ở vùng phải.
+      expect(m.visibleNavLinks, `nav links @${width}`).toBe(5);
       // P0 feedback F6 — chủ dự án chốt nhãn "Lịch tuyển dụng" (không rút gọn).
-      for (const label of ['Đăng ca', 'Lịch tuyển dụng', 'Hồ sơ']) {
+      for (const label of ['Lịch tuyển dụng', 'Hồ sơ']) {
         expect(
           m.navLinkTexts,
           `employer short label "${label}" @${width}`,
         ).toContain(label);
       }
       expect(m.navLinkTexts, `no "Ca công khai" @${width}`).not.toContain('Ca công khai');
+      expect(m.navLinkTexts, `no "Đăng ca" in nav @${width}`).not.toContain('Đăng ca');
+      await expectRightCta(page, 'Đăng ca', width);
 
       // Long profile name truncates within its container.
       const nameOk = await page.evaluate(() => {

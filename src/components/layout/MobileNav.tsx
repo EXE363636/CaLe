@@ -338,6 +338,18 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
 
   const role = currentUser?.role ?? null;
   const isLoggedIn = currentUser !== null;
+  const onPage = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+  // Trang vai trò: nút đăng ký mang đúng vai trò của trang (03/10).
+  const registerRole = onPage('/for-workers') || onPage('/shifts') ? 'worker' : onPage('/for-employers') ? 'employer' : null;
+  const registerTarget = {
+    href: registerRole ? `/register?role=${registerRole}` : '/register',
+    text:
+      registerRole === 'worker'
+        ? tx('Đăng ký để nhận ca')
+        : registerRole === 'employer'
+          ? tx('Đăng ký để đăng ca')
+          : t('nav.register'),
+  };
   const sections = useMemo<DrawerSection[]>(() => {
     const base =
       role === 'worker'
@@ -526,12 +538,13 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
               >
                 {t('nav.login')}
               </Link>
+              {/* Trang vai trò: nút đăng ký mang đúng vai trò của trang (03/10). */}
               <Link
-                href="/register"
+                href={registerTarget.href}
                 onClick={() => setOpen(false)}
                 className="flex min-h-[44px] items-center justify-center rounded-lg bg-orange-500 px-3 text-sm font-semibold text-gray-900 shadow-sm"
               >
-                {t('nav.register')}
+                {registerTarget.text}
               </Link>
             </div>
           )}

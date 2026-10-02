@@ -414,4 +414,48 @@ export const enPagesText: Record<string, string> = {
     'More than 3 hours before the shift you can cancel yourself; within 3 hours the employer has to agree.',
   'Huỷ một ca bắt đầu sau 2 giờ nữa → gửi yêu cầu, chờ nhà tuyển dụng đồng ý.':
     'Cancelling a shift that starts in 2 hours → send a request and wait for the employer to agree.',
+  // 03/10 — /safety bản thật.
+  'Xác thực số điện thoại bằng mã gửi qua tin nhắn và CCCD (quản trị viên duyệt) trong trang hồ sơ. Ảnh giấy tờ nằm ở kho riêng tư, chỉ quản trị viên xem để duyệt.':
+    'Verify your phone number with a text-message code and your citizen ID (reviewed by an administrator) on your profile page. ID photos are kept in private storage; only administrators see them to review.',
+  'Đánh giá sau ca':
+    'Post-shift reviews',
+  'Sau mỗi ca, hai bên chấm sao và viết nhận xét cho nhau trong 14 ngày. Nhà tuyển dụng thấy điểm sao trung bình, số ca đã làm với mình và số lần vắng mặt của người ứng tuyển; người lao động thấy nhận xét về quán trước khi nhận ca.':
+    'After each shift, both sides rate each other with stars and a comment within 14 days. Employers see the average stars, shifts worked with them and no-shows of each applicant; workers see comments about the venue before taking a shift.',
+  'CaLẻ không thu phí của người lao động. Khoản cọc khi ứng tuyển (nếu có) hoàn đủ khi ca hoàn thành hoặc khi bạn không được chọn.':
+    'CaLẻ charges workers no fees. Any deposit taken when you apply is refunded in full when the shift is completed or if you are not selected.',
+  // 03/10 — /how-it-works đồng bộ landing.
+  "Trang nhà tuyển dụng":
+    "Employer page",
+  "Bốn bước của một ca":
+    "Four steps of a shift",
+  "Nhập giờ làm, địa điểm, lương theo giờ và số người cần. Ca chỉ hiện cho người lao động sau khi hệ thống giữ tiền công và 10% phí từ ví.":
+    "Enter the hours, place, hourly pay and number of people. Workers only see the shift once the wages plus the 10% fee are held from the wallet.",
+  "Nhập giờ làm, địa điểm, lương theo giờ và số người cần. Ca chỉ hiện cho người lao động sau khi giữ cọc (mô phỏng).":
+    "Enter the hours, place, hourly pay and number of people. Workers only see the shift once the deposit is held (simulated).",
+  "Chọn ca hợp lịch rồi bấm Ứng tuyển. Đơn chờ nhà tuyển dụng duyệt.":
+    "Pick a shift that fits your schedule and tap Apply. The employer then reviews your application.",
+  "Mọi đồng giữ lúc đăng ca đi về đúng một trong ba nơi: người đã làm, phí CaLẻ, hoặc hoàn về ví nhà tuyển dụng.":
+    "Every đồng held at posting goes to exactly one of three places: the people who worked, the CaLẻ fee, or back to the employer wallet.",
+  "Xem kỹ từng bước theo vai trò":
+    "Walk through it for your role",
+  "Bạn tìm ca":
+    "Looking for shifts",
+  "Tìm ca, ứng tuyển, nhận tiền":
+    "Find, apply, get paid",
+  "Xem một ca từ lúc tìm, đọc chi tiết, ứng tuyển tới lúc check-in và tiền về ví.":
+    "Follow one shift from searching and reading the details to applying, checking in and getting paid.",
+  "Xem minh hoạ":
+    "See the walkthrough",
+  "Bạn cần người":
+    "Need people",
+  "Đăng ca, duyệt người, trả công":
+    "Post, approve, pay",
+  "Thử đăng một ca, tính tiền giữ từ ví, xem người ứng tuyển và ngày làm diễn ra thế nào.":
+    "Try posting a shift, work out the amount held, and see applicants and the shift day play out.",
+  "Thử đăng một ca":
+    "Try posting a shift",
+  "Tôi cần việc":
+    "I need work",
+  "Tôi cần tuyển người":
+    "I need to hire",
 };

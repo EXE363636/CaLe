@@ -24,7 +24,7 @@ import { ShiftJourney } from '@/components/shift/ShiftJourney';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { serverWageTotal } from '@/domain/deposit';
 import { getShiftStatusBadge, type ShiftLifecycleState } from '@/domain/shiftLifecycleState';
-import { useT, useTx } from '@/i18n/LocaleProvider';
+import { useLocale, useT, useTx } from '@/i18n/LocaleProvider';
 import { formatVND } from '@/lib/format';
 
 import { sampleApplicants, sampleLedger, sampleShift } from './landingSamples';
@@ -97,6 +97,7 @@ const PHASE_STATE: Record<EmployerPhase, ShiftLifecycleState> = {
 export function EmployerPreview() {
   const t = useT();
   const tx = useTx();
+  const locale = useLocale();
   const ref = useRef<HTMLDivElement>(null);
   const { step, round } = usePlayback(ref, (r) => employerTimeline(r).map((s) => s.ms));
   const timeline = employerTimeline(round);
@@ -200,7 +201,13 @@ export function EmployerPreview() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-gray-900">{a.name}</p>
-                  <p className="text-xs text-green-700">{tx('Đã xác minh SĐT')}</p>
+                  {/* Sao + số đánh giá: bản thật thẻ ứng viên không có nhãn xác thực. */}
+                  <p className="text-xs text-gray-600 tabular-nums">
+                    <span aria-hidden="true" className="text-amber-500">★</span>{' '}
+                    {tx('{rating} · {n} đánh giá')
+                      .replace('{rating}', a.rating.toLocaleString(locale === 'en' ? 'en-US' : 'vi-VN', { minimumFractionDigits: 1 }))
+                      .replace('{n}', String(a.reviews))}
+                  </p>
                 </div>
                 {cancelled ? (
                   <Badge tone="neutral">
@@ -247,7 +254,7 @@ export function EmployerPreview() {
         </div>
       </div>
       <figcaption>
-        <Caption text={tx('Minh hoạ giao diện quản lý ca — tên và số liệu là ví dụ.')} />
+        <Caption text={tx('Minh hoạ giao diện quản lý ca. Tên và số liệu là ví dụ.')} />
       </figcaption>
     </figure>
   );
@@ -388,7 +395,7 @@ export function WorkerPreview() {
         </div>
       </div>
       <figcaption>
-        <Caption text={tx('Minh hoạ giao diện người lao động — số liệu là ví dụ.')} />
+        <Caption text={tx('Minh hoạ giao diện người lao động. Số liệu là ví dụ.')} />
       </figcaption>
     </figure>
   );

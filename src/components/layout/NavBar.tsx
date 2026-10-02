@@ -10,6 +10,10 @@
  *       An toàn & hướng dẫn ▾ · Hỗ trợ
  *     Right side: Đăng nhập · Đăng ký · primary CTA "Đăng ca tuyển"
  *     (trên /for-workers và /shifts: "Đăng ký để nhận ca"; ở "/" không có nút — 02/10)
+ *     03/10 — khách chỉ còn "Đăng nhập" + một nút cam đăng ký (mọi trang trừ chính
+ *     /login, /register); trên trang vai trò nút mang vai trò của trang ("Đăng ký để
+ *     nhận ca" / "Đăng ký để đăng ca"). Không còn "Đăng ca tuyển" cho khách. Đã đăng nhập: nút cam ở góc phải là việc chính của vai
+ *     trò ("Đăng ca" / "Tìm ca làm"), mục trùng trong thanh menu được bỏ.
  *     (Phase 9T: the right CTA targets employers so the worker side
  *     uses the middle "Tìm ca làm" link and the right CTA balances
  *     the audiences without two competing "find a shift" buttons).
@@ -503,6 +507,14 @@ export function NavBar() {
   // Phase 9X — `shadow-sm` adds a hint of depth so the sticky nav
   // visibly lifts off the page; the underline border still defines
   // the bottom edge.
+
+  // Nút đăng ký của khách: mang vai trò của trang vai trò đang xem (03/10).
+  const guestRegister =
+    isPathActive(pathname, '/for-workers') || isPathActive(pathname, '/shifts')
+      ? { href: '/register?role=worker', text: tx('Đăng ký để nhận ca') }
+      : isPathActive(pathname, '/for-employers')
+        ? { href: '/register?role=employer', text: tx('Đăng ký để đăng ca') }
+        : { href: '/register', text: t('nav.register') };
   return (
     <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm">
       {/* HEADER-NAV-LAYOUT-3 — pure-CSS 3-zone adaptive header.
@@ -587,37 +599,37 @@ export function NavBar() {
 
           {role === null && (
             <div className="hidden items-center gap-1 xl:flex">
-              <NavButton href="/login" pathname={pathname}>
-                {t('nav.login')}
-              </NavButton>
-              <NavButton href="/register" pathname={pathname}>
-                {t('nav.register')}
-              </NavButton>
-              {/* Phase 9T — "Tìm ca làm" nằm trong dropdown "Người lao
-                  động", so this primary CTA is dedicated to the employer
-                  side. Two clear paths, no duplicate "find a shift" CTA
-                  fighting itself for attention.
-                  02/10 — trên các trang dành cho người lao động (khách),
-                  nút cam đổi sang phía người lao động: nút "Đăng ca tuyển"
-                  ở đó giành chú ý với nút đăng ký của chính trang. Trang chủ
-                  "/" chung cho hai phía và màn đầu đã có hai cửa vai trò →
-                  không có nút này. */}
-              {pathname === '/' ? null : isPathActive(pathname, '/for-workers') || isPathActive(pathname, '/shifts') ? (
-                <Link
-                  href="/register?role=worker"
-                  className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
-                >
-                  {tx('Đăng ký để nhận ca')}
-                </Link>
-              ) : (
-                <Link
-                  href="/register?role=employer"
-                  className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
-                >
-                  {tx('Đăng ca tuyển')}
+              {/* 03/10 — khách chỉ có HAI việc: đăng nhập, đăng ký. Không còn nút
+                  "Đăng ca tuyển" cho khách (bấm vào cũng chỉ là đăng ký → trùng, và lạ
+                  ở /login, /how-it-works…). Nút cam = đăng ký; trên trang vai trò nó
+                  mang vai trò của trang. Ẩn nút trỏ về chính trang đang xem. */}
+              {pathname !== '/login' && (
+                <NavButton href="/login" pathname={pathname}>
+                  {t('nav.login')}
+                </NavButton>
+              )}
+              {pathname !== '/register' && (
+                <Link href={guestRegister.href} className="ml-1 inline-flex min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2">
+                  {guestRegister.text}
                 </Link>
               )}
             </div>
+          )}
+
+          {/* Đã đăng nhập: việc chính của vai trò thành nút cam (thay mục trùng trong menu). */}
+          {role === 'employer' && currentUser && (
+            <Link
+              href="/employer/shifts/new"
+              title={t('nav.postShift')}
+              className={['hidden xl:inline-flex', 'ml-1 min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'].join(' ')}
+            >
+              {t('nav.short.postShift')}
+            </Link>
+          )}
+          {role === 'worker' && currentUser && (
+            <Link href="/shifts" className={['hidden xl:inline-flex', 'ml-1 min-h-[44px] items-center whitespace-nowrap rounded-lg bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-shadow hover:bg-orange-400 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'].join(' ')}>
+              {t('nav.shifts')}
+            </Link>
           )}
 
           <ThemeToggle />
@@ -732,9 +744,7 @@ function WorkerNav({
       <NavLink href="/for-workers" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
-      <NavLink href="/shifts" pathname={pathname}>
-        {t('nav.shifts')}
-      </NavLink>
+      {/* "Tìm ca làm" là nút cam ở góc phải (03/10). */}
       <NavLink href="/worker/dashboard" pathname={pathname}>
         {t('nav.dashboard')}
       </NavLink>
@@ -781,13 +791,7 @@ function EmployerNav({
       <NavLink href="/for-employers" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
-      <NavLink
-        href="/employer/shifts/new"
-        pathname={pathname}
-        title={t('nav.postShift')}
-      >
-        {t('nav.short.postShift')}
-      </NavLink>
+      {/* "Đăng ca" là nút cam ở góc phải (03/10). */}
       <NavLink
         href="/employer/dashboard"
         pathname={pathname}

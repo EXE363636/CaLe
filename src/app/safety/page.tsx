@@ -22,20 +22,27 @@ export default async function SafetyPage() {
           : tx('Nhà tuyển dụng giữ cọc đủ tiền công trước khi ca hiện ra (mô phỏng). Tiền chỉ trả khi ca xong; phần không dùng được hoàn lại.')}
       </InfoSection>
 
+      {/* 03/10 — bản thật: nhãn xác thực, điểm uy tín không hiện cho bên kia (thẻ ứng viên
+          chỉ có số ca đã làm với nhà tuyển dụng, số lần vắng, sao đánh giá). */}
       <InfoSection title={tx('Xác minh tài khoản')}>
-        {tx('Bạn có thể xác minh số điện thoại và giấy tờ tuỳ thân trong trang hồ sơ. Hồ sơ đã xác minh giúp bên kia yên tâm hơn khi nhận việc hoặc duyệt người.')}
+        {live
+          ? tx('Xác thực số điện thoại bằng mã gửi qua tin nhắn và CCCD (quản trị viên duyệt) trong trang hồ sơ. Ảnh giấy tờ nằm ở kho riêng tư, chỉ quản trị viên xem để duyệt.')
+          : tx('Bạn có thể xác minh số điện thoại và giấy tờ tuỳ thân trong trang hồ sơ. Hồ sơ đã xác minh giúp bên kia yên tâm hơn khi nhận việc hoặc duyệt người.')}
       </InfoSection>
 
-      <InfoSection title={tx('Điểm uy tín')}>
+      <InfoSection title={live ? tx('Đánh giá sau ca') : tx('Điểm uy tín')}>
         {live
-          ? tx('Mỗi người có điểm uy tín tạm tính từ lịch sử ca: hoàn thành, huỷ, vắng mặt. Nhà tuyển dụng xem điểm này khi duyệt người.')
+          ? tx('Sau mỗi ca, hai bên chấm sao và viết nhận xét cho nhau trong 14 ngày. Nhà tuyển dụng thấy điểm sao trung bình, số ca đã làm với mình và số lần vắng mặt của người ứng tuyển; người lao động thấy nhận xét về quán trước khi nhận ca.')
           : tx('Điểm uy tín tạm tính từ lịch sử ca và đánh giá sau ca. Điểm dưới 50 bị tạm khoá ứng tuyển (bản demo).')}
       </InfoSection>
 
       <InfoSection title={tx('Lưu ý an toàn')}>
         <InfoList
           items={[
-            tx('CaLẻ không thu phí và không giữ tiền của người lao động.'),
+            // Bản thật có cọc khi ứng tuyển (0028, quản trị viên bật / tắt).
+            live
+              ? tx('CaLẻ không thu phí của người lao động. Khoản cọc khi ứng tuyển (nếu có) hoàn đủ khi ca hoàn thành hoặc khi bạn không được chọn.')
+              : tx('CaLẻ không thu phí và không giữ tiền của người lao động.'),
             tx('Chỉ nhận tiền công trong ứng dụng, không nhận tiền mặt ngoài luồng.'),
             tx('Gặp nguy hiểm: rời khỏi địa điểm, gọi 113, sau đó báo cho CaLẻ qua trang Liên hệ hỗ trợ.'),
           ]}

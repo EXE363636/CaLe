@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { RouteBackdrop } from './RouteBackdrop';
 
 /**
  * InfoPage (Phase 9R, polished in Phase 9Z).
@@ -12,15 +11,10 @@ import { RouteBackdrop } from './RouteBackdrop';
  *
  * Phase 9Z visual upgrade:
  *   - Header now sits inside an `.info-page-hero` strip — soft warm
- *     gradient + inset orange ring + a low-opacity `<RouteBackdrop
- *     variant="page" />` decoratively layered behind the eyebrow /
- *     title / intro. Replaces the previous flat orange underline,
- *     gives the shell brand identity continuity with the homepage.
- *   - The strip is decorative only; backdrop is `aria-hidden`.
- *   - Reduced-motion users still see the strip — only the pulse
- *     animation on the backdrop's nodes is short-circuited (handled
- *     by the existing `prefers-reduced-motion` media query in
- *     `globals.css`).
+ *     gradient + inset orange ring. Replaces the previous flat orange
+ *     underline.
+ *   - 03/10: bỏ ảnh nền động `<RouteBackdrop>` (các chấm nhấp nháy) theo yêu
+ *     cầu chủ dự án — nền tĩnh, đồng bộ với landing.
  *
  * Server component — these pages have no client interactivity.
  */
@@ -49,7 +43,6 @@ export function InfoPage({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
       <header className="info-page-hero relative mb-8 overflow-hidden">
-        <RouteBackdrop variant="page" className="opacity-70" />
         <div className="relative">
           <p className="text-sm font-medium text-orange-700">
             {eyebrow}

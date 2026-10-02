@@ -1,6 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { FeeCampaignNote } from '@/components/landing/FeeCampaignNote';
+import { ReviewFlowPreview } from '@/components/landing/ReviewFlowPreview';
+import { ShiftPostPlayground } from '@/components/landing/ShiftPostPlayground';
+import { ToneScroll } from '@/components/landing/ToneScroll';
+import { VerifyPreview } from '@/components/landing/VerifyPreview';
 import { RoleSwitch } from '@/components/landing/RoleSwitch';
+import { RoleBand } from '@/components/landing/RoleBand';
 import { RoleHomeCta } from '@/components/landing/RoleHomeCta';
 import { LandingProofView } from '@/components/landing/LandingProof';
 import { proofCopy } from '@/components/landing/proofData';
@@ -10,7 +16,7 @@ import {
   LandingChecks,
   LandingFaq,
   LandingFeatures,
-  LandingMoneyFlow,
+  LandingHelp,
   LandingSteps,
 } from '@/components/landing/LandingSections';
 import { getLocale, getT, getTx } from '@/i18n/server';
@@ -19,21 +25,28 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
  * Trang cho nhà tuyển dụng. Trước đây (P1 feedback F4) giới hạn 4 khối; từ 02/10
- * chủ dự án yêu cầu trình bày đủ thông tin để khách ở lại, nên trang có:
- *   1. Hero: câu chính + CTA + minh hoạ giao diện quản lý ca.
+ * chủ dự án yêu cầu trình bày đủ thông tin để khách ở lại. 03/10 sắp lại theo câu
+ * chủ quán hỏi (làm sao → tốn bao nhiêu → cần chuẩn bị gì → nắm được gì):
+ *   1. Hero: câu chính + CTA + minh hoạ quản lý ca (tự diễn, có ca huỷ / người vắng)
+ *      + dòng "đang miễn phí dịch vụ" khi có đợt (production, `FeeCampaignNote`).
  *   2. Cách hoạt động: 4 bước từ đăng ca tới trả tiền.
- *   3. 3 lợi ích có ảnh.
- *   4. Tiền đi đâu: ví dụ số + quy định huỷ ca (phí / mô phỏng theo chế độ).
+ *   3. Thử đăng một ca: form tự gõ ví dụ rồi cho sửa giờ / lương / số người, tính
+ *      tiền giữ, phí, phần hoàn khi có người vắng (`ShiftPostPlayground`) + quy định
+ *      huỷ ca. Thay hai khối cũ "Tiền đi đâu" (ví dụ cố định) và "Phí dịch vụ".
+ *   4. Xác thực tài khoản: thẻ SĐT / CCCD tự gõ ví dụ.
  *   5. Những gì bạn kiểm soát được.
- *   6. Phí dịch vụ (rút gọn; chi tiết ở /pricing).
- *   7. Câu hỏi thường gặp.
- *   8. Khối mực: CTA + chuyển sang trang người lao động.
+ *   6. Đánh giá hai chiều + điểm uy tín / kỹ năng của người lao động: một thẻ 4 bước
+ *      (`ReviewFlowPreview`, phần uy tín bản thật gắn "Sắp có").
+ *   7. 3 lợi ích có ảnh.
+ *   8. Câu hỏi thường gặp + an toàn / hỗ trợ.
+ *   9. Khối mực: CTA + chuyển sang trang người lao động.
+ * Nền cả trang đổi màu theo khối đang xem (`ToneScroll`, như trang chủ).
  * Chỉ nói tính năng chạy ở CẢ demo lẫn production (`data/capabilities.ts`).
  * Không hiện "quán đang dùng" / số liệu khách cho tới khi có khách thật đồng ý.
  */
 // Thẻ chia sẻ link (ảnh: opengraph-image.png cạnh file này).
 export const metadata = shareMeta(
-  'Cần người làm theo ca? — CaLẻ',
+  'Cần người làm theo ca? | CaLẻ',
   'Đăng ca theo giờ, duyệt từng người, chỉ trả cho người đã làm. Phần không dùng được hoàn về ví.',
 );
 
@@ -64,9 +77,10 @@ export default async function EmployerHomePage() {
   ];
 
   return (
-    <div className="flex min-w-0 flex-col">
-      {/* 1. Hero — nền kem, chữ bên trái + minh hoạ giao diện bên phải */}
-      <section className="hero-decor relative px-4 pb-14 pt-8 sm:px-6 sm:pb-20 lg:px-8">
+    // Nền đổi màu theo khối đang xem (data-tone trên từng khối) — ToneScroll.
+    <ToneScroll initial="cream" className="flex min-w-0 flex-col">
+      {/* 1. Hero — chữ bên trái + minh hoạ giao diện bên phải */}
+      <section data-tone="cream" className="hero-decor relative px-4 pb-14 pt-8 sm:px-6 sm:pb-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <RoleSwitch active="employer" />
           <div className="mt-10 grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-16">
@@ -104,13 +118,14 @@ export default async function EmployerHomePage() {
                   supabase ? tx('Phí 10% chỉ trên phần ca có người làm') : tx('Chưa thu phí trong giai đoạn thử nghiệm'),
                 ]}
               />
+              <FeeCampaignNote />
             </div>
             <EmployerPreview />
           </div>
         </div>
       </section>
 
-      {/* 2. Cách hoạt động — nền trắng */}
+      {/* 2. Cách hoạt động */}
       <LandingSteps
         id="employer-how"
         title={tx('Từ lúc đăng ca đến lúc trả tiền')}
@@ -137,76 +152,100 @@ export default async function EmployerHomePage() {
               : tx('Bấm xác nhận hoàn thành là tiền công được ghi vào ví người làm (mô phỏng).'),
           },
         ]}
+        tone="paper"
       />
 
-      {/* 3. 3 lợi ích có ảnh — nền kem */}
-      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="employer-benefits">
-        <div className="mx-auto max-w-6xl">
-          <h2 id="employer-benefits" className="sr-only">{t('employerHome.benefits.title')}</h2>
-          <ul className="grid gap-6 sm:grid-cols-3">
-            {benefits.map((b) => (
-              <li key={b.title} className="overflow-hidden rounded-3xl bg-white shadow-card">
-                <Image
-                  src={b.img}
-                  alt={b.alt}
-                  width={960}
-                  height={640}
-                  sizes="(min-width: 640px) 33vw, 100vw"
-                  className="aspect-[3/2] w-full object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+      {/* 3. Thử đăng một ca — form tự gõ ví dụ, sửa được số; tiền giữ / phí / hoàn */}
+      <section aria-labelledby="employer-money" data-tone="peach" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
+          <div>
+            <h2 id="employer-money" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              <TypeOnView text={tx('Một ca tốn bao nhiêu?')} />
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              {tx('Thử đăng một ca: sửa giờ, lương, số người là thấy ngay số tiền giữ từ ví.')}
+            </p>
+            <ol className="mt-6 flex flex-col gap-5">
+              <MoneyPoint
+                n={1}
+                title={tx('Khi đăng ca')}
+                body={
+                  supabase
+                    ? tx('Tiền công cộng phí được giữ từ ví. Ca chỉ hiện cho người lao động khi đã giữ đủ.')
+                    : tx('Tiền công được giữ từ ví (mô phỏng). Ca chỉ hiện cho người lao động khi đã giữ đủ.')
+                }
+              />
+              <MoneyPoint
+                n={2}
+                title={tx('Khi ca xong')}
+                body={
+                  supabase
+                    ? tx('Tiền công vào ví người đã làm. Phí 10% chỉ tính trên phần ca có người làm.')
+                    : tx('Tiền công được ghi vào ví người đã làm (mô phỏng). Bản demo chưa thu phí.')
+                }
+              />
+              <MoneyPoint
+                n={3}
+                title={tx('Nếu không dùng hết')}
+                body={
+                  supabase
+                    ? tx('Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí của phần đó.')
+                    : tx('Vị trí trống, người vắng mặt, ca huỷ: hoàn phần tiền đó (mô phỏng).')
+                }
+              />
+            </ol>
+            <h3 className="mt-8 text-base font-semibold text-gray-900">{tx('Huỷ ca')}</h3>
+            <ul className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-gray-700">
+              {[
+                tx('Còn hơn 6 giờ nữa mới bắt đầu: bạn huỷ được.'),
+                tx('Trong vòng 6 giờ, nếu đã có người ứng tuyển: không huỷ được, để bảo vệ người lao động.'),
+                tx('Sau giờ bắt đầu: không huỷ được.'),
+              ].map((r) => (
+                <li key={r} className="flex gap-3">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
+                  <span>{r}</span>
+                </li>
+              ))}
+            </ul>
+            {supabase && (
+              <p className="mt-6 text-xs leading-relaxed text-gray-600">
+                {tx('Nạp tiền vào ví bằng chuyển khoản qua PayOS. Số dư rút về ngân hàng khi cần.')}
+              </p>
+            )}
+          </div>
+          <ShiftPostPlayground />
         </div>
       </section>
 
-      {/* 4. Tiền đi đâu — nền trắng */}
-      <LandingMoneyFlow
-        id="employer-money"
-        title={tx('Tiền của bạn đi đâu?')}
-        typedTitle
-        lead={
-          supabase
-            ? tx('Ví dụ một ca có tiền công 200.000 đ. Phí 10% chỉ tính trên phần ca có người làm.')
-            : tx('Ví dụ một ca có tiền công 200.000 đ. Bản demo chưa thu phí và mọi khoản tiền đều là mô phỏng.')
-        }
-        stages={[
-          {
-            label: tx('Khi đăng ca'),
-            amount: supabase ? '220.000 đ' : '200.000 đ',
-            body: supabase
-              ? tx('được giữ từ ví: 200.000 đ tiền công + 20.000 đ phí.')
-              : tx('được giữ từ ví (mô phỏng).'),
-          },
-          {
-            label: tx('Khi ca xong'),
-            amount: '200.000 đ',
-            body: supabase
-              ? tx('vào ví người lao động. 20.000 đ còn lại là phí CaLẻ.')
-              : tx('được ghi vào ví người lao động (mô phỏng).'),
-          },
-          {
-            label: tx('Nếu không dùng hết'),
-            amount: tx('Hoàn về ví'),
-            body: supabase
-              ? tx('Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí của phần đó.')
-              : tx('Vị trí trống, người vắng mặt, ca huỷ: hoàn phần tiền đó (mô phỏng).'),
-          },
-        ]}
-        rulesTitle={tx('Huỷ ca')}
-        rules={[
-          tx('Còn hơn 6 giờ nữa mới bắt đầu: bạn huỷ được.'),
-          tx('Trong vòng 6 giờ, nếu đã có người ứng tuyển: không huỷ được, để bảo vệ người lao động.'),
-          tx('Sau giờ bắt đầu: không huỷ được.'),
-        ]}
-        footnote={supabase ? tx('Nạp tiền vào ví bằng chuyển khoản qua PayOS. Số dư rút về ngân hàng khi cần.') : undefined}
-      />
+      {/* 4. Xác thực tài khoản — thẻ xác thực tự gõ thông tin ví dụ */}
+      <section aria-labelledby="employer-verify" data-tone="apricot" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <div className="lg:order-last">
+            <h2 id="employer-verify" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {tx('Xác thực tài khoản trước ca đầu tiên')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              {supabase
+                ? tx('Làm một lần trong trang Hồ sơ, mất vài phút.')
+                : tx('Bản demo dùng giấy tờ mô phỏng; minh hoạ là luồng xác thực của bản thật.')}
+            </p>
+            <ol className="mt-6 flex flex-col gap-5">
+              <MoneyPoint n={1} title={tx('Số điện thoại')} body={tx('Nhập số, nhận mã 6 số qua tin nhắn.')} />
+              <MoneyPoint
+                n={2}
+                title={tx('CCCD')}
+                body={tx('Gửi họ tên, số CCCD và ba ảnh; quản trị viên duyệt tay. Khi CaLẻ bật yêu cầu này, cần xác thực xong mới đăng được ca.')}
+              />
+              {supabase && (
+                <MoneyPoint n={3} title={tx('Ảnh giấy tờ được để riêng')} body={tx('Ảnh CCCD nằm ở kho riêng tư, chỉ quản trị viên xem để duyệt.')} />
+              )}
+            </ol>
+          </div>
+          <VerifyPreview audience="employer" />
+        </div>
+      </section>
 
-      {/* 5. Những gì bạn kiểm soát — nền kem */}
+      {/* 5. Những gì bạn kiểm soát */}
       <LandingFeatures
         id="employer-control"
         title={tx('Bạn nắm được mọi thứ trong ca')}
@@ -215,7 +254,11 @@ export default async function EmployerHomePage() {
           {
             icon: 'profile',
             title: tx('Hồ sơ trước khi duyệt'),
-            body: tx('Kỹ năng, đánh giá từ nhà tuyển dụng khác và trạng thái xác minh SĐT, CCCD của từng người.'),
+            // Bản thật thẻ ứng viên chỉ có số ca đã làm với bạn, số lần vắng, sao đánh giá
+            // (WorkerSummaryRow: phần xác thực chỉ hiện ở bản demo).
+            body: supabase
+              ? tx('Số ca đã làm với bạn, số lần vắng mặt và điểm sao trung bình từ các đánh giá sau ca của từng người.')
+              : tx('Số ca đã hoàn thành, đánh giá sao từ nhà tuyển dụng khác và trạng thái xác thực SĐT, danh tính của từng người.'),
           },
           {
             icon: 'status',
@@ -245,33 +288,61 @@ export default async function EmployerHomePage() {
               : tx('Mỗi khoản giữ, trả, hoàn đều có một dòng trong lịch sử ví (mô phỏng).'),
           },
         ]}
+        tone="cream"
       />
 
-      {/* 6. Phí dịch vụ — nền trắng */}
-      <section className="bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="employer-pricing">
-        <div className="mx-auto max-w-3xl rounded-3xl bg-orange-50 p-6 text-center ring-1 ring-orange-100 sm:p-10">
-          <h2 id="employer-pricing" className="text-lg font-semibold text-gray-900">
-            {t('employerHome.pricing.title')}
-          </h2>
-          <p className="mt-3 text-5xl font-extrabold tracking-tight text-gray-900 tabular-nums sm:text-6xl">
-            {supabase ? '10%' : '0đ'}
-          </p>
-          <p className="mt-2 text-base text-gray-600">
-            {t(supabase ? 'employerHome.pricing.unit' : 'employerHome.pricing.unit.demo')}
-          </p>
-          <p className="mx-auto mt-5 max-w-md rounded-xl bg-white px-4 py-3 text-sm text-gray-700">
-            {t(supabase ? 'employerHome.pricing.example' : 'employerHome.pricing.example.demo')}
-          </p>
-          <Link
-            href="/pricing"
-            className="mt-5 inline-flex min-h-[44px] items-center text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-          >
-            {t('employerHome.pricing.more')} →
-          </Link>
+      {/* 6. Đánh giá hai chiều + uy tín / kỹ năng (bản thật: "Sắp có") */}
+      <section aria-labelledby="employer-reviews" data-tone="peach" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h2 id="employer-reviews" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {tx('Đánh giá hai chiều sau mỗi ca')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">{tx('Ca sau bạn biết người mình sắp duyệt đã làm thế nào.')}</p>
+            <ol className="mt-6 flex flex-col gap-5">
+              <MoneyPoint n={1} title={tx('Hai bên chấm nhau')} body={tx('Trong 14 ngày sau ca, bạn chấm sao cho người lao động và họ chấm quán. Gửi rồi không sửa được.')} />
+              <MoneyPoint n={2} title={tx('Điểm sao trên thẻ ứng viên')} body={tx('Khi duyệt người ở ca sau, bạn thấy điểm sao trung bình từ các nhà tuyển dụng trước.')} />
+              <MoneyPoint
+                n={3}
+                title={tx('Uy tín và kỹ năng')}
+                body={
+                  supabase
+                    ? tx('Sắp có: điểm uy tín theo lịch sử ca và cấp kỹ năng theo từng loại việc của người lao động.')
+                    : tx('Điểm uy tín của người lao động cộng trừ theo lịch sử ca; kỹ năng lên cấp theo số ca và số sao.')
+                }
+              />
+            </ol>
+          </div>
+          <ReviewFlowPreview audience="employer" />
         </div>
       </section>
 
-      {/* 7. Câu hỏi thường gặp — nền kem */}
+      {/* 7. 3 lợi ích có ảnh */}
+      <section data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="employer-benefits">
+        <div className="mx-auto max-w-6xl">
+          <h2 id="employer-benefits" className="sr-only">{t('employerHome.benefits.title')}</h2>
+          <ul className="grid gap-6 sm:grid-cols-3">
+            {benefits.map((b) => (
+              <li key={b.title} className="overflow-hidden rounded-3xl bg-white shadow-card">
+                <Image
+                  src={b.img}
+                  alt={b.alt}
+                  width={960}
+                  height={640}
+                  sizes="(min-width: 640px) 33vw, 100vw"
+                  className="aspect-[3/2] w-full object-cover"
+                />
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* 8. Câu hỏi thường gặp */}
       <LandingFaq
         id="employer-faq"
         title={tx('Câu hỏi thường gặp')}
@@ -298,7 +369,7 @@ export default async function EmployerHomePage() {
           {
             q: tx('Tôi cần chuẩn bị gì để đăng ca?'),
             a: supabase
-              ? tx('Xác thực số điện thoại và CCCD (quản trị viên duyệt), rồi nạp tiền vào ví để giữ tiền công khi đăng ca.')
+              ? tx('Xác thực số điện thoại; khi CaLẻ yêu cầu thì xác thực thêm CCCD (quản trị viên duyệt). Rồi nạp tiền vào ví để giữ tiền công khi đăng ca.')
               : tx('Chọn loại tài khoản và nộp giấy tờ xác minh theo loại (mô phỏng), rồi đăng ca.'),
           },
           {
@@ -306,35 +377,50 @@ export default async function EmployerHomePage() {
             a: tx('Được, nếu ca còn hơn 6 giờ nữa mới bắt đầu. Trong vòng 6 giờ mà đã có người ứng tuyển thì không huỷ được, để bảo vệ người lao động.'),
           },
         ]}
+        tone="cream"
+      />
+
+      {/* An toàn & hỗ trợ — lối tắt tới /safety và /support */}
+      <LandingHelp
+        id="employer-help"
+        title={tx('An toàn và hỗ trợ')}
+        items={[
+          {
+            href: '/safety',
+            icon: 'shield',
+            title: tx('An toàn khi làm theo ca'),
+            body: tx('Tiền công được giữ trước, xác minh tài khoản và những lưu ý khi đi làm.'),
+          },
+          {
+            href: '/support',
+            icon: 'help',
+            title: tx('Cần hỗ trợ?'),
+            body: tx('Email, hotline và cách phản ánh khi có vấn đề trong ca.'),
+          },
+        ]}
+        tone="cream"
       />
 
       {/* Ảnh tự chụp + lời chia sẻ thật của phía này — tự ẩn khi chưa có (proofData.ts). */}
-      <LandingProofView id="employer-proof" copy={proofCopy(tx)} locale={locale} audience="employer" white />
+      <LandingProofView id="employer-proof" copy={proofCopy(tx)} locale={locale} audience="employer" tone="paper" />
 
-      {/* 8. Khối mực — CTA + chuyển vai trò */}
-      <section className="bg-ink px-4 py-10 text-white sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <p className="text-lg font-semibold">
-              <TypeOnView text={t('employerHome.final.text')} />
-            </p>
-            <p className="mt-1 text-sm text-white/70">
-              {t('employerHome.switch.text')}{' '}
-              <Link href="/for-workers" className="font-semibold text-white underline-offset-2 hover:underline">
-                {t('employerHome.switch.cta')}
-              </Link>
-            </p>
-          </div>
-          <RoleHomeCta audience="employer" placement="band">
-            <Link
-              href="/register?role=employer"
-              className="cta-arrow-nudge inline-flex min-h-[48px] items-center gap-1.5 rounded-xl bg-orange-500 px-5 text-sm font-semibold text-gray-900 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
-            >
-              {t('employerHome.hero.cta')} <span className="cta-arrow" aria-hidden="true">→</span>
-            </Link>
-          </RoleHomeCta>
-        </div>
-      </section>
-    </div>
+      {/* 9. Dải mực cuối trang — chữ và nút theo người đang xem (RoleBand) */}
+      <RoleBand audience="employer" />
+    </ToneScroll>
+  );
+}
+
+/** Một ý có số thứ tự ở các khối hai cột (tiền của một ca, xác thực). */
+function MoneyPoint({ n, title, body }: { n: number; title: string; body: string }) {
+  return (
+    <li className="flex gap-4">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-900 text-sm font-bold text-white tabular-nums">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        <p className="mt-1 text-sm leading-relaxed text-gray-600">{body}</p>
+      </div>
+    </li>
   );
 }

@@ -354,16 +354,17 @@ body {
  * supplies the visual focus.
  * ------------------------------------------------------------------------- */
 .hero-decor {
-  /* Brand palette alignment — coral (#FF9A5F) top-right wash fading into a
-   * soft peach (#FFD5AE) foot on the cream page background. Replaces the old
-   * orange-300 (#fdba74) + old-cream (#fff7ed) wash. Kept subtle. */
+  /* Brand palette alignment — coral (#FF9A5F) top-right wash + a soft peach
+   * (#FFD5AE) band through the middle. 03/10: the band fades back to
+   * transparent at the foot — the role pages sit inside `ToneScroll`, and a
+   * wash that ended at full strength drew a hard line against the next block. */
   background-image:
     radial-gradient(
       ellipse 900px 520px at 80% 0%,
       rgba(255, 154, 95, 0.18) 0%,
       rgba(255, 154, 95, 0) 60%
     ),
-    linear-gradient(180deg, rgba(255, 244, 233, 0) 0%, rgba(255, 213, 174, 0.35) 100%);
+    linear-gradient(180deg, rgba(255, 213, 174, 0) 0%, rgba(255, 213, 174, 0.3) 55%, rgba(255, 213, 174, 0) 100%);
 }
 
 /* ----------------------------------------------------------------------------

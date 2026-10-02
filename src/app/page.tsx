@@ -43,7 +43,7 @@ import { shareMeta } from '@/lib/shareMeta';
  */
 // Thẻ chia sẻ link (ảnh: opengraph-image.png cạnh file này).
 export const metadata = shareMeta(
-  'CaLẻ — Việc làm ngắn hạn, rõ ca – rõ tiền',
+  'CaLẻ: việc làm ngắn hạn, rõ ca, rõ tiền',
   'Tiền công giữ trước mỗi ca, theo dõi ca tới lúc xong và chỉ trả cho người đã làm. Tìm ca làm vài giờ hoặc đăng ca cần người.',
 );
 

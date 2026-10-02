@@ -157,6 +157,14 @@ const PHASE1_FILES = [
   'src/components/landing/OpenShiftCount.tsx',
   'src/components/landing/MoneyFlowDiagram.tsx',
   'src/components/landing/JobRing.tsx',
+  'src/components/landing/ShiftPostPlayground.tsx',
+  'src/components/landing/VerifyPreview.tsx',
+  'src/components/landing/PayoutTimeline.tsx',
+  'src/components/landing/FeeCampaignNote.tsx',
+  'src/components/landing/ApplyPreview.tsx',
+  'src/components/landing/JobWageHint.tsx',
+  'src/components/landing/ReviewFlowPreview.tsx',
+  'src/components/landing/RoleBand.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
