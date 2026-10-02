@@ -10,13 +10,17 @@
 // `labelForPartner` helper.
 
 import { InfoSection } from '@/components/layout/InfoPage';
-import { t } from '@/i18n/vi';
+import { t as tVi } from '@/i18n/vi';
+import type { TFunction } from '@/i18n/locale';
 import { PARTNER_GROUPS, labelForPartner, type Partner } from './partners';
 
 export function PartnersSection({
   partners = PARTNER_GROUPS,
+  t = tVi,
 }: {
   partners?: Partner[];
+  /** Theo ngôn ngữ của trang (getT); mặc định tiếng Việt. */
+  t?: TFunction;
 }) {
   const items = partners.filter((p) => p.nameKey.trim().length > 0);
   const emphasis = t('about.partners.disclaimerEmphasis');

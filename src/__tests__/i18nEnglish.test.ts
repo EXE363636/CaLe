@@ -14,6 +14,7 @@ import { en, enPublic, enPublicText, enText } from '@/i18n/en';
 import { enApp, enAppText } from '@/i18n/en-app';
 import { enDashboard, enDashboardText } from '@/i18n/en-dashboard';
 import { enAdmin, enAdminText } from '@/i18n/en-admin';
+import { enPagesText } from '@/i18n/en-pages';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
 import { vi } from '@/i18n/vi';
 
@@ -73,6 +74,18 @@ const PHASE1_FILES = [
   // Cẩm nang (01/10) — nội dung bài dịch ở handbookArticlesEn.ts (handbookByRole.test.ts).
   'src/app/handbook/page.tsx',
   'src/app/handbook/[slug]/page.tsx',
+  // Đợt 2c: trang thông tin.
+  'src/app/about/page.tsx',
+  'src/app/disputes/page.tsx',
+  'src/app/faq/page.tsx',
+  'src/app/how-it-works/page.tsx',
+  'src/app/privacy/page.tsx',
+  'src/app/safety/page.tsx',
+  'src/app/support/page.tsx',
+  'src/app/terms/page.tsx',
+  'src/app/user-guide/page.tsx',
+  'src/app/worker/cancellation-policy/page.tsx',
+  'src/app/worker/reputation-guide/page.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -159,6 +172,7 @@ describe('i18n English — đợt 2a', () => {
       ...clash(enDashboard, { ...enPublic, ...enApp }),
       ...clash(enAdminText, { ...enPublicText, ...enAppText, ...enDashboardText }),
       ...clash(enAdmin, { ...enPublic, ...enApp, ...enDashboard }),
+      ...clash(enPagesText, { ...enPublicText, ...enAppText, ...enDashboardText, ...enAdminText }),
     ]).toEqual([]);
   });
 

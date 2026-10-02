@@ -13,6 +13,7 @@
 import { enApp, enAppText } from './en-app';
 import { enAdmin, enAdminText } from './en-admin';
 import { enDashboard, enDashboardText } from './en-dashboard';
+import { enPages, enPagesText } from './en-pages';
 
 export const enPublic: Record<string, string> = {
   // --- Chung / điều hướng ---------------------------------------------------
@@ -345,10 +346,12 @@ export const en: Record<string, string> = {
   ...enApp,
   ...enDashboard,
   ...enAdmin,
+  ...enPages,
 };
 export const enText: Record<string, string> = {
   ...enPublicText,
   ...enAppText,
   ...enDashboardText,
   ...enAdminText,
+  ...enPagesText,
 };

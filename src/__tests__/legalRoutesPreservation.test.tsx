@@ -58,7 +58,7 @@
  * still pass after the Cluster 5 fix (re-run at task 19.4).
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 
 import { Footer } from '@/components/layout/Footer';
@@ -68,6 +68,17 @@ import TermsPage from '@/app/terms/page';
 import PrivacyPage from '@/app/privacy/page';
 import DisputesPage from '@/app/disputes/page';
 import SupportPage from '@/app/support/page';
+
+// Các trang thông tin là server component bất đồng bộ đọc ngôn ngữ từ cookie
+// (`getTx`); ngoài Next không có request nên cố định tiếng Việt.
+vi.mock('@/i18n/server', async () => {
+  const { makeT, makeTx } = await import('@/i18n/locale');
+  return {
+    getLocale: async () => 'vi',
+    getT: async () => makeT('vi'),
+    getTx: async () => makeTx('vi'),
+  };
+});
 
 // ---------------------------------------------------------------------------
 // The four footer legal/support links — keyed on ROUTE, never label. Only the
@@ -130,15 +141,15 @@ describe('Property 15 (Preservation): guide + safety routes stay valid pages (Re
     expect(typeof SafetyPage).toBe('function');
   });
 
-  it('/user-guide renders to a valid page (an <h1> heading is present)', () => {
-    const { container } = render(<UserGuidePage />);
+  it('/user-guide renders to a valid page (an <h1> heading is present)', async () => {
+    const { container } = render(await UserGuidePage());
     // `InfoPage` renders the page title as an <h1>; its presence proves the
     // page mounts, independent of the (changing) title text.
     expect(container.querySelector('h1')).not.toBeNull();
   });
 
-  it('/safety renders to a valid page (an <h1> heading is present)', () => {
-    const { container } = render(<SafetyPage />);
+  it('/safety renders to a valid page (an <h1> heading is present)', async () => {
+    const { container } = render(await SafetyPage());
     expect(container.querySelector('h1')).not.toBeNull();
   });
 });

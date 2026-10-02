@@ -1,3 +1,4 @@
+import { getTx } from '@/i18n/server';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { InfoPage, InfoSection } from '@/components/layout/InfoPage';
@@ -25,55 +26,58 @@ interface Step {
   body: string;
 }
 
-const WORKER_STEPS: Step[] = [
+/** Chữ theo ngôn ngữ của request (gọi trong trang với `tx` từ getTx). */
+type Tx = (viText: string) => string;
+
+const workerSteps = (tx: Tx): Step[] => [
   {
-    title: 'Đăng ký và làm hồ sơ.',
-    body: 'Chọn "Tôi muốn tìm ca làm" khi đăng ký. Thêm kỹ năng và khu vực muốn làm trong trang Hồ sơ.',
+    title: tx('Đăng ký và làm hồ sơ.'),
+    body: tx('Chọn "Tôi muốn tìm ca làm" khi đăng ký. Thêm kỹ năng và khu vực muốn làm trong trang Hồ sơ.'),
   },
   {
-    title: 'Tìm và ứng tuyển ca.',
-    body: 'Bấm "Tìm ca làm", mở ca phù hợp rồi bấm "Ứng tuyển". Ca trùng giờ với lịch của bạn sẽ bị chặn.',
+    title: tx('Tìm và ứng tuyển ca.'),
+    body: tx('Bấm "Tìm ca làm", mở ca phù hợp rồi bấm "Ứng tuyển". Ca trùng giờ với lịch của bạn sẽ bị chặn.'),
   },
   {
-    title: 'Chờ duyệt.',
-    body: 'Bạn nhận thông báo khi nhà tuyển dụng duyệt hoặc từ chối (kèm lý do).',
+    title: tx('Chờ duyệt.'),
+    body: tx('Bạn nhận thông báo khi nhà tuyển dụng duyệt hoặc từ chối (kèm lý do).'),
   },
   {
-    title: 'Đi làm.',
-    body: 'Đến nơi thì bấm "Check-in" trên trang Tổng quan, làm xong bấm "Check-out".',
+    title: tx('Đi làm.'),
+    body: tx('Đến nơi thì bấm "Check-in" trên trang Tổng quan, làm xong bấm "Check-out".'),
   },
   {
-    title: 'Nhận tiền công.',
+    title: tx('Nhận tiền công.'),
     body: REAL_MONEY
-      ? 'Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví, rút về ngân hàng khi cần. Không ai bấm thì hệ thống tự chốt khoảng 24 giờ sau ca.'
-      : 'Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví (mô phỏng trong bản demo).',
+      ? tx('Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví, rút về ngân hàng khi cần. Không ai bấm thì hệ thống tự chốt khoảng 24 giờ sau ca.')
+      : tx('Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví (mô phỏng trong bản demo).'),
   },
 ];
 
-const EMPLOYER_STEPS: Step[] = [
+const employerSteps = (tx: Tx): Step[] => [
   {
-    title: 'Đăng ký và chọn loại tài khoản.',
-    body: 'Chọn "Tôi cần tuyển người lao động", rồi chọn Cá nhân hoặc Doanh nghiệp.',
+    title: tx('Đăng ký và chọn loại tài khoản.'),
+    body: tx('Chọn "Tôi cần tuyển người lao động", rồi chọn Cá nhân hoặc Doanh nghiệp.'),
   },
   {
-    title: 'Đăng ca và giữ cọc.',
+    title: tx('Đăng ca và giữ cọc.'),
     body: REAL_MONEY
-      ? 'Nhập giờ, địa điểm, lương và số người cần. Hệ thống giữ cọc tiền công + 10% phí từ ví rồi mới công khai ca.'
-      : 'Nhập giờ, địa điểm, lương và số người cần. Bấm "Mô phỏng giữ cọc" để công khai ca.',
+      ? tx('Nhập giờ, địa điểm, lương và số người cần. Hệ thống giữ cọc tiền công + 10% phí từ ví rồi mới công khai ca.')
+      : tx('Nhập giờ, địa điểm, lương và số người cần. Bấm "Mô phỏng giữ cọc" để công khai ca.'),
   },
   {
-    title: 'Duyệt người ứng tuyển.',
-    body: 'Xem hồ sơ và điểm uy tín, bấm "Duyệt" hoặc "Từ chối" kèm lý do.',
+    title: tx('Duyệt người ứng tuyển.'),
+    body: tx('Xem hồ sơ và điểm uy tín, bấm "Duyệt" hoặc "Từ chối" kèm lý do.'),
   },
   {
-    title: 'Theo dõi ca.',
-    body: 'Ca tự chuyển sang Đang diễn ra khi đến giờ. Người lao động check-in khi đến và check-out khi xong.',
+    title: tx('Theo dõi ca.'),
+    body: tx('Ca tự chuyển sang Đang diễn ra khi đến giờ. Người lao động check-in khi đến và check-out khi xong.'),
   },
   {
-    title: 'Xác nhận hoàn thành.',
+    title: tx('Xác nhận hoàn thành.'),
     body: REAL_MONEY
-      ? 'Bấm "Xác nhận hoàn thành" để trả tiền công. Ai không đến thì bấm "Vắng mặt": phần cọc đó hoàn về ví của bạn.'
-      : 'Bấm "Xác nhận hoàn thành" để trả tiền công (mô phỏng). Ai không đến thì bấm "Vắng mặt".',
+      ? tx('Bấm "Xác nhận hoàn thành" để trả tiền công. Ai không đến thì bấm "Vắng mặt": phần cọc đó hoàn về ví của bạn.')
+      : tx('Bấm "Xác nhận hoàn thành" để trả tiền công (mô phỏng). Ai không đến thì bấm "Vắng mặt".'),
   },
 ];
 
@@ -288,20 +292,21 @@ function GuideGroup({
 // Page
 // ---------------------------------------------------------------------------
 
-export default function UserGuidePage() {
+export default async function UserGuidePage() {
+  const tx = await getTx();
   return (
     <InfoPage
-      eyebrow="Hướng dẫn sử dụng"
-      title="Cách dùng CaLẻ"
+      eyebrow={tx('Hướng dẫn sử dụng')}
+      title={tx('Cách dùng CaLẻ')}
       intro={
         REAL_MONEY
-          ? 'Hướng dẫn ngắn cho người lao động và nhà tuyển dụng. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua PayOS.'
-          : 'Hướng dẫn ngắn cho người lao động và nhà tuyển dụng. Đây là bản demo: tiền và xác minh đều là mô phỏng.'
+          ? tx('Hướng dẫn ngắn cho người lao động và nhà tuyển dụng. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua PayOS.')
+          : tx('Hướng dẫn ngắn cho người lao động và nhà tuyển dụng. Đây là bản demo: tiền và xác minh đều là mô phỏng.')
       }
       ctas={[
-        { label: 'Tìm ca làm ngay', href: '/shifts' },
+        { label: tx('Tìm ca làm ngay'), href: '/shifts' },
         {
-          label: 'Đăng ca tuyển',
+          label: tx('Đăng ca tuyển'),
           href: '/register?role=employer',
           variant: 'secondary',
         },
@@ -310,214 +315,214 @@ export default function UserGuidePage() {
       {/* 5 bước cho mỗi bên */}
       <div className="grid gap-6 md:grid-cols-2 md:gap-8">
         <RoleColumn
-          title="Dành cho người lao động"
+          title={tx('Dành cho người lao động')}
           eyebrow="Worker"
-          steps={WORKER_STEPS}
+          steps={workerSteps(tx)}
         />
         <RoleColumn
-          title="Dành cho nhà tuyển dụng"
+          title={tx('Dành cho nhà tuyển dụng')}
           eyebrow="Employer"
-          steps={EMPLOYER_STEPS}
+          steps={employerSteps(tx)}
         />
       </div>
 
       {/* Các mục chi tiết — nav, footer và ô thống kê dashboard link vào #id. */}
-      <GuideGroup eyebrow="Dành cho người lao động" title="Tính năng cho người tìm việc">
+      <GuideGroup eyebrow={tx('Dành cho người lao động')} title={tx('Tính năng cho người tìm việc')}>
         <FeatureGuide
           id="worker-schedule"
-          eyebrow="Người lao động"
-          title="Lịch cá nhân"
+          eyebrow={tx('Người lao động')}
+          title={tx('Lịch cá nhân')}
           bullets={[
-            'Đánh dấu giờ bận / rảnh trong tuần.',
-            'Khi bạn ứng tuyển, ca trùng lịch bận hoặc trùng ca đã được duyệt sẽ bị chặn.',
+            tx('Đánh dấu giờ bận / rảnh trong tuần.'),
+            tx('Khi bạn ứng tuyển, ca trùng lịch bận hoặc trùng ca đã được duyệt sẽ bị chặn.'),
           ]}
-          example="Bạn học 14:00–16:00 thứ Ba. Ca 15:00–17:00 thứ Ba sẽ báo trùng lịch."
-          primaryCta={{ label: 'Đăng nhập để mở Lịch cá nhân', href: '/login' }}
-          secondaryCta={{ label: 'Tìm ca làm phù hợp', href: '/shifts' }}
+          example={tx('Bạn học 14:00–16:00 thứ Ba. Ca 15:00–17:00 thứ Ba sẽ báo trùng lịch.')}
+          primaryCta={{ label: tx('Đăng nhập để mở Lịch cá nhân'), href: '/login' }}
+          secondaryCta={{ label: tx('Tìm ca làm phù hợp'), href: '/shifts' }}
         />
 
         <FeatureGuide
           id="worker-reputation"
-          eyebrow="Người lao động"
-          title="Điểm uy tín"
+          eyebrow={tx('Người lao động')}
+          title={tx('Điểm uy tín')}
           bullets={[
-            'Bắt đầu 100 điểm (tạm tính từ lịch sử ca). Hoàn thành ca +5, vắng mặt không báo −20, huỷ trong 24 giờ trước ca −10.',
+            tx('Bắt đầu 100 điểm (tạm tính từ lịch sử ca). Hoàn thành ca +5, vắng mặt không báo −20, huỷ trong 24 giờ trước ca −10.'),
             REAL_MONEY
-              ? 'Nhà tuyển dụng xem điểm này khi duyệt người.'
-              : 'Điểm dưới 50 bị tạm khoá ứng tuyển (bản demo).',
+              ? tx('Nhà tuyển dụng xem điểm này khi duyệt người.')
+              : tx('Điểm dưới 50 bị tạm khoá ứng tuyển (bản demo).'),
           ]}
-          example="Bạn đang 100 điểm, vắng một ca không báo thì còn 80."
-          primaryCta={{ label: 'Đăng nhập để xem điểm của bạn', href: '/login' }}
-          secondaryCta={{ label: 'Hồ sơ & điểm uy tín', href: '/worker/reputation-guide' }}
+          example={tx('Bạn đang 100 điểm, vắng một ca không báo thì còn 80.')}
+          primaryCta={{ label: tx('Đăng nhập để xem điểm của bạn'), href: '/login' }}
+          secondaryCta={{ label: tx('Hồ sơ & điểm uy tín'), href: '/worker/reputation-guide' }}
         />
 
         <FeatureGuide
           id="worker-completed-shifts"
-          eyebrow="Người lao động"
-          title="Ca đã hoàn thành"
-          bullets={['Số ca bạn làm xong và đã được nhà tuyển dụng xác nhận. Ca đang chờ xác nhận chưa được đếm.']}
-          example="Tuần này làm 3 ca, 2 ca đã xác nhận → ô này hiện 2."
+          eyebrow={tx('Người lao động')}
+          title={tx('Ca đã hoàn thành')}
+          bullets={[tx('Số ca bạn làm xong và đã được nhà tuyển dụng xác nhận. Ca đang chờ xác nhận chưa được đếm.')]}
+          example={tx('Tuần này làm 3 ca, 2 ca đã xác nhận → ô này hiện 2.')}
         />
 
         <FeatureGuide
           id="worker-total-income"
-          eyebrow="Người lao động"
-          title="Tổng thu nhập"
+          eyebrow={tx('Người lao động')}
+          title={tx('Tổng thu nhập')}
           bullets={[
             REAL_MONEY
-              ? 'Tổng tiền công đã vào ví từ các ca đã được xác nhận.'
-              : 'Tổng tiền công từ các ca đã được xác nhận (mô phỏng).',
-            'Không tính ca đang diễn ra hoặc đang chờ xác nhận.',
+              ? tx('Tổng tiền công đã vào ví từ các ca đã được xác nhận.')
+              : tx('Tổng tiền công từ các ca đã được xác nhận (mô phỏng).'),
+            tx('Không tính ca đang diễn ra hoặc đang chờ xác nhận.'),
           ]}
-          example="Ca 4 giờ × 45.000đ + ca 5 giờ × 60.000đ → tăng 480.000đ."
+          example={tx('Ca 4 giờ × 45.000đ + ca 5 giờ × 60.000đ → tăng 480.000đ.')}
         />
 
         <FeatureGuide
           id="worker-cancellation-quota"
-          eyebrow="Người lao động"
-          title="Hạn mức huỷ ca"
+          eyebrow={tx('Người lao động')}
+          title={tx('Hạn mức huỷ ca')}
           bullets={[
-            'Tối đa 3 lần huỷ trong 7 ngày và 10 lần trong 30 ngày.',
-            'Điểm uy tín 80–94: 4/tuần, 12/tháng. Điểm 95–100: 5/tuần, 14/tháng.',
+            tx('Tối đa 3 lần huỷ trong 7 ngày và 10 lần trong 30 ngày.'),
+            tx('Điểm uy tín 80–94: 4/tuần, 12/tháng. Điểm 95–100: 5/tuần, 14/tháng.'),
           ]}
-          example="7 ngày qua đã huỷ 2 ca → còn 1 lượt."
+          example={tx('7 ngày qua đã huỷ 2 ca → còn 1 lượt.')}
         />
       </GuideGroup>
 
-      <GuideGroup eyebrow="Dành cho nhà tuyển dụng" title="Tính năng cho nhà tuyển dụng">
+      <GuideGroup eyebrow={tx('Dành cho nhà tuyển dụng')} title={tx('Tính năng cho nhà tuyển dụng')}>
         <FeatureGuide
           id="employer-post-shift"
-          eyebrow="Nhà tuyển dụng"
-          title="Đăng ca tuyển"
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Đăng ca tuyển')}
           bullets={[
-            'Nhập tên ca, giờ, địa điểm, lương theo giờ và số người cần.',
+            tx('Nhập tên ca, giờ, địa điểm, lương theo giờ và số người cần.'),
             REAL_MONEY
-              ? 'Ca chỉ hiện cho người lao động sau khi hệ thống giữ cọc tiền công + 10% phí từ ví.'
-              : 'Ca chỉ hiện cho người lao động sau khi giữ cọc (mô phỏng).',
+              ? tx('Ca chỉ hiện cho người lao động sau khi hệ thống giữ cọc tiền công + 10% phí từ ví.')
+              : tx('Ca chỉ hiện cho người lao động sau khi giữ cọc (mô phỏng).'),
           ]}
           example={
             REAL_MONEY
-              ? 'Ca 4 giờ, 35.000đ/giờ, cần 2 người: tiền công 280.000đ → giữ 308.000đ (gồm 28.000đ phí).'
-              : 'Ca 4 giờ, 35.000đ/giờ, cần 2 người: giữ cọc 280.000đ (mô phỏng).'
+              ? tx('Ca 4 giờ, 35.000đ/giờ, cần 2 người: tiền công 280.000đ → giữ 308.000đ (gồm 28.000đ phí).')
+              : tx('Ca 4 giờ, 35.000đ/giờ, cần 2 người: giữ cọc 280.000đ (mô phỏng).')
           }
-          primaryCta={{ label: 'Đăng nhập để đăng ca tuyển', href: '/login' }}
-          secondaryCta={{ label: 'Xem cách giữ cọc', href: '/employer/payments' }}
+          primaryCta={{ label: tx('Đăng nhập để đăng ca tuyển'), href: '/login' }}
+          secondaryCta={{ label: tx('Xem cách giữ cọc'), href: '/employer/payments' }}
         />
 
         <FeatureGuide
           id="employer-applicants"
-          eyebrow="Nhà tuyển dụng"
-          title="Quản lý người ứng tuyển"
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Quản lý người ứng tuyển')}
           bullets={[
-            'Xem hồ sơ, điểm uy tín và số ca đã làm ngay trên trang quản lý ca.',
-            'Bấm "Duyệt", hoặc "Từ chối" kèm lý do để người lao động hiểu.',
+            tx('Xem hồ sơ, điểm uy tín và số ca đã làm ngay trên trang quản lý ca.'),
+            tx('Bấm "Duyệt", hoặc "Từ chối" kèm lý do để người lao động hiểu.'),
           ]}
-          example="3 người ứng tuyển: bạn duyệt 2 người nhiều kinh nghiệm, từ chối 1 người kèm lý do."
-          primaryCta={{ label: 'Đăng nhập để quản lý người ứng tuyển', href: '/login' }}
-          secondaryCta={{ label: 'Xem quy trình tuyển dụng', href: '/how-it-works' }}
+          example={tx('3 người ứng tuyển: bạn duyệt 2 người nhiều kinh nghiệm, từ chối 1 người kèm lý do.')}
+          primaryCta={{ label: tx('Đăng nhập để quản lý người ứng tuyển'), href: '/login' }}
+          secondaryCta={{ label: tx('Xem quy trình tuyển dụng'), href: '/how-it-works' }}
         />
 
         <FeatureGuide
           id="employer-active-shifts"
-          eyebrow="Nhà tuyển dụng"
-          title="Ca đang hoạt động"
-          bullets={['Ca đã giữ cọc và đang tuyển, đã đủ người, đang diễn ra hoặc chờ xác nhận. Không tính nháp, đã huỷ, hết hạn, đã hoàn thành.']}
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Ca đang hoạt động')}
+          bullets={[tx('Ca đã giữ cọc và đang tuyển, đã đủ người, đang diễn ra hoặc chờ xác nhận. Không tính nháp, đã huỷ, hết hạn, đã hoàn thành.')]}
         />
 
         <FeatureGuide
           id="employer-pending-applications"
-          eyebrow="Nhà tuyển dụng"
-          title="Đơn chờ duyệt"
-          bullets={['Đơn bạn chưa duyệt hoặc từ chối. Nên xử lý sớm, nhất là ca diễn ra trong 24 giờ tới.']}
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Đơn chờ duyệt')}
+          bullets={[tx('Đơn bạn chưa duyệt hoặc từ chối. Nên xử lý sớm, nhất là ca diễn ra trong 24 giờ tới.')]}
         />
 
         <FeatureGuide
           id="employer-posted-shifts"
-          eyebrow="Nhà tuyển dụng"
-          title="Ca đã đăng"
-          bullets={['Tổng số ca bạn từng tạo, gồm mọi trạng thái.']}
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Ca đã đăng')}
+          bullets={[tx('Tổng số ca bạn từng tạo, gồm mọi trạng thái.')]}
         />
 
         <FeatureGuide
           id="employer-completed-shifts"
-          eyebrow="Nhà tuyển dụng"
-          title="Ca đã hoàn thành"
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Ca đã hoàn thành')}
           bullets={[
             REAL_MONEY
-              ? 'Ca bạn đã xác nhận hoàn thành; tiền công đã vào ví người lao động.'
-              : 'Ca bạn đã xác nhận hoàn thành; tiền công đã được trả (mô phỏng).',
+              ? tx('Ca bạn đã xác nhận hoàn thành; tiền công đã vào ví người lao động.')
+              : tx('Ca bạn đã xác nhận hoàn thành; tiền công đã được trả (mô phỏng).'),
           ]}
         />
       </GuideGroup>
 
-      <GuideGroup eyebrow="Tiền cọc" title="Cách giữ cọc hoạt động">
+      <GuideGroup eyebrow={tx('Tiền cọc')} title={tx('Cách giữ cọc hoạt động')}>
         <FeatureGuide
           id="employer-payments"
-          eyebrow="Nhà tuyển dụng"
-          title="Giữ cọc"
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Giữ cọc')}
           bullets={[
-            'Tiền công được giữ cọc trước khi ca hiện ra, và chỉ trả cho người lao động khi ca xong.',
-            'Phần không dùng (vị trí trống, người vắng mặt, ca huỷ) hoàn về ví của bạn.',
+            tx('Tiền công được giữ cọc trước khi ca hiện ra, và chỉ trả cho người lao động khi ca xong.'),
+            tx('Phần không dùng (vị trí trống, người vắng mặt, ca huỷ) hoàn về ví của bạn.'),
             REAL_MONEY
-              ? 'Nạp và rút tiền là giao dịch thật qua PayOS.'
-              : 'Trong bản demo, mọi giao dịch đều là mô phỏng.',
+              ? tx('Nạp và rút tiền là giao dịch thật qua PayOS.')
+              : tx('Trong bản demo, mọi giao dịch đều là mô phỏng.'),
           ]}
-          primaryCta={{ label: 'Xem chi tiết giữ cọc', href: '/employer/payments' }}
-          secondaryCta={{ label: 'Đăng nhập', href: '/login' }}
+          primaryCta={{ label: tx('Xem chi tiết giữ cọc'), href: '/employer/payments' }}
+          secondaryCta={{ label: tx('Đăng nhập'), href: '/login' }}
         />
 
         <FeatureGuide
           id="employer-total-deposit"
-          eyebrow="Nhà tuyển dụng"
-          title="Tổng tiền công chờ thanh toán"
-          bullets={['Tiền cọc đang giữ cho các ca chưa xong. Chưa phải tiền đã trả.']}
-          example="Đăng ca 280.000đ tiền công → ô này tăng 280.000đ."
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Tổng tiền công chờ thanh toán')}
+          bullets={[tx('Tiền cọc đang giữ cho các ca chưa xong. Chưa phải tiền đã trả.')]}
+          example={tx('Đăng ca 280.000đ tiền công → ô này tăng 280.000đ.')}
         />
 
         <FeatureGuide
           id="employer-total-paid"
-          eyebrow="Nhà tuyển dụng"
-          title="Tổng tiền công đã thanh toán"
-          bullets={['Tiền đã trả cho người lao động, tăng mỗi lần bạn xác nhận hoàn thành.']}
+          eyebrow={tx('Nhà tuyển dụng')}
+          title={tx('Tổng tiền công đã thanh toán')}
+          bullets={[tx('Tiền đã trả cho người lao động, tăng mỗi lần bạn xác nhận hoàn thành.')]}
         />
       </GuideGroup>
 
-      <GuideGroup eyebrow="Quyền riêng tư" title="Xác minh người dùng">
+      <GuideGroup eyebrow={tx('Quyền riêng tư')} title={tx('Xác minh người dùng')}>
         <FeatureGuide
           id="verification-overview"
-          eyebrow="Quyền riêng tư"
-          title="Cách xác minh hoạt động"
+          eyebrow={tx('Quyền riêng tư')}
+          title={tx('Cách xác minh hoạt động')}
           bullets={[
-            'Gửi giấy tờ trong trang Hồ sơ; quản trị viên duyệt.',
-            'Người dùng khác chỉ thấy huy hiệu "Đã xác minh" và số giấy tờ đã che, không thấy ảnh gốc.',
+            tx('Gửi giấy tờ trong trang Hồ sơ; quản trị viên duyệt.'),
+            tx('Người dùng khác chỉ thấy huy hiệu "Đã xác minh" và số giấy tờ đã che, không thấy ảnh gốc.'),
           ]}
         />
       </GuideGroup>
 
-      <InfoSection title="Câu hỏi thường gặp">
+      <InfoSection title={tx('Câu hỏi thường gặp')}>
         <div className="mt-2 flex flex-col gap-3">
           <FaqEntry
-            question="Người lao động có phải trả trước không?"
-            answer="Không. Chỉ nhà tuyển dụng giữ cọc tiền công trước khi đăng ca."
+            question={tx('Người lao động có phải trả trước không?')}
+            answer={tx('Không. Chỉ nhà tuyển dụng giữ cọc tiền công trước khi đăng ca.')}
           />
           <FaqEntry
-            question="Tôi có huỷ được ca đã được duyệt không?"
-            answer="Được. Còn hơn 3 giờ trước ca thì huỷ ngay; dưới 3 giờ cần nhà tuyển dụng đồng ý. Huỷ trong 24 giờ trước ca bị trừ 10 điểm uy tín."
+            question={tx('Tôi có huỷ được ca đã được duyệt không?')}
+            answer={tx('Được. Còn hơn 3 giờ trước ca thì huỷ ngay; dưới 3 giờ cần nhà tuyển dụng đồng ý. Huỷ trong 24 giờ trước ca bị trừ 10 điểm uy tín.')}
           />
           <FaqEntry
-            question="Có giao dịch tiền thật không?"
+            question={tx('Có giao dịch tiền thật không?')}
             answer={
               REAL_MONEY
-                ? 'Có. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.'
-                : 'Không. Đây là bản demo, mọi giao dịch đều là mô phỏng.'
+                ? tx('Có. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.')
+                : tx('Không. Đây là bản demo, mọi giao dịch đều là mô phỏng.')
             }
           />
           <FaqEntry
-            question="Có vướng mắc thì làm gì?"
+            question={tx('Có vướng mắc thì làm gì?')}
             answer={
               REAL_MONEY
-                ? 'Vào trang Liên hệ hỗ trợ, đội ngũ CaLẻ sẽ xem và phản hồi.'
-                : 'Bấm "Báo cáo vấn đề" trên trang quản lý ca; quản trị viên xem xét theo Chính sách xử lý tranh chấp.'
+                ? tx('Vào trang Liên hệ hỗ trợ, đội ngũ CaLẻ sẽ xem và phản hồi.')
+                : tx('Bấm "Báo cáo vấn đề" trên trang quản lý ca; quản trị viên xem xét theo Chính sách xử lý tranh chấp.')
             }
           />
         </div>

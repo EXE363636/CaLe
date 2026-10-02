@@ -1,17 +1,19 @@
+import { getT, getTx } from '@/i18n/server';
 import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
 import { PartnersSection } from '@/components/about/PartnersSection';
-import { t } from '@/i18n/vi';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const tx = await getTx();
+  const t = await getT();
   return (
     <InfoPage
-      eyebrow="Về chúng tôi"
-      title="Giới thiệu CaLẻ"
+      eyebrow={tx('Về chúng tôi')}
+      title={tx('Giới thiệu CaLẻ')}
       intro={t('about.intro')}
       ctas={[
-        { label: 'Tìm ca làm', href: '/shifts' },
-        { label: 'Đăng ca tuyển', href: '/employer/shifts/new', variant: 'secondary' },
+        { label: tx('Tìm ca làm'), href: '/shifts' },
+        { label: tx('Đăng ca tuyển'), href: '/employer/shifts/new', variant: 'secondary' },
       ]}
     >
       {/* P1 feedback F3 — gộp Tầm nhìn + Sứ mệnh, Giá trị + Niềm tin. */}
@@ -34,7 +36,7 @@ export default function AboutPage() {
         {t('about.team.body')}
       </InfoSection>
 
-      <PartnersSection />
+      <PartnersSection t={t} />
 
       <InfoSection title={t('about.version.title')}>
         {isSupabaseEnv() ? t('about.version.body.supabase') : t('about.version.body')}
