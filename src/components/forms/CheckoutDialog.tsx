@@ -187,11 +187,11 @@ export function CheckoutDialog({
             leaving the dialog. */}
         <div className="flex items-start gap-2">
           <p className="flex-1 leading-relaxed text-gray-600">
-            {tSettlement('checkout.dialog.intro')}
+            {tSettlement('checkout.dialog.intro', t)}
           </p>
           <HelpPopover
             title={t('help.checkout.title')}
-            description={tSettlement('help.checkout.description')}
+            description={tSettlement('help.checkout.description', t)}
           />
         </div>
 
@@ -220,7 +220,7 @@ export function CheckoutDialog({
                         checked={checklist[idx] ?? false}
                         onChange={(e) => handleToggle(idx, e.target.checked)}
                       />
-                      <span>{label}</span>
+                      <span>{tx(label)}</span>
                     </label>
                   </li>
                 );

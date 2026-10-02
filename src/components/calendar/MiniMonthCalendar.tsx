@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { formatMonthYearVN, monthGrid, todayIso } from '@/domain/week';
-import { useT } from '@/i18n/LocaleProvider';
+import { monthGrid, todayIso } from '@/domain/week';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 
 /**
  * Sidebar mini-month calendar.
@@ -62,6 +62,7 @@ export function MiniMonthCalendar({
   className = '',
 }: MiniMonthCalendarProps) {
   const t = useT();
+  const tx = useTx();
   // Default visible month = month of selectedDateIso. Re-sync only when the
   // *month* of the selected date changes externally (so internal Prev/Next
   // navigation isn't clobbered while the user keeps the same selected day).
@@ -131,7 +132,7 @@ export function MiniMonthCalendar({
           className="flex-1 text-center text-sm font-semibold text-gray-900"
           aria-live="polite"
         >
-          {formatMonthYearVN(visible.year, visible.month)}
+          {tx('Tháng {month} / {year}').replace('{month}', String(visible.month)).replace('{year}', String(visible.year))}
         </div>
 
         <button
@@ -170,7 +171,7 @@ export function MiniMonthCalendar({
             key={label}
             className="text-center text-[11px] font-medium uppercase tracking-wide text-gray-500"
           >
-            {label}
+            {tx(label)}
           </div>
         ))}
       </div>

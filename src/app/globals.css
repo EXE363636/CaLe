@@ -1412,3 +1412,65 @@ summary::-webkit-details-marker {
   background-color: var(--color-gray-900);
 }
 /* Ảnh không đảo màu; logo PNG nền trong suốt giữ nguyên. */
+
+/* ---------------------------------------------------------------------------
+ * Landing motion (02/10) — đi cùng `MotionGroup` (components/landing).
+ *
+ *   - `.m-node` / `.m-text` / `.m-rail`: các bước "Cách hoạt động" sáng lần
+ *     lượt, đường nối tự vẽ từ bước này sang bước sau (thứ tự = tiến trình).
+ *   - `.m-stage` / `.m-amount`: các chặng "Tiền đi đâu" hiện theo dòng tiền,
+ *     số tiền được quét ra bằng clip-path.
+ * Thứ tự trễ lấy từ biến `--i` đặt inline. Chỉ ẩn khi khối mang
+ * `data-motion="armed"` (gắn ở trình duyệt cho khối chưa vào khung nhìn) →
+ * bản server / lỗi JS / giảm chuyển động luôn thấy đủ nội dung.
+ * ------------------------------------------------------------------------- */
+[data-motion='armed'] :is(.m-node, .m-text, .m-rail, .m-stage, .m-amount) {
+  --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-motion='armed'] .m-node {
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 450ms var(--m-ease),
+    transform 550ms var(--m-ease);
+  transition-delay: calc(var(--i, 0) * 260ms);
+}
+[data-motion='armed'] .m-text {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 500ms var(--m-ease),
+    transform 600ms var(--m-ease);
+  transition-delay: calc(var(--i, 0) * 260ms + 80ms);
+}
+[data-motion='armed'] .m-rail {
+  clip-path: inset(0 100% 100% 0);
+  transition: clip-path 520ms var(--m-ease);
+  transition-delay: calc(var(--i, 0) * 260ms + 200ms);
+}
+[data-motion='armed'] .m-stage {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 500ms var(--m-ease),
+    transform 600ms var(--m-ease);
+  transition-delay: calc(var(--i, 0) * 220ms);
+}
+[data-motion='armed'] .m-amount {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 700ms var(--m-ease);
+  transition-delay: calc(var(--i, 0) * 220ms + 220ms);
+}
+[data-motion='armed'][data-in] :is(.m-node, .m-text, .m-rail, .m-stage, .m-amount) {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(0 0 0 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-motion='armed'] :is(.m-node, .m-text, .m-rail, .m-stage, .m-amount) {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    transition: none;
+  }
+}

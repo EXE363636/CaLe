@@ -1,5 +1,7 @@
+'use client';
+
 import { Badge, type BadgeTone } from '@/components/ui';
-import { escrowLabel } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { EscrowStatus } from '@/types';
 
 const tonemap: Record<EscrowStatus, BadgeTone> = {
@@ -13,5 +15,6 @@ const tonemap: Record<EscrowStatus, BadgeTone> = {
 };
 
 export function EscrowStatusBadge({ status }: { status: EscrowStatus }) {
-  return <Badge tone={tonemap[status]}>{escrowLabel(status)}</Badge>;
+  const t = useT();
+  return <Badge tone={tonemap[status]}>{t(`escrow.${status}`)}</Badge>;
 }

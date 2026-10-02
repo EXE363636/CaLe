@@ -36,6 +36,7 @@ import {
   weekDates,
   type SlotConfig,
 } from '@/domain/week';
+import { useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import {
   CalendarEventCard,
@@ -109,6 +110,7 @@ export function WeekView({
   onEventClick,
   className = '',
 }: WeekViewProps) {
+  const tx = useTx();
   const days = useMemo(() => weekDates(weekStart), [weekStart]);
   const slots = useMemo(() => generateSlots(slotConfig), [slotConfig]);
   const today = todayIso();
@@ -160,7 +162,7 @@ export function WeekView({
                     : 'text-gray-700',
                 ].join(' ')}
               >
-                <div>{WEEKDAY_LABELS[idx]}</div>
+                <div>{tx(WEEKDAY_LABELS[idx])}</div>
                 <div className="mt-0.5 font-mono text-[11px] font-normal text-gray-500">
                   {formatDateVN(date)}
                 </div>

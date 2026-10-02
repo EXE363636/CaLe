@@ -389,7 +389,7 @@ function EmployerVerificationCard({
   function handleFirstSet() {
     updateUser(employer.id, { employerType10A: firstSetChoice });
     showSuccess(
-      tx('Đã chọn loại tài khoản: {type}. Loại tài khoản sẽ được khoá; nếu cần đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.').replace('{type}', employerTypeLabel(firstSetChoice)),
+      tx('Đã chọn loại tài khoản: {type}. Loại tài khoản sẽ được khoá; nếu cần đổi sau này hãy gửi yêu cầu để quản trị viên xem xét.').replace('{type}', tx(employerTypeLabel(firstSetChoice))),
     );
   }
 
@@ -471,7 +471,7 @@ function EmployerVerificationCard({
               variant={firstSetChoice === t ? 'primary' : 'secondary'}
               onClick={() => setFirstSetChoice(t)}
             >
-              {employerTypeLabel(t)}
+              {tx(employerTypeLabel(t))}
             </Button>
           ))}
         </div>
@@ -505,7 +505,7 @@ function EmployerVerificationCard({
           {tx('Loại tài khoản hiện tại')}
         </p>
         <p className="mt-1 text-sm font-bold text-gray-900">
-          {employerTypeLabel(resolvedType)}
+          {tx(employerTypeLabel(resolvedType))}
         </p>
         <p className="mt-1 text-xs leading-relaxed text-gray-600">
           {tx(TYPE_HINT[resolvedType])}
@@ -514,7 +514,7 @@ function EmployerVerificationCard({
           {pendingChange ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
               <span className="font-semibold">{tx('Đang chờ duyệt:')}</span>{' '}
-              {tx('Yêu cầu đổi sang {type}.').replace('{type}', employerTypeLabel(pendingChange.requestedType))}{' '}
+              {tx('Yêu cầu đổi sang {type}.').replace('{type}', tx(employerTypeLabel(pendingChange.requestedType)))}{' '}
               {tx('Lý do: {reason}').replace('{reason}', pendingChange.reason)}
             </div>
           ) : (
@@ -553,10 +553,10 @@ function EmployerVerificationCard({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-900">
-                  {employerDocLabel(docType)}
+                  {tx(employerDocLabel(docType))}
                 </span>
                 <Badge tone={verificationStatusTone(status)}>
-                  {verificationStatusLabel(status)}
+                  {tx(verificationStatusLabel(status))}
                 </Badge>
               </div>
               {latest?.rejectionReason && (
@@ -595,11 +595,11 @@ function EmployerVerificationCard({
                 className="flex items-center justify-between gap-2 rounded-md bg-gray-50 px-2 py-1"
               >
                 <span>
-                  {d.displayLabel} · {employerTypeLabel(d.employerType)} ·{' '}
+                  {tx(d.displayLabel)} · {tx(employerTypeLabel(d.employerType))} ·{' '}
                   {formatDateVN(d.submittedAt)}
                 </span>
                 <Badge tone={verificationStatusTone(d.status)}>
-                  {verificationStatusLabel(d.status)}
+                  {tx(verificationStatusLabel(d.status))}
                 </Badge>
               </li>
             ))}
@@ -620,7 +620,7 @@ function EmployerVerificationCard({
         <div className="flex flex-col gap-3 text-sm text-gray-700">
           <p>
             {tx('Loại hiện tại:')}{' '}
-            <span className="font-semibold">{employerTypeLabel(resolvedType)}</span>
+            <span className="font-semibold">{tx(employerTypeLabel(resolvedType))}</span>
           </p>
           <div>
             <p className="mb-1 text-xs font-medium text-gray-700">
@@ -634,7 +634,7 @@ function EmployerVerificationCard({
                   variant={changeRequested === t ? 'primary' : 'secondary'}
                   onClick={() => setChangeRequested(t)}
                 >
-                  {employerTypeLabel(t)}
+                  {tx(employerTypeLabel(t))}
                 </Button>
               ))}
             </div>

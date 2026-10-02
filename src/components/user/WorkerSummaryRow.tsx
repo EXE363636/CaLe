@@ -34,7 +34,7 @@ import {
 } from '@/domain/skillScore';
 import { averageRating } from '@/domain/rating';
 import { SkillProgressBar } from './SkillProgressBar';
-import { useT } from '@/i18n/LocaleProvider';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { hasCapability } from '@/data/capabilities';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { derivedReputationOf, useDerivedReputationMap } from '@/lib/useDerivedReputation';
@@ -74,6 +74,7 @@ export function WorkerSummaryRow({
   className = '',
 }: WorkerSummaryRowProps) {
   const t = useT();
+  const tx = useTx();
   const workerDocuments = useVerificationStore((s) => s.workerDocuments);
   const summary = useMemo(
     () => getWorkerVerificationSummary(worker, workerDocuments),
@@ -170,8 +171,8 @@ export function WorkerSummaryRow({
                 {skillEntry && skillEntry.completedCount > 0
                   ? t('workerRow.jobFitScore')
                       .replace('{score}', String(skillEntry.score))
-                      .replace('{badge}', String(skillBadge))
-                  : t('workerRow.jobFit').replace('{badge}', String(skillBadge))}
+                      .replace('{badge}', tx(String(skillBadge)))
+                  : t('workerRow.jobFit').replace('{badge}', tx(String(skillBadge)))}
               </span>
             )}
           </div>

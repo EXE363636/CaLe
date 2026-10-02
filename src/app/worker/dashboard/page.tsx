@@ -27,8 +27,9 @@ import { suggestShiftsForWorker } from '@/domain/availabilityMatch';
 import { buildSkillDisplayList } from '@/domain/skillProgression';
 import { deriveWorkerIncome } from '@/domain/finance';
 import { SkillProgressBar } from '@/components/user/SkillProgressBar';
-import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
+import { ShiftCard } from '@/components/shift/ShiftCard';
 import { getShiftLifecycleState, isActiveDashboardShift } from '@/domain/shiftLifecycleState';
+import { startsIn } from '@/domain/shiftJourney';
 import { useScheduleStore } from '@/stores/scheduleStore';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
@@ -552,7 +553,7 @@ function WorkerDashboardContent() {
     if (result.ok) {
       showSuccess(
         t('feedback.checkOut.success'),
-        tSettlement('feedback.checkOut.success.desc'),
+        tSettlement('feedback.checkOut.success.desc', t),
       );
       setCheckoutTargetId(null);
       setCheckoutError(null);
@@ -627,29 +628,18 @@ function WorkerDashboardContent() {
     3 + (hasCapability('ratings') ? 2 : 0) + (hasCapability('wallet') ? 1 : 0);
 
   return (
-    <PageShell width="wide" className="relative isolate flex flex-col">
-      {/* Phase 9T — subtle decorative warmth anchored to the top-right
-          of the dashboard, behind every card. Same principle as the
-          homepage hero blobs: low alpha, blurred, pointer-events-none,
-          aria-hidden. The layout doesn't move; only the surface gains
-          a hint of depth so the page no longer reads as "white cards on
-          gray". `isolate` on the wrapper keeps the `-z-10` blob below
-          the cards without bleeding under the rest of the page. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
-      />
+    <PageShell width="wide" className="flex flex-col">
       {/* Quieter — the dashboard opens on a compact "dispatch block",
           not a marketing hero: white surface, soft border, ink text, one
           orange primary CTA. Warmth comes from the page's cream bg + the
           white card (DESIGN.md: One Orange Rule / Warmth-From-Background). */}
-      <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
+      <header className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
         <div className="flex flex-wrap items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-xl font-bold text-orange-700 ring-1 ring-orange-100">
             {getUserInitials(worker.fullName)}
           </div>
           <div className="min-w-[14rem] flex-1">
-            <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
               {t('worker.dashboard.greeting').replace('{name}', worker.fullName)}
             </h1>
             <p className="mt-1 text-sm text-gray-600">
@@ -724,7 +714,8 @@ function WorkerDashboardContent() {
 
       {/* Stats grid — calm reference metrics. On mobile these sit BELOW
           the actionable work area (order-2) so the worker sees "Ca sắp
-          tới" first; on desktop they return to the top strip. */}
+          tới" first; on desktop they return to the top strip (same layout
+          as the employer dashboard). */}
       <section
         className={[
           'order-2 mb-8 mt-8 grid grid-cols-2 gap-4 lg:order-none lg:mt-0',
@@ -865,10 +856,23 @@ function WorkerDashboardContent() {
           ].join(' ')}
         >
           {/* Upcoming */}
+          {/* Cùng bố cục với "Ca làm sắp tới" của dashboard nhà tuyển dụng:
+              tiêu đề + link lịch bên phải, lưới 2 cột ShiftCard; hàng hành
+              động riêng của người lao động nằm dưới mỗi thẻ. */}
           <section id="worker-upcoming-section">
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
-              {t('worker.dashboard.upcomingShifts')}
-            </h2>
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
+                {t('worker.dashboard.upcomingShifts')}
+              </h2>
+              {upcoming.length > 0 && (
+                <Link
+                  href="/worker/schedule"
+                  className="text-xs font-medium text-orange-700 hover:underline"
+                >
+                  {t('nav.schedule')} →
+                </Link>
+              )}
+            </div>
             {upcoming.length === 0 && isReturningWorker ? (
               <p className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-600 shadow-card">
                 {t('worker.dashboard.noUpcomingShifts')}{' '}
@@ -891,7 +895,7 @@ function WorkerDashboardContent() {
                 }
               />
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {upcoming.map((a) => {
                   const shift = getShift(a.shiftId)!;
                   return (
@@ -899,6 +903,7 @@ function WorkerDashboardContent() {
                       key={a.id}
                       application={a}
                       shift={shift}
+                      applications={applications}
                       loading={actionLoading === a.id}
                       onCheckIn={() => handleCheckIn(a.id)}
                       onCheckOut={() => handleCheckOut(a.id)}
@@ -920,7 +925,7 @@ function WorkerDashboardContent() {
                 : '',
             ].join(' ')}
           >
-            <h2 className="mb-3 text-lg font-semibold text-gray-900">
+            <h2 className="mb-4 text-xl font-semibold tracking-tight text-gray-900">
               {t('worker.dashboard.pendingApplications')}
             </h2>
             {pending.length === 0 ? (
@@ -1063,7 +1068,7 @@ function WorkerDashboardContent() {
               Đánh giá chưa có backend ở supabase → ẩn. */}
           {hasCapability('reviews') && feedbackPending.length > 0 && (
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+              <h2 className="mb-4 text-xl font-semibold tracking-tight text-gray-900">
                 {t('worker.dashboard.feedbackPending')}
               </h2>
               <div className="flex flex-col gap-3">
@@ -1145,7 +1150,7 @@ function WorkerDashboardContent() {
             <section>
               <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                     {t('availability.suggest.title')}
                   </h2>
                   <p className="text-xs text-gray-500">
@@ -2133,6 +2138,7 @@ function TileIcon({ name }: { name: IconName }) {
 function UpcomingShiftCard({
   application,
   shift,
+  applications,
   loading,
   onCheckIn,
   onCheckOut,
@@ -2140,12 +2146,14 @@ function UpcomingShiftCard({
 }: {
   application: Application;
   shift: Shift;
+  applications: Application[];
   loading: boolean;
   onCheckIn: () => void;
   onCheckOut: () => void;
   onCancel: () => void;
 }) {
   const t = useT();
+  const tx = useTx();
   const nowIso = new Date().toISOString();
   // Gate thống nhất: CTA chấm công chỉ hiện khi capability attendance bật
   // (production = có RPC thật). Time gate quyết định thời điểm hiển thị.
@@ -2157,128 +2165,81 @@ function UpcomingShiftCard({
   // state and render WORKER-perspective copy (never employer text).
   const attendanceState = deriveAttendanceState(application, shift, nowIso);
   const attendanceCopy = attendanceCopyKey(attendanceState, 'worker');
-  // CORE-STABILITY-10 — the unified lifecycle state. We render the
-  // shared badge once the shift is time-relevant to the worker
-  // (StartingSoon onwards). While it is still plain `Published`
-  // (recruiting, far from start) the worker's own application-status
-  // badge ("Đã duyệt") is the correct primary label — the public
-  // recruiting status "Đang tuyển" is a discovery concern, not the
-  // approved worker's. The state itself is computed by the single
-  // source-of-truth helper, so it never disagrees with other surfaces.
-  const lifecycleState = getShiftLifecycleState(shift, [application], nowIso);
-  const showLifecycleBadge = lifecycleState !== 'Published';
+  const canCancel =
+    application.status === 'Approved' && !showCheckIn && shift.status !== 'Cancelled';
+  // "Còn bao lâu" tính một lần lúc render — không đếm ngược bằng timer (§5.6).
+  const left = startsIn(shift, nowIso);
+  const startsInLabel = !left
+    ? null
+    : left.days > 0
+      ? tx('Bắt đầu sau {d} ngày {h} giờ').replace('{d}', String(left.days)).replace('{h}', String(left.hours))
+      : left.hours > 0
+        ? tx('Bắt đầu sau {h} giờ {m} phút').replace('{h}', String(left.hours)).replace('{m}', String(left.minutes))
+        : tx('Bắt đầu sau {m} phút').replace('{m}', String(left.minutes));
 
+  const hasActions = showCheckIn || showCheckOut || canCancel || application.status === 'CheckedOut';
+  // CORE-STABILITY-10 — còn `Published` (xa giờ bắt đầu) thì nhãn chính là
+  // trạng thái đơn của mình ("Đã duyệt"); từ "Sắp bắt đầu" trở đi thẻ hiện
+  // badge vòng đời chung để cùng nhãn + màu với mọi trang khác (§5.3).
+  const showLifecycleBadge = getShiftLifecycleState(shift, applications, nowIso) !== 'Published';
+
+  // Cùng khung với thẻ ca ở dashboard nhà tuyển dụng (ShiftCard: tổng tiền ca,
+  // ngày, giờ, địa điểm, badge vòng đời hoặc chip trạng thái đơn của mình).
   return (
-    <Card>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/shifts/${shift.id}`}
-            className="break-words font-semibold text-gray-900 hover:text-orange-700"
-          >
-            {shift.title}
-          </Link>
-          <p className="mt-0.5 text-sm text-gray-500">{shift.location}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          {/* CORE-STABILITY-10 — single unified lifecycle badge, the
-              same label + colour as every other surface (the worker's
-              own application status badge appears below). */}
-          {showLifecycleBadge && (
-            <ShiftLifecycleBadge
-              shift={shift}
-              applications={[application]}
-              nowIso={nowIso}
-            />
-          )}
-        </div>
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-        <span>{formatDateVN(shift.date)}</span>
-        <span>
-          {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
-        </span>
-        <span className="font-medium text-orange-700 tabular-nums">
-          {formatVND(shift.hourlyWage)}
-          {t('common.perHour')}
-        </span>
-      </div>
+    <div className="flex flex-col gap-2">
+      <ShiftCard
+        shift={shift}
+        applications={applications}
+        nowIso={nowIso}
+        href={`/shifts/${shift.id}`}
+        workerApplicationStatus={showLifecycleBadge ? undefined : application.status}
+      />
 
       {attendanceCopy && (
         <p
           role="status"
-          className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
+          className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900"
         >
           {t(attendanceCopy)}
         </p>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {/* Quieter — the shift lifecycle badge (top-right) is the single
-            primary status chip; the worker's application status is a
-            small inline label, not a competing badge. The Approved case
-            gets a subtle emerald check so an approved-but-far shift still
-            reads as reassuring while the lifecycle badge is hidden. */}
-        {application.status === 'Approved' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">
-            <svg
-              className="h-3.5 w-3.5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
+      {(hasActions || startsInLabel) && (
+        <div className="flex flex-wrap items-center gap-2 px-1">
+          {startsInLabel && !showCheckIn && (
+            <span className="text-xs font-medium text-gray-600 tabular-nums">{startsInLabel}</span>
+          )}
+          {/* Per-row contextual actions use the outlined orange secondary
+              style, not primary: the worker dashboard's single page-level
+              primary CTA is the header "Tìm ca làm" (Req 2.4/2.5, 11.3). */}
+          {showCheckIn && (
+            <Button size="md" variant="secondary" onClick={onCheckIn} loading={loading}>
+              {t('btn.checkIn')}
+            </Button>
+          )}
+          {showCheckOut && (
+            <Button size="md" variant="secondary" onClick={onCheckOut} loading={loading}>
+              {t(lateCheckout ? 'btn.checkOutLate' : 'btn.checkOut')}
+            </Button>
+          )}
+          {/* Phase 10C Wave 5 — worker can open a structured dispute after
+              check-out; the dialog lives on the shift detail page. */}
+          {application.status === 'CheckedOut' && (
+            <Link
+              href={`/shifts/${shift.id}`}
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-3 text-sm font-medium text-amber-800 hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
             >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            {t('application.status.Approved')}
-          </span>
-        ) : (
-          <span className="text-xs font-medium text-gray-600">
-            {t(`application.status.${application.status}`)}
-          </span>
-        )}
-
-        {/* Per-row contextual actions use the outlined orange secondary
-            style, not primary: the worker dashboard's single page-level
-            primary CTA is the header "Tìm ca làm" (Req 2.4/2.5, 11.3).
-            Only the variant styling changes here — role, accessible name,
-            handler and loading state are unchanged. */}
-        {showCheckIn && (
-          <Button size="md" variant="secondary" onClick={onCheckIn} loading={loading}>
-            {t('btn.checkIn')}
-          </Button>
-        )}
-        {showCheckOut && (
-          <Button size="md" variant="secondary" onClick={onCheckOut} loading={loading}>
-            {t(lateCheckout ? 'btn.checkOutLate' : 'btn.checkOut')}
-          </Button>
-        )}
-        {application.status === 'Approved' &&
-          !showCheckIn &&
-          shift.status !== 'Cancelled' && (
-            <Button size="sm" variant="ghost" onClick={onCancel} loading={loading}>
+              {t('worker.dispute.openButton')}
+            </Link>
+          )}
+          {canCancel && (
+            <Button size="sm" variant="ghost" onClick={onCancel} loading={loading} className="ml-auto">
               {t('btn.cancel')}
             </Button>
           )}
-        {/* Phase 10C Wave 5 — worker can open a structured dispute
-            after check-out while waiting for employer confirmation.
-            The dispute dialog lives on the shift detail page so the
-            dashboard card just deep-links there to keep the dialog
-            state in one place. */}
-        {application.status === 'CheckedOut' && (
-          <Link
-            href={`/shifts/${shift.id}`}
-            className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-3 text-sm font-medium text-amber-800 hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-          >
-            {t('worker.dispute.openButton')}
-          </Link>
-        )}
-      </div>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -10,7 +10,7 @@ import {
   listReviewsInvolving,
   submitShiftReview,
 } from '@/data/repos/reviewRepo';
-import { t } from '@/i18n/vi';
+import { tCurrent as t } from '@/i18n/locale';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
 import type { EmployerFeedback, EmployerFeedbackTag, Rating, Result } from '@/types';

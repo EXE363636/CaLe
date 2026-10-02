@@ -170,7 +170,7 @@ export const enApp: Record<string, string> = {
   'review.status.none': 'not rated yet',
   'shifts.listing.title': 'Find shifts',
   'shifts.listing.subtitle':
-    'Find short-term shifts that fit your schedule. Only shifts whose deposit the employer has already held are shown.',
+    'Find short-term shifts that fit your schedule. A shift only appears here once the employer has set aside the wages.',
   'shifts.listing.matchSuffix': 'matching shifts',
   'availability.filter.label': 'Sort',
   'availability.filter.default': 'Default',

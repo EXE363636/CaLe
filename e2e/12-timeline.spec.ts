@@ -41,13 +41,12 @@ test.describe('Flow 12: timeline logs with seconds and no duplicates', () => {
     await page.getByRole('button', { name: 'Duyệt' }).click();
     await page.waitForLoadState('networkidle');
 
-    // The timeline section shows the approve entry.
+    // The timeline section (<section aria-labelledby> → region named by
+    // its h2) shows the approve entry.
     const timeline = page.getByRole('region', { name: 'Lịch sử ca làm' });
-    // Fallback: the section is labelled by an h2 with id; locate by text.
-    const timelineHeading = page.getByText('Lịch sử ca làm');
-    await expect(timelineHeading).toBeVisible();
+    await expect(timeline).toBeVisible();
 
-    const approvedEntry = page.getByText('Nhà tuyển dụng đã duyệt người lao động');
+    const approvedEntry = timeline.getByText('Nhà tuyển dụng đã duyệt người lao động');
     await expect(approvedEntry.first()).toBeVisible();
 
     // Read the persisted timeline and assert exactly one approve entry
@@ -70,11 +69,15 @@ test.describe('Flow 12: timeline logs with seconds and no duplicates', () => {
     expect(stateBefore.sampleOccurredAt).toMatch(/T\d{2}:\d{2}:\d{2}/);
 
     // The rendered timestamp shows seconds (vi-VN second:'2-digit' →
-    // HH:mm:ss). Match a hh:mm:ss pattern somewhere in the timeline area.
-    const renderedTimes = await page
-      .locator('.font-mono')
-      .allInnerTexts();
+    // HH:mm:ss). Each entry renders its timestamp in a <time dateTime>.
+    const timelineTimes = timeline.locator('time');
+    await expect(timelineTimes.first()).toBeVisible();
+    const renderedTimes = await timelineTimes.allInnerTexts();
     expect(renderedTimes.some((t) => /\d{2}:\d{2}:\d{2}/.test(t))).toBe(true);
+    // The approve entry's <time> carries the persisted ISO instant.
+    await expect(
+      timeline.locator(`time[datetime="${stateBefore.sampleOccurredAt}"]`),
+    ).toHaveCount(1);
 
     // Refresh — the timeline entry must NOT duplicate.
     await page.reload();
@@ -94,7 +97,5 @@ test.describe('Flow 12: timeline logs with seconds and no duplicates', () => {
     await expect(
       page.getByText('Nhà tuyển dụng đã duyệt người lao động'),
     ).toHaveCount(1);
-
-    void timeline;
   });
 });

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo } from 'react';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
@@ -8,6 +7,7 @@ import { useUserStore } from '@/stores/userStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
 import { isShiftAvailableForRecruiting } from '@/domain/shiftAvailability';
 import { ShiftCard } from '@/components/shift/ShiftCard';
+import { OpenShiftsEmpty } from '@/components/shift/OpenShiftsEmpty';
 import { useT } from '@/i18n/LocaleProvider';
 
 /**
@@ -15,7 +15,7 @@ import { useT } from '@/i18n/LocaleProvider';
  *
  * Chỉ đọc store (AppHydrator đã nạp), lọc bằng helper chuẩn
  * `isShiftAvailableForRecruiting` (cùng luật với `/shifts`), rồi lấy ca đăng
- * gần nhất. Không có ca → lời mời xem danh sách, không bịa dữ liệu mẫu.
+ * gần nhất. Không có ca → `OpenShiftsEmpty` (quy trình + việc làm ngay), không bịa dữ liệu mẫu.
  */
 export function LatestShifts({ limit = 6 }: { limit?: number }) {
   const t = useT();
@@ -49,17 +49,7 @@ export function LatestShifts({ limit = 6 }: { limit?: number }) {
   }
 
   if (latest.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-orange-200 bg-white px-6 py-10 text-center">
-        <p className="text-sm text-gray-600">{t('workerHome.latest.empty')}</p>
-        <Link
-          href="/shifts"
-          className="mt-4 inline-flex min-h-[44px] items-center rounded-xl px-4 text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-        >
-          {t('workerHome.latest.viewAll')} →
-        </Link>
-      </div>
-    );
+    return <OpenShiftsEmpty headingLevel={3} />;
   }
 
   return (

@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/test';
 import { buildSnapshot, buildShift, buildApplication } from './fixtures/seed';
 import { ACCOUNTS } from './fixtures/constants';
@@ -14,6 +15,24 @@ import { ACCOUNTS } from './fixtures/constants';
 
 const SHIFT_ID = 'e2e-cs10-shift';
 const APP_ID = 'e2e-cs10-app';
+
+/**
+ * Detail pages render a `ShiftJourney` step bar (list "Tiến trình ca")
+ * whose 3rd step is always labelled "Đang diễn ra" — as a progress STEP
+ * ("(chưa tới)" / "(đã xong)"), not a status claim. These helpers keep
+ * the status assertions about badges/labels OUTSIDE that list, and check
+ * the step bar's current step separately.
+ */
+function journey(page: Page) {
+  return page.getByRole('list', { name: 'Tiến trình ca' });
+}
+
+/** Number of "Đang diễn ra" matches that are NOT a ShiftJourney step. */
+async function inProgressOutsideJourney(page: Page): Promise<number> {
+  const all = await page.getByText('Đang diễn ra').count();
+  const inJourney = await journey(page).getByText('Đang diễn ra').count();
+  return all - inJourney;
+}
 
 function seedShiftWorld() {
   const shift = buildShift({
@@ -59,7 +78,11 @@ test.describe('CS10: lifecycle badge consistency across surfaces', () => {
     await gotoApp(`/shifts/${SHIFT_ID}`);
     // Pre-start within 15min → "Sắp bắt đầu". NEVER "Đang diễn ra".
     await expect(page.getByText('Sắp bắt đầu').first()).toBeVisible();
-    await expect(page.getByText('Đang diễn ra')).toHaveCount(0);
+    // No badge / status label says "Đang diễn ra" (step bar excluded)…
+    await expect.poll(() => inProgressOutsideJourney(page)).toBe(0);
+    // …and the step bar has NOT reached the "Đang diễn ra" step.
+    await expect(journey(page)).toBeVisible();
+    await expect(journey(page).locator('li[aria-current="step"]')).not.toContainText('Đang diễn ra');
     // No checkout CTA before end.
     await expect(
       page.getByRole('button', { name: 'Check-out' }),
@@ -76,7 +99,9 @@ test.describe('CS10: lifecycle badge consistency across surfaces', () => {
     await loginAs(ACCOUNTS.employer.id, '2027-06-10T18:00:00.000Z');
     await gotoApp(`/employer/shifts/${SHIFT_ID}`);
     await expect(page.getByText('Sắp bắt đầu').first()).toBeVisible();
-    await expect(page.getByText('Đang diễn ra')).toHaveCount(0);
+    await expect.poll(() => inProgressOutsideJourney(page)).toBe(0);
+    await expect(journey(page)).toBeVisible();
+    await expect(journey(page).locator('li[aria-current="step"]')).not.toContainText('Đang diễn ra');
   });
 
   test('at 18:06 (mid-shift) all surfaces show "Đang diễn ra" + no checkout', async ({
@@ -104,6 +129,10 @@ test.describe('CS10: lifecycle badge consistency across surfaces', () => {
     await loginAs(ACCOUNTS.worker.id, '2027-06-10T18:06:00.000Z');
     await gotoApp(`/shifts/${SHIFT_ID}`);
     await expect(page.getByText('Đang diễn ra').first()).toBeVisible();
+    // The badge itself (not just the step bar label) says "Đang diễn ra"…
+    await expect.poll(() => inProgressOutsideJourney(page)).toBeGreaterThan(0);
+    // …and the step bar agrees: its current step is "Đang diễn ra".
+    await expect(journey(page).locator('li[aria-current="step"]')).toContainText('Đang diễn ra');
     await expect(page.getByText('Sắp bắt đầu')).toHaveCount(0);
     await expect(
       page.getByRole('button', { name: 'Check-out' }),
@@ -120,6 +149,8 @@ test.describe('CS10: lifecycle badge consistency across surfaces', () => {
     await loginAs(ACCOUNTS.employer.id, '2027-06-10T18:06:00.000Z');
     await gotoApp(`/employer/shifts/${SHIFT_ID}`);
     await expect(page.getByText('Đang diễn ra').first()).toBeVisible();
+    await expect.poll(() => inProgressOutsideJourney(page)).toBeGreaterThan(0);
+    await expect(journey(page).locator('li[aria-current="step"]')).toContainText('Đang diễn ra');
     await expect(page.getByText('Sắp bắt đầu')).toHaveCount(0);
   });
 
@@ -150,7 +181,9 @@ test.describe('CS10: lifecycle badge consistency across surfaces', () => {
     await expect(
       page.getByRole('button', { name: 'Check-out' }).first(),
     ).toBeVisible();
-    // Not "Đang diễn ra" anymore (ended → awaiting checkout).
-    await expect(page.getByText('Đang diễn ra')).toHaveCount(0);
+    // Not "Đang diễn ra" anymore (ended → awaiting checkout). The
+    // dashboard has no step bar today; the helper keeps this correct if
+    // one is added later.
+    await expect.poll(() => inProgressOutsideJourney(page)).toBe(0);
   });
 });

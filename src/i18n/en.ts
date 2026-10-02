@@ -14,6 +14,9 @@ import { enApp, enAppText } from './en-app';
 import { enAdmin, enAdminText } from './en-admin';
 import { enDashboard, enDashboardText } from './en-dashboard';
 import { enPages, enPagesText } from './en-pages';
+import { enRoles, enRolesText } from './en-roles';
+import { enUi, enUiText } from './en-ui';
+import { enLandingText } from './en-landing';
 
 export const enPublic: Record<string, string> = {
   // --- Chung / điều hướng ---------------------------------------------------
@@ -347,6 +350,8 @@ export const en: Record<string, string> = {
   ...enDashboard,
   ...enAdmin,
   ...enPages,
+  ...enRoles,
+  ...enUi,
 };
 export const enText: Record<string, string> = {
   ...enPublicText,
@@ -354,4 +359,7 @@ export const enText: Record<string, string> = {
   ...enDashboardText,
   ...enAdminText,
   ...enPagesText,
+  ...enRolesText,
+  ...enUiText,
+  ...enLandingText,
 };

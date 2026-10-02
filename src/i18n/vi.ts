@@ -1235,7 +1235,7 @@ export const vi: Record<string, string> = {
   'shifts.listing.title': 'Tìm ca làm',
   'shifts.listing.eyebrow': 'Khám phá ca làm',
   'shifts.listing.subtitle':
-    'Tìm ca làm ngắn hạn phù hợp với lịch của bạn. Hệ thống chỉ hiển thị ca đã được nhà tuyển dụng giữ cọc.',
+    'Tìm ca làm ngắn hạn hợp với lịch của bạn. Ca chỉ hiện ở đây khi nhà tuyển dụng đã giữ trước tiền công.',
   'shifts.listing.matchSuffix': 'ca phù hợp',
   'shifts.listing.resultCount': '{count} ca đang mở tuyển',
   'shifts.listing.empty': 'Không tìm thấy ca làm phù hợp.',

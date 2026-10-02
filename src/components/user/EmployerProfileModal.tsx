@@ -18,7 +18,7 @@ import {
 } from '@/stores';
 import { getPublicEmployerWorkplacePhotos } from '@/domain/postingReadiness';
 import { formatDateVN } from '@/lib/format';
-import { useT } from '@/i18n/LocaleProvider';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import type { Employer, EmployerType } from '@/types';
 
 interface EmployerProfileModalProps {
@@ -225,12 +225,13 @@ function EmployerTypeChip({
   legacyType: EmployerType | undefined;
 }) {
   const t = useT();
+  const tx = useTx();
   // Phase 10A-Fix-3 — prefer the canonical 4-shape label. Falls back
   // to the Phase-6 2-shape label only for ancient seed records that
   // somehow have neither field set.
   if (resolvedType) {
     const tone = resolvedType === 'Individual' ? 'info' : 'neutral';
-    return <Badge tone={tone}>{employerTypeLabel(resolvedType)}</Badge>;
+    return <Badge tone={tone}>{tx(employerTypeLabel(resolvedType))}</Badge>;
   }
   const t0 = legacyType ?? 'business';
   return (

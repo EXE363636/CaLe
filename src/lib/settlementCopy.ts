@@ -5,11 +5,15 @@
  *    KẾT THÚC ca (migration 0019 `sync_overdue_settlements`).
  * Mỗi key có bản `<key>.real` cho production; UI không được hứa quy tắc 12 giờ
  * mà server không thực thi.
+ *
+ * Màn đã dịch truyền `t` của mình (`useT()` khi render, `tCurrent` trong xử lý
+ * sự kiện); bỏ trống thì là tiếng Việt.
  */
 
 import { isSupabaseEnv } from '@/data/supabaseClient';
-import { t } from '@/i18n/vi';
+import type { TFunction } from '@/i18n/locale';
+import { t as tVi } from '@/i18n/vi';
 
-export function tSettlement(key: string): string {
+export function tSettlement(key: string, t: TFunction = tVi): string {
   return isSupabaseEnv() ? t(`${key}.real`) : t(key);
 }

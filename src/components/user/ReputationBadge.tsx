@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ReputationBadge
  *
@@ -5,9 +7,9 @@
  *   ≥ 80  → green
  *   ≥ 50  → amber
  *   < 50  → red
- *
- * No hooks → no 'use client' needed.
  */
+
+import { useTx } from '@/i18n/LocaleProvider';
 
 export interface ReputationBadgeProps {
   score: number;
@@ -26,6 +28,7 @@ export function ReputationBadge({
   showLabel = true,
   className = '',
 }: ReputationBadgeProps) {
+  const tx = useTx();
   const colorClasses = getColorClasses(score);
 
   return (
@@ -36,7 +39,7 @@ export function ReputationBadge({
         className,
       ].join(' ')}
     >
-      {showLabel ? `⭐ ${score} điểm` : score}
+      {showLabel ? tx('⭐ {score} điểm').replace('{score}', String(score)) : score}
     </span>
   );
 }

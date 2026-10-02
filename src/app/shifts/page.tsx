@@ -12,6 +12,7 @@ import { suggestShiftsForWorker, type ShiftMatch } from '@/domain/availabilityMa
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { ShiftFilters } from '@/components/shift/ShiftFilters';
 import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
+import { OpenShiftsEmpty } from '@/components/shift/OpenShiftsEmpty';
 import { Button, EmptyState, PageShell } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useT } from '@/i18n/LocaleProvider';
@@ -173,6 +174,10 @@ export default function ShiftsPage() {
     setSearchText('');
   }
 
+  // Chợ ca trống thật (không phải do lọc): ẩn bộ lọc — lọc trên 0 ca là vô
+  // nghĩa — và thay bằng khối "khi có ca mới" + một việc làm ngay.
+  const marketplaceEmpty = displayShifts.length === 0 && !hasActiveFilters;
+
   return (
     <PageShell width="wide">
       {/* Quieter — calm white header consistent with the worker
@@ -199,6 +204,7 @@ export default function ShiftsPage() {
       {/* Search + filters wrapped in a single card so they read as a
           unified control surface. Solid white (no glassmorphism) so the
           controls read crisply against the cream page background. */}
+      {!marketplaceEmpty && (
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-card">
         <ShiftSearchBar
           value={searchText}
@@ -255,9 +261,12 @@ export default function ShiftsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Results */}
-      {displayShifts.length === 0 ? (
+      {marketplaceEmpty ? (
+        <OpenShiftsEmpty />
+      ) : displayShifts.length === 0 ? (
         <EmptyState
           tone="warm"
           title={t(hasActiveFilters ? 'shifts.listing.empty' : 'shifts.listing.emptyNone')}

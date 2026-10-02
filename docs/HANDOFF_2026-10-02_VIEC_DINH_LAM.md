@@ -92,10 +92,40 @@ sang `useT()` / `useTx()`, chữ viết cứng bọc `tx('…')`. Gồm:
 Khoá chưa có bản tiếng Anh tự rơi về tiếng Việt (`translate` / `translateText` trong
 `src/i18n/locale.ts`), nên giao diện hiện **không đổi gì** khi chưa dịch.
 
-**Còn lại:**
-- Khoảng **574 khoá `t('…')` + 137 câu `tx('…')`** chưa có trong `en` / `enText`.
-- Còn 2 file vẫn import `t` cố định từ `vi.ts`, cần chuyển: `EmployerConfirmationPanel`,
-  `PaymentEvidenceCard`.
+**Phần 2 — ĐÃ LÀM (02/10, nhánh `feat/i18n-phase2d-part2`, tách từ `feat/i18n-phase2d`):**
+- `src/i18n/en-roles.ts` (`enRoles` 736 khoá, `enRolesText` 202 câu), gộp vào `en.ts` sau
+  `enPages`. Gồm cả khoá ghép động (`escrow.*`, `shift.status.*`, `applicantBucket.*`,
+  `shift.timeline.kind.*`, `evidence.*`, `review.error.*`…) và bản `.real` của câu thời hạn
+  trả công.
+- Chuyển nốt sang hook: `EmployerConfirmationPanel`, `PaymentEvidenceCard`,
+  `EscrowStatusBadge`, `ShiftStatusBadge`, `ReputationBadge`, `SkillProgressBar`; tên thứ
+  trong tuần ở `AgendaView` / `DayView` / `WeekView` / `MiniMonthCalendar`; tiêu đề tháng ở
+  lịch.
+- Nhãn tính sẵn hiển thị qua `tx(...)`: cấp kỹ năng (`SKILL_BADGE_LABEL`), nhóm kỹ năng
+  (`DEFAULT_SKILL_CATEGORIES`), lý do chưa đăng được ca (`postingReadiness`, chỉ chế độ demo),
+  gợi ý giấy tờ theo loại tài khoản (`TYPE_HINT`).
+- Lỗ hổng cũ đã vá: `tSettlement(key, t)` nhận `t` của màn (trước đây luôn tiếng Việt, kể cả
+  ở `CheckoutDialog`, chi tiết ca, dashboard đã dịch đợt 2a/2b); nhãn checklist check-out và
+  nhãn xác minh từ `verificationStore` bọc `tx(...)` khi hiển thị; lỗi đánh giá
+  (`reviewSync`) dùng `tCurrent`.
+- Thông báo gửi admin (`notifyAdmins` ở hồ sơ worker / employer) vẫn tiếng Việt.
+- `i18nEnglish.test.ts`: thêm 46 file đợt 2d vào danh sách kiểm + khối "đợt 2d" (không ghi
+  đè đợt trước, khoá động, `tSettlement` đủ cả `.real` và không có "simulated" ở câu
+  production, nhãn store / hằng số).
+- **Cần người đọc lại:** `docs/I18N_2D_EN_MONEY_REVIEW.md` (181 câu về tiền / cọc / rút tiền).
+- Vẫn tiếng Việt (có chủ ý / chưa làm):
+  - dữ liệu người dùng nhập (tên ca, mô tả, kỹ năng tự gõ, nhận xét);
+  - câu đã lưu lúc tạo: thông báo trong app, mô tả dòng sổ ví (như đã chốt ở đợt 2a);
+  - `VerificationsPanel` (chỉ demo); ngày dạng `dd/mm/yyyy` giữ nguyên.
+- Đã soát bằng trình duyệt (chế độ local, `cale.lang=en`): đăng ca, quản lý ca, lịch, thanh
+  toán, đánh giá, hồ sơ nhà tuyển dụng / người lao động, chi tiết ca: chỉ còn dữ liệu người
+  dùng là tiếng Việt, không có lỗi console.
+- Cùng commit có đợt UI: thanh bước vòng đời `ShiftJourney` (chi tiết ca 2 phía), trang
+  `/for-workers` + `/for-employers` làm lại, chợ ca trống `OpenShiftsEmpty`, dashboard người
+  lao động dùng `ShiftCard` (vẫn hiện badge vòng đời từ "Sắp bắt đầu", §5.3), timeline có giây.
+- **Mốc mới (02/10):** tsc 0, lint 0 lỗi (6 cảnh báo có sẵn), **968** unit test, 22 test
+  time-travel, build 33 route, **144** e2e (chạy được song song dev server khác qua
+  `cale-dev-local` cổng 3200, `NEXT_DIST_DIR=.next-local`).
 
 **Cách làm:**
 1. Tạo `src/i18n/en-roles.ts` xuất `enRoles` (theo khoá) và `enRolesText` (theo câu Việt).

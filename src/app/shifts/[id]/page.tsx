@@ -9,6 +9,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useHydrationStore } from '@/stores/hydrationStore';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
+import { ShiftJourney } from '@/components/shift/ShiftJourney';
+import { wasApproved } from '@/domain/shiftJourney';
+import { getShiftLifecycleState } from '@/domain/shiftLifecycleState';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { hasCapability } from '@/data/capabilities';
 import { hoursBetween } from '@/domain/deposit';
@@ -354,7 +357,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
     if (result.ok) {
       showSuccess(
         t('feedback.checkOut.success'),
-        tSettlement('feedback.checkOut.success.desc'),
+        tSettlement('feedback.checkOut.success.desc', t),
       );
       setCheckoutDialogOpen(false);
       setCheckoutError(null);
@@ -408,7 +411,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
 
       {/* Header */}
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-        <h1 className="min-w-0 text-balance break-words text-2xl font-bold text-gray-900">
+        <h1 className="min-w-0 text-balance break-words text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           {shift.title}
         </h1>
         <ShiftLifecycleBadge shift={shift} applications={applications} />
@@ -448,6 +451,17 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
         )}
       </p>
 
+      {/* Ca này đang ở bước nào của vòng đời — chỉ khi người xem có đơn ở ca,
+          cùng nguồn trạng thái với badge phía trên. */}
+      {myApp && (
+        <div className="mt-5 rounded-2xl border border-gray-200 bg-white px-3 py-5 shadow-card sm:px-6">
+          <ShiftJourney
+            state={getShiftLifecycleState(shift, applications, new Date().toISOString())}
+            approved={wasApproved(myApp.status)}
+          />
+        </div>
+      )}
+
       {/* Phase 9I — quick employer trust signal so workers see the
           rating + verification status before opening the full profile
           modal. Pure presentation; clicking "Xem hồ sơ" still opens the
@@ -479,6 +493,7 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
               .replace('{hourly}', formatVND(shift.hourlyWage))
               .replace('{hours}', hoursLabel)}
             highlight
+            prominent
             // 3 ô trên lưới 2 cột (mobile) → ô tiền trải cả hàng, không đứng lẻ.
             className={isRecruiting ? undefined : 'col-span-2 sm:col-span-1'}
           />
@@ -1155,12 +1170,15 @@ function InfoItem({
   value,
   hint,
   highlight,
+  prominent,
   className,
 }: {
   label: string;
   value: string;
   hint?: string;
   highlight?: boolean;
+  /** Con số chính của khối (tổng tiền ca) — cỡ lớn nhất. */
+  prominent?: boolean;
   className?: string;
 }) {
   return (
@@ -1168,7 +1186,8 @@ function InfoItem({
       <p className="text-xs text-gray-600">{label}</p>
       <p
         className={[
-          'mt-0.5 text-sm font-semibold tabular-nums',
+          'mt-1 tabular-nums leading-tight',
+          prominent ? 'text-2xl font-bold sm:text-3xl' : 'text-base font-semibold sm:text-lg',
           highlight ? 'text-orange-700' : 'text-gray-900',
         ].join(' ')}
       >
@@ -1182,7 +1201,7 @@ function InfoItem({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mt-5">
-      <h2 className="mb-2 text-sm font-semibold text-gray-900">{title}</h2>
+      <h2 className="mb-2 text-base font-semibold text-gray-900">{title}</h2>
       {children}
     </div>
   );

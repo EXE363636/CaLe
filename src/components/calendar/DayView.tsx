@@ -7,6 +7,7 @@ import {
   todayIso,
   type SlotConfig,
 } from '@/domain/week';
+import { useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import { CalendarEventCard, calendarSlotRowHeight } from './CalendarEventCard';
 import type { CalendarEvent } from './WeekView';
@@ -67,6 +68,7 @@ export function DayView({
   onEventClick,
   className = '',
 }: DayViewProps) {
+  const tx = useTx();
   const slots = generateSlots(slotConfig);
   const positioned = dayViewLayout(events, dateIso, slotConfig);
   const rowHeight = calendarSlotRowHeight(slotConfig.slotMinutes);
@@ -89,7 +91,7 @@ export function DayView({
             aria-hidden="true"
           />
           <div className={headerCellClasses}>
-            <div>{weekdayLabel(dateIso)}</div>
+            <div>{tx(weekdayLabel(dateIso))}</div>
             <div className="mt-0.5 font-mono text-[11px] font-normal text-gray-500">
               {formatDateVN(dateIso)}
             </div>

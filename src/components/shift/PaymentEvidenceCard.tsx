@@ -21,11 +21,11 @@
  * The card is read-only education — Wave 2 explicitly does NOT
  * change check-out validation, escrow flows, dispute UI, auto-release
  * lifecycle, or admin surfaces. It uses only Wave 0 helpers
- * (`evidenceRequirementLabel`, `t(...)`).
+ * (`t(...)` theo ngôn ngữ đang hiển thị).
  */
 
 import { EVIDENCE_REQUIREMENT_VALUES } from '@/domain/evidence';
-import { evidenceRequirementLabel, t } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import { HelpPopover } from '@/components/ui';
 import { tSettlement } from '@/lib/settlementCopy';
 import type { EvidenceRequirement, Shift } from '@/types';
@@ -41,6 +41,7 @@ const REQUIRED_LEVELS: ReadonlySet<EvidenceRequirement> = new Set([
 ]);
 
 export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
+  const t = useT();
   const requirement = shift.evidenceRequirement;
 
   // Defensive — `shiftStore.hydrate` backfills missing values, so this
@@ -85,7 +86,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
         </h2>
         <HelpPopover
           title={t('help.paymentEvidence.title')}
-          description={tSettlement('help.paymentEvidence.description')}
+          description={tSettlement('help.paymentEvidence.description', t)}
           learnMoreHref="/handbook/muc-bang-chung-thanh-toan"
         />
       </div>
@@ -122,7 +123,7 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
           {t('shifts.detail.paymentEvidence.evidenceLabel')}
         </dt>
         <dd className="mt-1 text-sm font-medium text-orange-950">
-          {evidenceRequirementLabel(requirement)}
+          {t(`evidence.requirement.${requirement}`)}
         </dd>
         <dd className="mt-1 text-sm leading-relaxed text-orange-900">
           {t(prepareKey)}
@@ -137,14 +138,14 @@ export function PaymentEvidenceCard({ shift }: PaymentEvidenceCardProps) {
             aria-hidden="true"
             className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500"
           />
-          <span>{tSettlement('shifts.detail.paymentEvidence.confirmRule')}</span>
+          <span>{tSettlement('shifts.detail.paymentEvidence.confirmRule', t)}</span>
         </li>
         <li className="flex items-start gap-2">
           <span
             aria-hidden="true"
             className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-green-500"
           />
-          <span>{tSettlement('shifts.detail.paymentEvidence.autoReleaseRule')}</span>
+          <span>{tSettlement('shifts.detail.paymentEvidence.autoReleaseRule', t)}</span>
         </li>
       </ul>
 

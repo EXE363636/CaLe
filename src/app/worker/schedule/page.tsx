@@ -55,7 +55,6 @@ import {
 } from '@/components/ui';
 import { findShiftOverlap } from '@/domain/scheduleConflict';
 import {
-  formatMonthYearVN,
   shiftWeek,
   startOfWeek,
   todayIso,
@@ -63,7 +62,7 @@ import {
   type SlotConfig,
 } from '@/domain/week';
 import { isSupabaseEnv } from '@/data/supabaseClient';
-import { useT } from '@/i18n/LocaleProvider';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -134,6 +133,7 @@ export default function WorkerSchedulePage() {
 
 function SchedulePageContent() {
   const t = useT();
+  const tx = useTx();
   const router = useRouter();
   const currentUserId = useAuthStore((s) => s.currentUserId);
 
@@ -279,10 +279,10 @@ function SchedulePageContent() {
     const year = Number(selectedDateIso.slice(0, 4));
     const month = Number(selectedDateIso.slice(5, 7));
     if (Number.isFinite(year) && Number.isFinite(month)) {
-      return formatMonthYearVN(year, month);
+      return tx('Tháng {month} / {year}').replace('{month}', String(month)).replace('{year}', String(year));
     }
     return '';
-  }, [view, selectedDateIso]);
+  }, [view, selectedDateIso, tx]);
 
   function handlePrev() {
     setSelectedDateIso((iso) => {

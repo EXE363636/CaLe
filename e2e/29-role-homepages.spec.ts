@@ -143,7 +143,25 @@ test.describe('Role homepages', () => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
     await gotoApp('/for-workers');
-    await expect(page.getByText('Chưa có ca nào đang tuyển. Quay lại sau nhé.')).toBeVisible();
+    // OpenShiftsEmpty (via LatestShifts, headingLevel 3): says plainly that
+    // nothing is open — no invented sample shifts.
+    const emptyHeading = page.getByRole('heading', {
+      level: 3,
+      name: 'Hiện chưa có ca nào đang mở tuyển.',
+    });
+    await expect(emptyHeading).toBeVisible();
+    const empty = emptyHeading.locator('xpath=ancestor::section[1]');
+    // Guest → one concrete next step: create a worker account.
+    await expect(empty.getByRole('link', { name: 'Tạo tài khoản người lao động' })).toHaveAttribute(
+      'href',
+      '/register?role=worker',
+    );
+    await expect(empty.getByRole('link', { name: /Cách CaLẻ hoạt động/ })).toHaveAttribute(
+      'href',
+      '/how-it-works',
+    );
+    // "Khi có ca mới" explains the real flow (3 steps), not fake shift cards.
+    await expect(empty.getByRole('listitem')).toHaveCount(3);
   });
 
   test('/for-employers: switch marks employer, CTA goes to employer register, demo pricing is 0đ', async ({
@@ -230,6 +248,29 @@ test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Hello,');
     await expect(page.getByText('Reputation score', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Upcoming shifts', { exact: true }).first()).toBeVisible();
+  });
+  test('đợt 2d: trang đăng ca của nhà tuyển dụng hiện tiếng Anh', async ({
+    page,
+    seedState,
+    loginAs,
+    gotoApp,
+  }) => {
+    await page.setViewportSize(DESKTOP);
+    // employer-001 đã có ca trong seed → có loại tài khoản → thấy form (không bị chặn).
+    await seedState(buildSnapshot());
+    await loginAs(ACCOUNTS.employer.id);
+    await gotoApp('/employer/shifts/new');
+    await expect(page.getByLabel(/^Tên ca làm/)).toBeVisible();
+    await page.getByRole('button', { name: 'Switch to English' }).click();
+
+    const cookies = await page.context().cookies();
+    expect(cookies.find((c) => c.name === 'cale.lang')?.value).toBe('en');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Post a shift');
+    await expect(page.getByText('Shift details', { exact: true })).toBeVisible();
+    await expect(page.getByLabel(/^Shift name/)).toBeVisible();
+    await expect(page.getByLabel(/^Job type/)).toBeVisible();
+    await expect(page.getByLabel(/^Hourly pay \(đ\)/)).toBeVisible();
+    await expect(page.getByText('Tên ca làm')).toHaveCount(0);
   });
 });
 

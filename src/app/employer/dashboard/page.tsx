@@ -232,13 +232,7 @@ function EmployerDashboardContent() {
   const showMoneyTiles = hasCapability('wallet') && !isSupabaseEnv();
 
   return (
-    <PageShell width="wide" className="relative isolate flex flex-col">
-      {/* Phase 9T — subtle decorative warmth anchored to the top-right
-          of the dashboard. See worker dashboard for rationale. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-0 -z-10 h-64 w-64 rounded-full bg-orange-200/30 blur-3xl"
-      />
+    <PageShell width="wide" className="flex flex-col">
       {/* Quieter — compact white "command center" header matching the
           worker dashboard: white surface, soft border, ink text, one
           orange primary CTA. Warmth comes from the page bg + white card
@@ -249,7 +243,7 @@ function EmployerDashboardContent() {
             {getUserInitials(employer.companyName)}
           </div>
           <div className="min-w-[14rem] flex-1">
-            <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">
+            <h1 className="truncate text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
               {employer.companyName}
             </h1>
             <p className="mt-1 text-sm text-gray-600">
@@ -415,7 +409,7 @@ function EmployerDashboardContent() {
           {/* Active shifts */}
           <section id="employer-active-shifts">
             <div className="mb-4 flex items-baseline justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
                 {t('employer.dashboard.upcomingShifts')}
               </h2>
               {activeShifts.length > 0 && (
@@ -466,7 +460,7 @@ function EmployerDashboardContent() {
           {/* Pending applications */}
           {pendingApps.length > 0 && (
             <section id="employer-pending-apps">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
+              <h2 className="mb-4 text-xl font-semibold tracking-tight text-gray-900">
                 {t('employer.dashboard.pendingApps').replace('{count}', String(pendingApps.length))}
               </h2>
               <div className="flex flex-col gap-2">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN } from '@/lib/format';
 import { CalendarEventCard } from './CalendarEventCard';
 import type { CalendarEvent } from './WeekView';
@@ -90,6 +91,7 @@ export function AgendaView({
   emptyMessage,
   className,
 }: AgendaViewProps) {
+  const tx = useTx();
   const days = buildDayList(startDateIso, dayCount);
 
   // Group events per day in a single pass for O(n) work, then sort each
@@ -124,7 +126,7 @@ export function AgendaView({
     <div className={wrapperClass}>
       {nonEmptyDays.map((day) => {
         const dayEvents = eventsByDay.get(day) ?? [];
-        const weekday = vnWeekday(day);
+        const weekday = tx(vnWeekday(day));
         const formatted = formatDateVN(day);
         return (
           <section key={day} className="flex flex-col gap-2">

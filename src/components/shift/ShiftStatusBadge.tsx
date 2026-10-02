@@ -1,5 +1,7 @@
+'use client';
+
 import { Badge, type BadgeTone } from '@/components/ui';
-import { shiftStatusLabel } from '@/i18n/vi';
+import { useT } from '@/i18n/LocaleProvider';
 import type { ShiftStatus } from '@/types';
 
 const tonemap: Record<ShiftStatus, BadgeTone> = {
@@ -14,5 +16,6 @@ const tonemap: Record<ShiftStatus, BadgeTone> = {
 };
 
 export function ShiftStatusBadge({ status }: { status: ShiftStatus }) {
-  return <Badge tone={tonemap[status]}>{shiftStatusLabel(status)}</Badge>;
+  const t = useT();
+  return <Badge tone={tonemap[status]}>{t(`shift.status.${status}`)}</Badge>;
 }

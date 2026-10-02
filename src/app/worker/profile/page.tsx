@@ -622,10 +622,10 @@ function WorkerIdentityVerificationCard({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium text-gray-900">
-                  {workerDocLabel(type)}
+                  {tx(workerDocLabel(type))}
                 </span>
                 <Badge tone={verificationStatusTone(status)}>
-                  {verificationStatusLabel(status)}
+                  {tx(verificationStatusLabel(status))}
                 </Badge>
               </div>
               <p className="mt-1 text-xs text-gray-500">{description}</p>

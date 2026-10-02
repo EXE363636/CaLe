@@ -293,7 +293,7 @@ function NewShiftContent() {
     if (getDataMode() !== 'supabase' && (!readiness || !readiness.ready)) {
       showError(
         t('posting.readiness.intro'),
-        readiness?.blockers[0],
+        readiness?.blockers[0] ? tx(readiness.blockers[0]) : undefined,
       );
       return;
     }
@@ -885,6 +885,7 @@ function ReadinessChecklist({
   blockers: string[];
 }) {
   const t = useT();
+  const tx = useTx();
   // Pick which checklist items apply to the current type.
   const items: Array<{ key: string; label: string; ok: boolean }> = [
     {
@@ -973,7 +974,7 @@ function ReadinessChecklist({
       {!ready && blockers.length > 0 && (
         <div className="mt-3 flex flex-col gap-2">
           <p className="text-xs font-medium text-amber-900">
-            {blockers[0]}
+            {tx(blockers[0])}
           </p>
           <p className="text-xs text-amber-800/80">
             {t('posting.readiness.depositLocked')}

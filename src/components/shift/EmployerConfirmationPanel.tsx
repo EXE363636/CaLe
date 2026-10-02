@@ -23,7 +23,8 @@ import {
   type AutoReleaseCountdownProps,
 } from './AutoReleaseCountdown';
 import { Button, HelpPopover } from '@/components/ui';
-import { CHECKOUT_CHECKLIST_ITEMS_VI, t } from '@/i18n/vi';
+import { useT, useTx } from '@/i18n/LocaleProvider';
+import { CHECKOUT_CHECKLIST_ITEMS_VI } from '@/i18n/vi';
 import type { Application, Shift } from '@/types';
 
 export interface EmployerConfirmationPanelProps {
@@ -62,6 +63,8 @@ export function EmployerConfirmationPanel({
   nowSource,
   loading = false,
 }: EmployerConfirmationPanelProps) {
+  const t = useT();
+  const tx = useTx();
   const checkOutAt = application.checkOutAt;
   const checkOutAtLabel = checkOutAt
     ? VN_DATETIME.format(new Date(checkOutAt))
@@ -161,7 +164,7 @@ export function EmployerConfirmationPanel({
                       {submitted ? (ticked ? '✓' : '–') : '?'}
                     </span>
                     <span>
-                      {label}
+                      {tx(label)}
                       {!submitted && (
                         <span className="ml-2 text-xs uppercase tracking-wide">
                           ({t('checklist.row.notSubmitted')})

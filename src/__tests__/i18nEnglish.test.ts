@@ -14,9 +14,20 @@ import { en, enPublic, enPublicText, enText } from '@/i18n/en';
 import { enApp, enAppText } from '@/i18n/en-app';
 import { enDashboard, enDashboardText } from '@/i18n/en-dashboard';
 import { enAdmin, enAdminText } from '@/i18n/en-admin';
-import { enPagesText } from '@/i18n/en-pages';
+import { DEFAULT_SKILL_CATEGORIES } from '@/domain/skillProgression';
+import { SKILL_BADGE_LABEL } from '@/domain/skillScore';
+import { enPages, enPagesText } from '@/i18n/en-pages';
+import { enRoles, enRolesText } from '@/i18n/en-roles';
+import { enUiText } from '@/i18n/en-ui';
+import { enLandingText } from '@/i18n/en-landing';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
-import { vi } from '@/i18n/vi';
+import { CHECKOUT_CHECKLIST_ITEMS_VI, vi } from '@/i18n/vi';
+import {
+  employerDocLabel,
+  employerTypeLabel,
+  verificationStatusLabel,
+  workerDocLabel,
+} from '@/stores/verificationStore';
 
 const ROOT = join(__dirname, '..', '..');
 
@@ -86,6 +97,58 @@ const PHASE1_FILES = [
   'src/app/user-guide/page.tsx',
   'src/app/worker/cancellation-policy/page.tsx',
   'src/app/worker/reputation-guide/page.tsx',
+  // Đợt 2d (02/10): màn nhà tuyển dụng / người lao động — bản dịch ở en-roles.ts.
+  'src/app/employer/payments/page.tsx',
+  'src/app/employer/profile/page.tsx',
+  'src/app/employer/reviews/page.tsx',
+  'src/app/employer/schedule/page.tsx',
+  'src/app/employer/shifts/[id]/page.tsx',
+  'src/app/employer/shifts/new/page.tsx',
+  'src/app/worker/profile/page.tsx',
+  'src/app/worker/schedule/page.tsx',
+  'src/components/calendar/AgendaView.tsx',
+  'src/components/calendar/CalendarLegend.tsx',
+  'src/components/calendar/CalendarToolbar.tsx',
+  'src/components/calendar/DayView.tsx',
+  'src/components/calendar/MiniMonthCalendar.tsx',
+  'src/components/calendar/WeekView.tsx',
+  'src/components/forms/ApplicationActions.tsx',
+  'src/components/forms/DisputeDialog.tsx',
+  'src/components/forms/DisputeResponseDialog.tsx',
+  'src/components/forms/RatingForm.tsx',
+  'src/components/forms/RejectApplicationDialog.tsx',
+  'src/components/forms/ShiftForm.tsx',
+  'src/components/landing/FeaturedJobMockup.tsx',
+  'src/components/layout/UserMenu.tsx',
+  'src/components/payment/DepositWalletConfirm.tsx',
+  'src/components/payment/PayosTopUpQr.tsx',
+  'src/components/shift/EmployerConfirmationPanel.tsx',
+  'src/components/shift/EscrowStatusBadge.tsx',
+  'src/components/shift/PaymentEvidenceCard.tsx',
+  'src/components/shift/ShiftStatusBadge.tsx',
+  'src/components/user/AdminUserProfileModal.tsx',
+  'src/components/user/EmployerFeedbackList.tsx',
+  'src/components/user/EmployerProfileModal.tsx',
+  'src/components/user/EmployerTrustPanel.tsx',
+  'src/components/user/ReputationBadge.tsx',
+  'src/components/user/ReviewList.tsx',
+  'src/components/user/SkillProgressBar.tsx',
+  'src/components/user/VerificationBadge.tsx',
+  'src/components/user/WorkerProfileCard.tsx',
+  'src/components/user/WorkerProfileModal.tsx',
+  'src/components/user/WorkerSummaryRow.tsx',
+  'src/components/verification/AccountVerificationCard.tsx',
+  'src/components/verification/VerificationGateNotice.tsx',
+  'src/components/workerDeposit/WorkerDepositApplyNotice.tsx',
+  'src/components/workerDeposit/WorkerDepositConfirmModal.tsx',
+  'src/components/workerDeposit/WorkerDepositContestPanel.tsx',
+  'src/components/workerDeposit/WorkerDepositStatusCard.tsx',
+  'src/lib/reviewSync.ts',
+  // Đợt UI (02/10): thanh bước vòng đời, ca kế tiếp, chợ ca trống — bản dịch ở en-ui.ts.
+  'src/components/shift/ShiftJourney.tsx',
+  'src/components/shift/OpenShiftsEmpty.tsx',
+  'src/components/landing/RoleHomeCta.tsx',
+  'src/components/landing/LandingPreview.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -205,5 +268,107 @@ describe('i18n English — đợt 2a', () => {
     for (const key of ['availability.match.veryGood', 'availability.match.good', 'availability.match.consider']) {
       expect(enText[vi[key]], key).toBe(en[key]);
     }
+  });
+});
+
+describe('i18n English — đợt 2d', () => {
+  it('đợt 2d không ghi đè câu của các đợt trước', () => {
+    const clash = (later: Record<string, string>, earlier: Record<string, string>) =>
+      Object.keys(later).filter((k) => k in earlier && earlier[k] !== later[k]);
+    expect([
+      ...clash(enRoles, { ...enPublic, ...enApp, ...enDashboard, ...enAdmin, ...enPages }),
+      ...clash(enRolesText, { ...enPublicText, ...enAppText, ...enDashboardText, ...enAdminText, ...enPagesText }),
+      // Đợt UI + landing (02/10) không ghi đè các đợt trước.
+      ...clash(enUiText, { ...enPublicText, ...enAppText, ...enDashboardText, ...enAdminText, ...enPagesText, ...enRolesText }),
+      ...clash(enLandingText, {
+        ...enPublicText,
+        ...enAppText,
+        ...enDashboardText,
+        ...enAdminText,
+        ...enPagesText,
+        ...enRolesText,
+        ...enUiText,
+      }),
+    ]).toEqual([]);
+  });
+
+  it('khoá ghép động của màn nhà tuyển dụng / người lao động có đủ bản tiếng Anh', () => {
+    const prefixes = [
+      'applicantBucket.',
+      'deposit.trust.',
+      'employer.repost.banner.title.',
+      'employerType.',
+      'escrow.',
+      'evidence.helper.',
+      'evidence.requirement.',
+      'review.error.',
+      'schedule.slotCfg.error.',
+      'shift.status.',
+      'shift.timeline.kind.',
+      'shifts.detail.paymentEvidence.prepare.',
+      'verify.card.intro.',
+      'worker.profile.prompt.',
+      'admin.profile.verify.id',
+    ];
+    const missing = Object.keys(vi).filter(
+      (k) => prefixes.some((p) => k.startsWith(p)) && !(k in en),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('câu thời hạn trả công (tSettlement) có bản tiếng Anh cho cả demo lẫn production (.real)', () => {
+    const keys = [
+      'applicantBucket.AwaitingConfirmation.hint',
+      'feedback.checkOut.success.desc',
+      'checkout.dialog.intro',
+      'help.checkout.description',
+      'help.paymentEvidence.description',
+      'shifts.detail.paymentEvidence.confirmRule',
+      'shifts.detail.paymentEvidence.autoReleaseRule',
+    ];
+    const missing = keys.flatMap((k) => [k, `${k}.real`]).filter((k) => !(k in en));
+    expect(missing).toEqual([]);
+    // Câu production không được ghi "mô phỏng" (tiền thật qua PayOS).
+    expect(keys.map((k) => en[`${k}.real`]).filter((v) => /simulat/i.test(v))).toEqual([]);
+  });
+
+  it('nhãn lấy từ store / hằng số (checklist, thứ trong tuần, xác minh) có trong enText', () => {
+    const labels = [
+      ...Object.values(CHECKOUT_CHECKLIST_ITEMS_VI).flat(),
+      ...DEFAULT_SKILL_CATEGORIES,
+      ...Object.values(SKILL_BADGE_LABEL),
+      ...(['Individual', 'HouseholdBusiness', 'Company', 'AgencyEvent'] as const).map(employerTypeLabel),
+      ...(['NationalId', 'StudentCard', 'DriverLicense'] as const).map(workerDocLabel),
+      ...(
+        [
+          'RepresentativeId',
+          'BusinessLicense',
+          'TaxCode',
+          'StorefrontPhoto',
+          'WorkplacePhoto',
+          'EventProof',
+          'AddressProof',
+          'GoogleMapsOrFanpage',
+        ] as const
+      ).map(employerDocLabel),
+      ...(['NotSubmitted', 'Pending', 'Approved', 'NeedsMoreInfo', 'Rejected'] as const).map(
+        verificationStatusLabel,
+      ),
+      'Thứ Hai',
+      'Thứ Ba',
+      'Thứ Tư',
+      'Thứ Năm',
+      'Thứ Sáu',
+      'Thứ Bảy',
+      'Chủ Nhật',
+      'T2',
+      'T3',
+      'T4',
+      'T5',
+      'T6',
+      'T7',
+      'CN',
+    ];
+    expect(labels.filter((s) => !(s in enText))).toEqual([]);
   });
 });
