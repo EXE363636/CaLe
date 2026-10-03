@@ -8,6 +8,7 @@
 
 import { create } from 'zustand';
 
+import { hasCapability } from '@/data/capabilities';
 import { STORAGE_KEYS, write } from '@/data/persistence';
 import { listMyNotifications, markMyNotificationsRead } from '@/data/repos/notificationRepo';
 import { toAppNotification } from '@/domain/serverNotification';
@@ -23,6 +24,11 @@ interface NotificationStore {
    * Push a new notification. The store fills in `id`, `createdAt`, and
    * `read = false`; callers supply `userId`, `kind`, pre-localized `title`
    * and `body`, and an optional `link`.
+   *
+   * Production (`clientNotifications` tắt): KHÔNG lưu — push chạy trên máy
+   * người thao tác (thường là thông báo cho người khác) và không ghi đi đâu,
+   * nên chuông chỉ có thông báo phía server (`refetchServer`). Vẫn trả về bản
+   * thông báo để người gọi không phải rẽ nhánh.
    */
   push(input: Omit<Notification, 'id' | 'createdAt' | 'read'>): Notification;
   markRead(id: string): void;
@@ -90,6 +96,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
       createdAt: new Date().toISOString(),
       read: false,
     };
+    if (!hasCapability('clientNotifications')) return created;
     const next = [created, ...get().notifications];
     set({ notifications: next });
     persist(next);

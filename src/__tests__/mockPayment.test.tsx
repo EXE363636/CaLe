@@ -65,11 +65,13 @@ const nfc = (s: string | null | undefined) => (s ?? '').normalize('NFC');
 afterEach(() => cleanup());
 
 describe('capability mock/live payments', () => {
-  it('supabase: mockPayments bật, livePayments tắt, KHÔNG bật payments thật', () => {
+  // Production chạy tiền thật qua PayOS (0016–0019) → livePayments bật; `payments`
+  // (luồng escrow phía client cũ) vẫn tắt.
+  it('supabase: livePayments bật (PayOS thật), KHÔNG bật payments phía client', () => {
     vi.stubEnv('NEXT_PUBLIC_DATA_MODE', 'supabase');
     const c = capabilities();
     expect(c.mockPayments).toBe(true);
-    expect(c.livePayments).toBe(false);
+    expect(c.livePayments).toBe(true);
     expect(c.payments).toBe(false);
     vi.unstubAllEnvs();
   });

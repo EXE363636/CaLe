@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Thông báo phía server (0031) trong notificationStore: nạp lại thay đúng phần
 // server của người dùng, giữ thông báo tạo ở client; đánh dấu đã đọc ghi về server.
@@ -25,6 +25,10 @@ beforeEach(() => {
   listMyNotifications.mockReset();
   markMyNotificationsRead.mockReset().mockResolvedValue(undefined);
   useNotificationStore.getState().hydrate([]);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('notificationStore — thông báo phía server (0031)', () => {
@@ -103,5 +107,52 @@ describe('notificationStore — thông báo phía server (0031)', () => {
     markMyNotificationsRead.mockRejectedValue(new Error('offline'));
     expect(() => useNotificationStore.getState().markRead('server:a')).not.toThrow();
     await Promise.resolve();
+  });
+});
+
+describe('notificationStore — chế độ supabase: chuông chỉ có thông báo THẬT của người dùng', () => {
+  // Ở production, push() chạy trên máy NGƯỜI THAO TÁC (vd. nhà tuyển dụng duyệt đơn →
+  // thông báo cho người lao động; admin xử lý → thông báo cho người khác). Lưu lại thì
+  // máy này hiện thông báo không ai khác thấy và mất khi tải lại → không được lưu.
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_DATA_MODE', 'supabase');
+  });
+
+  it('push() không lưu thông báo tạo ở client (của mình hay của người khác)', () => {
+    useNotificationStore.getState().push({ userId: 'u1', kind: 'UserTopUp', title: 'mine', body: '' });
+    useNotificationStore.getState().push({ userId: 'u2', kind: 'ApplicationApproved', title: 'other', body: '' });
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+    expect(useNotificationStore.getState().unreadCount('u1')).toBe(0);
+  });
+
+  it('thông báo server vẫn hiện + đếm chưa đọc đúng; push() sau đó không làm lệch số', async () => {
+    listMyNotifications.mockResolvedValue([
+      serverRow('a'),
+      serverRow('b', { readAt: '2026-10-01T11:00:00.000Z' }),
+    ]);
+    await useNotificationStore.getState().refetchServer('u1');
+    useNotificationStore.getState().push({ userId: 'u1', kind: 'UserTopUp', title: 'local', body: '' });
+    expect(useNotificationStore.getState().forUser('u1').map((n) => n.id).sort()).toEqual([
+      'server:a',
+      'server:b',
+    ]);
+    expect(useNotificationStore.getState().unreadCount('u1')).toBe(1);
+
+    useNotificationStore.getState().markRead('server:a');
+    expect(markMyNotificationsRead).toHaveBeenCalledWith(['a']);
+    expect(useNotificationStore.getState().unreadCount('u1')).toBe(0);
+  });
+
+  it('đăng xuất (clearServer) → chuông rỗng', async () => {
+    listMyNotifications.mockResolvedValue([serverRow('a')]);
+    await useNotificationStore.getState().refetchServer('u1');
+    useNotificationStore.getState().clearServer();
+    expect(useNotificationStore.getState().notifications).toHaveLength(0);
+  });
+
+  it('chế độ local giữ nguyên: push() vẫn lưu', () => {
+    vi.stubEnv('NEXT_PUBLIC_DATA_MODE', 'local');
+    useNotificationStore.getState().push({ userId: 'u1', kind: 'UserTopUp', title: 'local', body: '' });
+    expect(useNotificationStore.getState().forUser('u1')).toHaveLength(1);
   });
 });

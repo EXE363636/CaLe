@@ -251,9 +251,12 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
       useApplicationStore.getState().hydrateRatings([]);
       useApplicationStore.getState().hydrateDisputes([]);
       useNotificationStore.getState().hydrate([]);
-      // Lịch cá nhân (bận/rảnh) CHƯA có bảng server → lưu trên thiết bị này
-      // (localStorage). Nạp lại để không mất sau mỗi lần tải trang; trang
-      // lịch lọc theo currentUserId nên không lẫn lịch của tài khoản khác.
+      // Lịch cá nhân (bận/rảnh): server là nguồn sự thật (0023 `schedule_blocks`,
+      // restoreAuth → refetchMine). Bản trên thiết bị (localStorage) chỉ nạp tạm
+      // ở đây: refetchMine tải lên một lần các khối tạo trước khi có bảng rồi
+      // thay bằng danh sách server; server chưa có 0023 thì giữ lịch trên thiết
+      // bị (`serverSync: 'off'`). Trang lịch lọc theo currentUserId nên không
+      // lẫn lịch của tài khoản khác.
       const storedBlocks = read<ScheduleBlock[]>(STORAGE_KEYS.scheduleBlocks, []);
       useScheduleStore
         .getState()
