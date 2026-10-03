@@ -67,6 +67,8 @@ export interface PayoutHealth {
   failed24h: number;
   /** Lệnh rút đang chờ / đang xử lý. */
   processingCount: number;
+  /** Ca còn cọc HELD quá hạn tự chốt (lượt quét bỏ qua vì lỗi) — 0033. */
+  stuckDeposits: number;
 }
 
 /** Tình trạng Kênh chi (chỉ admin; RPC admin_payout_health, 0019). */
@@ -79,6 +81,7 @@ export async function getPayoutHealth(): Promise<PayoutHealth> {
     lastInsufficientAt: sOpt(o.lastInsufficientAt) ?? null,
     failed24h: num(o.failed24h),
     processingCount: num(o.processingCount),
+    stuckDeposits: num(o.stuckDeposits),
   };
 }
 

@@ -2452,6 +2452,8 @@ export const vi: Record<string, string> = {
     '{count} lệnh rút trong 24 giờ qua bị từ chối vì tài khoản chi không đủ số dư. Tiền đã tự hoàn về ví người dùng — hãy nạp thêm vào tài khoản chi (ví Bảo Kim) để họ rút lại được.',
   'admin.payoutHealth.lowFunds.last': 'Lần gần nhất:',
   'admin.payoutHealth.processing': '{count} lệnh rút đang chờ PayOS xử lý.',
+  'admin.payoutHealth.stuckDeposits':
+    '{count} ca còn giữ cọc quá hạn tự chốt (lượt tự chốt gặp lỗi ở ca này). Cần kiểm tra để trả công / hoàn cọc.',
   'wallet.error.depositNotHeld':
     'Tiền cọc của ca này đã được chốt, không thể trả thêm tiền công. Vui lòng liên hệ hỗ trợ.',
   'attendance.revert.button': 'Đến muộn - chuyển sang có mặt',
