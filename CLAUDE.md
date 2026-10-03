@@ -28,17 +28,20 @@ nghiêm trọng").
 qua vòng đời: đăng ca → ứng tuyển → duyệt → theo dõi trạng thái → check-in/out →
 hoàn thành → đánh giá → đối soát.
 
-**Trạng thái quan trọng:** hiện là **demo/prototype chạy hoàn toàn ở trình
-duyệt**, dữ liệu lưu `localStorage`. **CHƯA có backend** (không API route, không
-DB, không auth server thật). Ví/escrow/cọc/check-in đều là **mô phỏng** và UI
-phải nói đúng như thế.
+**Trạng thái quan trọng (cập nhật 03/10/2026):** app chạy theo **hai chế độ**, chọn bằng
+`NEXT_PUBLIC_DATA_MODE`:
+- **local / demo** (mặc định, cũng là chế độ của e2e): chạy hoàn toàn ở trình duyệt, dữ liệu
+  `localStorage`; ví/cọc/check-in đều là **mô phỏng** và UI phải nói đúng như thế.
+- **supabase = production** (`https://cale.io.vn`, thử nghiệm giới hạn Beta): Supabase Postgres +
+  RLS + Edge Functions; nạp / giữ cọc / trả công / hoàn cọc / rút tiền là **tiền thật qua PayOS**.
+  Tính năng nào đã nối server thật: xem `src/data/capabilities.ts` (nguồn sự thật duy nhất).
 
 **Tên hiển thị:** dùng **CaLẻ** ở mọi bề mặt hướng người dùng; chỉ dùng
 **CaLẻ / Now** trong tài liệu nội bộ/kỹ thuật.
 
 ### Ba vai trò
 - **Worker (người lao động):** tìm ca, ứng tuyển, check-in/out, ví, điểm uy tín + kỹ năng. Copy xưng "bạn".
-- **Employer (nhà tuyển dụng):** đăng ca, đặt cọc (mô phỏng), duyệt ứng viên, xác nhận có mặt/hoàn thành, khiếu nại. Copy dùng "người lao động".
+- **Employer (nhà tuyển dụng):** đăng ca, giữ cọc (demo: mô phỏng; production: tiền thật qua PayOS), duyệt ứng viên, xác nhận có mặt/hoàn thành, khiếu nại. Copy dùng "người lao động".
 - **Admin (quản trị viên):** xác minh giấy tờ, xử lý tranh chấp, override trạng thái, điều chỉnh uy tín. Copy trung lập.
 
 ---
@@ -50,13 +53,12 @@ phải nói đúng như thế.
 | Framework | **Next.js 16** (App Router, Turbopack) |
 | UI | **React 19** + **TypeScript 5** + **Tailwind v4** (không config file, không dùng `dark:`) |
 | State | **Zustand 5** — mỗi domain một store |
-| Persistence | **localStorage** (mock) qua `src/data/persistence.ts` |
+| Persistence | demo: **localStorage** qua `src/data/persistence.ts`; production: **Supabase** qua `src/data/repos/*` |
+| Backend | **Supabase** (Postgres + RLS, `supabase/migrations` 32 migration, Edge Functions `create-payment`, `payos-webhook`, `withdraw`, `phone-otp`, `admin-users`) + **PayOS** |
 | Test đơn vị | **Vitest 4** + `fast-check` (property-based) |
-| Test E2E | **Playwright** (chromium, cần dev server ở port 3000) |
-| Backend (kế hoạch) | **Supabase / Postgres** — chưa bắt đầu |
+| Test E2E | **Playwright** (chromium, tự mở dev server riêng ở cổng `E2E_PORT`, mặc định 3100, chế độ local) |
 
-Dependencies runtime chỉ có: `next`, `react`, `react-dom`, `zustand`. Không có
-dependency backend nào.
+Dependencies runtime: `next`, `react`, `react-dom`, `zustand`, `@supabase/supabase-js`, `react-qr-code`.
 
 ---
 
@@ -64,38 +66,42 @@ dependency backend nào.
 
 ```
 src/
-  app/                    # App Router — 33 route (page.tsx)
-    page.tsx              # chọn vai trò (→ for-workers / for-employers)
-    for-workers, for-employers  # trang giới thiệu theo vai trò (P1 F4; 30/09 đổi từ viec-lam / tuyen-dung, có redirect)
-    login, register
+  app/                    # App Router — 25 route (page.tsx), đếm ngày 03/10/2026
+    page.tsx              # trang chủ (giới thiệu chung, khối "Về CaLẻ" #home-about, "Cách hoạt động" #home-how)
+    for-workers, for-employers  # trang theo vai trò (đã gộp các trang hướng dẫn nhỏ + bảng giá #employer-pricing)
+    login, register, forgot-password
     shifts/, shifts/[id]/
-    worker/dashboard, worker/profile, worker/schedule, worker/reputation-guide, worker/cancellation-policy
-    employer/dashboard, employer/shifts/new, employer/shifts/[id], employer/payments, employer/profile, employer/reviews, employer/schedule
+    worker/dashboard, worker/profile, worker/schedule
+    employer/dashboard, employer/shifts/new, employer/shifts/[id], employer/profile, employer/schedule
     admin/dashboard/
     disputes/
-    (trang thông tin) about, faq, how-it-works, safety, terms, privacy, support, user-guide, handbook, handbook/[slug]
-    layout.tsx           # root layout: AppHydrator + NavBar + Footer + ToastHost
-    globals.css          # NGUỒN SỰ THẬT palette (khối :root + @theme)
-  domain/                # 33 module logic THUẦN (không React/IO) — server tái dùng được
-  stores/                # 15 Zustand store (barrel: stores/index.ts)
-  components/            # ui / layout / shift / user / forms / calendar / handbook / landing / wallet / about
+    (thông tin / pháp lý) faq, terms, privacy, support (#support-safety), user-guide, handbook, handbook/[slug]
+    layout.tsx           # root layout: <body class="public-skin"> + AppHydrator + NavBar + Footer + ToastHost + HashLinkHandler
+    globals.css          # NGUỒN SỰ THẬT palette (khối :root + @theme + .public-skin)
+  domain/                # ~40 module logic THUẦN (không React/IO) — server tái dùng được
+  stores/                # 16 Zustand store (barrel: stores/index.ts)
+  components/            # ui / layout / shift / user / forms / calendar / handbook / landing / legal / about / dashboard / wallet / payment / workerDeposit / verification / auth / analytics
   data/
-    persistence.ts       # loadAll/persistAll, SCHEMA_VERSION, STORAGE_KEYS, export/import snapshot
-    seed/*.json          # dữ liệu seed (users, shifts, applications, ...)
-    mock/                # handbookArticles.ts
-  lib/                   # helper: format, ids, validate, notificationTarget, useLifecycleSync, ...
-  i18n/vi.ts             # toàn bộ chuỗi tiếng Việt (nguồn sự thật copy)
+    persistence.ts       # loadAll/persistAll, SCHEMA_VERSION, STORAGE_KEYS, export/import snapshot (demo)
+    repos/               # truy cập Supabase theo bảng (production)
+    capabilities.ts      # tính năng nào đã có backend thật theo data mode
+    supabaseClient.ts    # isSupabaseEnv(), client lười
+    seed/*.json          # dữ liệu seed demo (users, shifts, applications, ...)
+    mock/                # handbookArticles.ts (+ bản tiếng Anh)
+  lib/                   # helper: format, ids, validate, notificationTarget, useLifecycleSync, hashNav, ...
+  i18n/                  # vi.ts (nguồn sự thật copy) + en*.ts (bản tiếng Anh theo đợt)
   types/index.ts         # toàn bộ mô hình dữ liệu, chú thích theo từng phase
-  __tests__/             # 46 file unit + property (thư mục properties/, generators/)
-e2e/                     # 23 spec Playwright + fixtures/
-docs/                    # tài liệu handoff, backend plan, security note
+  __tests__/             # unit + property (properties/, generators/); tổng ~97 file *.test.ts(x) trong src/
+supabase/                # migrations/, functions/ (Edge), dryrun/run-00NN.sh (chạy thử trong transaction + rollback), tests/
+e2e/                     # 43 spec Playwright + fixtures/
+docs/                    # handoff theo phiên (HANDOFF_SESSION_*.md), backend plan, security note
 .kiro/specs/             # spec requirements/design/tasks các phase (tài liệu lịch sử)
 ```
 
 ### Kiến trúc dữ liệu (quan trọng để hiểu)
 - **`types/index.ts`** là nguồn sự thật mô hình. Timestamp = ISO 8601 string; date = `YYYY-MM-DD`; time = `HH:mm`; tiền = số nguyên đồng.
 - **`domain/`** chứa hàm thuần: lifecycle, escrow, reputation, wage, conflict, evidence, skillProgression, availabilityMatch... Không phụ thuộc React → **server backend tái dùng được nguyên vẹn**.
-- **`stores/`** là lớp duy nhất truy cập dữ liệu. Mỗi mutation ghi lại `localStorage` qua `persist(...)`. Đây là chỗ sẽ thay bằng Supabase call — **interface store giữ nguyên**.
+- **`stores/`** là lớp duy nhất UI dùng để truy cập dữ liệu. Chế độ demo: mỗi mutation ghi lại `localStorage` qua `persist(...)`; chế độ production: store gọi `data/repos/*` (Supabase), tiền đi qua RPC / Edge Function trên server — **interface store giữ nguyên**.
 - **`AppHydrator`** (client, mount 1 lần ở layout) gọi `loadAll()` rồi seed mọi store, chạy `runLifecycleSync()`, validate auth.
 
 ---
@@ -104,18 +110,19 @@ docs/                    # tài liệu handoff, backend plan, security note
 
 ```bash
 npm run dev          # dev server (port 3000)
-npm run build        # build production — BẤT BIẾN: đúng 33 route (29/09: +/for-workers, /for-employers)
+npm run build        # build production — 25 route + _not-found (03/10/2026; route cũ có redirect trong next.config.ts)
 npm run test:run     # unit test (Vitest, chạy 1 lần)
 npm run test:time    # bộ time-travel lifecycle
-npm run test:e2e     # Playwright (cần dev server ở 3000)
+npm run test:e2e     # Playwright (tự mở dev server ở cổng E2E_PORT, mặc định 3100)
 npm run lint         # eslint
 npx tsc --noEmit     # type-check
 ```
 
 ### Lưu ý môi trường
 - Windows: terminal có thể hiển thị tiếng Việt bị **mojibake** — ghi báo cáo ra file UTF-8, pipe log ra file.
-- **Không có git** trong thư mục này (repo chưa init). Không auto-commit trừ khi được yêu cầu.
-- **Ngày "hôm nay" trong môi trường là 2026-09-15** — nhiều test dùng mốc thời gian cứng ~giữa 2026; xem `HANDOFF.md` mục lỗi.
+- **Có git** (remote GitHub, nhánh chính `main`). Mỗi việc một nhánh riêng; chỉ commit / push / merge khi chủ dự án bảo rõ. Merge `main` chỉ sau khi migration của nhánh đó đã được chủ dự án `db push`.
+- Không tự `db push` hay deploy Edge Function: chỉ chạy thử migration trong transaction + rollback (`supabase/dryrun/run-00NN.sh`).
+- Ngày trong môi trường theo đồng hồ thật; nhiều test dùng mốc thời gian cứng (~giữa 2026) hoặc `page.clock` của Playwright.
 
 ---
 
@@ -167,7 +174,7 @@ npx tsc --noEmit     # type-check
 
 ## 6. Design system (tóm tắt)
 
-- **Bảng màu:** nền kem ấm `#FFF4E9`, một màu thương hiệu duy nhất là cam tín hiệu `#FF9A5F` (dùng ≤10% mỗi màn app, chỉ cho hành động + điểm nhấn). Cam đậm `#ea580c` cho chữ/viền. Bộ màu trạng thái ngữ nghĩa (info/warning/success/danger/neutral/purple) — mỗi cái là cặp nền nhạt + mực đậm.
+- **Bảng màu (03/10/2026):** cả app và trang công khai dùng chung da `.public-skin` (gắn ở `<body>`, xem `globals.css` + DESIGN.md). Giao diện sáng: nền trắng ngà `#FBF9F6` (trang công khai xen kẽ giấy ấm `#F2EEE8`), thẻ trắng nổi lên; một màu thương hiệu duy nhất là cam `#FF8A3D` (token gốc `:root --brand` vẫn là `#FF9A5F`, da khai lại; dùng ≤10% mỗi màn app, chỉ cho hành động + điểm nhấn); nền cam nhạt trung tính `orange-50` `#FFF5EE` … `200` `#FFD9BF`; mực `#1E1E22`. Giao diện tối: nền `#141416` < giấy `#19191c` < thẻ `#24242a`. Cam đậm `#ea580c` cho chữ/viền. Bộ màu trạng thái ngữ nghĩa (info/warning/success/danger/neutral/purple) — mỗi cái là cặp nền nhạt + mực đậm.
 - **Chữ:** một họ Inter (subset latin + vietnamese), phân cấp bằng weight/cỡ. Thang cỡ cố định trong app (không `clamp()`); chỉ hero landing mới co giãn.
 - **Trạng thái không bao giờ chỉ dựa vào màu** — luôn kèm nhãn chữ.
 - **Component đặc trưng:** `ShiftLifecycleBadge` (badge trạng thái ca duy nhất, dùng mọi nơi).
@@ -195,6 +202,7 @@ npx tsc --noEmit     # type-check
 - `PRODUCT.md` — người dùng, mục đích, brand, anti-references, design principles, a11y.
 - `DESIGN.md` — design system đầy đủ (màu, typography, elevation, component, do/don't).
 - `HANDOFF.md` — trạng thái hiện tại, lỗi đã phát hiện, kế hoạch backend, rủi ro, bước tiếp theo. **Đọc file này để biết nên làm gì.**
+- `docs/HANDOFF_SESSION_*.md` — bàn giao theo phiên, mới hơn `HANDOFF.md` (bản mới nhất: `docs/HANDOFF_SESSION_2026-10-03_UI_REDESIGN.md`; việc còn dở: `docs/HANDOFF_2026-10-02_VIEC_DINH_LAM.md`). `HANDOFF.md` gốc chưa cập nhật từ khi có production.
 - `docs/BACKEND_MIGRATION_PLAN.md` — kế hoạch backend cho chủ dự án (không kỹ thuật).
 - `docs/KIRO_HANDOFF_CURRENT_STATE.md` — bàn giao trạng thái (lịch sử các phase CORE-STABILITY).
 - `docs/CURRENT_TODO.md` — checklist QA thủ công + thứ tự migration.
