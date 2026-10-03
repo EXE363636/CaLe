@@ -225,7 +225,14 @@ export type NotificationKind =
    * tra (0029) — cộng vào ví / không cộng. Deeplink lịch sử ví.
    */
   | 'PaymentReviewCredited'
-  | 'PaymentReviewDismissed';
+  | 'PaymentReviewDismissed'
+  /**
+   * 0035 — tin nhắn mới trong cuộc trò chuyện của một đơn ứng tuyển. MỘT
+   * thông báo chưa đọc cho mỗi cuộc trò chuyện (dedupe `chat:<applicationId>`).
+   * Deeplink: người lao động `/shifts/{shiftId}?chat=1`, nhà tuyển dụng
+   * `/employer/shifts/{shiftId}?chat={applicationId}`.
+   */
+  | 'ChatMessage';
 
 /**
  * Phase 6: classification of an employer account. Individual / freelance
@@ -1073,6 +1080,51 @@ export interface Notification {
    */
   source?: 'server';
   serverId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// 0035 — chat người lao động ↔ nhà tuyển dụng (mỗi đơn ứng tuyển một cuộc)
+// ---------------------------------------------------------------------------
+
+/** Quyền với cuộc trò chuyện — khớp `chatAccess` trong `src/domain/chat.ts`. */
+export type ChatAccessLevel = 'none' | 'open' | 'readonly';
+
+export interface ChatMessage {
+  id: string;
+  applicationId: string;
+  senderId: string;
+  /** Chỉ chữ, đã cắt khoảng trắng hai đầu, ≤ 1000 ký tự. */
+  body: string;
+  createdAt: string;
+  /** Đã có người báo cáo tin này (server chỉ trả cờ, không trả lý do). */
+  reported: boolean;
+  /** Chế độ local/demo: lý do báo cáo (không bao giờ hiện cho người gửi). */
+  reportReason?: string;
+  reportedBy?: string;
+}
+
+/** Chế độ local/demo: lần đọc cuối của một người trong một cuộc trò chuyện. */
+export interface ChatRead {
+  applicationId: string;
+  userId: string;
+  lastReadAt: string;
+}
+
+export interface ChatThread {
+  applicationId: string;
+  shiftId: string;
+  shiftTitle: string;
+  /** `YYYY-MM-DD`. */
+  shiftDate: string;
+  otherUserId: string;
+  /** Tên công ty (người lao động xem) hoặc họ tên người lao động (nhà tuyển dụng xem). */
+  otherName: string;
+  myRole: 'worker' | 'employer';
+  access: ChatAccessLevel;
+  lastBody?: string;
+  lastAt?: string;
+  lastSenderId?: string;
+  unread: number;
 }
 
 export interface Dispute {

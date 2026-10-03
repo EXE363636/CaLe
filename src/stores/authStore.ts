@@ -24,6 +24,7 @@ import { newPrefixedId } from '@/lib/ids';
 import type { Result, Role, User, Worker, Employer } from '@/types';
 
 import { useNotificationStore } from './notificationStore';
+import { useChatStore } from './chatStore';
 import { useUserStore } from './userStore';
 
 // ---------------------------------------------------------------------------
@@ -401,6 +402,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // Thông báo server (0031: mã đơn, số tiền, ghi chú admin) cũng vậy.
       useNotificationStore.getState().clearServer();
     }
+    // 0035 — huỷ mọi kênh chat Realtime + xoá tin trong bộ nhớ (cả hai chế độ).
+    useChatStore.getState().clear();
     set({ currentUserId: null, lastActivityAt: null, pendingOAuth: null });
     persistAuth(null, null);
   },
@@ -527,6 +530,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (current && current !== uid) {
       useUserStore.getState().resetToSeedUsers();
       useNotificationStore.getState().clearServer();
+      useChatStore.getState().clear();
     }
     let user: User | null;
     try {
@@ -558,6 +562,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         // Xoá private user cũ + khôi phục seed (guardrail 4).
         useUserStore.getState().resetToSeedUsers();
         useNotificationStore.getState().clearServer();
+        useChatStore.getState().clear();
         set({ currentUserId: null, lastActivityAt: null, pendingOAuth: null });
         return;
       }

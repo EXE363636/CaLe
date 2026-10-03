@@ -72,8 +72,8 @@ trong khi lớp lưu trữ được thay bên dưới.
 
 ## 4. Hoãn (không làm bây giờ)
 
-- **Chat đầy đủ** (chỉ thêm khi core ổn định + hoàn chỉnh — xem
-  `qa-exploration/chat-readiness-decision.md`).
+- ~~Chat đầy đủ~~ — chủ dự án mở lại 02/10/2026: chat theo đơn ứng tuyển (nhánh
+  `feat/chat`, migration 0035). Ảnh / tệp trong chat vẫn hoãn.
 - **Staff supply / agency mode** (xem
   `qa-exploration/staff-supply-proposal.md`).
 - **AI matching nâng cao** (gợi ý ca hiện tại là rule-based, không phải

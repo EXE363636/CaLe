@@ -3090,6 +3090,64 @@ export const vi: Record<string, string> = {
   'about.partners.group.payments': 'Cổng thanh toán',
   'about.partners.group.seasonal': 'Doanh nghiệp thời vụ',
   'about.partners.group.verification': 'Đối tác xác minh & an toàn',
+
+  // --- 0035: chat người lao động ↔ nhà tuyển dụng (mỗi đơn một cuộc) ----------
+  'notification.kind.ChatMessage': 'Tin nhắn mới',
+  'notification.chat.title': 'Tin nhắn mới về ca {shiftTitle}',
+  'notification.chat.body.fromWorker': 'Người lao động vừa nhắn tin cho bạn. Mở để xem và trả lời.',
+  'notification.chat.body.fromEmployer': 'Nhà tuyển dụng vừa nhắn tin cho bạn. Mở để xem và trả lời.',
+  'notification.chat.body.generic': 'Bạn có tin nhắn mới. Mở để xem và trả lời.',
+  'chat.error.notAvailable': 'Cuộc trò chuyện này không mở cho bạn.',
+  'chat.error.closed': 'Cuộc trò chuyện đã đóng, chỉ xem lại được.',
+  'chat.error.empty': 'Vui lòng nhập nội dung tin nhắn.',
+  'chat.error.tooLong': 'Tin nhắn dài quá 1000 ký tự. Vui lòng rút gọn.',
+  'chat.error.cannotReportOwn': 'Bạn không thể báo cáo tin nhắn của chính mình.',
+  'chat.error.dailyLimit': 'Bạn đã gửi quá nhiều tin nhắn hôm nay. Vui lòng thử lại vào ngày mai.',
+  'chat.error.loadFailed': 'Không tải được tin nhắn. Vui lòng thử lại.',
+  'chat.worker.open': 'Nhắn với nhà tuyển dụng',
+  'chat.worker.view': 'Xem lại tin nhắn với nhà tuyển dụng',
+  'chat.worker.title': 'Trao đổi với nhà tuyển dụng',
+  'chat.worker.intro':
+    'Hỏi nhanh về giờ đến, chỗ gửi xe, đồng phục… Nhà tuyển dụng nhận được thông báo khi bạn nhắn.',
+  'chat.employer.open': 'Nhắn tin',
+  'chat.employer.openWith': 'Nhắn tin với {name}',
+  'chat.employer.title': 'Trao đổi với {name}',
+  'chat.employer.intro':
+    'Dặn người lao động giờ đến, chỗ gửi xe, đồng phục… Người lao động nhận được thông báo khi bạn nhắn.',
+  'chat.unread': '{count} tin chưa đọc',
+  'chat.list.label': 'Tin nhắn',
+  'chat.empty.worker':
+    'Chưa có tin nhắn nào. Bạn có thể hỏi nhà tuyển dụng về giờ đến, chỗ gửi xe hay đồng phục.',
+  'chat.empty.employer':
+    'Chưa có tin nhắn nào. Bạn có thể dặn người lao động giờ đến, chỗ gửi xe hay đồng phục.',
+  'chat.empty.readonly': 'Cuộc trò chuyện này không có tin nhắn nào.',
+  'chat.loading': 'Đang tải tin nhắn…',
+  'chat.loadOlder': 'Xem tin cũ hơn',
+  'chat.sender.me': 'Bạn',
+  'chat.sender.worker': 'Người lao động',
+  'chat.sender.employer': 'Nhà tuyển dụng',
+  'chat.reported': 'Đã báo cáo',
+  'chat.composer.label': 'Tin nhắn của bạn',
+  'chat.composer.placeholder': 'Nhập tin nhắn…',
+  'chat.composer.hint': 'Enter để gửi, Shift + Enter để xuống dòng.',
+  'chat.composer.counter': '{count}/{max} ký tự',
+  'chat.composer.overLimit': 'Vượt quá {max} ký tự.',
+  'chat.send': 'Gửi',
+  'chat.readonly': 'Cuộc trò chuyện đã đóng, chỉ xem lại được.',
+  'chat.readonly.why':
+    'Cuộc trò chuyện đóng sau 7 ngày kể từ khi ca kết thúc, hoặc khi đơn ứng tuyển / ca làm bị huỷ.',
+  'chat.offPlatform':
+    'Giữ trao đổi và thanh toán trên CaLẻ. Nếu chuyển khoản riêng hoặc chuyển sang Zalo, Telegram…, giao dịch đó không được ghi nhận trên CaLẻ và CaLẻ không xử lý được tranh chấp cho nó.',
+  'chat.demoNote': 'Bản demo: tin nhắn chỉ lưu trên trình duyệt này.',
+  'chat.report': 'Báo cáo',
+  'chat.report.aria': 'Báo cáo tin nhắn lúc {time}',
+  'chat.report.title': 'Báo cáo tin nhắn',
+  'chat.report.intro':
+    'Cho quản trị viên CaLẻ biết vì sao tin nhắn này không phù hợp (lừa đảo, xúc phạm, đòi giao dịch ngoài CaLẻ…). Quản trị viên sẽ xem lại cuộc trò chuyện.',
+  'chat.report.reasonLabel': 'Lý do báo cáo',
+  'chat.report.reasonPlaceholder': 'Ví dụ: đòi chuyển khoản riêng, lời lẽ xúc phạm…',
+  'chat.report.submit': 'Gửi báo cáo',
+  'chat.report.success': 'Đã gửi báo cáo. Quản trị viên sẽ xem lại.',
 };
 
 // ---------------------------------------------------------------------------

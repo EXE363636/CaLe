@@ -18,7 +18,8 @@ import { DEFAULT_SKILL_CATEGORIES } from '@/domain/skillProgression';
 import { SKILL_BADGE_LABEL } from '@/domain/skillScore';
 import { enPages, enPagesText } from '@/i18n/en-pages';
 import { enRoles, enRolesText } from '@/i18n/en-roles';
-import { enUiText } from '@/i18n/en-ui';
+import { enUi, enUiText } from '@/i18n/en-ui';
+import { enChat } from '@/i18n/en-chat';
 import { enLandingText } from '@/i18n/en-landing';
 import { LANDING_SAMPLE_TEXTS } from '@/components/landing/landingSamples';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
@@ -164,6 +165,13 @@ const PHASE1_FILES = [
   'src/components/landing/JobWageHint.tsx',
   'src/components/landing/ReviewFlowPreview.tsx',
   'src/components/landing/RoleBand.tsx',
+  // 0035 (03/10): chat người lao động ↔ nhà tuyển dụng — bản dịch ở en-chat.ts.
+  'src/components/chat/ChatPanel.tsx',
+  'src/components/chat/ChatButton.tsx',
+  'src/components/chat/WorkerShiftChat.tsx',
+  'src/components/chat/EmployerShiftChat.tsx',
+  'src/stores/chatStore.ts',
+  'src/domain/serverNotification.ts',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -385,6 +393,19 @@ describe('i18n English — đợt 2d', () => {
       'CN',
     ];
     expect(labels.filter((s) => !(s in enText))).toEqual([]);
+  });
+});
+
+describe('i18n English — chat (0035)', () => {
+  it('mọi khoá chat / thông báo chat có bản tiếng Anh, không ghi đè đợt trước, không ghi "simulated"', () => {
+    const missing = Object.keys(vi).filter(
+      (k) => (k.startsWith('chat.') || k.startsWith('notification.chat.') || k === 'notification.kind.ChatMessage') && !(k in en),
+    );
+    expect(missing).toEqual([]);
+    const earlier = { ...enPublic, ...enApp, ...enDashboard, ...enAdmin, ...enPages, ...enRoles, ...enUi };
+    expect(Object.keys(enChat).filter((k) => k in earlier && earlier[k] !== enChat[k])).toEqual([]);
+    // Chỉ câu ghi chú demo được nói "Demo"; không câu nào gọi chat / thanh toán là mô phỏng.
+    expect(Object.values(enChat).filter((v) => /simulat/i.test(v))).toEqual([]);
   });
 });
 

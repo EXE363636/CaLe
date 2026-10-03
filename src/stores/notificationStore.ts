@@ -45,6 +45,14 @@ interface NotificationStore {
 
   /** Bỏ mọi thông báo server khỏi bộ nhớ (đăng xuất / đổi tài khoản). */
   clearServer(): void;
+
+  /**
+   * 0035 — đánh dấu đã đọc các thông báo có `dedupeKey` đúng `key` hoặc bắt đầu
+   * bằng `key + ':'` (vd. `chat:<applicationId>` khi mở cuộc trò chuyện). Chỉ
+   * đổi trong bộ nhớ / localStorage, KHÔNG gọi server — phía server đã tự đánh
+   * dấu (RPC `mark_chat_read`).
+   */
+  markReadByDedupeKey(userId: string, key: string): void;
 }
 
 // Thông báo server không ghi localStorage: nguồn sự thật là server.
@@ -145,5 +153,17 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   clearServer() {
     set({ notifications: get().notifications.filter((n) => n.source !== 'server') });
+  },
+
+  markReadByDedupeKey(userId, key) {
+    const hit = (n: Notification) =>
+      n.userId === userId &&
+      !n.read &&
+      !!n.dedupeKey &&
+      (n.dedupeKey === key || n.dedupeKey.startsWith(`${key}:`));
+    if (!get().notifications.some(hit)) return;
+    const next = get().notifications.map((n) => (hit(n) ? { ...n, read: true } : n));
+    set({ notifications: next });
+    persist(next);
   },
 }));

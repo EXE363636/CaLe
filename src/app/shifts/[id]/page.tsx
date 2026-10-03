@@ -31,6 +31,7 @@ import {
 import { EmployerFeedbackForm } from '@/components/forms/EmployerFeedbackForm';
 import { EmployerProfileModal } from '@/components/user/EmployerProfileModal';
 import { EmployerTrustPanel } from '@/components/user/EmployerTrustPanel';
+import { WorkerShiftChat } from '@/components/chat/WorkerShiftChat';
 import { Button, ButtonLink } from '@/components/ui';
 import { quotaUsage } from '@/domain/cancellationQuota';
 import { canCheckIn, canCheckOut, isLateCheckout } from '@/domain/timeGates';
@@ -472,6 +473,9 @@ function ShiftDetailContent({ shift }: { shift: Shift }) {
           onOpenProfile={() => setEmployerModalOpen(true)}
         />
       )}
+
+      {/* 0035 — chat với nhà tuyển dụng (sau khi đơn được duyệt; tự ẩn nếu không có). */}
+      <WorkerShiftChat shift={shift} />
 
       {/* Key info grid */}
       <div

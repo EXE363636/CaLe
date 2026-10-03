@@ -29,6 +29,7 @@ import { getUserRepo } from '@/data/repos/userRepo';
 import { syncOverdueSettlements } from '@/data/repos/walletRepo';
 import {
   useApplicationStore,
+  useChatStore,
   useAuthStore,
   useEmployerFeedbackStore,
   useHydrationStore,
@@ -145,6 +146,11 @@ async function refetchPhase2Supabase(): Promise<void> {
       .getState()
       .refetchServer(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
       .catch(() => undefined);
+    // 0035 — cuộc trò chuyện + số tin chưa đọc. Lỗi (vd. DB chưa có 0035) không chặn boot.
+    await useChatStore
+      .getState()
+      .loadThreads(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
+      .catch(() => undefined);
   }
 }
 
@@ -243,6 +249,7 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
       useReviewReportStore.getState().hydrate([]);
       useShiftDraftStore.getState().hydrate([]);
       useWalletStore.getState().hydrate([], []);
+      useChatStore.getState().hydrate([], []);
       // Không backfill ví, không runLifecycleSync trên seed (không có seed).
     } else {
       // Local/demo: hydrate mọi slice từ localStorage seed (giữ nguyên baseline).
@@ -265,6 +272,7 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
       useReviewReportStore.getState().hydrate(snapshot.reviewReports);
       useShiftDraftStore.getState().hydrate(snapshot.shiftDrafts);
       useWalletStore.getState().hydrate(snapshot.wallets, snapshot.walletLedger);
+      useChatStore.getState().hydrate(snapshot.chatMessages, snapshot.chatReads);
       useWalletStore.getState().backfillFromHistory({
         applications: snapshot.applications,
         shifts: snapshot.shifts,

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { notFound, useRouter } from 'next/navigation';
 import { RoleGuard } from '@/components/layout/RoleGuard';
@@ -15,6 +15,7 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import { hasCapability } from '@/data/capabilities';
 import { EmployerConfirmationPanel } from '@/components/shift/EmployerConfirmationPanel';
 import { WorkerSummaryRow } from '@/components/user/WorkerSummaryRow';
+import { EmployerChatAction, EmployerChatDialog } from '@/components/chat/EmployerShiftChat';
 import { WorkerProfileModal } from '@/components/user/WorkerProfileModal';
 import { RatingForm } from '@/components/forms/RatingForm';
 import { RejectApplicationDialog } from '@/components/forms/RejectApplicationDialog';
@@ -208,6 +209,11 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
   const [revertAppId, setRevertAppId] = useState<string | null>(null);
   const [revertReason, setRevertReason] = useState('');
   const [revertError, setRevertError] = useState<string | null>(null);
+
+  // 0035 — đơn đang mở hộp thoại chat (null = đóng).
+  const [chatAppId, setChatAppId] = useState<string | null>(null);
+  const openChat = useCallback((appId: string) => setChatAppId(appId), []);
+  const closeChat = useCallback(() => setChatAppId(null), []);
 
   const shiftApps = applications.filter((a) => a.shiftId === shift.id);
   // Kẹp ≥ 0: dữ liệu lệch (vd. duyệt vượt số vị trí trước khi server chặn)
@@ -1085,6 +1091,7 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                     onViewProfile={() => setProfileWorker(worker)}
                     footerNote={reviewFooter}
                     actions={
+                      <>
                       <ApplicationActionButtons
                         application={app}
                         loading={actionLoading === app.id}
@@ -1110,6 +1117,14 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
                         onApproveCancellation={() => handleApproveCancellation(app.id)}
                         onRejectCancellation={() => handleRejectCancellation(app.id)}
                       />
+                      <EmployerChatAction
+                        app={app}
+                        shift={shift}
+                        workerName={worker.fullName}
+                        nowIso={nowIso}
+                        onOpen={() => openChat(app.id)}
+                      />
+                      </>
                     }
                   />
 
@@ -1522,6 +1537,14 @@ function ManageShiftContent({ shift }: { shift: Shift }) {
           </div>
         </Modal>
       )}
+
+      {/* 0035 — chat với người lao động (hộp thoại; mở theo nút hoặc ?chat=<đơn>). */}
+      <EmployerChatDialog
+        shift={shift}
+        applicationId={chatAppId}
+        onOpen={openChat}
+        onClose={closeChat}
+      />
 
       {/* P0-checkout-stuck — modal cảnh báo xác nhận hoàn thành THỦ CÔNG khi
           worker chưa check-out. Gọi RPC employer_confirm_completion (server). */}

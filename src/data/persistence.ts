@@ -16,6 +16,8 @@
 import type {
   Application,
   BoostCreditLedgerEntry,
+  ChatMessage,
+  ChatRead,
   Dispute,
   EmployerFeedback,
   EmployerTypeChangeRequest,
@@ -47,7 +49,7 @@ import verificationsSeed from './seed/verifications.json';
 // ---------------------------------------------------------------------------
 
 /** Bumped whenever the persisted shape changes; triggers an automatic reseed. */
-export const SCHEMA_VERSION = 19;
+export const SCHEMA_VERSION = 20;
 
 /** Every key the app writes to localStorage, namespaced under `cale.`. */
 export const STORAGE_KEYS = {
@@ -72,6 +74,9 @@ export const STORAGE_KEYS = {
   reviewReports: 'cale.reviewReports',
   /** CORE-STABILITY-8 Part 1 — saved create-shift form drafts. */
   shiftDrafts: 'cale.shiftDrafts',
+  /** 0035 — chat theo đơn ứng tuyển (chỉ chế độ local/demo; production ở server). */
+  chatMessages: 'cale.chatMessages',
+  chatReads: 'cale.chatReads',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -114,6 +119,10 @@ export interface Snapshot {
   reviewReports: ReviewReport[];
   /** CORE-STABILITY-8 Part 1: saved create-shift form drafts. */
   shiftDrafts: ShiftDraft[];
+  /** 0035: tin nhắn chat theo đơn ứng tuyển (local/demo). */
+  chatMessages: ChatMessage[];
+  /** 0035: lần đọc cuối mỗi cuộc trò chuyện (local/demo). */
+  chatReads: ChatRead[];
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +172,9 @@ export function seedSnapshot(): Snapshot {
     reviewReports: [],
     // CORE-STABILITY-8 Part 1: shift drafts start empty.
     shiftDrafts: [],
+    // 0035: chat starts empty.
+    chatMessages: [],
+    chatReads: [],
   };
 }
 
@@ -342,6 +354,8 @@ export function loadAll(): Snapshot {
       STORAGE_KEYS.shiftDrafts,
       seed.shiftDrafts,
     ),
+    chatMessages: read<ChatMessage[]>(STORAGE_KEYS.chatMessages, seed.chatMessages),
+    chatReads: read<ChatRead[]>(STORAGE_KEYS.chatReads, seed.chatReads),
   };
 }
 
@@ -375,6 +389,8 @@ export function persistAll(snapshot: Snapshot): void {
   write(STORAGE_KEYS.walletLedger, snapshot.walletLedger);
   write(STORAGE_KEYS.reviewReports, snapshot.reviewReports);
   write(STORAGE_KEYS.shiftDrafts, snapshot.shiftDrafts);
+  write(STORAGE_KEYS.chatMessages, snapshot.chatMessages);
+  write(STORAGE_KEYS.chatReads, snapshot.chatReads);
 }
 
 // ---------------------------------------------------------------------------
@@ -445,6 +461,8 @@ export function exportSnapshot(): string {
     [STORAGE_KEYS.walletLedger]: seed.walletLedger,
     [STORAGE_KEYS.reviewReports]: seed.reviewReports,
     [STORAGE_KEYS.shiftDrafts]: seed.shiftDrafts,
+    [STORAGE_KEYS.chatMessages]: seed.chatMessages,
+    [STORAGE_KEYS.chatReads]: seed.chatReads,
   };
 
   const payload: Record<string, unknown> = {};

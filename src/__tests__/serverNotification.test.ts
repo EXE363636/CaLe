@@ -23,9 +23,75 @@ const row = (over: Partial<ServerNotificationRow> = {}): ServerNotificationRow =
   ...over,
 });
 
-describe('SERVER_NOTIFICATION_KINDS — khớp check constraint 0031', () => {
-  it('2 loại: cộng / không cộng sau kiểm tra', () => {
-    expect([...SERVER_NOTIFICATION_KINDS].sort()).toEqual(['PaymentReviewCredited', 'PaymentReviewDismissed']);
+describe('SERVER_NOTIFICATION_KINDS — khớp check constraint 0031 + 0035', () => {
+  it('3 loại: cộng / không cộng sau kiểm tra, tin nhắn chat', () => {
+    expect([...SERVER_NOTIFICATION_KINDS].sort()).toEqual([
+      'ChatMessage',
+      'PaymentReviewCredited',
+      'PaymentReviewDismissed',
+    ]);
+  });
+});
+
+describe('toAppNotification — ChatMessage (0035)', () => {
+  const tKey = (key: string) => `[${key}] {shiftTitle}`;
+  const chatRow = (params: Record<string, unknown>, over: Partial<ServerNotificationRow> = {}) =>
+    row({ id: 'c1', kind: 'ChatMessage', params, ...over });
+
+  it('người lao động nhắn → nhà tuyển dụng nhận: tiêu đề có tên ca, link mở đúng đơn', () => {
+    const n = toAppNotification(
+      chatRow({ applicationId: 'app-1', shiftId: 'sh-1', shiftTitle: 'Phục vụ tiệc', fromRole: 'worker' }),
+      USER,
+      { ...fmt, t: tKey },
+    );
+    expect(n).toMatchObject({
+      id: 'server:c1',
+      kind: 'ChatMessage',
+      source: 'server',
+      read: false,
+      link: '/employer/shifts/sh-1?chat=app-1',
+      dedupeKey: 'chat:app-1',
+    });
+    expect(n?.title).toBe('[notification.chat.title] Phục vụ tiệc');
+    expect(n?.body).toBe('[notification.chat.body.fromWorker] Phục vụ tiệc');
+  });
+
+  it('nhà tuyển dụng nhắn → người lao động nhận: link /shifts/{id}?chat=1', () => {
+    const n = toAppNotification(
+      chatRow({ applicationId: 'app-1', shiftId: 'sh-1', shiftTitle: 'Ca', fromRole: 'employer' }),
+      USER,
+      { ...fmt, t: tKey },
+    );
+    expect(n?.link).toBe('/shifts/sh-1?chat=1');
+    expect(n?.body).toContain('notification.chat.body.fromEmployer');
+  });
+
+  it('id sai dạng trong params → không ghép vào đường dẫn (không mở link lạ)', () => {
+    const n = toAppNotification(
+      chatRow({ applicationId: 'app-1', shiftId: '../../admin/dashboard', shiftTitle: 'Ca', fromRole: 'employer' }),
+      USER,
+      { ...fmt, t: tKey },
+    );
+    expect(n?.link ?? '').not.toContain('admin');
+    expect(n?.link ?? '').not.toContain('..');
+  });
+
+  it('params hỏng (thiếu ca / vai trò lạ) → không vỡ, không có link sai', () => {
+    const n = toAppNotification(chatRow({ fromRole: 'admin', shiftTitle: 5 }), USER, { ...fmt, t: tKey });
+    expect(n).not.toBeNull();
+    expect(n?.link).toBeUndefined();
+    expect(n?.dedupeKey).toBeUndefined();
+    expect(n?.title).toBe('[notification.chat.title] ');
+    expect(n?.body).toContain('notification.chat.body.generic');
+  });
+
+  it('đã đọc trên server → read = true', () => {
+    const n = toAppNotification(
+      chatRow({ applicationId: 'a', shiftId: 's', fromRole: 'worker' }, { readAt: '2026-10-03T10:00:00.000Z' }),
+      USER,
+      fmt,
+    );
+    expect(n?.read).toBe(true);
   });
 });
 

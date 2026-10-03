@@ -173,6 +173,13 @@ export function toastFromStoreError(
     NOTHING_TO_CREDIT: t('admin.paymentReview.block.NOTHING_TO_CREDIT'),
     DUPLICATE_SUSPECT: t('admin.paymentReview.block.DUPLICATE_SUSPECT'),
     ORDER_NEEDS_REVIEW: t('wallet.topUp.reviewing'),
+    // 0035 — chat người lao động ↔ nhà tuyển dụng.
+    CHAT_NOT_AVAILABLE: t('chat.error.notAvailable'),
+    CHAT_CLOSED: t('chat.error.closed'),
+    CHAT_EMPTY: t('chat.error.empty'),
+    CHAT_TOO_LONG: t('chat.error.tooLong'),
+    CHAT_DAILY_LIMIT: t('chat.error.dailyLimit'),
+    CANNOT_REPORT_OWN: t('chat.error.cannotReportOwn'),
     SAME_PASSWORD: t('auth.reset.error.same'),
     SESSION_EXPIRED: t('auth.reset.error.expired'),
   };

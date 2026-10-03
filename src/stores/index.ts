@@ -27,6 +27,9 @@ export type {
 
 export { useNotificationStore } from './notificationStore';
 
+export { useChatStore, isReportedByMe, mergeMessages } from './chatStore';
+export type { ChatResult } from './chatStore';
+
 export { useAdminStore } from './adminStore';
 export type { AdminError } from './adminStore';
 

@@ -62,6 +62,8 @@ const WORKER_CHECKIN_KINDS: ReadonlySet<NotificationKind> = new Set([
 export function resolveNotificationTarget(
   notification: Pick<Notification, 'kind' | 'link'> & {
     shiftId?: string;
+    /** 0035 — chat: nhà tuyển dụng cần biết mở cuộc trò chuyện của đơn nào. */
+    applicationId?: string;
     role?: Role;
   },
   role?: Role,
@@ -99,6 +101,12 @@ export function resolveNotificationTarget(
     case 'WorkerPostPaymentRatingRequired':
       return shiftId ? shiftLink('worker', shiftId) : '/worker/dashboard';
 
+    // 0035 — tin nhắn mới: mở khung chat ngay trên trang chi tiết ca.
+    case 'ChatMessage':
+      return r === 'employer' || r === 'worker'
+        ? chatLink(r, shiftId, notification.applicationId)
+        : undefined;
+
     default:
       return undefined;
   }
@@ -117,7 +125,23 @@ export function shiftLink(
   shiftId?: string,
 ): string | undefined {
   if (!shiftId) return undefined;
-  return role === 'employer'
-    ? `/employer/shifts/${shiftId}`
-    : `/shifts/${shiftId}`;
+  const id = encodeURIComponent(shiftId);
+  return role === 'employer' ? `/employer/shifts/${id}` : `/shifts/${id}`;
+}
+
+/**
+ * 0035 — deeplink mở khung chat của một đơn ứng tuyển (không có route riêng):
+ *   - người lao động: `/shifts/{shiftId}?chat=1` (mỗi ca họ chỉ có một đơn);
+ *   - nhà tuyển dụng: `/employer/shifts/{shiftId}?chat={applicationId}`
+ *     (thiếu applicationId → chỉ mở trang quản lý ca).
+ */
+export function chatLink(
+  role: 'worker' | 'employer',
+  shiftId?: string,
+  applicationId?: string,
+): string | undefined {
+  const base = shiftLink(role, shiftId);
+  if (!base) return undefined;
+  if (role === 'worker') return `${base}?chat=1`;
+  return applicationId ? `${base}?chat=${encodeURIComponent(applicationId)}` : base;
 }

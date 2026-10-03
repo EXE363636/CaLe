@@ -153,7 +153,10 @@ npx tsc --noEmit     # type-check
 
 ### Kỹ thuật
 - **Không viết lại app từ đầu.** Code đã ổn định, có test.
-- **Không thêm tính năng mới** (chat, staff-supply/agency, AI matching) trước khi backend/core ổn định — đã quyết định hoãn.
+- **Không thêm tính năng mới** (staff-supply/agency, AI matching) trước khi backend/core ổn định — đã quyết định hoãn.
+  **Chat** đã được chủ dự án mở lại (02/10/2026): mỗi đơn ứng tuyển một cuộc trò chuyện,
+  nhánh `feat/chat`, migration 0035, logic thuần `src/domain/chat.ts` (xem
+  `docs/HANDOFF_2026-10-02_VIEC_DINH_LAM.md` §3.2).
 - Khi đổi shape dữ liệu persistence → **bump `SCHEMA_VERSION`** trong `persistence.ts` (hiện là 19) để tự reseed.
 - **Song ngữ VI / EN (từ 30/09, đợt 1 = trang công khai):** cookie `cale.lang`, xem
   `src/i18n/locale.ts`. Màn đã dịch dùng `useT()`/`useTx()` (client) hoặc `await getT()`/

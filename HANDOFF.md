@@ -412,7 +412,7 @@ Mỗi phase ship **sau interface store hiện tại** để UI tiếp tục ch�
 
 ## 9. Ràng buộc khi làm (nhắc lại từ CLAUDE.md)
 
-- Không viết lại app từ đầu; không thêm tính năng mới (chat/agency/AI) trước khi core+backend ổn.
+- Không viết lại app từ đầu; không thêm tính năng mới (agency/AI) trước khi core+backend ổn. Chat đã được mở lại 02/10/2026 (nhánh `feat/chat`, migration 0035).
 - Không dùng polling/setTimeout cho lifecycle.
 - Tiền tệ chữ thường `đ`/`đồng` (cấm `VNĐ`/`₫`); gắn nhãn "mô phỏng/prototype" đúng sự thật.
 - Bump `SCHEMA_VERSION` khi đổi shape persistence.
