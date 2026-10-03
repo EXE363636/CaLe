@@ -386,7 +386,7 @@ export default async function WorkerHomePage() {
             tone: 'bad',
             title: tx('Không đến mà không báo'),
             body: supabase
-              ? tx('Bị tính vắng mặt và không nhận tiền công. Nếu bạn đã đặt cọc khi ứng tuyển, cọc chuyển cho nhà tuyển dụng; bạn khiếu nại được trong 72 giờ.')
+              ? tx('Bị tính vắng mặt và không nhận tiền công. Nếu bạn đã đặt cọc khi ứng tuyển, cọc chuyển cho nhà tuyển dụng. Nếu thấy ghi nhận chưa đúng, bạn liên hệ đội hỗ trợ CaLẻ.')
               : tx('Bị tính vắng mặt, không nhận tiền công và bị trừ 20 điểm uy tín.'),
           },
           {
@@ -492,7 +492,7 @@ export default async function WorkerHomePage() {
             ? [
                 {
                   q: tx('Ứng tuyển có phải đặt cọc không?'),
-                  a: tx('Tuỳ thời điểm. CaLẻ có thể yêu cầu một khoản cọc nhỏ khi ứng tuyển để hạn chế nhận ca rồi bỏ; số tiền hiện rõ để bạn đồng ý trước khi gửi đơn. Cọc hoàn đủ khi ca hoàn thành, khi bạn không được chọn, khi bạn huỷ hoặc ca bị huỷ. Vắng mặt không báo thì cọc chuyển cho nhà tuyển dụng; bạn khiếu nại được trong 72 giờ. Đã xác thực CCCD hoặc làm đủ số ca gần đây thì thường được miễn.'),
+                  a: tx('Tuỳ thời điểm. CaLẻ có thể yêu cầu một khoản cọc nhỏ khi ứng tuyển để hạn chế nhận ca rồi bỏ; số tiền hiện rõ để bạn đồng ý trước khi gửi đơn. Cọc hoàn đủ khi ca hoàn thành, khi bạn không được chọn, khi bạn huỷ hoặc ca bị huỷ. Vắng mặt không báo thì cọc chuyển cho nhà tuyển dụng; nếu thấy ghi nhận chưa đúng, bạn liên hệ đội hỗ trợ CaLẻ. Đã xác thực CCCD hoặc làm đủ số ca gần đây thì thường được miễn.'),
                 },
               ]
             : []),

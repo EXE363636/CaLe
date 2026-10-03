@@ -563,8 +563,8 @@ export const enPagesText: Record<string, string> = {
     "After {time}",
   "Không đến mà không báo":
     "Not showing up without notice",
-  "Bị tính vắng mặt và không nhận tiền công. Nếu bạn đã đặt cọc khi ứng tuyển, cọc chuyển cho nhà tuyển dụng; bạn khiếu nại được trong 72 giờ.":
-    "Counted as a no-show, with no pay. If you paid a deposit when applying, it goes to the employer; you can contest within 72 hours.",
+  "Bị tính vắng mặt và không nhận tiền công. Nếu bạn đã đặt cọc khi ứng tuyển, cọc chuyển cho nhà tuyển dụng. Nếu thấy ghi nhận chưa đúng, bạn liên hệ đội hỗ trợ CaLẻ.":
+    "Counted as a no-show, with no pay. If you paid a deposit when applying, it goes to the employer. If you think the record is wrong, contact the CaLẻ support team.",
   "Bị tính vắng mặt, không nhận tiền công và bị trừ 20 điểm uy tín.":
     "Counted as a no-show, with no pay and minus 20 reputation points.",
   "Điểm uy tín và hạn mức số lần huỷ đang được hoàn thiện; khi mở, huỷ sát giờ sẽ ảnh hưởng tới điểm của bạn.":

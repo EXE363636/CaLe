@@ -517,8 +517,8 @@ export const enLandingText: Record<string, string> = {
     'The demo cannot withdraw real money; the wallet balance is simulated.',
   'Ứng tuyển có phải đặt cọc không?':
     'Do I have to pay a deposit to apply?',
-  'Tuỳ thời điểm. CaLẻ có thể yêu cầu một khoản cọc nhỏ khi ứng tuyển để hạn chế nhận ca rồi bỏ; số tiền hiện rõ để bạn đồng ý trước khi gửi đơn. Cọc hoàn đủ khi ca hoàn thành, khi bạn không được chọn, khi bạn huỷ hoặc ca bị huỷ. Vắng mặt không báo thì cọc chuyển cho nhà tuyển dụng; bạn khiếu nại được trong 72 giờ. Đã xác thực CCCD hoặc làm đủ số ca gần đây thì thường được miễn.':
-    'It depends. CaLẻ may ask for a small deposit when you apply, to discourage taking shifts and not showing up; the amount is shown for you to accept before you send the application. It is refunded in full when the shift is completed, when you are not selected, or when you or the employer cancel. If you do not show up without notice, the deposit goes to the employer; you can contest within 72 hours. A verified ID or enough recent completed shifts usually waives it.',
+  'Tuỳ thời điểm. CaLẻ có thể yêu cầu một khoản cọc nhỏ khi ứng tuyển để hạn chế nhận ca rồi bỏ; số tiền hiện rõ để bạn đồng ý trước khi gửi đơn. Cọc hoàn đủ khi ca hoàn thành, khi bạn không được chọn, khi bạn huỷ hoặc ca bị huỷ. Vắng mặt không báo thì cọc chuyển cho nhà tuyển dụng; nếu thấy ghi nhận chưa đúng, bạn liên hệ đội hỗ trợ CaLẻ. Đã xác thực CCCD hoặc làm đủ số ca gần đây thì thường được miễn.':
+    'It depends. CaLẻ may ask for a small deposit when you apply, to discourage taking shifts and not showing up; the amount is shown for you to accept before you send the application. It is refunded in full when the shift is completed, when you are not selected, or when you or the employer cancel. If you do not show up without notice, the deposit goes to the employer; if you think the record is wrong, contact the CaLẻ support team. A verified ID or enough recent completed shifts usually waives it.',
   'Một ca tốn bao nhiêu?':
     'What does a shift cost?',
   'Thử đăng một ca: sửa giờ, lương, số người là thấy ngay số tiền giữ từ ví.':
