@@ -689,7 +689,7 @@ test.describe('Menu "Hướng dẫn & hỗ trợ", "Phí dịch vụ" và điề
     await gotoApp('/for-workers');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tìm ca làm ngắn hạn gần bạn');
 
-    const footerNav = page.locator('footer').getByRole('navigation', { name: 'Liên kết chân trang' });
+    const footerNav = page.getByTestId('site-footer').getByRole('navigation', { name: 'Liên kết chân trang' });
     // 03/10 (lần 5): "Bảng giá" bỏ khỏi cột "CaLẻ"; cùng đích là "Phí dịch vụ" ở cột "Nhà tuyển dụng".
     const priceLink = footerNav.getByRole('link', { name: 'Phí dịch vụ', exact: true });
     await priceLink.scrollIntoViewIfNeeded();
@@ -849,7 +849,7 @@ test.describe('Header dính khi cuộn; 375px không cuộn ngang', () => {
         await section.scrollIntoViewIfNeeded();
         expect(await section.evaluate((el) => el.scrollWidth), `#${id} không tràn ngang`).toBeLessThanOrEqual(375);
       }
-      await page.locator('footer').scrollIntoViewIfNeeded();
+      await page.getByTestId('site-footer').scrollIntoViewIfNeeded();
       const widths = await page.evaluate(() => ({
         doc: document.documentElement.scrollWidth,
         body: document.body.scrollWidth,

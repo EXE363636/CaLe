@@ -548,7 +548,7 @@ test.describe('Chân trang: logo · 3 cột liên kết · "Cần hỗ trợ?" (
   const COLUMN_HEADINGS = COLUMNS.map(([h]) => h);
 
   function footerParts(page: Page) {
-    const footer = page.getByRole('contentinfo');
+    const footer = page.getByTestId('site-footer');
     const nav = footer.getByRole('navigation', { name: 'Liên kết chân trang' });
     return {
       footer,
@@ -567,7 +567,7 @@ test.describe('Chân trang: logo · 3 cột liên kết · "Cần hỗ trợ?" (
   }
 
   async function expectNoHorizontalScroll(page: Page, width: number) {
-    await page.getByRole('contentinfo').scrollIntoViewIfNeeded();
+    await page.getByTestId('site-footer').scrollIntoViewIfNeeded();
     const widths = await page.evaluate(() => ({
       doc: document.documentElement.scrollWidth,
       body: document.body.scrollWidth,
@@ -851,7 +851,7 @@ test.describe('Trang vai trò ở 375px', () => {
         const sw = await section.evaluate((el) => el.scrollWidth);
         expect(sw, `#${id} không tràn ngang`).toBeLessThanOrEqual(MOBILE.width);
       }
-      await page.locator('footer').scrollIntoViewIfNeeded();
+      await page.getByTestId('site-footer').scrollIntoViewIfNeeded();
       const widths = await page.evaluate(() => ({
         doc: document.documentElement.scrollWidth,
         body: document.body.scrollWidth,
