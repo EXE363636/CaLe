@@ -59,11 +59,32 @@ export default function ShiftDetailPage({ params }: Props) {
   const { id } = use(params);
   const shift = useShiftStore((s) => s.shifts.find((sh) => sh.id === id));
   const hydrated = useHydrationStore((s) => s.hydrated);
+  // Supabase: listing công khai chỉ nạp ca từ hôm qua → link cũ (chia sẻ,
+  // thông báo) tới ca đã qua có thể chưa có trong store. Hỏi server MỘT lần
+  // (`refetchOne`: public_shifts theo id, rồi get_shift_detail) trước khi 404.
+  const needsServerLookup = !shift && hydrated && isSupabaseEnv();
+  const [lookedUpId, setLookedUpId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!needsServerLookup || lookedUpId === id) return;
+    let alive = true;
+    void useShiftStore
+      .getState()
+      .refetchOne(id)
+      .catch(() => undefined)
+      .finally(() => {
+        if (alive) setLookedUpId(id);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [needsServerLookup, lookedUpId, id]);
   // Wait for hydration before deciding the shift is missing. On a cold
   // load / refresh / deep-link the store is empty during the first
   // render; calling `notFound()` then would render a permanent 404.
   if (!shift) {
-    if (!hydrated) return <ShiftDetailLoading />;
+    if (!hydrated || (needsServerLookup && lookedUpId !== id)) {
+      return <ShiftDetailLoading />;
+    }
     return notFound();
   }
   return <ShiftDetailContent shift={shift} />;

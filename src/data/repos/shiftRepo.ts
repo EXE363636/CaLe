@@ -151,7 +151,13 @@ function toEditPatch(patch: ShiftEditablePatch): Record<string, unknown> {
 }
 
 export interface ShiftRepo {
-  listPublicShifts(): Promise<Shift[]>;
+  /**
+   * Listing công khai, chỉ ca có `date >= fromDate` (`YYYY-MM-DD`). `public_shifts`
+   * không bao giờ tự xoá ca đã qua → bắt buộc lọc ngày để payload không phình.
+   */
+  listPublicShifts(fromDate: string): Promise<Shift[]>;
+  /** Ca công khai theo id (mọi ngày) — nạp lô ca cũ mà người dùng có liên quan. */
+  listPublicShiftsByIds(ids: readonly string[]): Promise<Shift[]>;
   getEmployerShifts(employerId: string): Promise<Shift[]>;
   /** Admin: mọi ca (RLS `shifts_select` cho `is_admin()`). */
   listAllShifts(): Promise<Shift[]>;
@@ -161,14 +167,36 @@ export interface ShiftRepo {
   cancel(id: string, reason: string): Promise<void>;
 }
 
+/** Số id tối đa mỗi request `.in('id', …)`. */
+const PUBLIC_IDS_CHUNK = 100;
+
 class SupabaseShiftRepo implements ShiftRepo {
-  async listPublicShifts(): Promise<Shift[]> {
+  async listPublicShifts(fromDate: string): Promise<Shift[]> {
     const { data, error } = await getSupabaseClient()
       .from('public_shifts')
       .select('*')
+      .gte('date', fromDate)
       .order('created_at', { ascending: false });
     if (error) throw new Error(`listPublicShifts: ${error.message}`);
     return (data ?? []).flatMap((r) => { const m = safePublicRowToShift(r as Row); return m ? [m] : []; });
+  }
+
+  async listPublicShiftsByIds(ids: readonly string[]): Promise<Shift[]> {
+    const out: Shift[] = [];
+    // Chia lô để URL `?id=in.(...)` không quá dài (uuid 36 ký tự).
+    for (let i = 0; i < ids.length; i += PUBLIC_IDS_CHUNK) {
+      const chunk = ids.slice(i, i + PUBLIC_IDS_CHUNK);
+      const { data, error } = await getSupabaseClient()
+        .from('public_shifts')
+        .select('*')
+        .in('id', chunk);
+      if (error) throw new Error(`listPublicShiftsByIds: ${error.message}`);
+      for (const r of data ?? []) {
+        const m = safePublicRowToShift(r as Row);
+        if (m) out.push(m);
+      }
+    }
+    return out;
   }
 
   async getEmployerShifts(employerId: string): Promise<Shift[]> {
