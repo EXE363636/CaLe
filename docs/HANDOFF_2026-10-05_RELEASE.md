@@ -32,10 +32,10 @@ Các nhánh lẻ (`fix/settlement-sweep`, `fix/approve-overlap-guard`, `feat/cha
 `feat/support-bubble`) đã gộp hết vào đây — **chỉ cần làm việc trên nhánh này**.
 
 ## 3. Đã kiểm
-- tsc 0 lỗi · lint 0 lỗi · unit 2109/2109 · time 22/22 · build OK · e2e (xem mục 6).
+- tsc 0 lỗi · lint 0 lỗi · unit 2109/2109 · time 22/22 · build OK · e2e 387/387 (xem mục 6).
 - Chạy thử migration trên DB thật (transaction + rollback, không ghi gì):
   0033 → 21/21 ok, **0034 → 13/13 ok (05/10)**, 0035 → 48/48 ok.
-- Rà bảo mật (agent security-reviewer): xem mục 6.
+- Rà bảo mật (agent security-reviewer): không có lỗi Nghiêm trọng / Cao — việc nên sửa ở mục 6.
 
 ## 4. Việc tiếp theo (theo thứ tự)
 1. **Chạy thử ở máy** (chế độ demo, dữ liệu trong trình duyệt):
@@ -57,6 +57,23 @@ Function · mỗi việc một nhánh · đụng migration / tiền / auth → `
 security-reviewer.
 
 ## 6. Kết quả kiểm cuối (05/10)
-- e2e: tới lúc push 237/387 đã qua, chưa bài nào hỏng (bản `feat/support-bubble` trước khi
-  gộp: 387/387). Kết quả đủ + rà bảo mật sẽ được cập nhật bằng commit sau trên nhánh này —
-  `git pull` lại trước khi làm.
+- e2e trên nhánh gộp: **384/387 lượt chạy đầy đủ; 3 bài còn lại chạy lại riêng → qua** (chập
+  chờn khi máy bận, lặp lại ở 2 lần chạy: `29:402` nút đăng ký header, `31:345` vòng thẻ tiếng
+  Anh, `36:87` header khách). Nên làm cho 3 bài này ổn định (việc nhỏ, nhánh `test/…`).
+- **Rà bảo mật (security-reviewer, 05/10): không có lỗi Nghiêm trọng / Cao.** Nên sửa trước
+  khi mở PR vào `main` (mỗi việc một commit, có test):
+  1. *(Trung bình)* 0034: nhà tuyển dụng có thể dò giờ làm của người lao động ở nơi khác bằng
+     cách sửa giờ ca liên tục / duyệt rồi xem lỗi `WORKER_SCHEDULE_CONFLICT` /
+     `EDIT_WORKER_SCHEDULE_CONFLICT`. Đề xuất: chặn đổi giờ ca khi đã có người giữ chỗ
+     (Approved / CancellationRequested / CheckedIn / CheckedOut) — viết migration **0036** mới,
+     không sửa 0034 (chưa push nhưng giữ nguyên số để dễ theo dõi; nếu chủ dự án muốn thì gộp).
+  2. *(Thấp)* 0034: `edit_shift` chưa lấy khoá tư vấn `approve_worker:<worker>` → hai thao tác
+     song song có thể lọt kiểm trùng. Thêm khoá theo thứ tự worker_id trong wrapper.
+  3. *(Thấp)* 0033: `refund_deposit_for_shift` đóng đơn treo cả khi ca không còn cọc HELD →
+     chỉ gọi `_close_overdue_applications` khi còn `payment_sessions` HELD.
+  4. *(Thấp)* 0033: lượt quét có `limit` — nếu số ca lỗi vĩnh viễn ≥ limit thì ca khác không
+     tới lượt; thêm `settle_attempted_at` để xoay vòng.
+  5. *(Thấp)* `src/components/support/SupportAssistant.tsx` (`safeLinks`): regex
+     `/^\/(?!\/)/` cho qua `/\evil.com` → đổi thành `/^\/(?![\/\\])/` (chặn cả `/` lẫn `\` ở ký tự thứ hai).
+  6. Kiểm trên production (chỉ đọc): `select * from pg_policies where schemaname='realtime'`
+     — không được có policy SELECT dễ dãi nào khác ngoài `chat_participants_receive`.
