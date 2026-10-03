@@ -41,7 +41,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { isPublicSkinPath } from '@/lib/publicSkin';
 import { useCurrentUser } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useShiftStore } from '@/stores/shiftStore';
@@ -442,11 +441,8 @@ export function NavBar() {
         : { href: '/register', text: t('nav.register') };
   return (
     <header
-      className={[
-        'sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm',
-        // Trang công khai: header cùng da "giấy trắng, cam rõ" với trang (03/10).
-        isPublicSkinPath(pathname) ? 'public-skin' : '',
-      ].join(' ')}
+      // Màu header theo da `.public-skin` gắn ở `<body>` (03/10, cả app).
+      className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm"
     >
       {/* HEADER-NAV-LAYOUT-3 — pure-CSS 3-zone adaptive header.
           Below `xl` (< 1280px): a simple flex row (brand left, right

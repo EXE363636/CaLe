@@ -5,7 +5,7 @@ colors:
   brand: "#FF9A5F"
   brand-deep: "#ea580c"
   brand-soft: "#FFD5AE"
-  cream: "#FFF4E9"
+  cream: "#FBF9F6"
   surface: "#ffffff"
   bg-base: "#f9fafb"
   ink: "#37373B"
@@ -153,7 +153,7 @@ ví, cọc, thanh toán và check-in đều là **mô phỏng/prototype** và gi
 nói đúng như thế.
 
 **Key Characteristics:**
-- Nền kem ấm (`#FFF4E9`), thẻ trắng nổi lên bằng bóng mềm nhiều lớp.
+- Nền trắng ngà (`#FBF9F6`, 03/10; trước là kem `#FFF4E9`), thẻ trắng nổi lên bằng bóng mềm nhiều lớp.
 - Một màu thương hiệu duy nhất: cam tín hiệu (`#FF9A5F`) cho hành động và điểm nhấn.
 - Trạng thái là công dân hạng nhất: nhãn + màu nhất quán, không bao giờ chỉ dựa vào màu.
 - Một họ chữ (Inter), thang cỡ cố định cho app; luôn dễ đọc tiếng Việt có dấu.
@@ -175,12 +175,12 @@ nghĩa dùng cho badge và cảnh báo. Cam là giọng nói duy nhất; phần 
 
 ### Secondary
 - **Cam nhạt / Soft Orange** (`#FFD5AE`, orange-200): nền chip, viền nhẹ, vùng nhấn mảng.
-- **Kem ấm / Warm Cream** (`#FFF4E9`, `--background`): nền kem của toàn trang; thẻ trắng nổi lên trên.
+- **Trắng ngà / Ivory** (`#FBF9F6`, `--background`, 03/10; trước là kem `#FFF4E9`): nền của toàn trang, cả app; thẻ trắng nổi lên trên.
 
 ### Ba màu thương hiệu (P1 feedback F2, 29/09/2026)
 Giao diện chung và trang marketing chỉ dùng **3 màu + trắng**, có tên ngữ nghĩa
 trong `@theme` của `globals.css`:
-- **Kem** `bg-cream` = `--background` `#FFF4E9`
+- **Kem** `bg-cream` = `--background` `#FBF9F6` (trắng ngà, 03/10)
 - **Cam** `bg-brand` = `--brand` `#FF9A5F` (orange-500)
 - **Mực** `bg-ink` / `text-ink` = `--foreground` `#37373B` (gray-900)
 
@@ -227,9 +227,11 @@ bao giờ truyền đạt "Có tranh chấp" hay "Hoàn thành" chỉ bằng mà
 Chủ dự án chọn hướng A cho MỌI trang công khai (`/`, `/for-workers`, `/for-employers`, bảng giá,
 cẩm nang, hướng dẫn, trang thông tin, đăng nhập / đăng ký) + header khi đang ở các trang đó +
 footer. Lớp `.public-skin` trong `globals.css` (chỉ giao diện sáng; tối giữ bảng tối hiện có),
-gắn trên `ToneScroll`, `AuthShell` (`public-canvas` = nền giấy), header
-(`isPublicSkinPath` trong `lib/publicSkin.ts`, có test) và footer. App (dashboard, lịch, trang
-ca, quản trị) KHÔNG đổi. **Giao diện tối của da công khai (03/10):** ba lớp tách rõ — nền `#141416` < giấy `#19191c` < thẻ (`--color-white`) `#24242a`; viền / vạch kẻ `ring-black/5|10`, `border-black/5|10`, `bg-black/5` đổi thành trắng 8–9% (bản tối gốc để giấy = màu thẻ nên thẻ chìm).
+gắn trên `ToneScroll`, `AuthShell` (`public-canvas` = nền giấy) và footer. **Từ 03/10 (tối) lớp
+này gắn ở `<body>` (`app/layout.tsx`)** theo yêu cầu chủ dự án "nền và màu các block giống landing
+page": app (dashboard, lịch, hồ sơ, trang ca, quản trị), header, hộp thoại và toast dùng cùng bộ màu
+(nền trắng ngà, cam `#FF8A3D`, nền cam nhạt trung tính, mực `#1E1E22`; tối: nền / giấy / thẻ ba
+lớp). `lib/publicSkin.ts` (`isPublicSkinPath`) đã bỏ vì không còn trang nào khác da. **Giao diện tối của da công khai (03/10):** ba lớp tách rõ — nền `#141416` < giấy `#19191c` < thẻ (`--color-white`) `#24242a`; viền / vạch kẻ `ring-black/5|10`, `border-black/5|10`, `bg-black/5` đổi thành trắng 8–9% (bản tối gốc để giấy = màu thẻ nên thẻ chìm).
 - **Nền:** trắng ngà `#FBF9F6` + giấy ấm `#F2EEE8` xen kẽ (`--tone-cream` / `--tone-peach` = trắng ngà,
   `--tone-paper` / `--tone-apricot` = giấy; `--background` = trắng ngà). Không dùng trắng tinh làm nền:
   thẻ trắng `#FFF` phải luôn nổi lên. Hết các tông đào / kem phủ cả trang. Trang vai

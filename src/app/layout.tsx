@@ -74,7 +74,8 @@ export default async function RootLayout({
           what kills the "page looks sliced in half when the drawer
           opens" symptom from manual screenshot QA. */}
       <body
-        className="min-w-0 min-h-full flex flex-col font-sans text-gray-900"
+        // `public-skin`: cả app dùng bộ màu của trang công khai (03/10) — globals.css.
+        className="public-skin min-w-0 min-h-full flex flex-col font-sans text-gray-900"
         suppressHydrationWarning
       >
         <LocaleProvider locale={locale}>
