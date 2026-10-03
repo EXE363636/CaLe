@@ -438,4 +438,6 @@ export const enAppText: Record<string, string> = {
   'CaLẻ hiện chưa thu hoặc giữ tiền. Nhà tuyển dụng và người lao động tự thống nhất phương thức thanh toán.':
     'CaLẻ does not collect or hold money yet. Employers and workers agree on the payment method themselves.',
   'Chưa đọc': 'Unread',
+  '{n} lệnh rút đang xử lý.': '{n} withdrawal(s) in progress.',
+  '{n} giao dịch nạp đang được kiểm tra.': '{n} top-up(s) under review.',
 };

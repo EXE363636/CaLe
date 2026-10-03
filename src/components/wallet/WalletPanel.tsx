@@ -519,6 +519,79 @@ export function WalletPanel({
 
   const tile = variant === 'tile';
   const Shell = tile ? TileShell : Card;
+  // 03/10 — ô tile chỉ báo lệnh rút đang chạy (cần theo dõi); lệnh thất bại đã hoàn ví
+  // nằm trong hộp lịch sử, không kéo cao cả hàng thẻ số.
+  const runningWithdrawals = openWithdrawals.filter((w) => w.status === 'PENDING' || w.status === 'PROCESSING');
+  // Supabase: hộp lịch sử còn chứa lệnh rút + giao dịch nạp đang kiểm tra (tải khi mở).
+  const hasHistory = supabase || userLedger.length > 0;
+  // Lệnh đang chạy lên đầu (có nút "Kiểm tra"), rồi mới tới lệnh thất bại gần đây.
+  const listedWithdrawals = [...runningWithdrawals, ...openWithdrawals.filter((w) => !runningWithdrawals.includes(w))].slice(
+    0,
+    Math.max(3, runningWithdrawals.length),
+  );
+  function renderWithdrawals() {
+    return (
+      <div className="mt-3">
+        <p className="mb-1 text-xs font-medium text-gray-700">
+          {t('wallet.withdraw.real.history')}
+        </p>
+        <ul className="flex flex-col gap-2">
+          {listedWithdrawals.map((w) => {
+            const pending = w.status === 'PENDING' || w.status === 'PROCESSING';
+            return (
+              <li
+                key={w.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs"
+              >
+                <div className="min-w-0 flex-1">
+                  <span className="block font-semibold tabular-nums text-gray-900">
+                    -{formatVND(w.amount)}
+                  </span>
+                  <span className="mt-0.5 block text-gray-600">
+                    {bankByBin(w.toBin)?.shortName ?? w.toBin} · *{w.toAccountNumber.slice(-4)} ·{' '}
+                    <span className="text-xs tabular-nums text-gray-600">
+                      {formatOccurredAt(w.createdAt)}
+                    </span>
+                  </span>
+                  {w.status === 'FAILED' && w.failReason && (
+                    // Không hiện nguyên văn lỗi kỹ thuật của cổng chi (vd.
+                    // "signature không hợp lệ") — người dùng không xử lý được.
+                    // Giữ lỗi gốc ở `title` cho hỗ trợ tra cứu.
+                    <span
+                      className="mt-0.5 block text-xs leading-relaxed text-red-700"
+                      title={w.failReason}
+                    >
+                      {/không đủ|insufficient/i.test(w.failReason)
+                        ? t('wallet.withdraw.real.failPayoutFunds')
+                        : t('wallet.withdraw.real.failGeneric')}
+                    </span>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${withdrawalTone(w.status)}`}
+                  >
+                    {t(`wallet.withdraw.real.status.${w.status}`)}
+                  </span>
+                  {pending && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => checkWithdrawal(w.id)}
+                      loading={checkingId === w.id}
+                      disabled={checkingId !== null}
+                    >
+                      {t('wallet.withdraw.real.check')}
+                    </Button>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  }
   return (
     <Shell className={className}>
       {tile && (
@@ -539,6 +612,12 @@ export function WalletPanel({
                   : t('wallet.withdraw.empty')}
             </p>
           )}
+          {supabase && runningWithdrawals.length > 0 && (
+            <p className="mt-2 text-xs font-semibold text-blue-800">
+              {tx('{n} lệnh rút đang xử lý.').replace('{n}', String(runningWithdrawals.length))}
+            </p>
+          )}
+          {supabase && <PaymentReviewNotice reloadSignal={reviewSignal} compact />}
           <div className="mt-auto flex flex-wrap items-center gap-x-1 pt-2">
             {allowTopUp && (
               <button type="button" onClick={openTopUp} className={TILE_ACTION + ' text-orange-700'}>
@@ -556,7 +635,7 @@ export function WalletPanel({
                 {t('wallet.withdraw.button')}
               </button>
             )}
-            <button type="button" onClick={() => setModalOpen(true)} disabled={userLedger.length === 0} className={TILE_ACTION}>
+            <button type="button" onClick={() => setModalOpen(true)} disabled={!hasHistory} className={TILE_ACTION}>
               {t('wallet.ledger.openButton')}
             </button>
           </div>
@@ -633,71 +712,12 @@ export function WalletPanel({
       </div>
       )}
 
-      {/* Supabase: lệnh rút tiền thật gần đây + nút tra lại lệnh đang xử lý. */}
-      {supabase && openWithdrawals.length > 0 && (
-        <div className="mt-3">
-          <p className="mb-1 text-xs font-medium text-gray-700">
-            {t('wallet.withdraw.real.history')}
-          </p>
-          <ul className="flex flex-col gap-2">
-            {openWithdrawals.slice(0, 3).map((w) => {
-              const pending = w.status === 'PENDING' || w.status === 'PROCESSING';
-              return (
-                <li
-                  key={w.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-xs"
-                >
-                  <div className="min-w-0 flex-1">
-                    <span className="block font-semibold tabular-nums text-gray-900">
-                      -{formatVND(w.amount)}
-                    </span>
-                    <span className="mt-0.5 block text-gray-600">
-                      {bankByBin(w.toBin)?.shortName ?? w.toBin} · *{w.toAccountNumber.slice(-4)} ·{' '}
-                      <span className="text-xs tabular-nums text-gray-600">
-                        {formatOccurredAt(w.createdAt)}
-                      </span>
-                    </span>
-                    {w.status === 'FAILED' && w.failReason && (
-                      // Không hiện nguyên văn lỗi kỹ thuật của cổng chi (vd.
-                      // "signature không hợp lệ") — người dùng không xử lý được.
-                      // Giữ lỗi gốc ở `title` cho hỗ trợ tra cứu.
-                      <span
-                        className="mt-0.5 block text-xs leading-relaxed text-red-700"
-                        title={w.failReason}
-                      >
-                        {/không đủ|insufficient/i.test(w.failReason)
-                          ? t('wallet.withdraw.real.failPayoutFunds')
-                          : t('wallet.withdraw.real.failGeneric')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${withdrawalTone(w.status)}`}
-                    >
-                      {t(`wallet.withdraw.real.status.${w.status}`)}
-                    </span>
-                    {pending && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => checkWithdrawal(w.id)}
-                        loading={checkingId === w.id}
-                        disabled={checkingId !== null}
-                      >
-                        {t('wallet.withdraw.real.check')}
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {/* Supabase: lệnh rút tiền thật gần đây + nút tra lại lệnh đang xử lý. Ô `tile` của
+          dashboard chỉ giữ một dòng tóm tắt; danh sách nằm trong "Xem lịch sử giao dịch". */}
+      {!tile && supabase && openWithdrawals.length > 0 && renderWithdrawals()}
 
       {/* 0029: giao dịch nạp đang chờ admin kiểm tra / vừa được xử lý. */}
-      {supabase && <PaymentReviewNotice reloadSignal={reviewSignal} />}
+      {!tile && supabase && <PaymentReviewNotice reloadSignal={reviewSignal} />}
 
       {tile ? null : userLedger.length === 0 ? (
         <p className="mt-3 text-sm text-gray-600">
@@ -723,6 +743,8 @@ export function WalletPanel({
         className="max-w-xl"
       >
         <div className="flex flex-col gap-3 text-sm">
+          {tile && supabase && openWithdrawals.length > 0 && renderWithdrawals()}
+          {tile && supabase && <PaymentReviewNotice reloadSignal={reviewSignal} />}
           {userLedger.length === 0 ? (
             <p className="text-gray-600">
               {t('wallet.balance.empty')}

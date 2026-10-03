@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { listMyPaymentReviews, type MyPaymentReview } from '@/data/repos/paymentReviewRepo';
 import { fillTemplate, paymentReviewSummary } from '@/domain/paymentReview';
 import { formatVND } from '@/lib/format';
-import { useT } from '@/i18n/LocaleProvider';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 
 const RECENT_MS = 30 * 86_400_000;
 const MAX_ROWS = 3;
@@ -24,8 +24,16 @@ function tone(status: MyPaymentReview['status']): string {
   return 'bg-amber-50 text-amber-800 ring-amber-200';
 }
 
-export function PaymentReviewNotice({ reloadSignal = 0 }: { reloadSignal?: number }) {
+export function PaymentReviewNotice({
+  reloadSignal = 0,
+  compact = false,
+}: {
+  reloadSignal?: number;
+  /** Một dòng tóm tắt (ô ví trên dashboard); danh sách đầy đủ ở hộp lịch sử giao dịch. */
+  compact?: boolean;
+}) {
   const t = useT();
+  const tx = useTx();
   const fill = (key: string, map: Record<string, string>) => fillTemplate(t(key), map);
   const [rows, setRows] = useState<MyPaymentReview[]>([]);
 
@@ -50,6 +58,14 @@ export function PaymentReviewNotice({ reloadSignal = 0 }: { reloadSignal?: numbe
 
   if (rows.length === 0) return null;
   const { pendingCount } = paymentReviewSummary(rows);
+  if (compact) {
+    if (pendingCount === 0) return null;
+    return (
+      <p className="mt-2 text-xs font-semibold text-amber-800">
+        {tx('{n} giao dịch nạp đang được kiểm tra.').replace('{n}', String(pendingCount))}
+      </p>
+    );
+  }
 
   return (
     <div className="mt-3" role="region" aria-label={t('wallet.review.title')}>
