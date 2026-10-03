@@ -113,22 +113,25 @@ async function refetchPhase2Supabase(): Promise<void> {
       useApplicationStore.getState().refetchForWorker(cur.id),
       useScheduleStore.getState().refetchMine(cur.id),
     ]);
-    // Nạp các ca worker ĐÃ ứng tuyển nhưng KHÔNG còn trong listing công khai
-    // (đã huỷ / đầy chỗ / hết hạn) — chúng không có trong `public_shifts` nên
-    // thiếu khỏi shiftStore → dashboard + trang chi tiết sẽ 404/không hiển thị
-    // trạng thái. `refetchOne` đọc `get_shift_detail` (RPC cấp quyền cho
-    // worker-có-đơn) và upsert vào store. Chỉ nạp ca còn thiếu (idempotent).
+    // Nạp các ca worker ĐÃ ứng tuyển nhưng KHÔNG có trong listing công khai
+    // vừa nạp — thiếu khỏi shiftStore thì dashboard + lịch + trang chi tiết sẽ
+    // 404/không hiển thị trạng thái. Hai nhóm:
+    //  1) ca cũ hơn cửa sổ listing (trước hôm qua) nhưng vẫn ở `public_shifts`
+    //     → nạp MỘT lô theo id (`refetchPublicByIds`), không N request;
+    //  2) ca không còn công khai (đã huỷ / hoàn thành…) → `refetchOne` đọc
+    //     `get_shift_detail` (RPC cấp quyền cho worker-có-đơn).
+    // Chỉ nạp ca còn thiếu (idempotent).
     const appliedShiftIds = [
       ...new Set(
         useApplicationStore.getState().forWorker(cur.id).map((a) => a.shiftId),
       ),
     ];
-    const missingShiftIds = appliedShiftIds.filter(
-      (id) => !useShiftStore.getState().getById(id),
-    );
-    // 04/10: song song — mỗi `refetchOne` đọc store SAU khi chờ rồi mới ghi (upsert theo
-    // id) nên các lượt không đè nhau.
-    await Promise.all(missingShiftIds.map((id) => useShiftStore.getState().refetchOne(id)));
+    const missingNow = () =>
+      appliedShiftIds.filter((id) => !useShiftStore.getState().getById(id));
+    await useShiftStore.getState().refetchPublicByIds(missingNow());
+    // 04/10: nhóm 2 song song — mỗi `refetchOne` đọc store SAU khi chờ rồi mới ghi
+    // (upsert theo id) nên các lượt không đè nhau.
+    await Promise.all(missingNow().map((id) => useShiftStore.getState().refetchOne(id)));
   }
   const empIds = useShiftStore
     .getState()

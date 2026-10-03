@@ -31,6 +31,7 @@ import { transitionEscrow } from '@/domain/escrow';
 import { suggestedEvidenceForJobType } from '@/domain/evidence';
 import { applyFilters, type FilterCriteria } from '@/domain/filter';
 import { computePostingReadiness } from '@/domain/postingReadiness';
+import { publicShiftsFromDate } from '@/domain/publicShiftWindow';
 import { syncLifecycle as runSyncLifecycle } from '@/domain/shiftLifecycle';
 import { validateShiftFutureTiming } from '@/domain/shiftScheduling';
 import { canEditShift } from '@/domain/timeGates';
@@ -242,8 +243,17 @@ interface ShiftStore {
   refetchOne(shiftId: string): Promise<void>;
   /** Supabase: nạp lại ca của employer vào cache. No-op ở local. */
   refetchEmployer(employerId: string): Promise<void>;
-  /** Supabase: nạp lại danh sách ca công khai vào cache. No-op ở local. */
+  /**
+   * Supabase: nạp lại danh sách ca công khai (chỉ từ hôm qua, giờ VN) vào cache.
+   * Ca cũ hơn đã có trong cache được GIỮ. No-op ở local.
+   */
   refetchPublic(): Promise<void>;
+  /**
+   * Supabase: nạp lô ca công khai theo id (mọi ngày) và upsert vào cache — cho
+   * ca cũ ngoài cửa sổ listing mà người dùng có liên quan (vd. ca đã ứng tuyển).
+   * No-op ở local.
+   */
+  refetchPublicByIds(ids: readonly string[]): Promise<void>;
   /** Supabase (admin): thay cache bằng MỌI ca, kể cả đã hoàn thành/huỷ. No-op ở local. */
   refetchAll(): Promise<void>;
 
@@ -777,9 +787,20 @@ export const useShiftStore = create<ShiftStore>((set, get) => ({
 
   async refetchPublic() {
     if (getDataMode() !== 'supabase') return;
-    const rows = await getShiftRepo().listPublicShifts();
+    // Chỉ nạp ca từ hôm qua (giờ VN): `public_shifts` giữ ca đã qua mãi mãi.
+    const fromDate = publicShiftsFromDate(new Date().toISOString());
+    const rows = await getShiftRepo().listPublicShifts(fromDate);
     const ids = new Set(rows.map((r) => r.id));
     // Giữ ca đã có bản chi tiết (owner) không thuộc listing công khai; upsert phần công khai.
+    const kept = get().shifts.filter((s) => !ids.has(s.id));
+    set({ shifts: [...kept, ...rows] });
+  },
+
+  async refetchPublicByIds(shiftIds) {
+    if (getDataMode() !== 'supabase' || shiftIds.length === 0) return;
+    const rows = await getShiftRepo().listPublicShiftsByIds(shiftIds);
+    if (rows.length === 0) return;
+    const ids = new Set(rows.map((r) => r.id));
     const kept = get().shifts.filter((s) => !ids.has(s.id));
     set({ shifts: [...kept, ...rows] });
   },
