@@ -48,9 +48,10 @@ import { cleanup, render, screen } from '@testing-library/react';
 
 import { escrowLabel } from '@/i18n/vi';
 import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
-import { Footer } from '@/components/layout/Footer';
 import { NAV_GROUPS } from '@/components/layout/NavBar';
-import EmployerPaymentsPage from '@/app/employer/payments/page';
+// 03/10 — /employer/payments gộp vào /for-employers#employer-payments (next.config chuyển hướng).
+import { EmployerPaymentsSection } from '@/components/landing/EmployerPaymentsSection';
+const EmployerPaymentsPage = async () => <EmployerPaymentsSection />;
 
 // Trang /employer/payments là server component bất đồng bộ đọc ngôn ngữ từ
 // cookie (`getTx`); ngoài Next không có request nên cố định tiếng Việt.
@@ -90,11 +91,11 @@ const PINNED_ESCROW_LABELS: Record<EscrowStatus, string> = {
 
 const ESCROW_STATUSES = Object.keys(PINNED_ESCROW_LABELS) as EscrowStatus[];
 
-const PAYMENTS_HREF = '/employer/payments';
+const PAYMENTS_HREF = '/for-employers#employer-payments';
 // The Footer's employer info links were consolidated onto the user-guide;
 // the "payments" entry now deep-links to that guide's payments anchor while
 // the live `/employer/payments` route stays reachable from the NavBar.
-const FOOTER_PAYMENTS_HREF = '/user-guide#employer-payments';
+const FOOTER_PAYMENTS_HREF = '/for-employers#employer-payments';
 
 afterEach(() => {
   cleanup();
@@ -138,7 +139,7 @@ describe('Property 15 (Preservation): /employer/payments route still resolves', 
     render(await EmployerPaymentsPage());
     // A rendered <h1> proves the module resolves to a real, mountable page —
     // independent of the h1's exact wording (which the fix is allowed to change).
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
   });
 
   it('the NavBar employer menu still links to /employer/payments (href preserved)', () => {
@@ -147,13 +148,10 @@ describe('Property 15 (Preservation): /employer/payments route still resolves', 
     expect(item).toBeTruthy();
   });
 
-  it('the Footer keeps a payments entry (now the user-guide payments anchor)', () => {
-    // The footer's employer links were consolidated onto the user guide, so
-    // the payments entry deep-links there rather than to the live route (which
-    // stays reachable from the NavBar, asserted above). Assert only the HREF —
-    // the label text is what the wording fix changes.
-    const { container } = render(<Footer />);
-    const link = container.querySelector(`a[href="${FOOTER_PAYMENTS_HREF}"]`);
-    expect(link).not.toBeNull();
+  it('the public header menu keeps a payments entry (03/10: footer column removed)', () => {
+    // 03/10 — chân trang bỏ cột theo vai trò; lối tới khối "Giữ tiền ca làm" nằm ở danh
+    // sách dọc "Nhà tuyển dụng" trên thanh menu của khách. Assert only the HREF.
+    const item = NAV_GROUPS.employerPublic.items.find((i) => i.href === FOOTER_PAYMENTS_HREF);
+    expect(item).toBeTruthy();
   });
 });

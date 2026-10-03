@@ -298,7 +298,8 @@ export function JobRing({
   const autoOn = !reduced && !userPaused && selected === null;
 
   return (
-    <div>
+    // Vòng thẻ tự có chuyển động → không hiện dần khi cuộn (chủ dự án, 03/10).
+    <div data-reveal-skip>
       <div
         ref={stage}
         onPointerDown={onPointerDown}

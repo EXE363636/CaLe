@@ -21,7 +21,7 @@
  */
 
 import Link from 'next/link';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui';
 import { serverWageTotal } from '@/domain/deposit';
@@ -32,7 +32,7 @@ import { formatNumberVNInput } from '@/lib/numberVN';
 
 import { LANDING_SAMPLE_WORKERS } from './landingSamples';
 import { PreviewSteps } from './PreviewSteps';
-import { Row, Stage, StepButton, TimelineItem } from './previewParts';
+import { Row, Stage, StageNav, StageStack, StepButton, THIN_SCROLL, TimelineItem } from './previewParts';
 import { parseMoneyInput, shiftCostBreakdown } from './shiftCost';
 import { shiftMilestones, type ClockMark } from './shiftMilestones';
 import type { ScriptItem } from './typingScript';
@@ -116,6 +116,21 @@ export function ShiftPostPlayground() {
     setView(i);
   };
 
+  // Bước 1 cuộn bên trong khung (03/10): đang tự gõ thì vùng ô điền cuộn theo ô đang gõ
+  // (chỉ cuộn vùng đó, không cuộn trang); giảm chuyển động → nhảy thẳng, không trượt.
+  const fieldsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = fieldsRef.current;
+    const key = finished ? null : state.active;
+    if (!box || !key) return;
+    const el = box.querySelector<HTMLElement>(`[data-field="${key}"]`);
+    if (!el) return;
+    const top = el.offsetTop;
+    const bottom = top + el.offsetHeight;
+    if (top >= box.scrollTop && bottom <= box.scrollTop + box.clientHeight - 24) return;
+    box.scrollTo({ top: Math.max(0, top - 12), behavior: reduced ? 'auto' : 'smooth' });
+  }, [state.active, finished, reduced]);
+
   const value = (f: CostField | keyof typeof sample) =>
     !finished ? (state.values[f] ?? '') : f in form ? form[f as CostField] : sample[f as keyof typeof sample];
   const active = finished ? null : state.active;
@@ -180,39 +195,59 @@ export function ShiftPostPlayground() {
           onSelect={finished ? go : undefined}
         />
 
+        {/* Ba bước chồng trong một ô: khung luôn cao bằng bước dài nhất (03/10). */}
+        {/* Khung cao cố định bằng bước 2/3 (03/10, chủ dự án): bước 1 cuộn ô điền bên trong,
+            bảng tiền + nút đăng ghim ở đáy. */}
         <div className="mt-4">
+         <StageStack className="h-[43rem] sm:h-[37rem]">
           {/* ---------- 1. Điền ca ---------- */}
           <Stage on={stage === 0}>
-            <p className="text-lg font-semibold text-gray-900">{tx('Đăng ca mới')}</p>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <ShowField className="col-span-2" label={t('form.title')} value={value('title')} active={active === 'title'} />
-              <ShowField label={t('form.jobType')} value={value('jobType')} active={active === 'jobType'} />
-              <ShowField label={t('form.date')} value={value('date')} active={active === 'date'} />
-              <ShowField className="col-span-2" label={t('form.location')} value={value('location')} active={active === 'location'} />
-              <EditField id="try-start" label={t('form.startTime')} value={value('start')} active={active === 'start'} placeholder="08:00" onFocus={focusField} onChange={(v) => edit('start', v)} />
-              <EditField id="try-end" label={t('form.endTime')} value={value('end')} active={active === 'end'} placeholder="12:00" onFocus={focusField} onChange={(v) => edit('end', v)} />
-              <EditField id="try-wage" label={t('form.hourlyWage')} value={value('wage')} active={active === 'wage'} placeholder="35.000" onFocus={focusField} onChange={(v) => edit('wage', v)} />
-              <EditField id="try-people" label={t('form.positionsTotal')} value={value('people')} active={active === 'people'} placeholder="1" onFocus={focusField} onChange={(v) => edit('people', v)} />
-              <ShowField className="col-span-2" multiline label={t('form.description')} value={value('desc')} active={active === 'desc'} />
-              <ShowField className="col-span-2" multiline label={t('form.requirements')} value={value('req')} active={active === 'req'} />
-              <ShowField className="col-span-2" label={t('form.onSiteContactName')} value={value('contact')} active={active === 'contact'} />
+            <p className="shrink-0 text-lg font-semibold text-gray-900">{tx('Đăng ca mới')}</p>
+            <div
+              ref={fieldsRef}
+              className={['relative mt-3 min-h-0 flex-1 overflow-y-auto overscroll-auto pr-1', THIN_SCROLL].join(' ')}
+            >
+            <div className="grid grid-cols-2 gap-3 pb-2">
+              <ShowField className="col-span-2" label={t('form.title')} value={value('title')} active={active === 'title'} field="title" />
+              <ShowField label={t('form.jobType')} value={value('jobType')} active={active === 'jobType'} field="jobType" />
+              <ShowField label={t('form.date')} value={value('date')} active={active === 'date'} field="date" />
+              <ShowField className="col-span-2" label={t('form.location')} value={value('location')} active={active === 'location'} field="location" />
+              <EditField id="try-start" field="start" label={t('form.startTime')} value={value('start')} active={active === 'start'} placeholder="08:00" onFocus={focusField} onChange={(v) => edit('start', v)} />
+              <EditField id="try-end" field="end" label={t('form.endTime')} value={value('end')} active={active === 'end'} placeholder="12:00" onFocus={focusField} onChange={(v) => edit('end', v)} />
+              <EditField id="try-wage" field="wage" label={t('form.hourlyWage')} value={value('wage')} active={active === 'wage'} placeholder="35.000" onFocus={focusField} onChange={(v) => edit('wage', v)} />
+              <EditField id="try-people" field="people" label={t('form.positionsTotal')} value={value('people')} active={active === 'people'} placeholder="1" onFocus={focusField} onChange={(v) => edit('people', v)} />
+              <ShowField className="col-span-2" multiline full={sample.desc} label={t('form.description')} value={value('desc')} active={active === 'desc'} field="desc" />
+              <ShowField className="col-span-2" multiline full={sample.req} label={t('form.requirements')} value={value('req')} active={active === 'req'} field="req" />
+              <ShowField className="col-span-2" label={t('form.onSiteContactName')} value={value('contact')} active={active === 'contact'} field="contact" />
+            </div>
+              {/* Mép mờ ở đáy: báo còn ô bên dưới. */}
+              <div aria-hidden="true" className="pointer-events-none sticky bottom-0 -mt-6 h-6 bg-gradient-to-t from-white to-transparent" />
             </div>
 
-            <dl className="mt-4 rounded-2xl bg-orange-50 px-4 py-3 text-sm ring-1 ring-orange-100" aria-live="polite">
+            <dl className="mt-3 shrink-0 rounded-2xl bg-orange-50 px-4 py-3 text-sm ring-1 ring-orange-100" aria-live="polite">
               <Row
                 label={t('shiftForm.depositSummary.wage')}
-                sub={cost ? `${people} × ${num(cost.hours)} ${tx('giờ')} × ${formatVND(wage)}` : undefined}
+                // Dòng phụ luôn có (khoảng trắng khi chưa tính) để bảng tiền không cao thêm lúc gõ xong.
+                sub={cost ? `${people} × ${num(cost.hours)} ${tx('giờ')} × ${formatVND(wage)}` : '\u00a0'}
                 value={cost ? formatVND(cost.wages) : tx('Chưa tính')}
               />
               <Row label={feeLabel} value={feeValue} />
               <Row strong label={`${t('shiftForm.depositSummary.total')}${sim}`} value={cost ? formatVND(cost.held) : tx('Chưa tính')} />
             </dl>
-            {!cost && finished && <p className="mt-2 text-sm text-gray-600">{tx('Nhập giờ kết thúc sau giờ bắt đầu, lương và số người để tính.')}</p>}
             {/* Số dư ví: đủ → đăng; thiếu → ca được lưu nháp, nạp thêm rồi đăng (luồng thật). */}
+            {/* Dòng số dư luôn giữ chỗ (03/10): trước khi gõ xong là ô ẩn cùng cỡ, khung không nhảy. */}
+            {!cost && (
+              <p
+                aria-hidden={!finished}
+                className={['mt-2 min-h-[3.5rem] shrink-0 rounded-xl px-3 py-2 text-sm text-gray-600', finished ? '' : 'invisible'].join(' ')}
+              >
+                {tx('Nhập giờ kết thúc sau giờ bắt đầu, lương và số người để tính.')}
+              </p>
+            )}
             {cost && (
               <p
                 className={[
-                  'mt-2 flex flex-wrap items-baseline justify-between gap-x-3 rounded-xl px-3 py-2 text-sm',
+                  'mt-2 flex min-h-[3.5rem] shrink-0 flex-wrap content-center items-baseline justify-between gap-x-3 rounded-xl px-3 py-2 text-sm',
                   enough ? 'bg-green-50 text-green-900' : 'bg-amber-50 text-amber-900',
                 ].join(' ')}
               >
@@ -226,7 +261,7 @@ export function ShiftPostPlayground() {
                 </span>
               </p>
             )}
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-3 flex shrink-0 flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => go(1)}
@@ -243,7 +278,7 @@ export function ShiftPostPlayground() {
           </Stage>
 
           {/* ---------- 2. Tuyển người ---------- */}
-          <Stage on={stage === 1}>
+          <Stage on={stage === 1} scroll>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-gray-900">{title}</p>
@@ -333,18 +368,16 @@ export function ShiftPostPlayground() {
                   .replace('{cancel}', when(ms.employerCancelBy))}
               </p>
             )}
-            {finished && (
-              <div className="mt-4 flex flex-wrap justify-between gap-3">
-                <StepButton onClick={() => go(0)}>← {tx('Sửa lại')}</StepButton>
-                <StepButton primary onClick={() => go(2)}>
-                  {tx('Tiếp: ngày làm')} →
-                </StepButton>
-              </div>
-            )}
+            <StageNav show={finished}>
+              <StepButton onClick={() => go(0)}>← {tx('Sửa lại')}</StepButton>
+              <StepButton primary onClick={() => go(2)}>
+                {tx('Tiếp: ngày làm')} →
+              </StepButton>
+            </StageNav>
           </Stage>
 
           {/* ---------- 3. Ngày làm & sau ca ---------- */}
-          <Stage on={stage === 2}>
+          <Stage on={stage === 2} scroll>
             <p className="text-lg font-semibold text-gray-900">{tx('Ngày làm & sau ca')}</p>
             <p className="text-sm text-gray-600 tabular-nums">
               {title} · {sample.date}
@@ -385,16 +418,16 @@ export function ShiftPostPlayground() {
                 <dl>
                   <Row label={tx('Trả người đã làm')} value={formatVND(cost.paid)} />
                   {live && <Row label={tx('Phí trên phần có người làm')} value={formatVND(cost.paidFee)} />}
-                  {cost.refund > 0 && <Row strong label={tx('Hoàn về ví của bạn')} value={`+${formatVND(cost.refund)}`} tone="text-green-800" />}
+                  {/* Dòng hoàn luôn giữ chỗ: bật / tắt "1 người không đến" không làm khung nhảy. */}
+                  <Row strong reserve={cost.refund <= 0} label={tx('Hoàn về ví của bạn')} value={`+${formatVND(cost.refund)}`} tone="text-green-800" />
                 </dl>
               )}
             </div>
-            {finished && (
-              <div className="mt-4">
-                <StepButton onClick={() => go(1)}>← {tx('Tuyển người')}</StepButton>
-              </div>
-            )}
+            <StageNav show={finished}>
+              <StepButton onClick={() => go(1)}>← {tx('Tuyển người')}</StepButton>
+            </StageNav>
           </Stage>
+         </StageStack>
         </div>
       </div>
       <figcaption className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-gray-600">
@@ -413,7 +446,7 @@ export function ShiftPostPlayground() {
           >
             {tx('Xem lại')}
           </button>
-          <Link href="/pricing" className="inline-flex min-h-[44px] items-center font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+          <Link href="/for-employers#employer-pricing" className="inline-flex min-h-[44px] items-center font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
             {tx('Bảng phí')} →
           </Link>
         </span>
@@ -430,15 +463,20 @@ function ShowField({
   active,
   className,
   multiline,
+  full,
+  field,
 }: {
+  field?: string;
   label: string;
   value: string;
   active: boolean;
   className?: string;
   multiline?: boolean;
+  /** Ô nhiều dòng: chữ đầy đủ, giữ chỗ ẩn để ô không cao dần khi đang gõ (03/10). */
+  full?: string;
 }) {
   return (
-    <div className={['min-w-0', className ?? ''].join(' ')}>
+    <div data-field={field} className={['min-w-0', className ?? ''].join(' ')}>
       <span className="text-xs font-medium text-gray-700">{label}</span>
       <span
         className={[
@@ -448,10 +486,22 @@ function ShowField({
           active ? 'border-orange-400 ring-2 ring-orange-200' : 'border-gray-200',
         ].join(' ')}
       >
-        <span className={multiline ? '' : 'truncate'}>
-          {value}
-          {active && <span aria-hidden="true" className="type-caret" />}
-        </span>
+        {multiline && full ? (
+          <span className="grid w-full">
+            <span aria-hidden="true" className="invisible [grid-area:1/1]">
+              {full}
+            </span>
+            <span className="[grid-area:1/1]">
+              {value}
+              {active && <span aria-hidden="true" className="type-caret" />}
+            </span>
+          </span>
+        ) : (
+          <span className={multiline ? '' : 'truncate'}>
+            {value}
+            {active && <span aria-hidden="true" className="type-caret" />}
+          </span>
+        )}
       </span>
     </div>
   );
@@ -459,6 +509,7 @@ function ShowField({
 
 function EditField({
   id,
+  field,
   label,
   value,
   active,
@@ -467,6 +518,7 @@ function EditField({
   onChange,
 }: {
   id: string;
+  field?: string;
   label: string;
   value: string;
   active: boolean;
@@ -475,7 +527,7 @@ function EditField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="min-w-0">
+    <div data-field={field} className="min-w-0">
       <label htmlFor={id} className="text-xs font-medium text-gray-700">
         {label}
       </label>

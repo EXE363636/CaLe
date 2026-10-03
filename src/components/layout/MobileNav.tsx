@@ -94,45 +94,39 @@ interface DrawerSection {
 const PUBLIC_SECTIONS: DrawerSection[] = [
   {
     heading: 'Chính',
-    // Khách: "Tìm ca làm" chỉ nằm trong mục "Người lao động" bên dưới.
     links: [{ href: '/', label: 'Trang chủ' }],
   },
+  // 03/10 — giống danh sách dọc trên máy tính: mỗi vai trò dẫn tới từng khối của trang.
   {
     heading: 'Người lao động',
     links: [
-      { href: '/for-workers', label: 'Dành cho người lao động' },
-      { href: '/shifts', label: 'Tìm ca làm' },
-      { href: '/worker/reputation-guide', label: 'Hồ sơ & điểm uy tín' },
-      // Phase 9Z-Fix-3: public-variant — `/worker/schedule` is
-      // protected, so logged-out users get the user-guide instead.
-      // Phase 9Z-Fix-4: deep-link to the feature anchor so the user
-      // lands directly on the Lịch cá nhân explanation.
-      { href: '/worker/schedule-guide', label: 'Lịch cá nhân' },
-      { href: '/worker/cancellation-policy', label: 'Quy định huỷ ca' },
+      { href: '/for-workers', label: 'Tổng quan cho người lao động' },
+      { href: '/for-workers#worker-shifts', label: 'Ca đang tuyển' },
+      { href: '/for-workers#worker-apply', label: 'Tìm ca và ứng tuyển' },
+      { href: '/for-workers#worker-schedule', label: 'Lịch cá nhân' },
+      { href: '/for-workers#worker-money', label: 'Tiền về tay khi nào' },
+      { href: '/for-workers#worker-cancel', label: 'Quy định huỷ ca' },
+      { href: '/for-workers#worker-reputation', label: 'Hồ sơ & điểm uy tín' },
+      { href: '/for-workers#worker-faq', label: 'Câu hỏi thường gặp' },
     ],
   },
   {
     heading: 'Nhà tuyển dụng',
     links: [
-      // Phase 9Z-Fix-3: public-variant — `/employer/shifts/new` and
-      // `/employer/dashboard` are protected, so logged-out users get
-      // public guide pages.
-      // Phase 9Z-Fix-4: deep-link to specific anchors so the user
-      // lands on the right feature explanation.
-      { href: '/for-employers', label: 'Dành cho nhà tuyển dụng' },
-      { href: '/employer/post-shift-guide', label: 'Đăng ca tuyển' },
-      { href: '/employer/applicants-guide', label: 'Quản lý người ứng tuyển' },
-      { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
-      { href: '/employer/reviews', label: 'Đánh giá sau ca' },
+      { href: '/for-employers', label: 'Tổng quan cho nhà tuyển dụng' },
+      { href: '/for-employers#employer-post', label: 'Thử đăng một ca' },
+      { href: '/for-employers#employer-applicants', label: 'Duyệt người ứng tuyển' },
+      { href: '/for-employers#employer-payments', label: 'Giữ tiền ca làm' },
+      { href: '/for-employers#employer-pricing', label: 'Phí dịch vụ' },
+      { href: '/for-employers#employer-reviews', label: 'Đánh giá sau ca' },
+      { href: '/for-employers#employer-faq', label: 'Câu hỏi thường gặp' },
     ],
   },
   {
     heading: 'Hướng dẫn & hỗ trợ',
-    // (Bảng giá thêm ngay dưới "Cách hoạt động")
+    // 03/10 — Cách hoạt động / Bảng giá / Bảo vệ người dùng đã gộp vào trang chủ, trang
+    // nhà tuyển dụng và /support.
     links: [
-      { href: '/how-it-works', label: 'Cách hoạt động' },
-      { href: '/pricing', label: 'Bảng giá' },
-      { href: '/safety', label: t('nav.label.safety') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/disputes', label: 'Xử lý tranh chấp' },
       { href: '/user-guide', label: t('nav.label.userGuide') },
@@ -156,8 +150,8 @@ const WORKER_SECTIONS: DrawerSection[] = [
   {
     heading: 'Hướng dẫn',
     links: [
-      { href: '/worker/reputation-guide', label: 'Điểm uy tín' },
-      { href: '/worker/cancellation-policy', label: 'Quy định huỷ ca' },
+      { href: '/for-workers#worker-reputation', label: 'Điểm uy tín' },
+      { href: '/for-workers#worker-cancel', label: 'Quy định huỷ ca' },
       { href: '/user-guide', label: t('nav.label.userGuide') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
@@ -180,8 +174,8 @@ const EMPLOYER_SECTIONS: DrawerSection[] = [
   {
     heading: 'Hướng dẫn',
     links: [
-      { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
-      { href: '/employer/reviews', label: 'Đánh giá sau ca' },
+      { href: '/for-employers#employer-payments', label: 'Giữ tiền ca làm (mô phỏng)' },
+      { href: '/for-employers#employer-reviews', label: 'Đánh giá sau ca' },
       { href: '/user-guide', label: t('nav.label.userGuide') },
       { href: '/faq', label: 'Câu hỏi thường gặp' },
       { href: '/support', label: 'Liên hệ hỗ trợ' },
@@ -364,7 +358,7 @@ export function MobileNav({ forceVisible = false }: { forceVisible?: boolean } =
     if (!isSupabaseEnv()) return base;
     return base.map((section) => ({
       ...section,
-      links: section.links.filter((l) => l.href !== '/employer/payments'),
+      links: section.links.filter((l) => l.href !== '/for-employers#employer-payments'),
     }));
   }, [role]);
 

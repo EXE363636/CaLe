@@ -100,7 +100,7 @@ function employerItems(t: TFunction): MenuItem[] {
       href: '/employer/dashboard?modal=pending',
       label: t('nav.userMenu.employer.pending'),
     },
-    { href: '/employer/payments', label: t('nav.userMenu.employer.payments') },
+    { href: '/for-employers#employer-payments', label: t('nav.userMenu.employer.payments') },
     { href: '/support', label: t('nav.userMenu.support') },
   ];
 }

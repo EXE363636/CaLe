@@ -28,7 +28,7 @@ import { getShiftStatusBadge } from '@/domain/shiftLifecycleState';
 import { useLocale, useT, useTx } from '@/i18n/LocaleProvider';
 
 import { PreviewSteps } from './PreviewSteps';
-import { Stage } from './previewParts';
+import { Stage, StageStack } from './previewParts';
 import type { ScriptItem } from './typingScript';
 import { useTypingScript } from './useTypingScript';
 
@@ -120,6 +120,7 @@ export function ReviewFlowPreview({ audience }: { audience: 'worker' | 'employer
         </div>
 
         <div className="mt-4">
+         <StageStack>
           {/* 1. Quán chấm người lao động */}
           <Stage on={stage === 0}>
             <Panel
@@ -227,6 +228,7 @@ export function ReviewFlowPreview({ audience }: { audience: 'worker' | 'employer
               <SkillRow name={tx('Pha chế')} level={bar.level} fraction={bar.fraction} caption={`${bar.intoLevel}/${bar.levelSpan} XP`} up="" levelLabel={tx('Cấp {level}')} />
             </ul>
           </Stage>
+         </StageStack>
         </div>
       </div>
       <figcaption className="mt-3 flex flex-wrap items-center justify-center gap-x-4 text-center text-xs text-gray-600">

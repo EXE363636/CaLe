@@ -1,18 +1,17 @@
 // Feature: checkpoint-readiness-phase-1, Task 4.4 / 4.1 — Partners
-// section for the About page. Renders the potential / directional
-// partner groups, each item independently so a missing/blank entry
-// never collapses the whole section (R6, partial-render philosophy
-// R5.5).
+// section. Renders the potential / directional partner groups, each item
+// independently so a missing/blank entry never collapses the whole section
+// (R6, partial-render philosophy R5.5).
 //
-// Reuses the existing `InfoSection` primitive (R12.9 — no UI redesign).
+// 03/10 — trang `/about` gộp vào trang chủ (khối "Về CaLẻ"): thẻ riêng, tiêu đề h3; các nhóm
+// là chip viền nét đứt + MỘT chú thích chung (nhãn định hướng từng nhóm ở dạng sr-only).
 // All display copy comes from `src/i18n/vi.ts` via `t()` (Task 4.1);
 // every potential group is badged as directional via the pure
 // `labelForPartner` helper.
 
-import { InfoSection } from '@/components/layout/InfoPage';
 import { t as tVi } from '@/i18n/vi';
 import type { TFunction } from '@/i18n/locale';
-import { PARTNER_GROUPS, labelForPartner, type Partner } from './partners';
+import { DIRECTIONAL_PARTNER_LABEL_KEY, PARTNER_GROUPS, labelForPartner, type Partner } from './partners';
 
 export function PartnersSection({
   partners = PARTNER_GROUPS,
@@ -32,35 +31,48 @@ export function PartnersSection({
     : [intro, ''];
 
   return (
-    <InfoSection title={t('about.partners.title')}>
-      <p className="mb-3">
-        {introBefore}
-        {introAfter ? <strong>{emphasis}</strong> : null}
-        {introAfter}
-      </p>
+    <section
+      aria-labelledby="home-partners"
+      className="grid gap-8 rounded-3xl bg-white p-6 shadow-card ring-1 ring-black/5 sm:p-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)] lg:gap-12"
+    >
+      <div>
+        <h3 id="home-partners" className="text-lg font-semibold text-gray-900">
+          {t('about.partners.title')}
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          {introBefore}
+          {introAfter ? <strong className="font-semibold text-gray-900">{emphasis}</strong> : null}
+          {introAfter}
+        </p>
+        {/* Chú thích chung thay cho nhãn lặp ở từng nhóm: viền nét đứt = định hướng. Mỗi
+            nhóm vẫn mang nhãn riêng cho trình đọc màn hình (sr-only), R6.2. */}
+        <p className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-gray-600">
+          <span aria-hidden="true" className="h-3.5 w-7 rounded-full border-[1.5px] border-dashed border-orange-400 bg-orange-50" />
+          {t(DIRECTIONAL_PARTNER_LABEL_KEY)}
+        </p>
+      </div>
 
       {items.length === 0 ? (
-        <p className="text-gray-500">{t('about.partners.empty')}</p>
+        <p className="text-sm text-gray-600">{t('about.partners.empty')}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-wrap content-start gap-2.5">
           {items.map((partner) => {
             const labelKey = labelForPartner(partner);
             return (
               <li
                 key={partner.nameKey}
-                className="flex flex-wrap items-center gap-2"
+                className={[
+                  'inline-flex min-h-[40px] items-center rounded-full px-4 py-2 text-sm font-medium text-gray-900',
+                  labelKey ? 'border-[1.5px] border-dashed border-orange-300 bg-orange-50/60' : 'border border-gray-200 bg-white',
+                ].join(' ')}
               >
-                <span>{t(partner.nameKey)}</span>
-                {labelKey && (
-                  <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                    {t(labelKey)}
-                  </span>
-                )}
+                {t(partner.nameKey)}
+                {labelKey && <span className="sr-only"> ({t(labelKey)})</span>}
               </li>
             );
           })}
         </ul>
       )}
-    </InfoSection>
+    </section>
   );
 }

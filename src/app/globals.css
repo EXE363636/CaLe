@@ -152,6 +152,11 @@ body {
    * cannot regress the bug. Vertical scroll behaviour is untouched
    * (`overflow-y` defaults to `auto`/`visible`). */
   overflow-x: hidden;
+  /* 03/10 — `hidden` trên cả html lẫn body biến body thành một khung cuộn riêng (không bao
+   * giờ cuộn vì cao theo nội dung) → header `sticky top-0` bám vào body và trôi mất khi
+   * cuộn trang. `clip` cắt tràn ngang y như vậy nhưng KHÔNG tạo khung cuộn, nên header
+   * dính đúng theo trang. Trình duyệt cũ không hiểu `clip` thì giữ `hidden` ở trên. */
+  overflow-x: clip;
   /* `max-width: 100vw` would double-clip in Safari when a vertical
    * scrollbar is present; `width: 100%` is enough because the
    * `overflow-x: hidden` already prevents content from forcing the
@@ -1431,6 +1436,29 @@ summary::-webkit-details-marker {
 [data-motion='armed'] :is(.m-node, .m-text, .m-rail, .m-stage, .m-amount) {
   --m-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* Hiện dần khi cuộn cho trang công khai (03/10) — đi cùng `useScrollReveal` (gắn trong
+ * `ToneScroll`). Chỉ phần tử đánh dấu `armed` (nằm dưới màn hình lúc tải) mới ẩn; tới
+ * vạch 90% màn hình thì `in` → trượt lên 16px + rõ dần, nối nhau 70ms theo `--ri`. Xong
+ * thì JS gỡ thuộc tính (trả transition / transform gốc). Giảm chuyển động: luôn hiện. */
+[data-reveal='armed'] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+[data-reveal='in'] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: calc(var(--ri, 0) * 70ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
 [data-motion='armed'] .m-node {
   opacity: 0;
   transform: scale(0.4);
@@ -1547,7 +1575,7 @@ summary::-webkit-details-marker {
   animation: explain-num-arrive 500ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .home-explain {
-  scroll-margin-top: 6rem;
+  scroll-margin-top: 7rem;
   transition:
     background-color 300ms ease-out,
     box-shadow 300ms ease-out;
@@ -1588,6 +1616,15 @@ summary::-webkit-details-marker {
   :root:has(.home-explain) {
     scroll-behavior: smooth;
   }
+}
+
+/* Khung điện thoại landing (03/10, `PhoneFrame`): bóng có độ lệch + nhoè, viền sáng
+ * mảnh ở mép máy. */
+.phone-bezel {
+  box-shadow:
+    0 44px 80px -36px rgb(55 55 59 / 0.5),
+    0 14px 28px -14px rgb(55 55 59 / 0.28),
+    inset 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1657,6 +1694,81 @@ summary::-webkit-details-marker {
 .tone-scroll {
   transition: background-color 900ms cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* ---------------------------------------------------------------------------
+ * Da trang công khai "giấy trắng, cam rõ" (03/10, chủ dự án chọn hướng A).
+ * Gắn lớp `.public-skin` lên vùng bọc `ToneScroll`, khung đăng nhập, header khi
+ * đang ở trang công khai và footer. App (dashboard, lịch, trang ca…) không đổi.
+ *   - Nền: trắng ngà `#FBF9F6` + giấy ấm `#F2EEE8` xen kẽ (thẻ trắng luôn nổi); bỏ các tông đào / kem.
+ *   - Cam đậm hơn một nấc `#FF8A3D` (nút: chữ mực trên cam ≈ 7:1); nền cam nhạt
+ *     (50–200) nhạt và trung tính hơn để không còn "phủ đào" cả trang.
+ *   - Mực đậm hơn `#1E1E22`.
+ * Chỉ ở giao diện sáng: giao diện tối giữ nguyên bảng màu tối hiện có. Các biến
+ * dẫn xuất (`--color-brand`, `--tone-*`) được khai lại vì `var()` đã tính ở `:root`.
+ * ------------------------------------------------------------------------- */
+:root:not([data-theme="dark"]) .public-skin {
+  --brand: #ff8a3d;
+  --brand-soft: #ffd9bf;
+  --color-brand: #ff8a3d;
+  --color-orange-50: #fff5ee;
+  --color-orange-100: #ffeadb;
+  --color-orange-200: #ffd9bf;
+  --color-orange-300: #ffbd8f;
+  --color-orange-400: #ff9f60;
+  --color-orange-500: #ff8a3d;
+  --color-gray-900: #1e1e22;
+  --color-ink: #1e1e22;
+  /* Nền trắng ngà + giấy: thẻ trắng (#fff) luôn nổi lên trên cả hai tông (03/10 — nền
+   * trắng tinh trùng màu thẻ, khối bị chìm). `--background` theo tông trắng ngà để khuyết
+   * tròn của biên nhận / mép thẻ dùng `var(--background)` khớp nền. */
+  --background: #fbf9f6;
+  --tone-cream: #fbf9f6;
+  --tone-paper: #f2eee8;
+  --tone-apricot: #f2eee8;
+  --tone-peach: #fbf9f6;
+  color: #1e1e22;
+}
+:root:not([data-theme="dark"]) .public-skin .hero-decor,
+:root:not([data-theme="dark"]) .public-skin.hero-decor {
+  background-image: radial-gradient(ellipse 900px 520px at 85% 0%, rgb(255 138 61 / 0.1) 0%, rgb(255 138 61 / 0) 62%);
+}
+/* Giao diện TỐI của trang công khai (03/10 — "một số khối chìm vào nền"): bản tối gốc đặt
+ * `--tone-paper` = `--color-white` (#1d1d21) → thẻ trắng trên khối giấy trùng màu nền, và
+ * viền mảnh `ring-black/…` (đen) không thấy trên nền tối. Tách 3 lớp rõ: nền #141416 <
+ * giấy #19191c < thẻ #24242a; viền / vạch kẻ đen nhạt đổi thành trắng nhạt. Khối mực /
+ * cam giữ quy tắc riêng ở trên (tự khai lại `--color-white`). */
+:root[data-theme="dark"] .public-skin {
+  --tone-cream: #141416;
+  --tone-paper: #19191c;
+  --tone-apricot: #19191c;
+  --tone-peach: #141416;
+  --color-white: #24242a;
+}
+:root[data-theme="dark"] .public-skin :is(.ring-black\/5, .ring-black\/10) {
+  --tw-ring-color: rgb(255 255 255 / 0.09);
+}
+:root[data-theme="dark"] .public-skin :is(.border-black\/5, .border-black\/10) {
+  border-color: rgb(255 255 255 / 0.08);
+}
+:root[data-theme="dark"] .public-skin .bg-black\/5 {
+  background-color: rgb(255 255 255 / 0.08);
+}
+/* Nền giấy cho trang không bọc `ToneScroll` (đăng nhập / đăng ký): thẻ trắng nổi trên
+ * giấy ấm; giao diện tối giữ nền trang. */
+.public-canvas {
+  background-color: var(--background);
+}
+:root:not([data-theme="dark"]) .public-skin.public-canvas {
+  background-color: #f2eee8;
+}
+/* Link `#khối` (vd chuyển hướng từ trang hướng dẫn cũ): chừa chỗ cho header dính. */
+.public-skin [id] {
+  scroll-margin-top: 7rem; /* header dính cao 97px ở máy tính (03/10) */
+}
+:root:not([data-theme="dark"]) .public-skin ::selection {
+  background-color: #ffd9bf;
+  color: #1e1e22;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tone-scroll {
     transition: none;

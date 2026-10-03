@@ -1,31 +1,21 @@
 'use client';
 
 /**
- * Site footer (Phase 9Q rewrite, Phase 9R real-routes pass).
+ * Chân trang (03/10 — làm lại theo da "giấy trắng, cam rõ", `.public-skin`).
  *
- * 5-column responsive layout: brand + contact, plus four navigation
- * groups (about / worker / employer / legal). Stacks vertically on
- * mobile. Brand orange accent in the headings; subtle border-top so
- * the footer separates from the page chrome without a hard line.
- *
- * Phase 9R changes:
- *   - Footer is now mounted on every route (including `/admin/*`) so
- *     navigation feels consistent. The previous `usePathname()` hide
- *     left admins with no way to find legal/help links from the
- *     management screens.
- *   - Every link is a real `<Link>` to a real route. Phase 9Q's
- *     `aria-disabled` placeholder rows are gone. Static info pages
- *     (`/about`, `/how-it-works`, `/safety`, `/faq`, `/terms`,
- *     `/privacy`, `/disputes`, `/support`, `/worker/reputation-guide`,
- *     `/worker/cancellation-policy`, `/employer/payments`,
- *     `/employer/reviews`) ship in this same phase.
- *   - The MVP-disclaimer pill is gone from the public copyright row;
- *     it now reads as a real-product footer.
- *
- * Mock-only: the email / hotline / address values are placeholders
- * suitable for the MVP. The footer never sends real network requests.
+ *   - Từ `lg` một hàng: logo + một câu giới thiệu · ba cột liên kết "CaLẻ" / "Người lao
+ *     động" / "Nhà tuyển dụng" · "Cần hỗ trợ?" (email, hotline, địa chỉ, lối sang /support).
+ *     `md`: logo | hỗ trợ, ba cột liên kết hàng dưới. Điện thoại: logo, hỗ trợ, liên kết 2
+ *     cột. Hai cột vai trò thêm lại 03/10 (chủ dự án), trỏ tới các khối của trang vai trò.
+ *   - Dưới cùng: bản quyền + hàng liên kết pháp lý nhỏ (Điều khoản · Bảo mật · Tranh
+ *     chấp · Hỗ trợ), có tiêu đề ẩn "Pháp lý & hỗ trợ" cho trình đọc màn hình.
+ *   - Dòng trạng thái dữ liệu theo chế độ (demo: không có giao dịch thật; bản thật:
+ *     tiền thật qua PayOS) — bắt buộc phải trung thực.
+ * Gắn trên mọi route (kể cả /admin) để luôn tìm được liên kết pháp lý / hỗ trợ.
+ * Không cột nào dùng nhãn chữ in hoa giãn chữ (eyebrow): tiêu đề cột là chữ thường đậm.
  */
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { t } from '@/i18n/vi';
 import { useTx } from '@/i18n/LocaleProvider';
@@ -40,148 +30,159 @@ interface Column {
   links: ColumnLink[];
 }
 
-const ABOUT_COLUMN: Column = {
-  heading: 'Về CaLedo',
-  links: [
-    { label: 'Giới thiệu', href: '/about' },
-    { label: 'Bảng giá', href: '/pricing' },
-    { label: 'Cách hoạt động', href: '/how-it-works' },
-    { label: t('nav.label.userGuide'), href: '/user-guide' },
-    { label: t('nav.label.handbook'), href: '/handbook' },
-    { label: t('nav.label.safety'), href: '/safety' },
-    { label: 'Câu hỏi thường gặp', href: '/faq' },
-  ],
-};
-
-const WORKER_COLUMN: Column = {
-  heading: 'Dành cho người lao động',
-  links: [
-    { label: 'Tìm ca làm', href: '/shifts' },
-    { label: 'Hồ sơ & điểm uy tín', href: '/user-guide#worker-reputation' },
-    { label: 'Lịch cá nhân', href: '/worker/schedule-guide' },
-    { label: 'Quy định huỷ ca', href: '/user-guide#worker-cancellation-quota' },
-  ],
-};
-
-const EMPLOYER_COLUMN: Column = {
-  heading: 'Dành cho nhà tuyển dụng',
-  links: [
-    { label: 'Đăng ca tuyển', href: '/employer/post-shift-guide' },
-    { label: 'Quản lý người ứng tuyển', href: '/employer/applicants-guide' },
-    { label: 'Giữ tiền ca làm', href: '/user-guide#employer-payments' },
-    { label: 'Đánh giá sau ca', href: '/employer/reviews' },
-  ],
-};
-
-const LEGAL_COLUMN: Column = {
-  heading: 'Pháp lý & hỗ trợ',
-  // Cluster 5 · Task 19.2 — legal/support group now holds ONLY the four
-  // legal/support entries. The guide link ("Cẩm nang làm việc", /user-guide)
-  // moved to ABOUT_COLUMN (the handbook/guide group) above.
-  links: [
-    { label: 'Điều khoản sử dụng', href: '/terms' },
-    { label: 'Chính sách bảo mật', href: '/privacy' },
-    { label: 'Chính sách xử lý tranh chấp', href: '/disputes' },
-    { label: 'Liên hệ hỗ trợ', href: '/support' },
-  ],
-};
-
 const COLUMNS: Column[] = [
-  ABOUT_COLUMN,
-  WORKER_COLUMN,
-  EMPLOYER_COLUMN,
-  LEGAL_COLUMN,
+  {
+    heading: 'CaLẻ',
+    links: [
+      // 03/10 — giới thiệu / cách hoạt động / bảng giá là các khối của trang chủ và trang
+      // nhà tuyển dụng; lưu ý an toàn nằm ở /support.
+      // ("Bảng giá" = "Phí dịch vụ" ở cột nhà tuyển dụng, không lặp.)
+      { label: 'Giới thiệu', href: '/#home-about' },
+      { label: 'Cách hoạt động', href: '/#home-how' },
+      { label: t('nav.label.userGuide'), href: '/user-guide' },
+      { label: t('nav.label.handbook'), href: '/handbook' },
+      { label: 'Lưu ý an toàn', href: '/support#support-safety' },
+      { label: 'Câu hỏi thường gặp', href: '/faq' },
+    ],
+  },
+  {
+    heading: 'Người lao động',
+    links: [
+      { label: 'Tìm ca làm', href: '/shifts' },
+      { label: 'Ca đang tuyển', href: '/for-workers#worker-shifts' },
+      { label: 'Lịch cá nhân', href: '/for-workers#worker-schedule' },
+      { label: 'Tiền về tay khi nào', href: '/for-workers#worker-money' },
+      { label: 'Quy định huỷ ca', href: '/for-workers#worker-cancel' },
+      { label: 'Hồ sơ & điểm uy tín', href: '/for-workers#worker-reputation' },
+    ],
+  },
+  {
+    heading: 'Nhà tuyển dụng',
+    links: [
+      { label: 'Đăng ca tuyển', href: '/employer/shifts/new' },
+      { label: 'Thử đăng một ca', href: '/for-employers#employer-post' },
+      { label: 'Duyệt người ứng tuyển', href: '/for-employers#employer-applicants' },
+      { label: 'Giữ tiền ca làm', href: '/for-employers#employer-payments' },
+      { label: 'Phí dịch vụ', href: '/for-employers#employer-pricing' },
+      { label: 'Đánh giá sau ca', href: '/for-employers#employer-reviews' },
+    ],
+  },
 ];
+
+const LEGAL_LINKS: ColumnLink[] = [
+  { label: 'Điều khoản sử dụng', href: '/terms' },
+  { label: 'Chính sách bảo mật', href: '/privacy' },
+  { label: 'Chính sách xử lý tranh chấp', href: '/disputes' },
+  { label: 'Liên hệ hỗ trợ', href: '/support' },
+];
+
+const EMAIL = 'nguyenphuonganh98113@gmail.com';
+const HOTLINE = '0868325698';
+
+const LINK =
+  'rounded underline-offset-4 decoration-orange-400 decoration-2 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400';
 
 export function Footer() {
   const tx = useTx();
+  const live = process.env.NEXT_PUBLIC_DATA_MODE === 'supabase';
   return (
-    <footer className="mt-auto border-t border-orange-100 bg-white/80">
-      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-5">
-          {/* Column 1 — brand + contact */}
-          <div className="lg:col-span-1">
-            <p className="text-base font-bold text-orange-700">
-              CaLẻ
-            </p>
-            <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-gray-500">
-              CaLedo Tech
-            </p>
-            <p className="mt-3 text-sm text-gray-600">
+    <footer className="public-skin mt-auto border-t border-black/5" style={{ backgroundColor: 'var(--tone-paper)' }}>
+      <div className="mx-auto max-w-6xl px-4 pb-8 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+        {/* lg: logo · 3 cột liên kết · hỗ trợ (một hàng). md: logo | hỗ trợ, liên kết hàng
+            dưới. Điện thoại: logo, hỗ trợ, liên kết 2 cột (03/10, lần 4). */}
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,3fr)_minmax(0,1.35fr)] lg:gap-12">
+          <div className="min-w-0">
+            <Link
+              href="/"
+              className="inline-flex rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+            >
+              <Image src="/images/logo.png" alt={t('site.name')} width={161} height={100} className="h-10 w-auto object-contain" />
+            </Link>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-gray-600">
               {tx('Kết nối ca làm ngắn hạn an toàn, minh bạch và linh hoạt cho người lao động và nhà tuyển dụng tại Việt Nam.')}
             </p>
-            <ul className="mt-4 flex flex-col gap-1.5 text-xs text-gray-600">
-              <li>
-                <span className="text-gray-400">Email: </span>
-                <a
-                  href="mailto:nguyenphuonganh98113@gmail.com"
-                  className="hover:text-orange-700 hover:underline"
-                >
-                  nguyenphuonganh98113@gmail.com
-                </a>
-              </li>
-              <li>
-                <span className="text-gray-400">Hotline: </span>
-                <span className="font-medium text-gray-700">0868325698</span>
-              </li>
-              <li>
-                <span className="text-gray-400">{tx('Địa chỉ: ')}</span>
-                <span>{tx('Hà Nội, Việt Nam')}</span>
-              </li>
-            </ul>
           </div>
 
-          {/* Columns 2–5 — link groups */}
-          {COLUMNS.map((col) => (
-            <FooterColumn key={col.heading} column={col} />
-          ))}
+          <section aria-labelledby="footer-help" className="min-w-0 lg:order-last">
+            <h2 id="footer-help" className="text-sm font-semibold text-gray-900">
+              {tx('Cần hỗ trợ?')}
+            </h2>
+            <dl className="mt-4 flex flex-col gap-3 text-sm">
+              <div className="min-w-0">
+                <dt className="text-xs text-gray-600">Email</dt>
+                <dd className="mt-0.5">
+                  <a href={`mailto:${EMAIL}`} className={['font-medium text-gray-900 [overflow-wrap:anywhere]', LINK].join(' ')}>
+                    {EMAIL}
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-600">Hotline</dt>
+                <dd className="mt-0.5">
+                  <a href={`tel:${HOTLINE}`} className={['font-medium text-gray-900 tabular-nums', LINK].join(' ')}>
+                    {HOTLINE}
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-600">{tx('Địa chỉ')}</dt>
+                <dd className="mt-0.5 font-medium text-gray-900">{tx('Hà Nội, Việt Nam')}</dd>
+              </div>
+            </dl>
+            <Link
+              href="/support"
+              className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 whitespace-nowrap rounded text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              {tx('Cách phản ánh sự cố')} <span aria-hidden="true">→</span>
+            </Link>
+          </section>
+
+          <nav aria-label={tx('Liên kết chân trang')} className="grid min-w-0 grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3 md:col-span-2 lg:col-span-1">
+            {COLUMNS.map((col) => (
+              <div key={col.heading} className="min-w-0">
+                <h2 className="text-sm font-semibold text-gray-900">{tx(col.heading)}</h2>
+                <ul className="mt-4 flex flex-col gap-3 text-sm text-gray-600">
+                  {col.links.map((link) => (
+                    <li key={link.href}>
+                      <Link href={link.href} className={LINK}>
+                        {tx(link.label)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
         </div>
 
-        {/* Bottom row */}
-        <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-gray-100 pt-6 text-xs text-gray-500 sm:flex-row sm:items-center">
-          <p>© 2026 CaLedo Tech. All rights reserved.</p>
+        {/* Bản quyền + liên kết pháp lý */}
+        <div className="mt-14 flex flex-col gap-4 border-t border-black/10 pt-6 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+          <p>© 2026 CaLedo Tech</p>
+          <div>
+            <h2 className="sr-only">{tx('Pháp lý & hỗ trợ')}</h2>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2">
+              {LEGAL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <Link href={link.href} className={LINK}>
+                    {tx(link.label)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        {/* Honest backend-status note — theo data mode (build-time inlined).
-            - supabase: tài khoản/ca/đơn ở máy chủ; nạp/cọc/trả công/rút là tiền
-              THẬT qua PayOS.
-            - local (demo/prototype): dữ liệu ở localStorage.
-            Dùng process.env trực tiếp (không getDataMode()) để build không throw. */}
-        {process.env.NEXT_PUBLIC_DATA_MODE === 'supabase' ? (
-          <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-center text-xs leading-relaxed text-gray-600 ring-1 ring-gray-100">
-            {tx('Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.')}
-          </p>
-        ) : (
-          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs leading-relaxed text-amber-800 ring-1 ring-amber-100">
-            {tx('Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu. Trong MVP/demo không có giao dịch thật.')}
-          </p>
-        )}
+        {/* Trạng thái dữ liệu theo chế độ (build-time inlined; process.env để build không throw). */}
+        <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-gray-600">
+          <span
+            aria-hidden="true"
+            className={['mt-1 h-2 w-2 shrink-0 rounded-full', live ? 'bg-green-600' : 'bg-amber-500'].join(' ')}
+          />
+          {live
+            ? tx('Dữ liệu tài khoản, ca làm và đơn ứng tuyển được lưu trên hệ thống. Nạp, giữ cọc, trả công và rút tiền là giao dịch thật qua cổng thanh toán PayOS.')
+            : tx('Dữ liệu demo đang lưu trên trình duyệt. Xóa cache sẽ mất dữ liệu. Trong MVP/demo không có giao dịch thật.')}
+        </p>
       </div>
     </footer>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
-function FooterColumn({ column }: { column: Column }) {
-  const tx = useTx();
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
-        {tx(column.heading)}
-      </p>
-      <ul className="mt-3 flex flex-col gap-2 text-sm text-gray-600">
-        {column.links.map((link) => (
-          <li key={link.label}>
-            <Link
-              href={link.href}
-              className="hover:text-orange-700 hover:underline"
-            >
-              {tx(link.label)}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }

@@ -53,6 +53,10 @@ function useCountUp(from: number, to: number, run: boolean, ms = 900): number {
   return run ? value : from;
 }
 
+/** Thẻ minh hoạ đứng riêng (hero trang vai trò) / nằm trong `PhoneFrame` (`bare`). */
+const CARD = 'rounded-3xl bg-white p-5 text-left shadow-modal ring-1 ring-black/5 sm:p-6';
+const CARD_BARE = 'rounded-2xl bg-white p-4 text-left shadow-card ring-1 ring-black/5';
+
 function Caption({ text }: { text: string }) {
   return <p className="mt-3 text-center text-xs text-gray-600">{text}</p>;
 }
@@ -94,7 +98,7 @@ const PHASE_STATE: Record<EmployerPhase, ShiftLifecycleState> = {
   cancelled: 'Cancelled',
 };
 
-export function EmployerPreview() {
+export function EmployerPreview({ bare = false }: { bare?: boolean } = {}) {
   const t = useT();
   const tx = useTx();
   const locale = useLocale();
@@ -134,7 +138,7 @@ export function EmployerPreview() {
       <div
         ref={ref}
         aria-hidden="true"
-        className="rounded-3xl bg-white p-5 text-left shadow-modal ring-1 ring-black/5 sm:p-6"
+        className={bare ? CARD_BARE : CARD}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -253,9 +257,13 @@ export function EmployerPreview() {
           </span>
         </div>
       </div>
-      <figcaption>
-        <Caption text={tx('Minh hoạ giao diện quản lý ca. Tên và số liệu là ví dụ.')} />
-      </figcaption>
+      {bare ? (
+        <figcaption className="sr-only">{tx('Minh hoạ giao diện quản lý ca. Tên và số liệu là ví dụ.')}</figcaption>
+      ) : (
+        <figcaption>
+          <Caption text={tx('Minh hoạ giao diện quản lý ca. Tên và số liệu là ví dụ.')} />
+        </figcaption>
+      )}
     </figure>
   );
 }
@@ -295,7 +303,7 @@ function workerSteps(round: number): WorkerStep[] {
   return WORKER_STEPS;
 }
 
-export function WorkerPreview() {
+export function WorkerPreview({ bare = false }: { bare?: boolean } = {}) {
   const t = useT();
   const tx = useTx();
   const ref = useRef<HTMLDivElement>(null);
@@ -314,7 +322,7 @@ export function WorkerPreview() {
     <figure>
       {/* Một khối giống minh hoạ nhà tuyển dụng: đầu thẻ → dải tiền → thanh bước →
           hành động theo bước → ví. */}
-      <div ref={ref} aria-hidden="true" className="rounded-3xl bg-white p-5 text-left shadow-modal ring-1 ring-black/5 sm:p-6">
+      <div ref={ref} aria-hidden="true" className={bare ? CARD_BARE : CARD}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p key={shift.title} className="motion-fade-up text-lg font-semibold text-gray-900">{tx(shift.title)}</p>
@@ -394,9 +402,13 @@ export function WorkerPreview() {
           </span>
         </div>
       </div>
-      <figcaption>
-        <Caption text={tx('Minh hoạ giao diện người lao động. Số liệu là ví dụ.')} />
-      </figcaption>
+      {bare ? (
+        <figcaption className="sr-only">{tx('Minh hoạ giao diện người lao động. Số liệu là ví dụ.')}</figcaption>
+      ) : (
+        <figcaption>
+          <Caption text={tx('Minh hoạ giao diện người lao động. Số liệu là ví dụ.')} />
+        </figcaption>
+      )}
     </figure>
   );
 }

@@ -9,11 +9,17 @@ import type { Locator, Page } from '@playwright/test';
  *   - /for-workers: "Chọn loại việc bạn muốn làm" (9 loại → `/shifts?viec=…`, phụ bếp /
  *     dọn dẹp → `/shifts`), cảnh nhận ca 3 bước (`ApplyPreview`, #worker-apply: Tìm ca →
  *     Xem chi tiết → Sau khi ứng tuyển), thẻ xác thực tự gõ (`VerifyPreview`), "Tiền về
- *     tay bạn khi nào?" (`PayoutTimeline`, 5 chặng), 4 điều "Làm theo ca mà vẫn yên tâm",
- *     FAQ rút tiền.
+ *     tay bạn khi nào?" (`PayoutTimeline`, 5 chặng), FAQ rút tiền. Khối "Làm theo ca mà vẫn
+ *     yên tâm" (#worker-care) đã bỏ (03/10); lịch cá nhân, huỷ ca, uy tín là khối riêng
+ *     (gộp từ trang hướng dẫn cũ — xem e2e/41).
  *   - /for-employers: "Một ca tốn bao nhiêu?" (`ShiftPostPlayground`, 3 bước: Điền ca →
  *     Tuyển người → Ngày làm & sau ca; sửa được giờ / lương / số người, số dư ví mẫu
- *     2.000.000 đ), thẻ xác thực; khối bảng giá riêng đã bỏ.
+ *     2.000.000 đ), thẻ xác thực; khối bảng giá riêng đã bỏ; thêm "Duyệt người…"
+ *     (#employer-applicants) và "Tiền của một ca đi về đâu?" (#employer-payments).
+ *
+ * 03/10: các bước của minh hoạ nhiều bước chồng trong MỘT ô (`StageStack`): bước không
+ * xem vẫn có trong DOM nhưng `invisible` + `inert` + aria-hidden → kiểm nội dung bước
+ * bằng `stageAt(fig, i)` / `toBeHidden()`, không dùng `toHaveCount(0)`.
  *
  * Hai minh hoạ nhiều bước có thanh bước (`PreviewSteps`): đang tự chạy là chữ, chạy xong
  * (hoặc giảm chuyển động) là nút để xem lại từng bước. Trạng thái cuối = bước 3.
@@ -70,11 +76,14 @@ function currentStep(bar: Locator): Locator {
 function stepButton(bar: Locator, label: string): Locator {
   return bar.getByRole('button', { name: new RegExp(`${label}$`) });
 }
-/** Một bước của ApplyPreview (chỉ bước đang xem được vẽ, ngay sau thanh bước); nhận
- *  diện bằng nội dung riêng của bước: 0 "Tìm ca làm", 1 "Tiền công cả ca", 2 "Bây giờ". */
+/** Bước thứ i (0-based) trong `StageStack` của một minh hoạ nhiều bước. Mọi bước luôn có
+ *  trong DOM; bước không xem là `invisible` + `inert` + aria-hidden (03/10). */
+function stageAt(fig: Locator, i: number): Locator {
+  return fig.locator('div.grid > div[class*="grid-area"]').nth(i);
+}
+/** Một bước của ApplyPreview: 0 Tìm ca, 1 Xem chi tiết, 2 Sau khi ứng tuyển. */
 function applyStage(fig: Locator, i: number): Locator {
-  const marker = ['Tìm ca làm', 'Tiền công cả ca', 'Bây giờ'][i];
-  return fig.locator('ol[aria-label="Các bước nhận một ca"] + div > div').filter({ hasText: marker });
+  return stageAt(fig, i);
 }
 /** Các mốc trên dòng thời gian (`TimelineItem`): sáng = opacity-100, chưa tới = opacity-30. */
 function timeline(scope: Locator): Locator {
@@ -90,7 +99,7 @@ function applicantRows(fig: Locator): Locator {
 // ---------------------------------------------------------------------------
 
 test.describe('/for-workers bản 03/10', () => {
-  test('thứ tự khối + 9 loại việc dẫn tới /shifts đã lọc; 4 điều yên tâm; FAQ rút tiền (demo)', async ({
+  test('thứ tự khối + 9 loại việc dẫn tới /shifts đã lọc; khối "yên tâm" đã bỏ; FAQ rút tiền (demo)', async ({
     page,
     seedState,
     gotoApp,
@@ -105,14 +114,19 @@ test.describe('/for-workers bản 03/10', () => {
       .locator('section[aria-labelledby]')
       .evaluateAll((els) => els.map((el) => el.getAttribute('aria-labelledby') ?? ''));
     expect(order.filter((id) => id !== 'worker-proof'), `thứ tự khối: ${order.join(', ')}`).toEqual([
+      // 03/10: 3 thẻ lợi ích có ảnh ngay sau hero.
+      'worker-benefits',
       'worker-jobs',
+      // 03/10: "Ca đang tuyển" ngay sau "Chọn loại việc" (chi tiết: e2e/42).
+      'worker-shifts',
       'worker-how',
       'worker-apply',
       'worker-verify',
+      'worker-schedule',
       'worker-money',
-      'worker-reviews',
-      'worker-benefits',
-      'worker-care',
+      'worker-cancel',
+      'worker-reputation',
+      'worker-reputation-rules',
       'worker-faq',
       'worker-help',
     ]);
@@ -141,14 +155,9 @@ test.describe('/for-workers bản 03/10', () => {
       await expect(links.nth(i), label).toHaveAttribute('href', href);
     }
 
-    // "Làm theo ca mà vẫn yên tâm": đúng 4 điều; 2 điều về tiền đã bỏ.
-    const care = main.locator('section[aria-labelledby="worker-care"]');
-    await expect(care.locator('li h3')).toHaveText([
-      'Check-in ngay trên điện thoại',
-      'Luôn biết ca đang ở đâu',
-      'Xem quán trước khi nhận',
-      'Huỷ ca có quy định rõ',
-    ]);
+    // "Làm theo ca mà vẫn yên tâm" (#worker-care) đã bỏ (03/10); 2 điều về tiền cũng không còn.
+    await expect(main.locator('#worker-care, section[aria-labelledby="worker-care"]')).toHaveCount(0);
+    await expect(main.getByText('Làm theo ca mà vẫn yên tâm', { exact: true })).toHaveCount(0);
     await expect(main.getByText('Biết trước mình được bao nhiêu', { exact: true })).toHaveCount(0);
     await expect(main.getByText('Tiền công có sẵn', { exact: true })).toHaveCount(0);
 
@@ -310,7 +319,7 @@ test.describe('/for-workers bản 03/10', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('/for-employers bản 03/10', () => {
-  test('thứ tự khối; khối bảng giá và "Tiền của bạn đi đâu?" đã bỏ; thẻ hồ sơ mới', async ({
+  test('thứ tự khối; "Tiền của bạn đi đâu?" đã bỏ; khối giá (gộp /pricing) sau khối tiền; thẻ hồ sơ mới', async ({
     page,
     seedState,
     gotoApp,
@@ -326,22 +335,36 @@ test.describe('/for-employers bản 03/10', () => {
       .evaluateAll((els) => els.map((el) => el.getAttribute('aria-labelledby') ?? ''));
     const idx = (id: string) => order.indexOf(id);
     for (const id of [
+      'employer-benefits',
       'employer-how',
       'employer-money',
       'employer-verify',
+      'employer-applicants',
       'employer-control',
+      'employer-payments',
+      'employer-pricing',
       'employer-reviews',
       'employer-faq',
       'employer-help',
     ]) {
       expect(idx(id), `có khối ${id} (thứ tự: ${order.join(', ')})`).toBeGreaterThanOrEqual(0);
     }
+    // 03/10: 3 thẻ lợi ích có ảnh là khối đầu tiên sau hero, trước "Từ lúc đăng ca…".
+    expect(idx('employer-benefits'), order.join(', ')).toBe(0);
+    expect(idx('employer-how')).toBe(1);
     expect(idx('employer-how')).toBeLessThan(idx('employer-money'));
     expect(idx('employer-money')).toBeLessThan(idx('employer-verify'));
     expect(idx('employer-verify')).toBeLessThan(idx('employer-control'));
-    // 03/10: "Đánh giá hai chiều sau mỗi ca" ngay sau các tính năng kiểm soát; khối
-    // "An toàn và hỗ trợ" sau FAQ (chi tiết ở e2e/36).
-    expect(idx('employer-reviews')).toBe(idx('employer-control') + 1);
+    // 03/10: duyệt người (gộp từ /employer/applicants-guide) trước các tính năng kiểm soát;
+    // "Tiền của một ca đi về đâu?" (gộp từ /employer/payments) ngay sau, rồi tới "Đánh giá
+    // hai chiều sau mỗi ca"; khối "An toàn và hỗ trợ" sau FAQ (chi tiết ở e2e/36).
+    expect(idx('employer-applicants')).toBe(idx('employer-verify') + 1);
+    expect(idx('employer-control')).toBe(idx('employer-applicants') + 1);
+    expect(idx('employer-payments')).toBe(idx('employer-control') + 1);
+    // 03/10 (lần 4): khối "Phí dịch vụ" (#employer-pricing, gộp từ /pricing) nằm giữa
+    // khối tiền và khối đánh giá (chi tiết ở e2e/43).
+    expect(idx('employer-pricing')).toBe(idx('employer-payments') + 1);
+    expect(idx('employer-reviews')).toBe(idx('employer-pricing') + 1);
     expect(idx('employer-faq')).toBeLessThan(idx('employer-help'));
 
     await expect(
@@ -352,18 +375,21 @@ test.describe('/for-employers bản 03/10', () => {
     ).toBeVisible();
     await expect(stepBar(playground(page), 'Các bước đăng một ca')).toBeVisible();
 
-    // Đã bỏ: khối bảng giá riêng (0đ / 10%) và "Tiền của bạn đi đâu?".
-    await expect(main.locator('#employer-pricing, section[aria-labelledby="employer-pricing"]')).toHaveCount(0);
+    // Đã bỏ: "Tiền của bạn đi đâu?". Khối giá bản cũ ("0đ" viết liền) không
+    // quay lại; khối giá mới (#employer-pricing) có đúng một tiêu đề, tiền ghi "0 đ".
+    await expect(main.locator('section[aria-labelledby="employer-pricing"]')).toHaveCount(1);
+    await expect(main.locator('#employer-pricing')).toHaveText('Giai đoạn thử nghiệm: 0 đ');
     await expect(main.getByText('0đ', { exact: true })).toHaveCount(0);
     await expect(main.getByText('Tiền của bạn đi đâu?', { exact: true })).toHaveCount(0);
 
+    // "Bạn nắm được mọi thứ trong ca": còn 4 điều (03/10 bỏ 2 điều đã có ở khối duyệt người).
     const control = main.locator('section[aria-labelledby="employer-control"]');
-    await expect(
-      control.getByText(
-        'Số ca đã hoàn thành, đánh giá sao từ nhà tuyển dụng khác và trạng thái xác thực SĐT, danh tính của từng người.',
-        { exact: true },
-      ),
-    ).toBeVisible();
+    await expect(control.locator('li h3')).toHaveText([
+      'Trạng thái ca rõ ràng',
+      'Lịch tuyển dụng',
+      'Đăng lại ca cũ',
+      'Ví có lịch sử',
+    ]);
   });
 
   // Kịch bản ShiftPostPlayground (mốc ghi lúc BẮT ĐẦU; mỗi ô = ký tự × charMs + 260):
@@ -381,7 +407,8 @@ test.describe('/for-employers bản 03/10', () => {
     const fig = playground(page);
     const bar = stepBar(fig, 'Các bước đăng một ca');
     const heading = fig.getByText('Đăng ca mới', { exact: true });
-    const title = fig.getByText('Phục vụ tiệc cưới', { exact: true });
+    // Tên ca còn có ở bước 2 (ẩn) → chỉ xét ô "Tên ca làm" của bước 1.
+    const title = stageAt(fig, 0).getByText('Phục vụ tiệc cưới', { exact: true });
     const total = row(fig, 'Tổng giữ từ ví');
     const applicants = applicantRows(fig);
     const items = timeline(fig);
@@ -414,7 +441,7 @@ test.describe('/for-employers bản 03/10', () => {
     // 10300 ms: đã "đăng" (9858) → bước 2; chưa có người ứng tuyển (10758).
     await page.clock.runFor(4_300);
     await expect(currentStep(bar)).toHaveText('2. Tuyển người');
-    await expect(heading).toHaveCount(0);
+    await expect(heading).toBeHidden();
     await expect(fig.getByText('Đang tuyển', { exact: true })).toBeVisible();
     await expect(fig.getByText('Ví của bạn (mô phỏng)', { exact: true })).toBeVisible();
     await expect(fig.getByText('−675.000 đ', { exact: true })).toBeVisible();
@@ -442,7 +469,7 @@ test.describe('/for-employers bản 03/10', () => {
     // 14600 ms: bước 3 (day 14458), chưa mốc nào sáng (d1 14858).
     await page.clock.runFor(1_400);
     await expect(currentStep(bar)).toHaveText('3. Ngày làm & sau ca');
-    await expect(fig.getByText('Đang tuyển', { exact: true })).toHaveCount(0);
+    await expect(fig.getByText('Đang tuyển', { exact: true })).toBeHidden();
     await expect(items).toHaveCount(4);
     for (let i = 0; i < 4; i += 1) await expect(items.nth(i)).toHaveClass(/opacity-30/);
 
@@ -596,7 +623,9 @@ test.describe('Trang vai trò — giảm chuyển động (trạng thái cuối)
     await seedState(buildSnapshot());
     await gotoApp('/for-workers');
     const section = page.locator('#worker-apply').locator('xpath=ancestor::section[1]');
-    await expect(section).toHaveAttribute('data-tone', 'peach');
+    // Da `.public-skin` (03/10): tông xen kẽ lại sau khi chèn "Ca đang tuyển" và đưa thẻ lợi
+    // ích lên đầu → khối nhận ca nền "paper" (bảng tông đầy đủ: e2e/42).
+    await expect(section).toHaveAttribute('data-tone', 'paper');
     const fig = applyFig(page);
     const bar = stepBar(fig, 'Các bước nhận một ca');
     const [search, detail, after] = [0, 1, 2].map((i) => applyStage(fig, i));
@@ -717,12 +746,17 @@ test.describe('Trang vai trò — giảm chuyển động (trạng thái cuối)
     const absent = fig.getByRole('checkbox', { name: 'Giả sử 1 người không đến' });
     await expect(absent).not.toBeChecked();
     await expect(row(fig, 'Trả người đã làm')).toHaveText('675.000 đ');
-    await expect(fig.getByText('Hoàn về ví của bạn', { exact: true })).toHaveCount(0);
+    // Dòng hoàn giữ chỗ (ẩn) khi không ai vắng.
+    await expect(fig.getByText('Hoàn về ví của bạn', { exact: true })).toBeHidden();
     await expect(fig.getByRole('button', { name: '← Tuyển người' })).toBeVisible();
     await expect(replayButton(fig)).toBeHidden();
-    // Chỉ bước đang xem được vẽ: không có form, không có danh sách ứng tuyển.
-    await expect(fig.getByText('Đăng ca mới', { exact: true })).toHaveCount(0);
-    await expect(fig.getByText('Người ứng tuyển', { exact: true })).toHaveCount(0);
+    // Chỉ bước đang xem hiện ra: form và danh sách ứng tuyển ở bước ẩn (invisible + inert).
+    await expect(fig.getByText('Đăng ca mới', { exact: true })).toBeHidden();
+    await expect(fig.getByText('Người ứng tuyển', { exact: true })).toBeHidden();
+    for (const i of [0, 1]) {
+      await expect(stageAt(fig, i)).toHaveAttribute('aria-hidden', 'true');
+      await expect(stageAt(fig, i)).toHaveAttribute('inert', '');
+    }
 
     // Bước 2: ví đã trừ, thẻ ca như người lao động thấy, đủ 3/3 người đã duyệt.
     await stepButton(bar, 'Tuyển người').click();
@@ -741,6 +775,7 @@ test.describe('Trang vai trò — giảm chuyển động (trạng thái cuối)
     // Bước 1: form đủ thông tin ví dụ, bảng tiền, số dư ví đủ.
     await stepButton(bar, 'Điền ca').click();
     await expect(fig.getByText('Đăng ca mới', { exact: true })).toBeVisible();
+    const form = stageAt(fig, 0);
     for (const text of [
       'Phục vụ tiệc cưới',
       'Thứ 7 tuần này',
@@ -749,10 +784,11 @@ test.describe('Trang vai trò — giảm chuyển động (trạng thái cuối)
       'Áo sơ mi trắng, quần đen, giày kín mũi. Không cần kinh nghiệm.',
       'Chị Hạnh, quản lý sảnh',
     ]) {
-      await expect(fig.getByText(text, { exact: true }), text).toBeVisible();
+      // Ô nhiều dòng có bản sao ẩn (aria-hidden) giữ chiều cao → chỉ xét bản đang hiện.
+      await expect(form.getByText(text, { exact: true }).filter({ visible: true }), text).toBeVisible();
     }
     for (const label of ['Tên ca làm', 'Loại công việc', 'Ngày làm', 'Địa điểm', 'Mô tả công việc', 'Yêu cầu', 'Người phụ trách tại chỗ']) {
-      await expect(fig.getByText(label, { exact: true }), label).toBeVisible();
+      await expect(form.getByText(label, { exact: true }), label).toBeVisible();
     }
     await expect(fig.getByLabel('Giờ bắt đầu', { exact: true })).toHaveValue('17:00');
     await expect(fig.getByLabel('Giờ kết thúc', { exact: true })).toHaveValue('22:00');
@@ -844,12 +880,12 @@ test.describe('Trang vai trò — giảm chuyển động (trạng thái cuối)
     await expect(currentStep(bar)).toHaveText('3. Ngày làm & sau ca');
     const absent = fig.getByRole('checkbox', { name: 'Giả sử 1 người không đến' });
     await expect(row(fig, 'Trả người đã làm')).toHaveText('1.350.000 đ');
-    await expect(fig.getByText('Hoàn về ví của bạn', { exact: true })).toHaveCount(0);
+    await expect(fig.getByText('Hoàn về ví của bạn', { exact: true })).toBeHidden();
     await absent.check();
     await expect(row(fig, 'Trả người đã làm')).toHaveText('1.080.000 đ');
     await expect(row(fig, 'Hoàn về ví của bạn')).toHaveText('+270.000 đ');
     await absent.uncheck();
-    await expect(fig.getByText('Hoàn về ví của bạn', { exact: true })).toHaveCount(0);
+    await expect(fig.getByText('Hoàn về ví của bạn', { exact: true })).toBeHidden();
     await expect(fig).not.toContainText(/VNĐ|₫/);
   });
 
@@ -869,6 +905,7 @@ test.describe('Trang vai trò — giảm chuyển động (trạng thái cuối)
     // Ô đánh dấu nằm ở bước 3: bấm thanh bước sang bước 1 rồi về 3 vẫn giữ lựa chọn.
     const bar = stepBar(fig, 'Các bước đăng một ca');
     await stepButton(bar, 'Điền ca').click();
+    // Bước 3 ẩn (aria-hidden) → ô đánh dấu ra khỏi cây truy cập.
     await expect(absent).toHaveCount(0);
     await stepButton(bar, 'Ngày làm & sau ca').click();
     await expect(absent).toBeChecked();

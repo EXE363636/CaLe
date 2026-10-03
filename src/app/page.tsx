@@ -2,7 +2,9 @@ import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { HomeReceipt, type HomeReceiptLine } from '@/components/landing/HomeReceipt';
 import { homeJobs } from '@/components/landing/homeJobs';
+import { HomeAbout } from '@/components/landing/HomeAbout';
 import { JobRing } from '@/components/landing/JobRing';
+import { LandingSteps } from '@/components/landing/LandingSections';
 import { LandingProofView } from '@/components/landing/LandingProof';
 import { MoneyFlowDiagram } from '@/components/landing/MoneyFlowDiagram';
 import { MotionGroup } from '@/components/landing/MotionGroup';
@@ -123,7 +125,7 @@ export default async function HomePage() {
       body: supabase
         ? tx('Phí là 10% tiền công, do nhà tuyển dụng trả và chỉ tính trên phần ca có người làm. Người lao động không mất phí.')
         : tx('Bản demo chưa thu phí ai. Khi chạy thật, phí là 10% tiền công, do nhà tuyển dụng trả; người lao động không mất phí.'),
-      link: { href: '/pricing', label: tx('Xem bảng giá') },
+      link: { href: '/for-employers#employer-pricing', label: tx('Xem bảng giá') },
       worker: tx('Nhận đủ tiền công, không bị trừ phí.'),
       employer: supabase
         ? tx('Chỉ trả phí trên phần ca có người làm.')
@@ -203,11 +205,15 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 1b. Về CaLẻ — gộp từ /about (03/10): ai làm, phiên bản, hướng hợp tác. Đặt ngay sau
+          màn đầu, trước "Vì sao CaLẻ ra đời?" (chủ dự án). */}
+      <HomeAbout t={t} tx={tx} live={supabase} tone="paper" />
+
       {/* 2. Vì sao CaLẻ ra đời? — bối cảnh bằng số liệu chính thức (whyData.ts, mỗi số ghi
           nguồn + kỳ, số đếm lên + highlight khi cuộn tới) → bảng so sánh tuyển qua hội nhóm
           với trên CaLẻ (lý do ra đời = vấn đề CaLẻ giải quyết) → cảnh báo lừa đảo việc làm
           thêm. Không kể chuyện nhóm chưa có thật. */}
-      <section aria-labelledby="home-why" data-tone="apricot" className="px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <section aria-labelledby="home-why" data-tone="cream" className="px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="max-w-2xl">
             <h2 id="home-why" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -325,9 +331,43 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 3b. Bốn bước của một ca — gộp từ /how-it-works (03/10). Production giữ tiền công +
+          10% phí từ ví (0018), tự chốt ~24 giờ sau ca (0019); demo là mô phỏng. Cảnh báo
+          trùng lịch khi ứng tuyển chỉ có ở bản demo. */}
+      <LandingSteps
+        id="home-how"
+        tone="cream"
+        title={tx('Bốn bước của một ca')}
+        lead={tx('Một ca làm đi qua 4 bước, từ lúc đăng ca đến lúc trả tiền công.')}
+        steps={[
+          {
+            title: tx('Nhà tuyển dụng đăng ca'),
+            body: supabase
+              ? tx('Nhập giờ làm, địa điểm, lương theo giờ và số người cần. Ca chỉ hiện cho người lao động sau khi hệ thống giữ tiền công và 10% phí từ ví.')
+              : tx('Nhập giờ làm, địa điểm, lương theo giờ và số người cần. Ca chỉ hiện cho người lao động sau khi giữ cọc (mô phỏng).'),
+          },
+          {
+            title: tx('Người lao động ứng tuyển'),
+            body: supabase
+              ? tx('Chọn ca hợp lịch rồi bấm Ứng tuyển. Đơn chờ nhà tuyển dụng duyệt.')
+              : tx('Chọn ca hợp lịch rồi bấm Ứng tuyển. Hệ thống cảnh báo nếu ca trùng giờ với lịch của bạn.'),
+          },
+          {
+            title: tx('Duyệt và làm ca'),
+            body: tx('Nhà tuyển dụng xem hồ sơ và duyệt người phù hợp. Người lao động bấm check-in khi đến và check-out khi xong.'),
+          },
+          {
+            title: tx('Xác nhận và trả tiền công'),
+            body: supabase
+              ? tx('Nhà tuyển dụng xác nhận hoàn thành, tiền công vào ví người lao động. Nếu không ai bấm, hệ thống tự chốt khoảng 24 giờ sau ca.')
+              : tx('Nhà tuyển dụng xác nhận hoàn thành, tiền công vào ví người lao động (mô phỏng).'),
+          },
+        ]}
+      />
+
       {/* 4. Tiền của một ca đi về đâu? — bốn thẻ khớp bốn dòng biên nhận. Mỗi thẻ chỉ
           hai câu ngắn cho hai phía; giải thích đầy đủ nằm trong "Xem chi tiết". */}
-      <section aria-labelledby="home-explain-title" data-tone="peach" className="px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      <section aria-labelledby="home-explain-title" data-tone="paper" className="px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="max-w-2xl">
             <h2 id="home-explain-title" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -404,7 +444,7 @@ export default async function HomePage() {
               </li>
             ))}
             <li>
-              <Link href="/safety" className="font-semibold text-orange-700 underline-offset-4 hover:underline">
+              <Link href="/support#support-safety" className="font-semibold text-orange-700 underline-offset-4 hover:underline">
                 {t('home.chooser.safetyLink')} →
               </Link>
             </li>
@@ -477,7 +517,7 @@ export default async function HomePage() {
               {supabase ? t('landing.hero.trustHint.supabase') : t('landing.hero.trustHint')}
             </p>
             <p className="mt-5 text-sm">
-              <Link href="/how-it-works" className="font-semibold text-brand underline-offset-4 hover:underline">
+              <Link href="#home-how" className="font-semibold text-brand underline-offset-4 hover:underline">
                 {t('landing.howItWorks.title')}
               </Link>
             </p>

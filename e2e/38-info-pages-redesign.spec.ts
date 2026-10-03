@@ -3,45 +3,51 @@ import { buildSnapshot } from './fixtures/seed';
 
 /**
  * Trang thông tin làm lại theo ngôn ngữ landing (03/10), chế độ local/demo:
- *   - /pricing: hai thẻ giá (người lao động "Miễn phí", nhà tuyển dụng "0 đ" bản demo),
- *     form "Thử đăng một ca"; tiền ghi `đ`, không `VNĐ` / `₫`.
+ *   - /pricing (03/10, lần 4: gộp vào /for-employers#employer-pricing): hai thẻ giá (người
+ *     lao động "Miễn phí", nhà tuyển dụng "0 đ" bản demo), lối tắt tới form "Thử đăng một
+ *     ca"; tiền ghi `đ`, không `VNĐ` / `₫`.
  *   - /register: phần giới thiệu bên cạnh đổi theo vai trò đang chọn; ghi chú demo "mô phỏng".
  *   - /login: phần giới thiệu "Ca làm của bạn vẫn ở đây."
  *   - Bài cẩm nang về tiền: dải "Bản demo: nạp, giữ tiền…" + nội dung bản demo (sổ cái mô phỏng).
- *   - /user-guide: thẻ #employer-total-deposit còn; ba link tới trang hướng dẫn mới mở được.
- *   - Ba trang hướng dẫn mới: có h1, không cuộn ngang ở 375px.
+ *   - /user-guide: thẻ #employer-total-deposit còn; link hướng dẫn trỏ thẳng vào khối của
+ *     trang vai trò (03/10: 7 trang hướng dẫn nhỏ đã gộp vào /for-workers, /for-employers;
+ *     đường dẫn cũ chuyển hướng — xem e2e/41) và mở đúng khối.
  */
 
 const DESKTOP = { width: 1440, height: 900 };
-const MOBILE = { width: 375, height: 812 };
 
+/** Link hướng dẫn trên /user-guide → khối trên trang vai trò (`target` = tiêu đề khối). */
 const GUIDES = [
-  { path: '/worker/schedule-guide', h1: 'Lịch cá nhân' },
-  { path: '/employer/post-shift-guide', h1: 'Đăng ca tuyển' },
-  { path: '/employer/applicants-guide', h1: 'Quản lý người ứng tuyển' },
+  { path: '/for-workers#worker-schedule', target: '#worker-schedule', h2: 'Lịch cá nhân: ca, giờ học, việc riêng ở một chỗ' },
+  { path: '/for-employers#employer-post', target: '#employer-money', h2: 'Một ca tốn bao nhiêu?' },
+  { path: '/for-employers#employer-applicants', target: '#employer-applicants', h2: 'Duyệt người, theo dõi ngày làm trên một trang' },
 ] as const;
+const OLD_GUIDES = ['/worker/schedule-guide', '/employer/post-shift-guide', '/employer/applicants-guide'];
 
 test.describe('Trang thông tin làm lại (03/10)', () => {
-  test('/pricing: thẻ giá hai phía, tính thử, không VNĐ / ₫', async ({ page, seedState, gotoApp }) => {
+  // 03/10 (lần 4): trang /pricing gộp thành khối "Phí dịch vụ" (#employer-pricing) của
+  // /for-employers; đường dẫn cũ chuyển hướng tới khối (chi tiết vị trí / link: e2e/43).
+  test('/pricing → /for-employers#employer-pricing: thẻ giá hai phía, tính thử, không VNĐ / ₫', async ({ page, seedState, gotoApp }) => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
     await gotoApp('/pricing');
+    await expect(page).toHaveURL(/^[^#]*\/for-employers#employer-pricing$/);
 
-    const cards = page.getByRole('region', { name: 'Bảng giá' });
-    const workerCard = cards.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 2, name: 'Người lao động' }) });
+    const section = page.locator('section[aria-labelledby="employer-pricing"]');
+    await expect(section.getByRole('heading', { level: 2 })).toHaveText('Giai đoạn thử nghiệm: 0 đ');
+    await expect(section.getByRole('heading', { level: 2 })).toBeInViewport();
+    const workerCard = section.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: 'Người lao động' }) });
     await expect(workerCard).toHaveCount(1);
     await expect(workerCard).toContainText('Miễn phí');
-    await expect(workerCard.getByRole('link', { name: /Trang người lao động/ })).toHaveAttribute('href', '/for-workers');
 
-    const employerCard = cards.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 2, name: 'Nhà tuyển dụng' }) });
+    const employerCard = section.getByRole('listitem').filter({ has: page.getByRole('heading', { level: 3, name: 'Nhà tuyển dụng' }) });
     await expect(employerCard).toHaveCount(1);
     await expect(employerCard).toContainText('0 đ');
     await expect(employerCard).toContainText('mô phỏng');
-    await expect(employerCard.getByRole('link', { name: /Trang nhà tuyển dụng/ })).toHaveAttribute('href', '/for-employers');
 
-    // Khối tính thử.
+    // Lối tắt tính thử → form "Thử đăng một ca" ("Một ca tốn bao nhiêu?") trên cùng trang.
+    await expect(section.getByRole('link', { name: /Tính thử với ca của bạn/ })).toHaveAttribute('href', '/for-employers#employer-post');
     await expect(page.getByRole('heading', { level: 2, name: 'Một ca tốn bao nhiêu?' })).toBeAttached();
-    await expect(page.getByText('Thử đăng một ca', { exact: false }).first()).toBeVisible();
 
     const text = await page.locator('main').innerText();
     expect(text).not.toContain('VNĐ');
@@ -96,7 +102,7 @@ test.describe('Trang thông tin làm lại (03/10)', () => {
     await expect(page.getByText('Bạn nạp tiền vào ví bằng mã QR PayOS', { exact: false })).toHaveCount(0);
   });
 
-  test('/user-guide: thẻ #employer-total-deposit; ba link hướng dẫn mở được', async ({ page, seedState, gotoApp }) => {
+  test('/user-guide: thẻ #employer-total-deposit; link hướng dẫn mở đúng khối của trang vai trò', async ({ page, seedState, gotoApp }) => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
     await gotoApp('/user-guide#employer-total-deposit');
@@ -107,33 +113,19 @@ test.describe('Trang thông tin làm lại (03/10)', () => {
     await expect(page.locator('#worker-reputation')).toBeAttached();
     await expect(page.locator('#worker-schedule')).toBeAttached();
 
-    for (const g of GUIDES) {
-      const link = page.locator(`main a[href="${g.path}"]`).first();
-      await expect(link).toBeAttached();
-      const res = await page.request.get(g.path);
-      expect(res.status(), g.path).toBe(200);
-    }
+    for (const g of GUIDES) await expect(page.locator(`main a[href="${g.path}"]`).first(), g.path).toBeAttached();
+    // Không còn link tới trang hướng dẫn cũ.
+    for (const old of OLD_GUIDES) await expect(page.locator(`main a[href="${old}"]`), old).toHaveCount(0);
 
-    // Đi theo link thật (điều hướng client) cho từng trang.
+    // Đi theo link thật (điều hướng client) cho từng khối.
     for (const g of GUIDES) {
       await gotoApp('/user-guide');
       const link = page.locator(`main a[href="${g.path}"]`).first();
       await link.scrollIntoViewIfNeeded();
       await link.click();
       await page.waitForURL(`**${g.path}`);
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(g.h1);
+      await expect(page.locator(g.target)).toHaveText(g.h2);
+      await expect(page.locator(g.target)).toBeInViewport();
     }
   });
-
-  for (const g of GUIDES) {
-    test(`${g.path}: có h1, không cuộn ngang ở 375px`, async ({ page, seedState, gotoApp }) => {
-      await page.setViewportSize(MOBILE);
-      await seedState(buildSnapshot());
-      await gotoApp(g.path);
-
-      await expect(page.getByRole('heading', { level: 1 })).toHaveText(g.h1);
-      const width = await page.evaluate(() => document.documentElement.scrollWidth);
-      expect(width).toBeLessThanOrEqual(MOBILE.width);
-    });
-  }
 });

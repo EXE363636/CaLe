@@ -27,7 +27,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 import { Footer } from '@/components/layout/Footer';
-import EmployerPaymentsPage from '@/app/employer/payments/page';
+// 03/10 — /employer/payments gộp vào khối /for-employers#employer-payments.
+import { EmployerPaymentsSection } from '@/components/landing/EmployerPaymentsSection';
+const EmployerPaymentsPage = async () => <EmployerPaymentsSection />;
 
 // Trang /employer/payments là server component bất đồng bộ đọc ngôn ngữ từ
 // cookie (`getTx`); ngoài Next không có request nên cố định tiếng Việt.

@@ -111,9 +111,12 @@ test.describe('Role homepages', () => {
     await expect(main.locator('#home-attend, #home-trouble')).toHaveCount(0);
     await expect(main).not.toContainText(/VNĐ|₫/);
 
-    // Thứ tự khối (02/10): màn đầu → "Vì sao CaLẻ ra đời?" (home-why: số liệu → bảng so
-    // sánh → chú thích VTV; khối / tiêu đề home-solve đã bỏ) → loại việc (home-work) →
-    // đọc biên nhận → "CaLẻ làm được gì?" (home-features) → dải kết.
+    // Thứ tự khối (03/10, lần 4): màn đầu → "Về CaLẻ" (home-about, gộp từ /about, chứa
+    // băng chuyền "Đội ngũ" home-team và thẻ đối tác home-partners) → "Vì sao CaLẻ ra
+    // đời?" (home-why: số liệu → bảng so sánh → chú thích VTV; khối / tiêu đề home-solve
+    // đã bỏ) → loại việc (home-work) →
+    // "Bốn bước của một ca" (home-how, gộp từ /how-it-works) → đọc biên nhận →
+    // "CaLẻ làm được gì?" (home-features) → dải kết. Chi tiết hai khối mới: e2e/43.
     // Khối ảnh / lời chia sẻ thật đang ẩn (không render gì); khối gấp home-urgent nằm
     // trong home-work và tự ẩn khi không có ca. FAQ trang chủ đã bỏ (hai trang vai trò
     // có FAQ riêng).
@@ -121,8 +124,12 @@ test.describe('Role homepages', () => {
       .locator('section[aria-labelledby]')
       .evaluateAll((els) => els.map((el) => el.getAttribute('aria-labelledby')));
     expect(order.filter((id) => id !== 'home-urgent'), `thứ tự khối: ${order.join(', ')}`).toEqual([
+      'home-about',
+      'home-team',
+      'home-partners',
       'home-why',
       'home-work',
+      'home-how',
       'home-explain-title',
       'home-features',
       'home-close',
@@ -234,13 +241,14 @@ test.describe('Role homepages', () => {
     await expect(body).toContainText('(mô phỏng)');
     await expect(note).toBeVisible();
 
-    // Thẻ phí: link bảng giá nằm trong phần chi tiết.
+    // Thẻ phí: link bảng giá nằm trong phần chi tiết (03/10: /pricing gộp vào khối giá
+    // của trang nhà tuyển dụng).
     const fee = page.locator('li#home-fee');
     const pricing = fee.getByRole('link', { name: /Xem bảng giá/ });
     await expect(pricing).toBeHidden();
     await fee.getByText('Xem chi tiết', { exact: true }).click();
     await expect(pricing).toBeVisible();
-    await expect(pricing).toHaveAttribute('href', '/pricing');
+    await expect(pricing).toHaveAttribute('href', '/for-employers#employer-pricing');
   });
 
   test('"/" receipt replays the shift lifecycle in a loop (normal motion)', async ({ page, seedState, gotoApp }) => {
@@ -264,14 +272,14 @@ test.describe('Role homepages', () => {
     await expect(receipt.getByText('Chốt sổ khi ca hoàn thành', { exact: true })).toBeVisible();
   });
 
-  test('/for-workers: switch marks worker, no "Ca mới đăng" list, links to /for-employers', async ({
+  test('/for-workers: switch marks worker, no "Ca mới đăng" list (only "Ca đang tuyển"), links to /for-employers', async ({
     page,
     seedState,
     gotoApp,
   }) => {
     await page.setViewportSize(DESKTOP);
-    // Có ca đang tuyển trong dữ liệu nhưng trang vai trò KHÔNG liệt kê ca nữa
-    // (khối "Ca mới đăng" đã bỏ theo yêu cầu chủ sản phẩm) — xem ca ở /shifts.
+    // Khối "Ca mới đăng" đã bỏ theo yêu cầu chủ sản phẩm; 03/10 thay bằng khối
+    // "Ca đang tuyển" (6 ca sớm nhất + "Xem tất cả" → /shifts).
     const shifts = [1, 2, 3, 4, 5, 6, 7].map(openShift);
     shifts.push({ ...openShift(9), id: 'e2e-home-cancelled', title: 'E2E Ca đã huỷ', status: 'Cancelled' });
     await seedState(buildSnapshot({ shifts }));
@@ -303,11 +311,14 @@ test.describe('Role homepages', () => {
     await expect(page.getByText('Trước khi ca hiện ra', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Khi ca xong', { exact: true })).toHaveCount(0);
 
-    // Kiểm sau khi trang đã hiện đủ nội dung (không đạt "0" chỉ vì chưa hydrate).
+    // Khối cũ "Ca mới đăng" vẫn không còn. Từ 03/10 trang có khối "Ca đang tuyển"
+    // (#worker-shifts, chi tiết ở e2e/42): tối đa 6 thẻ ca đang tuyển, ca đã huỷ không hiện.
     await expect(page.getByRole('heading', { name: 'Ca mới đăng' })).toHaveCount(0);
     await expect(page.locator('section[aria-labelledby="worker-latest"]')).toHaveCount(0);
-    await expect(page.locator('a[href^="/shifts/e2e-home-"]')).toHaveCount(0);
-    await expect(page.getByText(/E2E Ca (mới|đã huỷ)/)).toHaveCount(0);
+    const openBlock = page.locator('section[aria-labelledby="worker-shifts"]');
+    await expect(openBlock.locator('a[href^="/shifts/e2e-home-shift-"]')).toHaveCount(6);
+    await expect(page.locator('a[href="/shifts/e2e-home-cancelled"]')).toHaveCount(0);
+    await expect(page.getByText('E2E Ca đã huỷ')).toHaveCount(0);
 
     await page.getByRole('link', { name: /Xem trang tuyển dụng/ }).click();
     await page.waitForURL('**/for-employers');
@@ -342,9 +353,10 @@ test.describe('Role homepages', () => {
       'href',
       '/register?role=worker',
     );
+    // 03/10: /how-it-works gộp vào khối "Bốn bước của một ca" của trang chủ.
     await expect(empty.getByRole('link', { name: /Cách CaLẻ hoạt động/ })).toHaveAttribute(
       'href',
-      '/how-it-works',
+      '/#home-how',
     );
     // "Khi có ca mới" explains the real flow (3 steps), not fake shift cards.
     await expect(empty.getByRole('listitem')).toHaveCount(3);
@@ -366,12 +378,14 @@ test.describe('Role homepages', () => {
       'href',
       '/register?role=employer',
     );
-    // 03/10: khối bảng giá riêng (employer-pricing, "0đ"/"10%") và "Tiền của bạn đi
-    // đâu?" đã bỏ; phí demo nằm trong form thử đăng ca ("Một ca tốn bao nhiêu?").
+    // Phí demo nằm trong form thử đăng ca ("Một ca tốn bao nhiêu?"); "Tiền của bạn đi
+    // đâu?" đã bỏ. 03/10 (lần 4): trang /pricing gộp về đây thành khối "Phí dịch vụ"
+    // (#employer-pricing, "Giai đoạn thử nghiệm: 0 đ") — chi tiết ở e2e/43.
     const money = page.locator('section[aria-labelledby="employer-money"]');
     await expect(money.getByRole('heading', { level: 2, name: 'Một ca tốn bao nhiêu?', exact: true })).toBeVisible();
     await expect(money.getByText('Bản demo chưa thu phí', { exact: true })).toBeVisible();
-    await expect(page.locator('section[aria-labelledby="employer-pricing"], #employer-pricing')).toHaveCount(0);
+    await expect(page.locator('section[aria-labelledby="employer-pricing"]')).toHaveCount(1);
+    await expect(page.locator('#employer-pricing')).toHaveText('Giai đoạn thử nghiệm: 0 đ');
     await expect(page.getByText('Tiền của bạn đi đâu?', { exact: true })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Switch to English' }).click();
@@ -400,7 +414,7 @@ test.describe('Role homepages', () => {
       ['/shifts/e2e-home-shift-1', 'Đăng ký để nhận ca', '/register?role=worker'],
       ['/for-employers', 'Đăng ký để đăng ca', '/register?role=employer'],
       ['/', 'Đăng ký', '/register'],
-      ['/about', 'Đăng ký', '/register'],
+      ['/support', 'Đăng ký', '/register'],
     ];
     for (const [path, label, href] of cases) {
       await gotoApp(path);
@@ -445,7 +459,45 @@ test.describe('Nút VI / EN (đợt 1: trang công khai)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find short shifts near you');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     const nav = page.getByRole('navigation', { name: 'Main navigation' });
-    await expect(nav.getByRole('button', { name: 'Workers' })).toBeVisible();
+    // 03/10 (lần 2): "Workers" / "Employers" là nút menu thả, danh sách dọc tới từng khối.
+    await expect(nav.locator('button[aria-haspopup="menu"]')).toHaveText(['Workers', 'Employers', 'Help & support']);
+    const workers = nav.getByRole('button', { name: 'Workers', exact: true });
+    await workers.hover();
+    await expect(workers).toHaveAttribute('aria-expanded', 'true');
+    const workerMenu = page.getByRole('menu', { name: 'Workers', exact: true });
+    await expect(workerMenu.getByRole('menuitem')).toHaveText([
+      'Overview for workers',
+      'Open shifts',
+      'Find and apply for shifts',
+      'My schedule',
+      'When you get paid',
+      'Cancellation rules',
+      'Profile & reputation',
+      'FAQ',
+    ]);
+    await expect(workerMenu.getByRole('menuitem').first()).toHaveAttribute('href', '/for-workers');
+    const employers = nav.getByRole('button', { name: 'Employers', exact: true });
+    await employers.hover();
+    await expect(workers).toHaveAttribute('aria-expanded', 'false');
+    const employerMenu = page.getByRole('menu', { name: 'Employers', exact: true });
+    await expect(employerMenu.getByRole('menuitem')).toHaveText([
+      'Overview for employers',
+      'Try posting a shift',
+      'Review applicants',
+      'Holding shift wages',
+      'Service fee',
+      'Post-shift reviews',
+      'FAQ',
+    ]);
+    await expect(employerMenu.getByRole('menuitem').first()).toHaveAttribute('href', '/for-employers');
+    // Chọn một mục (tiếng Anh) → đúng khối, menu đóng.
+    await employerMenu.getByRole('menuitem', { name: 'Holding shift wages', exact: true }).click();
+    await expect(page).toHaveURL(/\/for-employers#employer-payments$/);
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(page.locator('#employer-payments')).toBeInViewport();
+    await workers.hover();
+    await workerMenu.getByRole('menuitem', { name: 'Overview for workers', exact: true }).click();
+    await expect(page).toHaveURL(/\/for-workers$/);
 
     await page.reload();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Find short shifts near you');

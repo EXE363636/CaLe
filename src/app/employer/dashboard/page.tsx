@@ -463,7 +463,7 @@ function EmployerDashboardContent() {
                       </p>
                     )}
                     <Link
-                      href="/employer/reviews"
+                      href="/for-employers#employer-reviews"
                       className="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-orange-700 hover:underline"
                     >
                       {tx('Cách đánh giá sau ca')} →

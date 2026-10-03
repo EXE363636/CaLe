@@ -41,6 +41,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { isPublicSkinPath } from '@/lib/publicSkin';
 import { useCurrentUser } from '@/stores/authStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 import { useShiftStore } from '@/stores/shiftStore';
@@ -51,7 +52,6 @@ import {
   workerProfileTaskCount,
 } from '@/domain/taskBadges';
 import { TaskBadge } from '@/components/ui';
-import { isSupabaseEnv } from '@/data/supabaseClient';
 import { hasCapability } from '@/data/capabilities';
 import { NotificationBell } from './NotificationBell';
 import { MobileNav } from './MobileNav';
@@ -98,7 +98,7 @@ const WORKER_GROUP: MenuGroup = {
       description: 'Xem các ca đang tuyển gần bạn',
     },
     {
-      href: '/worker/reputation-guide',
+      href: '/for-workers#worker-reputation',
       label: 'Hồ sơ & điểm uy tín',
       description: 'Nhà tuyển dụng thấy gì khi duyệt bạn',
     },
@@ -108,7 +108,7 @@ const WORKER_GROUP: MenuGroup = {
       description: 'Quản lý thời gian rảnh và tránh trùng lịch',
     },
     {
-      href: '/worker/cancellation-policy',
+      href: '/for-workers#worker-cancel',
       label: 'Quy định huỷ ca',
       description: 'Các mốc giờ khi cần huỷ ca đã nhận',
     },
@@ -130,13 +130,13 @@ const EMPLOYER_GROUP: MenuGroup = {
       description: 'Duyệt đơn và xác nhận ca hoàn thành',
     },
     {
-      href: '/employer/payments',
+      href: '/for-employers#employer-payments',
       label: 'Giữ tiền ca làm (mô phỏng)',
       description:
         'Tiền ca được giữ, trả và hoàn thế nào. Bản demo không có giao dịch thật.',
     },
     {
-      href: '/employer/reviews',
+      href: '/for-employers#employer-reviews',
       label: 'Đánh giá sau ca',
       description: 'Chấm sao và nhận xét sau mỗi ca',
     },
@@ -145,23 +145,10 @@ const EMPLOYER_GROUP: MenuGroup = {
 
 const SAFETY_GROUP: MenuGroup = {
   label: 'Hướng dẫn & hỗ trợ',
-  activePrefixes: ['/how-it-works', '/safety', '/faq', '/disputes', '/user-guide', '/handbook', '/pricing'],
+  // 03/10 — "Cách hoạt động", "Bảng giá", "Bảo vệ người dùng" đã gộp vào trang chủ, trang
+  // nhà tuyển dụng và /support (các đường dẫn cũ chuyển hướng trong next.config.ts).
+  activePrefixes: ['/faq', '/disputes', '/user-guide', '/handbook', '/support'],
   items: [
-    {
-      href: '/how-it-works',
-      label: 'Cách hoạt động',
-      description: 'Bốn bước từ đăng ca đến thanh toán',
-    },
-    {
-      href: '/pricing',
-      label: 'Bảng giá',
-      description: 'Miễn phí trong giai đoạn thử nghiệm',
-    },
-    {
-      href: '/safety',
-      label: tVi('nav.label.safety'),
-      description: 'Cơ chế bảo vệ người dùng của CaLẻ',
-    },
     {
       href: '/faq',
       label: 'Câu hỏi thường gặp',
@@ -182,110 +169,48 @@ const SAFETY_GROUP: MenuGroup = {
       label: tVi('nav.label.handbook'),
       description: 'Bí quyết để làm việc suôn sẻ',
     },
+    {
+      href: '/support',
+      label: 'Liên hệ hỗ trợ',
+      description: 'Email, hotline và lưu ý an toàn',
+    },
   ],
 };
 
 // ---------------------------------------------------------------------------
-// Phase 9Z-Fix-3 — public (logged-out) variants of the worker / employer
-// dropdowns. Manual QA found that the Phase 9S role-aware groups linked
-// straight to protected routes (`/worker/schedule`, `/employer/shifts/new`,
-// `/employer/dashboard`) for everyone, including logged-out visitors —
-// who would then be bounced to `/login` by `RoleGuard`. That makes the
-// nav feel like a sales funnel disguised as discovery.
-//
-// The public variants below preserve the same visible labels but
-// remap each item to a public guide page that explains the feature
-// without requiring auth. The protected routes still exist and still
-// require login when visited directly; only the marketing-time entry
-// point changes.
+// 03/10 (lần 2) — khách: "Người lao động" / "Nhà tuyển dụng" mở danh sách dọc dẫn thẳng
+// tới từng khối của trang vai trò (chủ dự án: thay cột "Bắt đầu" ở chân trang). Mục đầu
+// là trang tổng quan; các mục sau là `#khối` (trang vai trò cuộn lại tới khối khi mở).
 // ---------------------------------------------------------------------------
 
 const WORKER_GROUP_PUBLIC: MenuGroup = {
   label: 'Người lao động',
-  activePrefixes: ['/worker', '/for-workers'],
+  activePrefixes: ['/for-workers', '/shifts'],
   items: [
-    {
-      // P1 feedback F4 — trang giới thiệu riêng cho người lao động.
-      href: '/for-workers',
-      label: 'Dành cho người lao động',
-      description: 'Lợi ích, cách nhận ca và nhận tiền',
-    },
-    {
-      href: '/shifts',
-      label: 'Tìm ca làm',
-      description: 'Xem các ca đang tuyển gần bạn',
-    },
-    {
-      href: '/worker/reputation-guide',
-      label: 'Hồ sơ & điểm uy tín',
-      description: 'Nhà tuyển dụng thấy gì khi duyệt bạn',
-    },
-    {
-      // Phase 9Z-Fix-4: deep-link to the Lịch cá nhân anchor on
-      // /user-guide so logged-out visitors land directly on the
-      // feature explanation, not the top of a long generic guide.
-      href: '/worker/schedule-guide',
-      label: 'Lịch cá nhân',
-      description: 'Xem ca đã nhận và giờ bận của bạn',
-    },
-    {
-      href: '/worker/cancellation-policy',
-      label: 'Quy định huỷ ca',
-      description: 'Các mốc giờ khi cần huỷ ca đã nhận',
-    },
+    { href: '/for-workers', label: 'Tổng quan cho người lao động' },
+    { href: '/for-workers#worker-shifts', label: 'Ca đang tuyển' },
+    { href: '/for-workers#worker-apply', label: 'Tìm ca và ứng tuyển' },
+    { href: '/for-workers#worker-schedule', label: 'Lịch cá nhân' },
+    { href: '/for-workers#worker-money', label: 'Tiền về tay khi nào' },
+    { href: '/for-workers#worker-cancel', label: 'Quy định huỷ ca' },
+    { href: '/for-workers#worker-reputation', label: 'Hồ sơ & điểm uy tín' },
+    { href: '/for-workers#worker-faq', label: 'Câu hỏi thường gặp' },
   ],
 };
 
 const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
   label: 'Nhà tuyển dụng',
-  activePrefixes: ['/employer', '/for-employers'],
+  activePrefixes: ['/for-employers'],
   items: [
-    {
-      // P1 feedback F4 — trang giới thiệu riêng cho nhà tuyển dụng.
-      href: '/for-employers',
-      label: 'Dành cho nhà tuyển dụng',
-      description: 'Lợi ích, phí dịch vụ và cách đăng ca',
-    },
-    {
-      // Phase 9Z-Fix-4: deep-link to the Đăng ca tuyển anchor on
-      // /user-guide so logged-out visitors land directly on the
-      // posting-flow explanation.
-      href: '/employer/post-shift-guide',
-      label: 'Đăng ca tuyển',
-      description: 'Điền ca, giữ tiền công rồi đăng',
-    },
-    {
-      href: '/employer/applicants-guide',
-      label: 'Quản lý người ứng tuyển',
-      description: 'Duyệt người, xác nhận có mặt và hoàn thành',
-    },
-    {
-      href: '/employer/payments',
-      label: 'Giữ tiền ca làm (mô phỏng)',
-      description:
-        'Tiền ca được giữ, trả và hoàn thế nào. Bản demo không có giao dịch thật.',
-    },
-    {
-      href: '/employer/reviews',
-      label: 'Đánh giá sau ca',
-      description: 'Chấm sao và nhận xét sau mỗi ca',
-    },
+    { href: '/for-employers', label: 'Tổng quan cho nhà tuyển dụng' },
+    { href: '/for-employers#employer-post', label: 'Thử đăng một ca' },
+    { href: '/for-employers#employer-applicants', label: 'Duyệt người ứng tuyển' },
+    { href: '/for-employers#employer-payments', label: 'Giữ tiền ca làm' },
+    { href: '/for-employers#employer-pricing', label: 'Phí dịch vụ' },
+    { href: '/for-employers#employer-reviews', label: 'Đánh giá sau ca' },
+    { href: '/for-employers#employer-faq', label: 'Câu hỏi thường gặp' },
   ],
 };
-
-// ---------------------------------------------------------------------------
-// B4 — supabase/production: CaLẻ chưa thu/giữ tiền, nên ẩn mục điều hướng
-// "Giữ tiền ca làm (mô phỏng)" khỏi dropdown nhà tuyển dụng. Local/demo giữ
-// nguyên để phục vụ test. Lọc ở lúc render nên các const nhóm + NAV_GROUPS
-// (dùng cho test) không đổi.
-// ---------------------------------------------------------------------------
-function hidePaymentsInSupabase(group: MenuGroup): MenuGroup {
-  if (!isSupabaseEnv()) return group;
-  return {
-    ...group,
-    items: group.items.filter((it) => it.href !== '/employer/payments'),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Active-state helper
@@ -516,7 +441,13 @@ export function NavBar() {
         ? { href: '/register?role=employer', text: tx('Đăng ký để đăng ca') }
         : { href: '/register', text: t('nav.register') };
   return (
-    <header className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm">
+    <header
+      className={[
+        'sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm',
+        // Trang công khai: header cùng da "giấy trắng, cam rõ" với trang (03/10).
+        isPublicSkinPath(pathname) ? 'public-skin' : '',
+      ].join(' ')}
+    >
       {/* HEADER-NAV-LAYOUT-3 — pure-CSS 3-zone adaptive header.
           Below `xl` (< 1280px): a simple flex row (brand left, right
           cluster pushed right via `ml-auto`); the hamburger is the
@@ -681,9 +612,7 @@ function PublicNav({
       <NavLink href="/" pathname={pathname} exact>
         {t('nav.home')}
       </NavLink>
-      {/* Khách không có mục "Tìm ca làm" riêng: trang chủ dành cho cả hai
-          vai trò, lối tìm ca nằm trong dropdown "Người lao động" (và menu
-          của tài khoản worker). */}
+      {/* Danh sách dọc tới từng khối của trang vai trò (03/10). */}
       <Dropdown
         id="worker"
         group={localizeGroup(WORKER_GROUP_PUBLIC, tx)}
@@ -697,7 +626,7 @@ function PublicNav({
       />
       <Dropdown
         id="employer"
-        group={localizeGroup(hidePaymentsInSupabase(EMPLOYER_GROUP_PUBLIC), tx)}
+        group={localizeGroup(EMPLOYER_GROUP_PUBLIC, tx)}
         pathname={pathname}
         isOpen={activeDropdown === 'employer'}
         registerContainer={registerContainer}
@@ -908,11 +837,14 @@ function NavLink({
   badgeCount = 0,
   badgeAriaLabel,
   title,
+  alsoActive,
   children,
 }: {
   href: string;
   pathname: string;
   exact?: boolean;
+  /** Đường dẫn khác cũng làm link sáng (vd "Người lao động" sáng khi ở /shifts, 03/10). */
+  alsoActive?: string[];
   /**
    * Phase 10A-Fix-4 — render a `<TaskBadge>` on the nav link for
    * "needs your attention" indicators. Hidden when `<= 0`.
@@ -931,9 +863,9 @@ function NavLink({
   // state — admin nav uses `?tab=...` deep links and we want them to
   // match against `pathname` only.
   const targetPath = href.split('?')[0];
-  const active = exact
-    ? pathname === targetPath
-    : isPathActive(pathname, targetPath);
+  const active =
+    (exact ? pathname === targetPath : isPathActive(pathname, targetPath)) ||
+    (alsoActive ?? []).some((p) => isPathActive(pathname, p));
   if (badgeCount > 0) {
     // Wrap in a relative span so the absolutely-positioned badge
     // anchors to the link without breaking the existing flex layout
@@ -948,7 +880,7 @@ function NavLink({
     );
   }
   return (
-    <Link href={href} title={title} className={navLinkClasses(active)}>
+    <Link href={href} title={title} aria-current={pathname === targetPath ? 'page' : undefined} className={navLinkClasses(active)}>
       {children}
     </Link>
   );
@@ -1023,6 +955,14 @@ function Dropdown({
 }: DropdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const active = isAnyPrefixActive(pathname, group.activePrefixes);
+  // Màn cảm ứng rộng (máy tính bảng ngang, chỉ có thanh trên máy tính): một lần chạm
+  // bắn mouseenter + focus (mở menu) rồi click (đảo trạng thái → đóng ngay). Vừa mở do
+  // hover / focus trong 400ms thì click không đóng lại (03/10).
+  const openedAt = useRef(0);
+  const openFromHover = () => {
+    if (!isOpen) openedAt.current = Date.now();
+    onOpen(id);
+  };
 
   // Register / unregister this dropdown's container with the parent so
   // its outside-click listener can check against every dropdown at
@@ -1038,13 +978,16 @@ function Dropdown({
       ref={containerRef}
       data-nav-dropdown={id}
       className="relative"
-      onMouseEnter={() => onOpen(id)}
+      onMouseEnter={openFromHover}
       onMouseLeave={() => onClose(id)}
     >
       <button
         type="button"
-        onClick={() => onToggle(id)}
-        onFocus={() => onOpen(id)}
+        onClick={() => {
+          if (isOpen && Date.now() - openedAt.current < 400) return;
+          onToggle(id);
+        }}
+        onFocus={openFromHover}
         aria-expanded={isOpen}
         aria-haspopup="menu"
         className={[navLinkClasses(active), 'gap-1'].join(' ')}
@@ -1108,4 +1051,7 @@ export const NAV_GROUPS = {
   worker: WORKER_GROUP,
   employer: EMPLOYER_GROUP,
   safety: SAFETY_GROUP,
+  /** Danh sách dọc của khách trên thanh menu (03/10). */
+  workerPublic: WORKER_GROUP_PUBLIC,
+  employerPublic: EMPLOYER_GROUP_PUBLIC,
 };

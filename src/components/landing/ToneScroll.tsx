@@ -8,9 +8,12 @@
  *
  * Chỉ đổi màu nền, không dịch chuyển gì; giảm chuyển động → đổi ngay, không chuyển
  * dần (CSS `.tone-scroll`). Bản server vẽ với tông đầu tiên.
+ * 03/10: thêm hiện dần khi cuộn cho nội dung các khối (`useScrollReveal`).
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+
+import { useScrollReveal } from './useScrollReveal';
 
 export function ToneScroll({
   initial,
@@ -24,6 +27,8 @@ export function ToneScroll({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [tone, setTone] = useState(initial);
+  // Hiện dần khi cuộn cho mọi khối (trừ màn đầu) — 03/10.
+  useScrollReveal(ref);
 
   useEffect(() => {
     const root = ref.current;
@@ -57,8 +62,20 @@ export function ToneScroll({
     };
   }, []);
 
+  // Mở bằng link `#khối` (vd chuyển hướng từ trang hướng dẫn cũ, 03/10): trình duyệt cuộn
+  // tới khối trước khi minh hoạ phía trên dựng xong nên dừng lệch. Cuộn lại MỘT lần khi
+  // trang đã vẽ xong (không lặp, không theo dõi).
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, []);
+
   return (
-    <div ref={ref} data-active-tone={tone} className={['tone-scroll', className ?? ''].join(' ')} style={{ backgroundColor: `var(--tone-${tone})` }}>
+    <div ref={ref} data-active-tone={tone} className={['tone-scroll public-skin', className ?? ''].join(' ')} style={{ backgroundColor: `var(--tone-${tone})` }}>
       {children}
     </div>
   );

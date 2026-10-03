@@ -72,7 +72,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 
 import { Footer } from '@/components/layout/Footer';
-import EmployerPaymentsPage from '@/app/employer/payments/page';
+// 03/10 — /employer/payments gộp vào /for-employers#employer-payments (next.config chuyển hướng).
+import { EmployerPaymentsSection } from '@/components/landing/EmployerPaymentsSection';
+const EmployerPaymentsPage = async () => <EmployerPaymentsSection />;
 
 // Trang /employer/payments là server component bất đồng bộ đọc ngôn ngữ từ
 // cookie (`getTx`); ngoài Next không có request nên cố định tiếng Việt.
@@ -110,7 +112,7 @@ const DEMO_NOTE = nfc('không có giao dịch thật');
  */
 const CONFUSING_LABEL = lc('Đảm bảo thanh toán'); // 'đảm bảo thanh toán'
 
-const PAYMENTS_HREF = '/employer/payments';
+const PAYMENTS_HREF = '/for-employers#employer-payments';
 
 afterEach(() => {
   cleanup();
@@ -177,7 +179,7 @@ describe('Property 6 (Bug Condition): Footer payment-guarantee wording + demo no
 describe('Property 6 (Bug Condition): /employer/payments wording + demo note', () => {
   it('the page title uses clearer wording (not "Đảm bảo thanh toán")', async () => {
     render(await EmployerPaymentsPage());
-    const heading = screen.getByRole('heading', { level: 1 });
+    const heading = screen.getByRole('heading', { level: 2 });
 
     // EXPECTED (post-fix): the primary label (page title) is standardized.
     // CURRENT (unfixed): the h1 is "Đảm bảo thanh toán" → this assertion FAILS.

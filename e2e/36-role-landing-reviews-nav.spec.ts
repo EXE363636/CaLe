@@ -11,15 +11,19 @@ import type { Locator, Page } from '@playwright/test';
  *      nơi khác; ẩn nút trỏ về chính trang đang xem). Đã đăng nhập: "Đăng ca" (nhà tuyển
  *      dụng) / "Tìm ca làm" (người lao động) rời thanh menu giữa, thành nút cam bên phải.
  *      Ngăn kéo menu điện thoại: nút đăng ký mang đúng vai trò của trang.
- *   2. Khối đánh giá hai chiều (#worker-reviews / #employer-reviews): một thẻ 4 bước
- *      `ReviewFlowPreview` (Quán chấm → Người làm chấm → Sao hiện ra → Uy tín, kỹ năng)
- *      — trạng thái cuối (giảm chuyển động) và các mốc giữa chừng (đồng hồ giả dừng,
- *      như e2e/35). Mốc chi tiết ghi ngay trên describe.
- *   3. Khối "An toàn và hỗ trợ" (#worker-help / #employer-help) → /safety, /support.
+ *   2. Khối đánh giá hai chiều (#worker-reputation — trước 03/10 là #worker-reviews — /
+ *      #employer-reviews): một thẻ 4 bước `ReviewFlowPreview` (Quán chấm → Người làm chấm
+ *      → Sao hiện ra → Uy tín, kỹ năng) — trạng thái cuối (giảm chuyển động) và các mốc
+ *      giữa chừng (đồng hồ giả dừng, như e2e/35). Mốc chi tiết ghi ngay trên describe.
+ *      03/10: 4 bước chồng trong một ô (`StageStack`); bước không xem vẫn trong DOM nhưng
+ *      `invisible` + `inert` → kiểm bằng `toBeHidden()`, không `toHaveCount(0)`.
+ *   3. Khối "An toàn và hỗ trợ" (#worker-help / #employer-help) → /support#support-safety
+ *      (03/10: /safety gộp vào /support), /support.
  *   4. Minh hoạ đầu trang nhà tuyển dụng: dòng ứng viên "★ 4,8 · 12 đánh giá".
  *   5. Thẻ loại việc ở /for-workers: "{min}–{max} đ/giờ · n ca đang tuyển" từ ca đang tuyển.
  *   6. Dải mực cuối trang vai trò (`RoleBand`) theo người xem.
- *   7. /how-it-works bản mới (màn đầu, 4 bước, sơ đồ tiền, thẻ vai trò, hỗ trợ, dải cuối).
+ *   7. /how-it-works (03/10, lần 4) gộp vào trang chủ: khối "Bốn bước của một ca" (#home-how)
+ *      ngay trước "Tiền của một ca đi về đâu?"; nội dung đầy đủ ở e2e/43.
  */
 
 const DESKTOP = { width: 1440, height: 900 };
@@ -96,9 +100,9 @@ test.describe('Header khách (desktop ≥ xl) — 03/10', () => {
       ['/shifts', 'Đăng ký để nhận ca', '/register?role=worker'],
       ['/for-employers', 'Đăng ký để đăng ca', '/register?role=employer'],
       ['/', 'Đăng ký', '/register'],
-      ['/about', 'Đăng ký', '/register'],
+      ['/support', 'Đăng ký', '/register'],
       ['/faq', 'Đăng ký', '/register'],
-      ['/how-it-works', 'Đăng ký', '/register'],
+      ['/user-guide', 'Đăng ký', '/register'],
     ];
     for (const [path, label, href] of cases) {
       await gotoApp(path);
@@ -134,7 +138,7 @@ test.describe('Header khách (desktop ≥ xl) — 03/10', () => {
       ['/shifts', 'Đăng ký để nhận ca', '/register?role=worker'],
       ['/for-employers', 'Đăng ký để đăng ca', '/register?role=employer'],
       ['/', 'Đăng ký', '/register'],
-      ['/about', 'Đăng ký', '/register'],
+      ['/support', 'Đăng ký', '/register'],
     ];
     for (const [path, label, href] of cases) {
       await gotoApp(path);
@@ -244,9 +248,10 @@ test.describe('Khối đánh giá hai chiều — trạng thái cuối (giảm c
   for (const c of [
     {
       path: '/for-workers',
-      id: 'worker-reviews',
+      id: 'worker-reputation',
       heading: 'Làm tốt thì được ghi nhận',
-      points: ['Hai bên chấm nhau', 'Điểm sao đi theo bạn', 'Uy tín và kỹ năng'],
+      // 03/10: khối gộp từ /worker/reputation-guide — điểm 1 nói nhà tuyển dụng thấy gì.
+      points: ['Nhà tuyển dụng thấy gì khi duyệt bạn', 'Hai bên chấm nhau', 'Uy tín và kỹ năng'],
       profile: 'Hồ sơ của bạn',
     },
     {
@@ -300,8 +305,8 @@ test.describe('Khối đánh giá hai chiều — trạng thái cuối (giảm c
       ).toBeVisible();
       await expect(fig.getByText('Sắp có', { exact: true })).toHaveCount(0);
       await expect(replayButton(fig)).toBeHidden();
-      // Chỉ bước đang xem được vẽ.
-      await expect(fig.getByText('Quán chấm Minh Anh', { exact: true })).toHaveCount(0);
+      // Chỉ bước đang xem hiện ra; các bước khác ẩn (invisible + inert).
+      await expect(fig.getByText('Quán chấm Minh Anh', { exact: true })).toBeHidden();
 
       // Bước 1: quán chấm 5 sao, nhận xét, đã gửi.
       await stepButton(bar, 'Quán chấm').click();
@@ -310,7 +315,7 @@ test.describe('Khối đánh giá hai chiều — trạng thái cuối (giảm c
       await expect(starsOf(emp)).toHaveAttribute('aria-label', '5/5');
       await expect(emp.getByText(E_TEXT, { exact: true })).toBeVisible();
       await expect(emp.getByText('✓ Đã gửi', { exact: true })).toBeVisible();
-      await expect(fig.getByText('Điểm uy tín', { exact: true })).toHaveCount(0);
+      await expect(fig.getByText('Điểm uy tín', { exact: true })).toBeHidden();
 
       // Bước 2: người làm chấm quán 4 sao, 2 thẻ nhanh, nhận xét, đã gửi.
       await stepButton(bar, 'Người làm chấm').click();
@@ -349,7 +354,7 @@ test.describe('Khối đánh giá hai chiều — chạy một lần khi cuộn 
     gotoApp,
   }) => {
     await openPaused(page, gotoApp, seedState, '/for-workers');
-    const fig = reviewFig(page.locator('section[aria-labelledby="worker-reviews"]'));
+    const fig = reviewFig(page.locator('section[aria-labelledby="worker-reputation"]'));
     const bar = stepBar(fig);
     const emp = panel(fig, 'Quán chấm Minh Anh');
     const wkr = panel(fig, 'Minh Anh chấm quán');
@@ -384,7 +389,7 @@ test.describe('Khối đánh giá hai chiều — chạy một lần khi cuộn 
     await page.clock.runFor(1_200);
     await expect(currentStep(bar)).toHaveText('2. Người làm chấm');
     await expect(bar).toContainText('✓ Quán chấm');
-    await expect(emp).toHaveCount(0);
+    await expect(emp).toBeHidden();
     await expect(starsOf(wkr)).toHaveAttribute('aria-label', '3/5');
     await expect(activeChips).toHaveCount(0);
 
@@ -432,7 +437,7 @@ test.describe('Khối đánh giá hai chiều — chạy một lần khi cuộn 
     // Bấm thanh bước quay lại bước 1.
     await stepButton(bar, 'Quán chấm').click();
     await expect(emp.getByText('✓ Đã gửi', { exact: true })).toBeVisible();
-    await expect(fig.getByText('Điểm uy tín', { exact: true })).toHaveCount(0);
+    await expect(fig.getByText('Điểm uy tín', { exact: true })).toBeHidden();
 
     // "Xem lại" chạy lại từ đầu.
     await again.click();
@@ -452,7 +457,7 @@ test.describe('Trang vai trò — khối "An toàn và hỗ trợ"', () => {
     { path: '/for-workers', id: 'worker-help' },
     { path: '/for-employers', id: 'employer-help' },
   ]) {
-    test(`${c.path}: lối tắt /safety và /support`, async ({ page, seedState, gotoApp }) => {
+    test(`${c.path}: lối tắt /support#support-safety và /support`, async ({ page, seedState, gotoApp }) => {
       await page.setViewportSize(DESKTOP);
       await seedState(buildSnapshot());
       await gotoApp(c.path);
@@ -464,10 +469,18 @@ test.describe('Trang vai trò — khối "An toàn và hỗ trợ"', () => {
       await expect(links).toHaveCount(2);
       const safety = section.getByRole('link', { name: /^An toàn khi làm theo ca/ });
       const support = section.getByRole('link', { name: /^Cần hỗ trợ\?/ });
-      await expect(safety).toHaveAttribute('href', '/safety');
+      await expect(safety).toHaveAttribute('href', '/support#support-safety');
       await expect(support).toHaveAttribute('href', '/support');
       await support.click();
       await page.waitForURL('**/support');
+      // Thẻ an toàn mở đúng khối "Lưu ý an toàn" của /support.
+      await page.goBack();
+      await page.waitForURL(`**${c.path}`);
+      await safety.scrollIntoViewIfNeeded();
+      await safety.click();
+      await expect(page).toHaveURL(/^[^#]*\/support#support-safety$/);
+      await expect(page.locator('#support-safety')).toHaveText('Lưu ý an toàn');
+      await expect(page.locator('#support-safety')).toBeInViewport();
     });
   }
 });
@@ -667,14 +680,14 @@ test.describe('Dải cuối trang vai trò (RoleBand) theo người xem', () => 
 });
 
 // ---------------------------------------------------------------------------
-// 7. /how-it-works (bản 03/10, cùng khối với trang vai trò)
+// 7. /how-it-works → khối "Bốn bước của một ca" của trang chủ (03/10, lần 4)
 // ---------------------------------------------------------------------------
 
-test.describe('/how-it-works bản 03/10', () => {
+test.describe('/how-it-works gộp vào trang chủ (#home-how)', () => {
   // Tiêu đề gõ chữ khi cuộn tới (TypeOnView) → giảm chuyển động để đọc trọn câu.
   test.use({ contextOptions: { reducedMotion: 'reduce' } });
 
-  test('màn đầu, 4 bước (demo), sơ đồ tiền, thẻ theo vai trò, cần nhớ, hỗ trợ, dải cuối', async ({
+  test('đường dẫn cũ mở trang chủ ở khối 4 bước (demo); sơ đồ tiền ngay sau; dải kết trỏ về khối', async ({
     page,
     seedState,
     gotoApp,
@@ -682,18 +695,13 @@ test.describe('/how-it-works bản 03/10', () => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
     await gotoApp('/how-it-works');
+    await expect(page).toHaveURL(/^[^#]*\/#home-how$/);
     const main = page.locator('main');
-    await expect(main.getByRole('heading', { level: 1 })).toHaveText('Cách hoạt động');
-    const hero = main.locator('section').first();
-    await expect(hero.getByRole('link', { name: /^Xem ca đang tuyển/ })).toHaveAttribute('href', '/shifts');
-    await expect(hero.getByRole('link', { name: 'Trang nhà tuyển dụng', exact: true })).toHaveAttribute(
-      'href',
-      '/for-employers',
-    );
+    await expect(main.getByRole('heading', { level: 1 })).toHaveText('Việc làm ngắn hạn, rõ ca – rõ tiền');
 
     // 4 bước; bản demo: bước 2 nhắc cảnh báo trùng lịch, bước 1 / 4 ghi "mô phỏng".
-    const steps = main.locator('section[aria-labelledby="how-steps"]');
-    await expect(steps.getByRole('heading', { level: 2, name: 'Bốn bước của một ca', exact: true })).toBeVisible();
+    const steps = main.locator('section[aria-labelledby="home-how"]');
+    await expect(steps.getByRole('heading', { level: 2, name: 'Bốn bước của một ca', exact: true })).toBeInViewport();
     const items = steps.locator('ol > li');
     await expect(items).toHaveCount(4);
     await expect(items.nth(0)).toContainText('Nhà tuyển dụng đăng ca');
@@ -704,45 +712,27 @@ test.describe('/how-it-works bản 03/10', () => {
     await expect(items.nth(3)).toContainText('Xác nhận và trả tiền công');
     await expect(items.nth(3)).toContainText('(mô phỏng)');
 
-    const money = main.locator('section[aria-labelledby="how-money"]');
-    await expect(money.getByRole('heading', { level: 2, name: 'Tiền của một ca đi về đâu?' })).toBeVisible();
-    await expect(money.locator('figure.money-flow')).toBeVisible();
+    // Sơ đồ tiền của trang cũ = khối "Tiền của một ca đi về đâu?" ngay sau 4 bước.
+    const next = steps.locator('xpath=following-sibling::section[1]');
+    await expect(next).toHaveAttribute('aria-labelledby', 'home-explain-title');
+    await expect(next.getByRole('heading', { level: 2, name: 'Tiền của một ca đi về đâu?' })).toBeVisible();
 
-    const roles = main.locator('section[aria-labelledby="how-roles"]');
-    await expect(roles.getByRole('heading', { level: 2, name: 'Xem kỹ từng bước theo vai trò' })).toBeVisible();
-    await expect(roles.getByRole('link')).toHaveCount(2);
-    await expect(roles.getByRole('link', { name: /Xem minh hoạ/ })).toHaveAttribute('href', '/for-workers#worker-apply');
-    await expect(roles.getByRole('link', { name: /Thử đăng một ca/ })).toHaveAttribute(
-      'href',
-      '/for-employers#employer-money',
-    );
-
-    const remember = main.locator('section[aria-labelledby="how-remember"]');
-    await expect(remember.getByRole('heading', { level: 2, name: 'Cần nhớ' })).toBeVisible();
-    await expect(remember.getByRole('listitem')).toHaveCount(3);
-    await expect(remember).toContainText('Người lao động dùng CaLẻ miễn phí.');
-
-    const help = main.locator('section[aria-labelledby="how-help"]');
-    await expect(help.getByRole('link', { name: /^An toàn khi làm theo ca/ })).toHaveAttribute('href', '/safety');
-    await expect(help.getByRole('link', { name: /^Cần hỗ trợ\?/ })).toHaveAttribute('href', '/support');
-
-    const close = main.locator('section[aria-labelledby="how-close"]');
-    await expect(close.getByRole('heading', { level: 2, name: 'Bắt đầu từ phía của bạn' })).toBeVisible();
+    // Dải kết: "Cách hoạt động" là neo về khối này; hai cửa vai trò vẫn ở đó.
+    const close = main.locator('section[aria-labelledby="home-close"]');
+    await expect(close.getByRole('link', { name: 'Cách hoạt động', exact: true })).toHaveAttribute('href', '#home-how');
     await expect(close.getByRole('link', { name: /^Tôi cần việc/ })).toHaveAttribute('href', '/for-workers');
-    await expect(close.getByRole('link', { name: /^Tôi cần tuyển người/ })).toHaveAttribute('href', '/for-employers');
+    await expect(close.getByRole('link', { name: /^Tôi cần tuyển/ })).toHaveAttribute('href', '/for-employers');
     await expect(main).not.toContainText(/VNĐ|₫/);
-
-    // Thẻ vai trò dẫn tới đúng minh hoạ.
-    await roles.getByRole('link', { name: /Thử đăng một ca/ }).click();
-    await page.waitForURL('**/for-employers#employer-money');
-    await expect(page.locator('#employer-money')).toBeVisible();
   });
 
-  test('375px không cuộn ngang', async ({ page, seedState, gotoApp }) => {
+  test('375px: khối 4 bước không cuộn ngang', async ({ page, seedState, gotoApp }) => {
     await page.setViewportSize(MOBILE);
     await seedState(buildSnapshot());
     await gotoApp('/how-it-works');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cách hoạt động');
+    await expect(page).toHaveURL(/#home-how$/);
+    const steps = page.locator('section[aria-labelledby="home-how"]');
+    await expect(steps.locator('ol > li')).toHaveCount(4);
+    expect(await steps.evaluate((el) => el.scrollWidth)).toBeLessThanOrEqual(MOBILE.width);
     const width = await page.evaluate(() => document.documentElement.scrollWidth);
     expect(width).toBeLessThanOrEqual(MOBILE.width);
   });

@@ -55,7 +55,10 @@ vi.mock('@/i18n/server', async () => {
 
 import { capabilities } from '@/data/capabilities';
 import { MockPaymentSession } from '@/components/payment/MockPaymentSession';
-import PricingPage from '@/app/pricing/page';
+import { EmployerPricingSection } from '@/components/landing/EmployerPricingSection';
+
+// 03/10 — trang /pricing gộp vào /for-employers (#employer-pricing).
+const PricingPage = async () => <EmployerPricingSection />;
 
 const nfc = (s: string | null | undefined) => (s ?? '').normalize('NFC');
 
@@ -87,7 +90,7 @@ describe('PricingPage — trung thực, không nút mua', () => {
   it('2 thẻ Người lao động / Nhà tuyển dụng, không còn VIP/Boost, ví dụ chỉ 1 lần', async () => {
     const { container } = render(await PricingPage());
     const text = nfc(container.textContent);
-    const headings = Array.from(container.querySelectorAll('h2')).map((h) => nfc(h.textContent));
+    const headings = Array.from(container.querySelectorAll('h3')).map((h) => nfc(h.textContent));
     expect(headings).toEqual(expect.arrayContaining(['Người lao động', 'Nhà tuyển dụng']));
     expect(text).not.toMatch(/VIP|Boost/);
     expect(text.match(/Ví dụ/g)?.length).toBe(1);

@@ -27,17 +27,40 @@ export function MotionGroup({ children, className }: { children: ReactNode; clas
     if (rect.top < window.innerHeight && rect.bottom > 0) return;
 
     el.dataset.motion = 'armed';
+    let raf = 0;
+    const reveal = () => {
+      el.dataset.in = 'true';
+      io.disconnect();
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          el.dataset.in = 'true';
-          io.disconnect();
-        }
+        if (entries.some((e) => e.isIntersecting)) reveal();
       },
       { rootMargin: '0px 0px -15% 0px' },
     );
+    // Dự phòng (03/10): có lúc IntersectionObserver không báo (cuộn rất nhanh qua khối, mở
+    // bằng link `#khối` nằm dưới, tab vừa hiện lại) → khối nằm trống mãi. Kiểm tra thêm khi
+    // cuộn / đổi cỡ: đầu khối đã lên tới 85% màn hình, hoặc đã cuộn qua hẳn → hiện.
+    const check = () => {
+      raf = 0;
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.85 || r.bottom < 0) reveal();
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
     io.observe(el);
-    return () => io.disconnect();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
   }, []);
 
   return (

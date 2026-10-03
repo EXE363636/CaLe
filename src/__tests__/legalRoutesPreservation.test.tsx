@@ -26,9 +26,10 @@
  *             Only the GROUP that owns the guide link changes in the fix;
  *             the four legal links' PRESENCE must survive untouched.
  *
- *   (Req 3.9) The guide + safety routes (`/user-guide`, `/safety`) still
- *             resolve to valid, mountable pages after the handbook rewrite +
- *             menu rename.
+ *   (Req 3.9) The guide + safety routes (`/user-guide`, and `/support`, which
+ *             holds the safety notes since `/safety` merged into it on 03/10)
+ *             still resolve to valid, mountable pages after the handbook
+ *             rewrite + menu rename.
  *
  * ---------------------------------------------------------------------------
  * KEYING STRATEGY (deliberately robust across the fix)
@@ -63,7 +64,6 @@ import { cleanup, render } from '@testing-library/react';
 
 import { Footer } from '@/components/layout/Footer';
 import UserGuidePage from '@/app/user-guide/page';
-import SafetyPage from '@/app/safety/page';
 import TermsPage from '@/app/terms/page';
 import PrivacyPage from '@/app/privacy/page';
 import DisputesPage from '@/app/disputes/page';
@@ -137,8 +137,9 @@ describe('Property 15 (Preservation): guide + safety routes stay valid pages (Re
     expect(typeof UserGuidePage).toBe('function');
   });
 
-  it('the /safety module default export is a page component (function)', () => {
-    expect(typeof SafetyPage).toBe('function');
+  // 03/10 — /safety gộp vào /support (#support-safety); next.config.ts chuyển hướng.
+  it('the /support module (safety notes) default export is a page component (function)', () => {
+    expect(typeof SupportPage).toBe('function');
   });
 
   it('/user-guide renders to a valid page (an <h1> heading is present)', async () => {
@@ -148,8 +149,9 @@ describe('Property 15 (Preservation): guide + safety routes stay valid pages (Re
     expect(container.querySelector('h1')).not.toBeNull();
   });
 
-  it('/safety renders to a valid page (an <h1> heading is present)', async () => {
-    const { container } = render(await SafetyPage());
+  it('/support renders to a valid page with the safety notes (#support-safety)', async () => {
+    const { container } = render(await SupportPage());
     expect(container.querySelector('h1')).not.toBeNull();
+    expect(container.querySelector('#support-safety')).not.toBeNull();
   });
 });

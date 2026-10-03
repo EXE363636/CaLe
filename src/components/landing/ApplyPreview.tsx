@@ -19,7 +19,7 @@
  * dụ (ca đầu cùng ví dụ 4 giờ × 45.000 đ của trang).
  */
 
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import { Badge } from '@/components/ui';
 import { isSupabaseEnv } from '@/data/supabaseClient';
@@ -28,7 +28,7 @@ import { useT, useTx } from '@/i18n/LocaleProvider';
 import { formatVND } from '@/lib/format';
 
 import { PreviewSteps } from './PreviewSteps';
-import { Stage, StepButton, TimelineItem } from './previewParts';
+import { Stage, StageNav, StageStack, StepButton, TimelineItem } from './previewParts';
 import { shiftMilestones, type ClockMark } from './shiftMilestones';
 import type { ScriptItem } from './typingScript';
 import { useTypingScript } from './useTypingScript';
@@ -68,6 +68,25 @@ export function ApplyPreview() {
   );
   const { state, finished, reduced, replay, stop } = useTypingScript(ref, script);
   const has = (m: string) => finished || state.marks.includes(m);
+  // Khung cao cố định (03/10): dòng thời gian bước 3 cuộn bên trong; đang tự chạy thì cuộn
+  // theo mốc mới hiện (chỉ vùng đó, không cuộn trang).
+  const timelineRef = useRef<HTMLDivElement>(null);
+  // Mốc mới nhất đã sáng (t1…t6); 0 = chưa có mốc nào.
+  const newest = ['t1', 't2', 't3', 't4', 't5', 't6'].reduce((n, m, i) => (state.marks.includes(m) ? i + 1 : n), 0);
+  useEffect(() => {
+    const box = timelineRef.current;
+    if (!box || finished || newest === 0) return;
+    // Cuộn vừa đủ để mốc mới nhất nằm trọn trong khung (không nhảy xuống đáy ngay khi mở
+    // bước 3, mốc đầu không bị cắt).
+    const item = box.querySelectorAll<HTMLElement>('ol > li')[newest - 1];
+    if (!item) return;
+    const b = box.getBoundingClientRect();
+    const r = item.getBoundingClientRect();
+    let delta = 0;
+    if (r.bottom > b.bottom - 8) delta = r.bottom - b.bottom + 8;
+    if (r.top - delta < b.top + 8) delta = r.top - b.top - 8;
+    if (delta !== 0) box.scrollBy({ top: delta, behavior: reduced ? 'auto' : 'smooth' });
+  }, [newest, finished, reduced]);
   const autoStage = state.marks.includes('applied') ? 2 : state.marks.includes('detail') ? 1 : 0;
   const stage = finished && view !== null ? view : autoStage;
   const go = (i: number) => {
@@ -95,6 +114,7 @@ export function ApplyPreview() {
         />
 
         <div className="mt-4">
+         <StageStack className="h-[34rem] sm:h-[27rem]">
           {/* ---------- 1. Tìm ca ---------- */}
           <Stage on={stage === 0}>
             <p className="text-lg font-semibold text-gray-900">{tx('Tìm ca làm')}</p>
@@ -129,7 +149,7 @@ export function ApplyPreview() {
           </Stage>
 
           {/* ---------- 2. Xem chi tiết ---------- */}
-          <Stage on={stage === 1}>
+          <Stage on={stage === 1} scroll>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-gray-900">{results[0].title}</p>
@@ -177,12 +197,14 @@ export function ApplyPreview() {
               >
                 {t('btn.apply')}
               </button>
-              {finished && <StepButton onClick={() => go(0)}>← {tx('Tìm ca')}</StepButton>}
+              <span aria-hidden={!finished} inert={!finished} className={finished ? '' : 'invisible'}>
+                <StepButton onClick={() => go(0)}>← {tx('Tìm ca')}</StepButton>
+              </span>
             </div>
           </Stage>
 
           {/* ---------- 3. Sau khi ứng tuyển ---------- */}
-          <Stage on={stage === 2}>
+          <Stage on={stage === 2} scroll scrollRef={timelineRef}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-lg font-semibold text-gray-900">{results[0].title}</p>
@@ -221,12 +243,11 @@ export function ApplyPreview() {
                 </TimelineItem>
               </ol>
             )}
-            {finished && (
-              <div className="mt-1">
-                <StepButton onClick={() => go(1)}>← {tx('Xem chi tiết')}</StepButton>
-              </div>
-            )}
+            <StageNav show={finished}>
+              <StepButton onClick={() => go(1)}>← {tx('Xem chi tiết')}</StepButton>
+            </StageNav>
           </Stage>
+         </StageStack>
         </div>
       </div>
       <figcaption className="mt-3 flex flex-wrap items-center justify-center gap-x-4 text-xs text-gray-600">

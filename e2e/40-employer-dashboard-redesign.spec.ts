@@ -411,7 +411,7 @@ test.describe('Dashboard nhà tuyển dụng — làm lại', () => {
     await expect(card.getByText('4,7', { exact: true })).toBeVisible();
     await expect(card.getByText('trung bình từ 3 đánh giá', { exact: true })).toBeVisible();
     await expect(card.getByText(/^Chưa có đánh giá/)).toHaveCount(0);
-    await expect(card.getByRole('link', { name: /^Cách đánh giá sau ca/ })).toHaveAttribute('href', '/employer/reviews');
+    await expect(card.getByRole('link', { name: /^Cách đánh giá sau ca/ })).toHaveAttribute('href', '/for-employers#employer-reviews');
 
     // Tối đa 2 nhận xét, mới nhất trước; sao có nhãn chữ.
     const comments = card.getByRole('listitem');
@@ -431,7 +431,7 @@ test.describe('Dashboard nhà tuyển dụng — làm lại', () => {
     const card = page.getByRole('region', { name: 'Đánh giá về bạn' });
     await expect(card.getByText(/^Chưa có đánh giá\./)).toBeVisible();
     await expect(card.getByText(/trung bình từ/)).toHaveCount(0);
-    await expect(card.getByRole('link', { name: /^Cách đánh giá sau ca/ })).toHaveAttribute('href', '/employer/reviews');
+    await expect(card.getByRole('link', { name: /^Cách đánh giá sau ca/ })).toHaveAttribute('href', '/for-employers#employer-reviews');
   });
 });
 

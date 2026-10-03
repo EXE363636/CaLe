@@ -38,7 +38,7 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <section data-tone="cream" className="px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+    <section data-tone="cream" className="public-skin public-canvas px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-modal ring-1 ring-black/5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div className="min-w-0 p-6 sm:p-10">{children}</div>
         <div

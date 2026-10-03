@@ -2,10 +2,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { ApplyPreview } from '@/components/landing/ApplyPreview';
+import { CancelWindowPreview, ReputationPreview, SchedulePreview } from '@/components/landing/GuidePreviews';
 import { homeJobs } from '@/components/landing/homeJobs';
 import { JobWageHint } from '@/components/landing/JobWageHint';
 import { MotionGroup } from '@/components/landing/MotionGroup';
 import { OpenShiftCount } from '@/components/landing/OpenShiftCount';
+import { OpenShiftsSection } from '@/components/landing/OpenShiftsSection';
 import { PayoutTimeline } from '@/components/landing/PayoutTimeline';
 import { ReviewFlowPreview } from '@/components/landing/ReviewFlowPreview';
 import { ToneScroll } from '@/components/landing/ToneScroll';
@@ -19,14 +21,15 @@ import { WorkerPreview } from '@/components/landing/LandingPreview';
 import {
   LandingChecks,
   LandingFaq,
-  LandingFeatures,
   LandingHelp,
   LandingMoneyFlow,
+  LandingRules,
   LandingSteps,
 } from '@/components/landing/LandingSections';
 import { getLocale, getT, getTx } from '@/i18n/server';
 import { shareMeta } from '@/lib/shareMeta';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { shiftMilestones } from '@/components/landing/shiftMilestones';
 
 /**
  * Trang cho người lao động. Trước đây (P1 feedback F4) giới hạn 4 khối; từ 02/10
@@ -35,16 +38,20 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  *   1. Hero: câu chính + "Đăng ký để nhận ca" + "Xem ca đang tuyển" + đăng nhập
  *      + minh hoạ vòng đời ca trên điện thoại (tự diễn, có ca bị huỷ / không được chọn).
  *   2. Chọn loại việc: số ca đang tuyển THẬT + 9 loại việc dẫn tới `/shifts?viec=…`.
+ *      Ngay sau: "Ca đang tuyển" (`#worker-shifts`, 03/10) — ô tìm + 6 ca gần nhất.
  *   3. Cách hoạt động: 4 bước từ tìm ca tới nhận tiền.
  *   4. Tìm ca và ứng tuyển: cảnh tìm ca tự gõ → chọn ca → "Ứng tuyển" (`ApplyPreview`).
  *   5. Xác thực một lần: thẻ xác thực SĐT / CCCD tự gõ thông tin ví dụ.
- *   6. Tiền về tay bạn khi nào: sơ đồ 5 chặng chạy một lần + quy định huỷ ca.
- *   7. Làm tốt thì được ghi nhận: đánh giá hai chiều + điểm uy tín / kỹ năng, một thẻ
- *      4 bước (`ReviewFlowPreview`, phần uy tín bản thật gắn "Sắp có").
- *   8. 3 lợi ích có ảnh (F3 — ảnh stock Unsplash, xem docs/IMAGE_CREDITS.md).
- *   9. Làm theo ca mà vẫn yên tâm: 4 điều app làm cho bạn.
- *  10. Câu hỏi thường gặp (production thêm cọc khi ứng tuyển, rút tiền) + an toàn / hỗ trợ.
- *  11. Dải chuyển sang trang nhà tuyển dụng.
+ *   6. Lịch cá nhân (`#worker-schedule`, gộp từ /worker/schedule-guide 03/10).
+ *   7. Tiền về tay bạn khi nào: sơ đồ 5 chặng chạy một lần.
+ *   8. Quy định huỷ ca (`#worker-cancel`, gộp từ /worker/cancellation-policy).
+ *   9. Hồ sơ, đánh giá và điểm uy tín (`#worker-reputation` + luật điểm, gộp từ
+ *      /worker/reputation-guide): một thẻ 4 bước (`ReviewFlowPreview`).
+ *  10. 3 lợi ích có ảnh (F3 — ảnh stock Unsplash, xem docs/IMAGE_CREDITS.md).
+ *  11. Câu hỏi thường gặp (production thêm cọc khi ứng tuyển, rút tiền) + an toàn / hỗ trợ.
+ *  12. Dải chuyển sang trang nhà tuyển dụng.
+ * Ba trang hướng dẫn nhỏ cũ chuyển hướng về đúng khối (next.config.ts). Nền xen kẽ
+ * trắng / giấy (`cream` / `paper`) dưới da `.public-skin`.
  * Nền cả trang đổi màu theo khối đang xem (`ToneScroll`, như trang chủ).
  * Khách chủ lực là sinh viên → câu ngắn, lời thường. Chỉ nói tính năng chạy ở
  * CẢ demo lẫn production (`data/capabilities.ts`); khác nhau thì rẽ theo `supabase`.
@@ -61,6 +68,10 @@ export default async function WorkerHomePage() {
   const locale = await getLocale();
   const supabase = isSupabaseEnv();
   const jobs = homeJobs(tx, t);
+  // Mốc huỷ tính từ ca ví dụ 17:00 bằng đúng hằng số của app (`domain/timeGates`).
+  const ms = shiftMilestones('17:00', '22:00');
+  const selfBy = ms?.workerCancelBy.time ?? '14:00';
+  const late = ms?.checkInClose.time ?? '17:15';
   const benefits = [
     {
       img: '/images/landing/worker-phuc-vu.webp',
@@ -140,8 +151,33 @@ export default async function WorkerHomePage() {
         </div>
       </section>
 
+      {/* 3 lợi ích có ảnh — ngay sau hero (03/10, chủ dự án) */}
+      <section data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="worker-benefits">
+        <div className="mx-auto max-w-6xl">
+          <h2 id="worker-benefits" className="sr-only">{t('workerHome.benefits.title')}</h2>
+          <ul className="grid gap-6 sm:grid-cols-3">
+            {benefits.map((b) => (
+              <li key={b.title} className="overflow-hidden rounded-3xl bg-white shadow-card">
+                <Image
+                  src={b.img}
+                  alt={b.alt}
+                  width={960}
+                  height={640}
+                  sizes="(min-width: 640px) 33vw, 100vw"
+                  className="aspect-[3/2] w-full object-cover"
+                />
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       {/* 2. Chọn loại việc — số ca đang tuyển thật + lối tắt vào /shifts đã lọc */}
-      <section aria-labelledby="worker-jobs" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section aria-labelledby="worker-jobs" data-tone="cream" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="max-w-2xl">
             <h2 id="worker-jobs" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -177,6 +213,9 @@ export default async function WorkerHomePage() {
         </div>
       </section>
 
+      {/* Ca đang tuyển — tìm ca ngay trong trang người lao động (03/10); danh sách đầy đủ ở /shifts */}
+      <OpenShiftsSection tone="paper" />
+
       {/* 3. Cách hoạt động */}
       <LandingSteps
         id="worker-how"
@@ -206,7 +245,7 @@ export default async function WorkerHomePage() {
       />
 
       {/* 4. Tìm ca và ứng tuyển — cảnh tìm ca tự gõ, chọn ca, bấm "Ứng tuyển" */}
-      <section aria-labelledby="worker-apply" data-tone="peach" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section aria-labelledby="worker-apply" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="lg:order-last">
             <h2 id="worker-apply" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -228,7 +267,7 @@ export default async function WorkerHomePage() {
       </section>
 
       {/* 5. Xác thực một lần — thẻ xác thực tự gõ thông tin ví dụ */}
-      <section aria-labelledby="worker-verify" data-tone="apricot" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section aria-labelledby="worker-verify" data-tone="cream" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <h2 id="worker-verify" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -267,7 +306,46 @@ export default async function WorkerHomePage() {
         </div>
       </section>
 
-      {/* 6. Tiền về tay bạn khi nào — sơ đồ 5 chặng (chạy một lần) + quy định huỷ */}
+      {/* 6. Lịch cá nhân — gộp từ /worker/schedule-guide (03/10) */}
+      <section aria-labelledby="worker-schedule" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <div className="lg:order-last">
+            <h2 id="worker-schedule" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {tx('Lịch cá nhân: ca, giờ học, việc riêng ở một chỗ')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              {tx('Ca đã nhận, ca đang chờ duyệt và giờ bận của bạn nằm chung một lịch, để không nhận nhầm ca trùng giờ.')}
+            </p>
+            <ul className="mt-6 flex flex-col gap-5">
+              <VerifyPoint
+                n={1}
+                title={tx('Thêm giờ bận, giờ rảnh')}
+                body={tx('Bấm vào ô trống là thêm được giờ học, ca làm nơi khác, việc riêng; hoặc giờ rảnh muốn nhận ca.')}
+              />
+              <VerifyPoint
+                n={2}
+                title={tx('Tóm tắt tuần')}
+                body={tx('Số ca đã nhận, số giờ làm, tiền công dự kiến và số đơn chờ duyệt của tuần đang xem.')}
+              />
+              <VerifyPoint
+                n={3}
+                title={tx('Trùng lịch')}
+                body={
+                  supabase
+                    ? tx('Bản này chưa tự chặn ca trùng giờ bận khi ứng tuyển: mở lịch xem trước khi bấm Ứng tuyển.')
+                    : tx('Ca trùng giờ bận hoặc trùng ca đã duyệt bị chặn khi bạn bấm Ứng tuyển.')
+                }
+              />
+            </ul>
+            <p className="mt-6 text-sm text-gray-600">
+              {tx('Trên điện thoại, lịch mở sẵn chế độ Danh sách; trên máy tính có thêm chế độ Ngày và Tuần.')}
+            </p>
+          </div>
+          <SchedulePreview />
+        </div>
+      </section>
+
+      {/* 7. Tiền về tay bạn khi nào — sơ đồ 5 chặng (chạy một lần) */}
       <LandingMoneyFlow
         id="worker-money"
         title={tx('Tiền về tay bạn khi nào?')}
@@ -278,26 +356,74 @@ export default async function WorkerHomePage() {
             : tx('Ví dụ một ca 4 giờ, 45.000 đ mỗi giờ: bạn nhận đủ 180.000 đ (mô phỏng).')
         }
         diagram={<PayoutTimeline />}
-        rulesTitle={tx('Huỷ ca đã nhận')}
-        rules={[
-          tx('Ca còn hơn 3 giờ nữa mới bắt đầu: bạn tự huỷ được.'),
-          tx('Trong vòng 3 giờ: gửi yêu cầu huỷ, nhà tuyển dụng đồng ý thì mới huỷ; trong lúc chờ bạn vẫn giữ chỗ.'),
-          tx('Không đến mà không báo: bị tính vắng mặt và không nhận tiền công.'),
-        ]}
-        tone="paper"
+        tone="cream"
       />
 
-      {/* 7. Đánh giá hai chiều + uy tín / kỹ năng (bản thật: "Sắp có") */}
-      <section aria-labelledby="worker-reviews" data-tone="apricot" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      {/* 8. Quy định huỷ ca — gộp từ /worker/cancellation-policy (03/10) */}
+      <LandingRules
+        id="worker-cancel"
+        tone="paper"
+        title={tx('Cần huỷ ca đã nhận?')}
+        lead={tx('Huỷ được, miễn là đúng mốc giờ. Mốc đổi theo giờ bắt đầu của ca bạn nhận.')}
+        aside={<CancelWindowPreview />}
+        items={[
+          {
+            value: tx('Trước {time}').replace('{time}', selfBy),
+            tone: 'good',
+            title: tx('Tự huỷ'),
+            body: supabase
+              ? tx('Còn hơn 3 giờ nữa mới bắt đầu: bạn tự huỷ, không cần ai đồng ý.')
+              : tx('Còn hơn 3 giờ nữa mới bắt đầu: bạn tự huỷ. Huỷ trong 24 giờ trước ca bị trừ 10 điểm uy tín.'),
+          },
+          {
+            value: `${selfBy}–17:00`,
+            tone: 'warn',
+            title: tx('Cần nhà tuyển dụng đồng ý'),
+            body: tx('Trong 3 giờ trước ca: bấm "Huỷ đơn ứng tuyển", ghi lý do ngắn; đơn chuyển sang "Yêu cầu huỷ" và bạn vẫn giữ chỗ trong lúc chờ.'),
+          },
+          {
+            value: tx('Sau {time}').replace('{time}', late),
+            tone: 'bad',
+            title: tx('Không đến mà không báo'),
+            body: supabase
+              ? tx('Bị tính vắng mặt và không nhận tiền công. Nếu bạn đã đặt cọc khi ứng tuyển, cọc chuyển cho nhà tuyển dụng; bạn khiếu nại được trong 72 giờ.')
+              : tx('Bị tính vắng mặt, không nhận tiền công và bị trừ 20 điểm uy tín.'),
+          },
+          {
+            value: '6h',
+            tone: 'neutral',
+            title: tx('Nhà tuyển dụng cũng có mốc'),
+            body: tx('Họ chỉ huỷ được khi còn hơn 6 giờ nữa mới bắt đầu, nếu ca đã có người ứng tuyển. Ca bị huỷ thì bạn không bị trừ gì.'),
+          },
+        ]}
+        note={
+          supabase
+            ? tx('Điểm uy tín và hạn mức số lần huỷ đang được hoàn thiện; khi mở, huỷ sát giờ sẽ ảnh hưởng tới điểm của bạn.')
+            : tx('Hạn mức (bản demo): tối đa 3 lần huỷ trong 7 ngày và 10 lần trong 30 ngày. Điểm từ 80 được thêm 1 lượt mỗi tuần, từ 95 thêm 2 lượt.')
+        }
+      />
+
+      {/* 9. Hồ sơ, đánh giá, uy tín — gộp từ /worker/reputation-guide (03/10) */}
+      <section aria-labelledby="worker-reputation" data-tone="cream" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
-            <h2 id="worker-reviews" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            <h2 id="worker-reputation" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
               {tx('Làm tốt thì được ghi nhận')}
             </h2>
-            <p className="mt-3 text-base leading-relaxed text-gray-600">{tx('Mỗi ca xong để lại dấu vết cho ca sau.')}</p>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              {tx('Hồ sơ rõ ràng và đánh giá tốt sau mỗi ca giúp nhà tuyển dụng yên tâm duyệt bạn.')}
+            </p>
             <ul className="mt-6 flex flex-col gap-5">
-              <VerifyPoint n={1} title={tx('Hai bên chấm nhau')} body={tx('Trong 14 ngày sau ca, quán chấm sao cho bạn và bạn chấm quán. Gửi rồi không sửa được.')} />
-              <VerifyPoint n={2} title={tx('Điểm sao đi theo bạn')} body={tx('Nhà tuyển dụng khác thấy điểm sao trung bình của bạn khi duyệt người ở ca sau.')} />
+              <VerifyPoint
+                n={1}
+                title={tx('Nhà tuyển dụng thấy gì khi duyệt bạn')}
+                body={
+                  supabase
+                    ? tx('Số ca bạn đã làm với họ, số lần vắng mặt với họ, điểm sao trung bình, lời giới thiệu và loại việc bạn muốn làm.')
+                    : tx('Điểm uy tín, số ca đã hoàn thành, điểm sao trung bình, cấp kỹ năng và giấy tờ đã xác minh.')
+                }
+              />
+              <VerifyPoint n={2} title={tx('Hai bên chấm nhau')} body={tx('Trong 14 ngày sau ca, quán chấm sao cho bạn và bạn chấm quán. Gửi rồi không sửa được.')} />
               <VerifyPoint
                 n={3}
                 title={tx('Uy tín và kỹ năng')}
@@ -313,62 +439,31 @@ export default async function WorkerHomePage() {
         </div>
       </section>
 
-      {/* 8. 3 lợi ích có ảnh */}
-      <section data-tone="cream" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="worker-benefits">
-        <div className="mx-auto max-w-6xl">
-          <h2 id="worker-benefits" className="sr-only">{t('workerHome.benefits.title')}</h2>
-          <ul className="grid gap-6 sm:grid-cols-3">
-            {benefits.map((b) => (
-              <li key={b.title} className="overflow-hidden rounded-3xl bg-white shadow-card">
-                <Image
-                  src={b.img}
-                  alt={b.alt}
-                  width={960}
-                  height={640}
-                  sizes="(min-width: 640px) 33vw, 100vw"
-                  className="aspect-[3/2] w-full object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* 9. Làm theo ca mà vẫn yên tâm — 4 điều app làm sẵn */}
-      <LandingFeatures
-        id="worker-care"
-        title={tx('Làm theo ca mà vẫn yên tâm')}
-        lead={tx('Những gì CaLẻ làm sẵn để bạn chỉ cần lo đi làm.')}
+      <LandingRules
+        id="worker-reputation-rules"
+        tone="paper"
+        title={tx('Điểm uy tín tính thế nào?')}
+        aside={<ReputationPreview />}
+        badge={supabase ? tx('Sắp có') : undefined}
+        lead={
+          supabase
+            ? tx('Bản thật chưa tính điểm uy tín. Khi tính năng mở, điểm sẽ cộng trừ theo luật dưới đây.')
+            : tx('Mọi người bắt đầu với 100 điểm. Điểm thay đổi theo những gì bạn làm với từng ca.')
+        }
         items={[
-          {
-            icon: 'phone',
-            title: tx('Check-in ngay trên điện thoại'),
-            body: tx('Tới nơi bấm check-in, xong ca bấm check-out. Không cần sổ chấm công.'),
-          },
-          {
-            icon: 'status',
-            title: tx('Luôn biết ca đang ở đâu'),
-            body: tx('Đã duyệt, sắp bắt đầu, đang diễn ra, chờ xác nhận: trạng thái hiện rõ trên trang Tổng quan.'),
-          },
-          {
-            icon: 'star',
-            title: tx('Xem quán trước khi nhận'),
-            body: tx('Đánh giá từ người đã làm ca ở đó hiện ngay trên trang chi tiết ca.'),
-          },
-          {
-            icon: 'clock',
-            title: tx('Huỷ ca có quy định rõ'),
-            body: tx('Còn hơn 3 giờ thì tự huỷ được; sát giờ hơn thì cần nhà tuyển dụng đồng ý.'),
-          },
+          { value: '+5', tone: 'good', title: tx('Hoàn thành ca'), body: tx('Nhà tuyển dụng xác nhận bạn đã làm xong ca.') },
+          { value: '−10', tone: 'warn', title: tx('Huỷ trong 24 giờ trước ca'), body: tx('Huỷ càng sát giờ càng làm nhà tuyển dụng khó tìm người thay.') },
+          { value: '−20', tone: 'bad', title: tx('Vắng mặt không báo'), body: tx('Không đến mà không báo trước. Bạn cũng không nhận tiền công ca đó.') },
+          ...(supabase
+            ? []
+            : [
+                { value: '≥ 80', tone: 'good' as const, title: tx('Được ưu tiên'), body: tx('Hiện trước trong danh sách người ứng tuyển, thêm lượt huỷ mỗi tuần (bản demo).') },
+                { value: '< 50', tone: 'bad' as const, title: tx('Tạm khoá ứng tuyển'), body: tx('Không ứng tuyển ca mới cho tới khi điểm phục hồi (bản demo).') },
+              ]),
         ]}
-        tone="peach"
       />
 
-      {/* 10. Câu hỏi thường gặp */}
+      {/* 11. Câu hỏi thường gặp */}
       <LandingFaq
         id="worker-faq"
         title={tx('Câu hỏi thường gặp')}
@@ -414,19 +509,19 @@ export default async function WorkerHomePage() {
             a: tx('Được. Ca còn hơn 3 giờ nữa mới bắt đầu thì bạn tự huỷ; sát giờ hơn thì gửi yêu cầu và chờ nhà tuyển dụng đồng ý.'),
           },
         ]}
-        tone="paper"
+        tone="cream"
       />
 
-      {/* An toàn & hỗ trợ — lối tắt tới /safety và /support */}
+      {/* An toàn & hỗ trợ — lối tắt tới /support (03/10: /safety gộp vào /support) */}
       <LandingHelp
         id="worker-help"
         title={tx('An toàn và hỗ trợ')}
         items={[
           {
-            href: '/safety',
+            href: '/support#support-safety',
             icon: 'shield',
             title: tx('An toàn khi làm theo ca'),
-            body: tx('Tiền công được giữ trước, xác minh tài khoản và những lưu ý khi đi làm.'),
+            body: tx('Xác minh tài khoản, nhận tiền trong ứng dụng và cách xử lý khi gặp nguy hiểm.'),
           },
           {
             href: '/support',
@@ -435,13 +530,13 @@ export default async function WorkerHomePage() {
             body: tx('Email, hotline và cách phản ánh khi có vấn đề trong ca.'),
           },
         ]}
-        tone="paper"
+        tone="cream"
       />
 
       {/* Ảnh tự chụp + lời chia sẻ thật của phía này — tự ẩn khi chưa có (proofData.ts). */}
-      <LandingProofView id="worker-proof" copy={proofCopy(tx)} locale={locale} audience="worker" tone="cream" />
+      <LandingProofView id="worker-proof" copy={proofCopy(tx)} locale={locale} audience="worker" tone="paper" />
 
-      {/* 11. Dải mực cuối trang — chữ và nút theo người đang xem (RoleBand) */}
+      {/* 12. Dải mực cuối trang — chữ và nút theo người đang xem (RoleBand) */}
       <RoleBand audience="worker" />
     </ToneScroll>
   );

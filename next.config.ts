@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
     return [
       { source: "/viec-lam", destination: "/for-workers", permanent: true },
       { source: "/tuyen-dung", destination: "/for-employers", permanent: true },
+      // 03/10 — 7 trang hướng dẫn nhỏ gộp vào hai trang vai trò; link cũ (menu cũ,
+      // thông báo, bookmark) về đúng khối. Tạm thời (307) để còn đổi được nếu cần.
+      { source: "/worker/reputation-guide", destination: "/for-workers#worker-reputation", permanent: false },
+      { source: "/worker/schedule-guide", destination: "/for-workers#worker-schedule", permanent: false },
+      { source: "/worker/cancellation-policy", destination: "/for-workers#worker-cancel", permanent: false },
+      { source: "/employer/post-shift-guide", destination: "/for-employers#employer-post", permanent: false },
+      { source: "/employer/applicants-guide", destination: "/for-employers#employer-applicants", permanent: false },
+      { source: "/employer/payments", destination: "/for-employers#employer-payments", permanent: false },
+      { source: "/employer/reviews", destination: "/for-employers#employer-reviews", permanent: false },
+      // 03/10 — bốn trang thông tin gộp vào trang chủ / trang nhà tuyển dụng / hỗ trợ.
+      { source: "/about", destination: "/#home-about", permanent: false },
+      { source: "/how-it-works", destination: "/#home-how", permanent: false },
+      { source: "/pricing", destination: "/for-employers#employer-pricing", permanent: false },
+      { source: "/safety", destination: "/support#support-safety", permanent: false },
     ];
   },
 };

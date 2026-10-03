@@ -101,7 +101,7 @@ export default async function FaqPage() {
           title={tx('An toàn và hỗ trợ')}
           items={[
             { href: '/support', icon: 'help', title: tx('Cần hỗ trợ?'), body: tx('Email, hotline và cách phản ánh khi có vấn đề trong ca.') },
-            { href: '/safety', icon: 'shield', title: tx('Bảo vệ người dùng'), body: tx('Tiền công giữ trước, xác minh tài khoản và lưu ý an toàn.') },
+            { href: '/support#support-safety', icon: 'shield', title: tx('Bảo vệ người dùng'), body: tx('Xác minh tài khoản, nhận tiền trong ứng dụng và cách xử lý khi gặp nguy hiểm.') },
           ]}
         />
       </div>

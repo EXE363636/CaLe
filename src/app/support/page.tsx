@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react';
 
 import { GuideHero } from '@/components/landing/GuideHero';
-import { LandingHelp, LandingIconGlyph, LandingSteps } from '@/components/landing/LandingSections';
+import { SafetyPreview } from '@/components/landing/GuidePreviews';
+import { LandingHelp, LandingIconGlyph, LandingSteps, type LandingIcon } from '@/components/landing/LandingSections';
 import { ToneScroll } from '@/components/landing/ToneScroll';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { getTx } from '@/i18n/server';
 
 /**
  * Liên hệ hỗ trợ. 03/10 — làm lại theo ngôn ngữ landing: `GuideHero`, ba thẻ liên hệ,
- * các bước phản ánh khi có vấn đề (theo chế độ dữ liệu), góp ý sản phẩm, lối tắt.
+ * lưu ý an toàn (`#support-safety`, gộp từ /safety), các bước phản ánh khi có vấn đề (theo chế độ dữ liệu), góp ý sản phẩm, lối tắt.
  *
  * Email / hotline / địa chỉ: CÙNG giá trị với chân trang (`components/layout/Footer.tsx`
  * viết cứng). Đổi ở đó thì đổi cả ở đây.
@@ -64,9 +65,40 @@ export default async function SupportPage() {
         </div>
       </section>
 
+      {/* Lưu ý an toàn — gộp từ /safety (03/10). Phần "giữ tiền, đánh giá, điểm uy tín" đã có
+          ở hai trang vai trò; "Ưu tiên an toàn" là bước đầu của khối phản ánh ngay sau. */}
+      <SafetyNotes
+        id="support-safety"
+        tone="cream"
+        title={tx('Lưu ý an toàn')}
+        aside={<SafetyPreview />}
+        items={[
+          {
+            icon: 'profile',
+            title: tx('Xác minh tài khoản'),
+            body: live
+              ? tx('Xác thực số điện thoại bằng mã gửi qua tin nhắn và CCCD (quản trị viên duyệt) trong trang hồ sơ. Ảnh giấy tờ nằm ở kho riêng tư, chỉ quản trị viên xem để duyệt.')
+              : tx('Bạn có thể xác minh số điện thoại và giấy tờ tuỳ thân trong trang hồ sơ. Hồ sơ đã xác minh giúp bên kia yên tâm hơn khi nhận việc hoặc duyệt người.'),
+          },
+          {
+            icon: 'money',
+            title: tx('Phí và cọc'),
+            // Bản thật có cọc khi ứng tuyển (0028, quản trị viên bật / tắt).
+            body: live
+              ? tx('CaLẻ không thu phí của người lao động. Khoản cọc khi ứng tuyển (nếu có) hoàn đủ khi ca hoàn thành hoặc khi bạn không được chọn.')
+              : tx('CaLẻ không thu phí và không giữ tiền của người lao động.'),
+          },
+          {
+            icon: 'phone',
+            title: tx('Nhận tiền công'),
+            body: tx('Chỉ nhận tiền công trong ứng dụng, không nhận tiền mặt ngoài luồng.'),
+          },
+        ]}
+      />
+
       <LandingSteps
         id="support-report"
-        tone="apricot"
+        tone="paper"
         title={tx('Khi có vấn đề trong ca')}
         lead={
           live
@@ -107,6 +139,69 @@ export default async function SupportPage() {
         />
       </div>
     </ToneScroll>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Lưu ý an toàn — tiêu đề trái (dính khi cuộn), thẻ trắng có ô icon bên phải
+// (cùng bố cục `LandingRules`, icon thay cho chip giá trị). Chuyển từ /safety (03/10).
+// ---------------------------------------------------------------------------
+
+function SafetyNotes({
+  id,
+  tone,
+  title,
+  items,
+  aside,
+}: {
+  id: string;
+  tone: string;
+  title: string;
+  items: Array<{ icon: LandingIcon; title: string; body: string }>;
+  /** Minh hoạ dưới tiêu đề ở cột trái (03/10: `SafetyPreview`); có minh hoạ thì cột trái không dính. */
+  aside?: ReactNode;
+}) {
+  const list = (
+    <ul className={['flex flex-col gap-3', aside ? 'mt-8' : ''].join(' ')}>
+          {items.map((it) => (
+            <li key={it.title} className="flex gap-4 rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 sm:p-5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700 ring-1 ring-orange-100">
+                <LandingIconGlyph name={it.icon} />
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-base font-semibold text-gray-900">{it.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-gray-600">{it.body}</p>
+              </div>
+            </li>
+          ))}
+    </ul>
+  );
+  const heading = (
+    <h2
+      id={id}
+      className={['text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl', aside ? '' : 'lg:sticky lg:top-28 lg:self-start'].join(' ')}
+    >
+      {title}
+    </h2>
+  );
+  return (
+    <section aria-labelledby={id} data-tone={tone} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      {aside ? (
+        // Có minh hoạ (03/10): tiêu đề + thẻ lưu ý bên trái, minh hoạ bên phải từ `lg`.
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-16">
+          <div className="min-w-0">
+            {heading}
+            {list}
+          </div>
+          <div className="min-w-0">{aside}</div>
+        </div>
+      ) : (
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-16">
+          {heading}
+          {list}
+        </div>
+      )}
+    </section>
   );
 }
 

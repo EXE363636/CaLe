@@ -3,13 +3,62 @@
  * `ShiftPostPlayground` (đăng ca) và `ApplyPreview` (nhận ca).
  */
 
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
-/** Một bước của minh hoạ nhiều bước: chỉ bước đang xem được vẽ, khung co theo bước
- *  đó (03/10, chủ dự án: không để khoảng trắng của bước dài hơn). */
-export function Stage({ on, children }: { on: boolean; children: ReactNode }) {
-  if (!on) return null;
-  return <div className="motion-fade-up min-w-0">{children}</div>;
+/**
+ * Khung các bước của minh hoạ nhiều bước (03/10, chủ dự án: khung không được đổi cỡ
+ * khi chuyển bước). Mọi bước nằm chồng trong CÙNG một ô lưới nên khung luôn cao bằng
+ * bước dài nhất; bước không xem thì ẩn (`invisible` + `inert`, không đọc, không bấm).
+ */
+export function StageStack({ children, className = '' }: { children: ReactNode; className?: string }) {
+  // `className` cho chiều cao cố định (vd "Thử đăng một ca": khung cao bằng bước 2/3, bước
+  // 1 cuộn bên trong). Không truyền thì khung cao bằng bước dài nhất.
+  return <div className={['grid min-h-0 min-w-0', className].join(' ')}>{children}</div>;
+}
+
+/** Một bước trong `StageStack`: cột dọc cao hết ô, nút chuyển bước dồn xuống đáy. */
+export const THIN_SCROLL = '[scrollbar-width:thin] [scrollbar-color:var(--color-orange-300)_transparent]';
+
+export function Stage({
+  on,
+  scroll,
+  scrollRef,
+  children,
+}: {
+  on: boolean;
+  scroll?: boolean;
+  /** Vùng cuộn của bước (để minh hoạ tự cuộn theo mục mới hiện). */
+  scrollRef?: Ref<HTMLDivElement>;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      ref={scrollRef}
+      aria-hidden={!on}
+      inert={!on}
+      className={[
+        'flex min-h-0 min-w-0 flex-col [grid-area:1/1]',
+        // Khung cao cố định mà bước dài hơn (màn hẹp): cuộn bên trong thay vì tràn.
+        scroll ? `overflow-y-auto pr-1 ${THIN_SCROLL}` : '',
+        on ? 'motion-fade-up' : 'invisible',
+      ].join(' ')}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** Hàng nút chuyển bước ở đáy một bước; giữ chỗ cả khi chưa hiện để khung không nhảy. */
+export function StageNav({ show, children }: { show: boolean; children: ReactNode }) {
+  return (
+    <div
+      aria-hidden={!show}
+      inert={!show}
+      className={['mt-auto flex flex-wrap justify-between gap-3 pt-4', show ? '' : 'invisible'].join(' ')}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function StepButton({ children, onClick, primary }: { children: ReactNode; onClick: () => void; primary?: boolean }) {
@@ -67,9 +116,27 @@ export function TimelineItem({
   );
 }
 
-export function Row({ label, sub, value, strong, tone }: { label: string; sub?: string; value: ReactNode; strong?: boolean; tone?: string }) {
+export function Row({
+  label,
+  sub,
+  value,
+  strong,
+  tone,
+  reserve,
+}: {
+  label: string;
+  sub?: string;
+  value: ReactNode;
+  strong?: boolean;
+  tone?: string;
+  /** Giữ chỗ nhưng ẩn (dòng chỉ hiện trong một tình huống, khung không được nhảy). */
+  reserve?: boolean;
+}) {
   return (
-    <div className={['flex items-baseline justify-between gap-3 py-1', strong ? 'mt-1 border-t border-orange-200/70 pt-2' : ''].join(' ')}>
+    <div
+      aria-hidden={reserve || undefined}
+      className={['flex items-baseline justify-between gap-3 py-1', strong ? 'mt-1 border-t border-orange-200/70 pt-2' : '', reserve ? 'invisible' : ''].join(' ')}
+    >
       <dt className="min-w-0">
         <span className={strong ? 'font-semibold text-gray-900' : 'text-gray-700'}>{label}</span>
         {sub && <span className="block text-xs text-gray-600 tabular-nums">{sub}</span>}

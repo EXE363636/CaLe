@@ -1,6 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { FeeCampaignNote } from '@/components/landing/FeeCampaignNote';
+import { ApplicantPreview, ShiftControlPreview } from '@/components/landing/GuidePreviews';
+import { EmployerPaymentsSection } from '@/components/landing/EmployerPaymentsSection';
+import { EmployerPricingSection } from '@/components/landing/EmployerPricingSection';
+import { shiftMilestones } from '@/components/landing/shiftMilestones';
 import { ReviewFlowPreview } from '@/components/landing/ReviewFlowPreview';
 import { ShiftPostPlayground } from '@/components/landing/ShiftPostPlayground';
 import { ToneScroll } from '@/components/landing/ToneScroll';
@@ -33,13 +37,20 @@ import { isSupabaseEnv } from '@/data/supabaseClient';
  *   3. Thử đăng một ca: form tự gõ ví dụ rồi cho sửa giờ / lương / số người, tính
  *      tiền giữ, phí, phần hoàn khi có người vắng (`ShiftPostPlayground`) + quy định
  *      huỷ ca. Thay hai khối cũ "Tiền đi đâu" (ví dụ cố định) và "Phí dịch vụ".
+ *      (`#employer-post`, gộp /employer/post-shift-guide 03/10: thêm mốc sửa ca).
  *   4. Xác thực tài khoản: thẻ SĐT / CCCD tự gõ ví dụ.
- *   5. Những gì bạn kiểm soát được.
- *   6. Đánh giá hai chiều + điểm uy tín / kỹ năng của người lao động: một thẻ 4 bước
- *      (`ReviewFlowPreview`, phần uy tín bản thật gắn "Sắp có").
- *   7. 3 lợi ích có ảnh.
- *   8. Câu hỏi thường gặp + an toàn / hỗ trợ.
- *   9. Khối mực: CTA + chuyển sang trang người lao động.
+ *   5. Quản lý người ứng tuyển (`#employer-applicants`, gộp /employer/applicants-guide):
+ *      thẻ ứng viên đúng theo bản (`ApplicantPreview`).
+ *   6. Những gì bạn kiểm soát được.
+ *   7. Tiền giữ, trả, hoàn (`#employer-payments`, gộp /employer/payments): sơ đồ dòng
+ *      tiền của trang chủ + 4 luật.
+ *   8. Đánh giá hai chiều (`#employer-reviews`, gộp /employer/reviews: gợi ý tiêu chí,
+ *      có sự cố thì sao) — một thẻ 4 bước (`ReviewFlowPreview`).
+ *   9. 3 lợi ích có ảnh.
+ *  10. Câu hỏi thường gặp + an toàn / hỗ trợ.
+ *  11. Khối mực: CTA + chuyển sang trang người lao động.
+ * Bốn trang hướng dẫn nhỏ cũ chuyển hướng về đúng khối (next.config.ts). Nền xen kẽ
+ * trắng / giấy (`cream` / `paper`) dưới da `.public-skin`.
  * Nền cả trang đổi màu theo khối đang xem (`ToneScroll`, như trang chủ).
  * Chỉ nói tính năng chạy ở CẢ demo lẫn production (`data/capabilities.ts`).
  * Không hiện "quán đang dùng" / số liệu khách cho tới khi có khách thật đồng ý.
@@ -55,6 +66,8 @@ export default async function EmployerHomePage() {
   const tx = await getTx();
   const locale = await getLocale();
   const supabase = isSupabaseEnv();
+  // Mốc sửa / huỷ tính từ ca ví dụ 17:00 bằng đúng hằng số của app (`domain/timeGates`).
+  const ms = shiftMilestones('17:00', '22:00');
   const benefits = [
     {
       img: '/images/landing/employer-su-kien.webp',
@@ -125,6 +138,31 @@ export default async function EmployerHomePage() {
         </div>
       </section>
 
+      {/* 3 lợi ích có ảnh — ngay sau hero (03/10, chủ dự án) */}
+      <section data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="employer-benefits">
+        <div className="mx-auto max-w-6xl">
+          <h2 id="employer-benefits" className="sr-only">{t('employerHome.benefits.title')}</h2>
+          <ul className="grid gap-6 sm:grid-cols-3">
+            {benefits.map((b) => (
+              <li key={b.title} className="overflow-hidden rounded-3xl bg-white shadow-card">
+                <Image
+                  src={b.img}
+                  alt={b.alt}
+                  width={960}
+                  height={640}
+                  sizes="(min-width: 640px) 33vw, 100vw"
+                  className="aspect-[3/2] w-full object-cover"
+                />
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       {/* 2. Cách hoạt động */}
       <LandingSteps
         id="employer-how"
@@ -152,11 +190,11 @@ export default async function EmployerHomePage() {
               : tx('Bấm xác nhận hoàn thành là tiền công được ghi vào ví người làm (mô phỏng).'),
           },
         ]}
-        tone="paper"
+        tone="cream"
       />
 
       {/* 3. Thử đăng một ca — form tự gõ ví dụ, sửa được số; tiền giữ / phí / hoàn */}
-      <section aria-labelledby="employer-money" data-tone="peach" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section id="employer-post" aria-labelledby="employer-money" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto grid max-w-6xl items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-16">
           <div>
             <h2 id="employer-money" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -194,12 +232,14 @@ export default async function EmployerHomePage() {
                 }
               />
             </ol>
-            <h3 className="mt-8 text-base font-semibold text-gray-900">{tx('Huỷ ca')}</h3>
+            <h3 className="mt-8 text-base font-semibold text-gray-900">{tx('Sửa và huỷ ca đã đăng')}</h3>
             <ul className="mt-3 flex flex-col gap-3 text-sm leading-relaxed text-gray-700">
               {[
+                tx('Sửa ca được khi còn hơn 24 giờ nữa mới bắt đầu (ca 17:00 thì tới {time} hôm trước).').replace('{time}', ms?.editBy.time ?? '17:00'),
                 tx('Còn hơn 6 giờ nữa mới bắt đầu: bạn huỷ được.'),
                 tx('Trong vòng 6 giờ, nếu đã có người ứng tuyển: không huỷ được, để bảo vệ người lao động.'),
                 tx('Sau giờ bắt đầu: không huỷ được.'),
+                tx('Ca lặp lại hằng tuần: tạo ca mới từ ca cũ, chỉ cần chọn lại ngày giờ.'),
               ].map((r) => (
                 <li key={r} className="flex gap-3">
                   <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
@@ -218,7 +258,7 @@ export default async function EmployerHomePage() {
       </section>
 
       {/* 4. Xác thực tài khoản — thẻ xác thực tự gõ thông tin ví dụ */}
-      <section aria-labelledby="employer-verify" data-tone="apricot" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <section aria-labelledby="employer-verify" data-tone="cream" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="lg:order-last">
             <h2 id="employer-verify" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -245,30 +285,48 @@ export default async function EmployerHomePage() {
         </div>
       </section>
 
-      {/* 5. Những gì bạn kiểm soát */}
+      {/* 5. Quản lý người ứng tuyển — gộp từ /employer/applicants-guide (03/10) */}
+      <section aria-labelledby="employer-applicants" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <div>
+            <h2 id="employer-applicants" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {tx('Duyệt người, theo dõi ngày làm trên một trang')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600">
+              {supabase
+                ? tx('Thẻ ứng viên cho biết người đó đã làm bao nhiêu ca với bạn, vắng mấy lần và được chấm bao nhiêu sao.')
+                : tx('Thẻ ứng viên cho biết điểm uy tín, số ca đã làm, điểm sao, kỹ năng và giấy tờ đã xác minh.')}
+            </p>
+            <ol className="mt-6 flex flex-col gap-5">
+              <MoneyPoint n={1} title={tx('Duyệt hoặc từ chối')} body={tx('Bấm "Duyệt" từng người; từ chối thì ghi lý do để người đó hiểu.')} />
+              <MoneyPoint n={2} title={tx('Xác nhận có mặt')} body={tx('Ngày làm, người lao động check-in khi tới; bạn xác nhận có mặt từng người.')} />
+              <MoneyPoint n={3} title={tx('Đánh dấu vắng mặt')} body={tx('Ai không đến, bạn đánh dấu vắng; phần tiền của vị trí đó hoàn về ví.')} />
+              <MoneyPoint
+                n={4}
+                title={tx('Xác nhận hoàn thành')}
+                body={
+                  supabase
+                    ? tx('Sau giờ kết thúc, bấm xác nhận là tiền công vào ví người làm; không bấm thì tự chốt sau 24 giờ.')
+                    : tx('Sau giờ kết thúc, bấm xác nhận là tiền công được ghi vào ví người làm (mô phỏng).')
+                }
+              />
+            </ol>
+          </div>
+          <ApplicantPreview />
+        </div>
+      </section>
+
+      {/* 6. Những gì bạn kiểm soát */}
       <LandingFeatures
         id="employer-control"
+        aside={<ShiftControlPreview />}
         title={tx('Bạn nắm được mọi thứ trong ca')}
         lead={tx('Không phải gọi điện hỏi từng người: thông tin nằm sẵn trên trang quản lý ca.')}
         items={[
           {
-            icon: 'profile',
-            title: tx('Hồ sơ trước khi duyệt'),
-            // Bản thật thẻ ứng viên chỉ có số ca đã làm với bạn, số lần vắng, sao đánh giá
-            // (WorkerSummaryRow: phần xác thực chỉ hiện ở bản demo).
-            body: supabase
-              ? tx('Số ca đã làm với bạn, số lần vắng mặt và điểm sao trung bình từ các đánh giá sau ca của từng người.')
-              : tx('Số ca đã hoàn thành, đánh giá sao từ nhà tuyển dụng khác và trạng thái xác thực SĐT, danh tính của từng người.'),
-          },
-          {
             icon: 'status',
             title: tx('Trạng thái ca rõ ràng'),
             body: tx('Mỗi ca có một nhãn trạng thái thống nhất ở mọi trang: đã đăng, sắp bắt đầu, đang diễn ra, chờ xác nhận, hoàn thành.'),
-          },
-          {
-            icon: 'attendance',
-            title: tx('Ai có mặt, ai vắng'),
-            body: tx('Check-in của người lao động và xác nhận có mặt của bạn được ghi lại cho từng người.'),
           },
           {
             icon: 'calendar',
@@ -291,8 +349,14 @@ export default async function EmployerHomePage() {
         tone="cream"
       />
 
-      {/* 6. Đánh giá hai chiều + uy tín / kỹ năng (bản thật: "Sắp có") */}
-      <section aria-labelledby="employer-reviews" data-tone="peach" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      {/* 7. Tiền giữ, trả, hoàn — gộp từ /employer/payments (03/10) */}
+      <EmployerPaymentsSection tone="paper" />
+
+      {/* 7b. Phí dịch vụ — gộp từ /pricing (03/10) */}
+      <EmployerPricingSection tone="cream" />
+
+      {/* 8. Đánh giá hai chiều + uy tín / kỹ năng (bản thật: "Sắp có") */}
+      <section aria-labelledby="employer-reviews" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div>
             <h2 id="employer-reviews" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
@@ -312,37 +376,27 @@ export default async function EmployerHomePage() {
                 }
               />
             </ol>
+            {/* Gộp từ /employer/reviews: gợi ý tiêu chí + có sự cố thì sao. */}
+            <h3 className="mt-8 text-base font-semibold text-gray-900">{tx('Viết nhận xét cụ thể')}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">{tx('"Pha chế nhanh, gọn quầy" hữu ích hơn "Tốt". Nên nói về:')}</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {[tx('Đúng giờ'), tx('Thái độ'), tx('Chất lượng công việc'), tx('Giao tiếp')].map((c) => (
+                <li key={c} className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-gray-800 ring-1 ring-black/10">
+                  {c}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-6 rounded-xl bg-white px-4 py-3 text-sm leading-relaxed text-gray-700 ring-1 ring-black/5">
+              {supabase
+                ? tx('Gặp hành vi không phù hợp hay mất an toàn thì đừng chỉ chấm sao thấp: liên hệ đội hỗ trợ CaLẻ để quản trị viên xem xét.')
+                : tx('Gặp hành vi không phù hợp hay mất an toàn thì đừng chỉ chấm sao thấp: mở "Báo cáo sự cố" để quản trị viên xem xét.')}
+            </p>
           </div>
           <ReviewFlowPreview audience="employer" />
         </div>
       </section>
 
-      {/* 7. 3 lợi ích có ảnh */}
-      <section data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8" aria-labelledby="employer-benefits">
-        <div className="mx-auto max-w-6xl">
-          <h2 id="employer-benefits" className="sr-only">{t('employerHome.benefits.title')}</h2>
-          <ul className="grid gap-6 sm:grid-cols-3">
-            {benefits.map((b) => (
-              <li key={b.title} className="overflow-hidden rounded-3xl bg-white shadow-card">
-                <Image
-                  src={b.img}
-                  alt={b.alt}
-                  width={960}
-                  height={640}
-                  sizes="(min-width: 640px) 33vw, 100vw"
-                  className="aspect-[3/2] w-full object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-lg font-bold text-gray-900">{b.title}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-gray-600">{b.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* 8. Câu hỏi thường gặp */}
+      {/* 10. Câu hỏi thường gặp */}
       <LandingFaq
         id="employer-faq"
         title={tx('Câu hỏi thường gặp')}
@@ -376,20 +430,21 @@ export default async function EmployerHomePage() {
             q: tx('Tôi có huỷ ca được không?'),
             a: tx('Được, nếu ca còn hơn 6 giờ nữa mới bắt đầu. Trong vòng 6 giờ mà đã có người ứng tuyển thì không huỷ được, để bảo vệ người lao động.'),
           },
+          { q: tx('Có gói trả phí nào khác không?'), a: tx('Chưa. Hiện chỉ có mức phí ở trên.') },
         ]}
         tone="cream"
       />
 
-      {/* An toàn & hỗ trợ — lối tắt tới /safety và /support */}
+      {/* An toàn & hỗ trợ — lối tắt tới /support (03/10: /safety gộp vào /support) */}
       <LandingHelp
         id="employer-help"
         title={tx('An toàn và hỗ trợ')}
         items={[
           {
-            href: '/safety',
+            href: '/support#support-safety',
             icon: 'shield',
             title: tx('An toàn khi làm theo ca'),
-            body: tx('Tiền công được giữ trước, xác minh tài khoản và những lưu ý khi đi làm.'),
+            body: tx('Xác minh tài khoản, nhận tiền trong ứng dụng và cách xử lý khi gặp nguy hiểm.'),
           },
           {
             href: '/support',
@@ -404,7 +459,7 @@ export default async function EmployerHomePage() {
       {/* Ảnh tự chụp + lời chia sẻ thật của phía này — tự ẩn khi chưa có (proofData.ts). */}
       <LandingProofView id="employer-proof" copy={proofCopy(tx)} locale={locale} audience="employer" tone="paper" />
 
-      {/* 9. Dải mực cuối trang — chữ và nút theo người đang xem (RoleBand) */}
+      {/* 11. Dải mực cuối trang — chữ và nút theo người đang xem (RoleBand) */}
       <RoleBand audience="employer" />
     </ToneScroll>
   );

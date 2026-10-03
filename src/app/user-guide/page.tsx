@@ -114,7 +114,7 @@ export default async function UserGuidePage() {
           id="guide-help"
           title={tx('An toàn và hỗ trợ')}
           items={[
-            { href: '/safety', icon: 'shield', title: tx('An toàn khi đi làm'), body: tx('Cách nhận ra ca đáng ngờ và giữ an toàn trong ca.') },
+            { href: '/support#support-safety', icon: 'shield', title: tx('An toàn khi đi làm'), body: tx('Cách nhận ra ca đáng ngờ và giữ an toàn trong ca.') },
             { href: '/support', icon: 'help', title: tx('Cần hỗ trợ?'), body: tx('Email, hotline và cách phản ánh khi có vấn đề trong ca.') },
           ]}
         />
@@ -198,7 +198,7 @@ function workerItems(tx: Tx, live: boolean): GuideItem[] {
       example: live
         ? tx('Bạn học 14:00–16:00 thứ Ba: đừng ứng tuyển ca 15:00–17:00 thứ Ba.')
         : tx('Bạn học 14:00–16:00 thứ Ba. Ca 15:00–17:00 thứ Ba sẽ báo trùng lịch.'),
-      link: { href: '/worker/schedule-guide', label: tx('Hướng dẫn Lịch cá nhân') },
+      link: { href: '/for-workers#worker-schedule', label: tx('Hướng dẫn Lịch cá nhân') },
     },
     live
       ? {
@@ -208,7 +208,7 @@ function workerItems(tx: Tx, live: boolean): GuideItem[] {
             tx('Bản chính thức chưa dùng điểm uy tín.'),
             tx('Khi duyệt, nhà tuyển dụng xem số sao trung bình, nhận xét, số ca bạn đã làm và số lần vắng mặt ở ca của họ.'),
           ],
-          link: { href: '/worker/reputation-guide', label: tx('Hồ sơ & điểm uy tín') },
+          link: { href: '/for-workers#worker-reputation', label: tx('Hồ sơ & điểm uy tín') },
         }
       : {
           id: 'worker-reputation',
@@ -218,7 +218,7 @@ function workerItems(tx: Tx, live: boolean): GuideItem[] {
             tx('Điểm dưới 50 bị tạm khoá ứng tuyển (bản demo).'),
           ],
           example: tx('Bạn đang 100 điểm, vắng một ca không báo thì còn 80.'),
-          link: { href: '/worker/reputation-guide', label: tx('Hồ sơ & điểm uy tín') },
+          link: { href: '/for-workers#worker-reputation', label: tx('Hồ sơ & điểm uy tín') },
         },
     {
       id: 'worker-completed-shifts',
@@ -244,7 +244,7 @@ function workerItems(tx: Tx, live: boolean): GuideItem[] {
       example: live
         ? tx('Huỷ một ca bắt đầu sau 2 giờ nữa → gửi yêu cầu, chờ nhà tuyển dụng đồng ý.')
         : tx('7 ngày qua đã huỷ 2 ca → còn 1 lượt.'),
-      link: { href: '/worker/cancellation-policy', label: tx('Quy định huỷ ca') },
+      link: { href: '/for-workers#worker-cancel', label: tx('Quy định huỷ ca') },
     },
   ];
 }
@@ -263,7 +263,7 @@ function employerItems(tx: Tx, live: boolean): GuideItem[] {
       example: live
         ? tx('Ca 4 giờ, 35.000đ/giờ, cần 2 người: tiền công 280.000đ → giữ 308.000đ (gồm 28.000đ phí, ngoài đợt miễn phí).')
         : tx('Ca 4 giờ, 35.000đ/giờ, cần 2 người: giữ cọc 280.000đ (mô phỏng).'),
-      link: { href: '/employer/post-shift-guide', label: tx('Hướng dẫn đăng ca') },
+      link: { href: '/for-employers#employer-post', label: tx('Hướng dẫn đăng ca') },
     },
     {
       id: 'employer-applicants',
@@ -275,7 +275,7 @@ function employerItems(tx: Tx, live: boolean): GuideItem[] {
         tx('Bấm "Duyệt", hoặc "Từ chối" kèm lý do để người lao động hiểu.'),
       ],
       example: tx('3 người ứng tuyển: bạn duyệt 2 người nhiều kinh nghiệm, từ chối 1 người kèm lý do.'),
-      link: { href: '/employer/applicants-guide', label: tx('Hướng dẫn quản lý người ứng tuyển') },
+      link: { href: '/for-employers#employer-applicants', label: tx('Hướng dẫn quản lý người ứng tuyển') },
     },
     {
       id: 'employer-active-shifts',
@@ -314,7 +314,7 @@ function moneyItems(tx: Tx, live: boolean): GuideItem[] {
         tx('Phần không dùng (vị trí trống, người vắng mặt, ca huỷ) hoàn về ví của bạn.'),
         live ? tx('Nạp và rút tiền là giao dịch thật qua PayOS.') : tx('Trong bản demo, mọi giao dịch đều là mô phỏng.'),
       ],
-      link: { href: '/employer/payments', label: tx('Xem chi tiết giữ cọc') },
+      link: { href: '/for-employers#employer-payments', label: tx('Xem chi tiết giữ cọc') },
     },
     {
       id: 'employer-total-deposit',

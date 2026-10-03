@@ -16,7 +16,8 @@ import { ShiftSearchBar } from '@/components/shift/ShiftSearchBar';
 import { OpenShiftsEmpty } from '@/components/shift/OpenShiftsEmpty';
 import { Button, EmptyState, PageShell } from '@/components/ui';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
-import { useT } from '@/i18n/LocaleProvider';
+import Link from 'next/link';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import { jobTypeFromSlug } from '@/lib/jobTypeSlug';
 import type { ApplicationStatus, Shift, Worker } from '@/types';
 import type { FilterCriteria } from '@/domain/filter';
@@ -28,6 +29,7 @@ const JOB_TYPE_OPTIONS = [
 
 export default function ShiftsPage() {
   const t = useT();
+  const tx = useTx();
   useLifecycleSync();
   const shifts = useShiftStore((s) => s.shifts);
   const users = useUserStore((s) => s.users);
@@ -42,7 +44,8 @@ export default function ShiftsPage() {
     const jobType = jobTypeFromSlug(searchParams.get('viec'));
     return jobType ? { jobType } : {};
   });
-  const [searchText, setSearchText] = useState('');
+  // `?q=` từ ô tìm ở khối "Ca đang tuyển" của /for-workers (03/10).
+  const [searchText, setSearchText] = useState(() => searchParams.get('q')?.trim() ?? '');
   // CORE-STABILITY-9 Part 5 — sort mode. 'default' keeps the existing
   // preferred-location-then-soonest sort; 'availability' ranks by the
   // worker's free-schedule + skill fit via `suggestShiftsForWorker`.
@@ -187,17 +190,24 @@ export default function ShiftsPage() {
   const marketplaceEmpty = displayShifts.length === 0 && !hasActiveFilters;
 
   return (
+    // 03/10 — danh sách ca là phần "người lao động" của trang công khai: cùng da giấy
+    // trắng (`public-skin`), đầu trang không đóng khung như trang vai trò, có lối về
+    // /for-workers; tab "Người lao động" trên thanh điều hướng sáng khi ở đây.
+    <div className="public-skin min-h-full" style={{ backgroundColor: 'var(--tone-cream)' }}>
     <PageShell width="wide">
-      {/* Quieter — calm white header consistent with the worker
-          dashboard: no uppercase eyebrow, no gradient surface. The result
-          count is a soft chip so orange stays a small accent. */}
-      <header className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <header className="mb-8">
+        <Link
+          href="/for-workers"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded text-sm font-semibold text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+        >
+          <span aria-hidden="true">←</span> {tx('Trang người lao động')}
+        </Link>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            <h1 className="text-balance text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               {t('shifts.listing.title')}
             </h1>
-            <p className="mt-1 max-w-2xl text-sm text-gray-600">
+            <p className="mt-2 max-w-2xl text-base text-gray-600">
               {t('shifts.listing.subtitle')}
             </p>
           </div>
@@ -323,5 +333,6 @@ export default function ShiftsPage() {
         </>
       )}
     </PageShell>
+    </div>
   );
 }

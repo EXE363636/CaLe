@@ -10,12 +10,12 @@ import type { Locator, Page } from '@playwright/test';
  *   - `OpenShiftCount` (màn đầu, dưới hai cửa vai trò): "● n ca đang tuyển · m ca gấp
  *     trong 24 giờ tới (dữ liệu demo) Xem ca →". Đếm bằng `isShiftAvailableForRecruiting`
  *     + `isUnfilledUrgent`; 0 ca → không hiện gì.
- *   - `section[aria-labelledby="home-why"]` (data-tone="apricot") "Vì sao CaLẻ ra đời?":
+ *   - `section[aria-labelledby="home-why"]` (data-tone="cream", 03/10) "Vì sao CaLẻ ra đời?":
  *     4 số liệu có nguồn (mở tab mới, rel noopener; số đếm lên — `StatValue`) → bảng so
  *     sánh 5 dòng "Tuyển qua hội nhóm" / "Trên CaLẻ" → chú thích nguồn VTV. Khối / tiêu
  *     đề "CaLẻ giải quyết vấn đề gì?" (`home-solve`) đã bỏ.
- *   - Vùng bọc `.tone-scroll`: nền đổi theo `data-tone` của khối đang ở giữa màn hình
- *     (cream / apricot / paper / peach).
+ *   - Vùng bọc `.tone-scroll`: nền đổi theo `data-tone` của khối đang ở giữa màn hình.
+ *     03/10 (lần 4): trang chủ chỉ còn hai tông xen kẽ cream / paper (thứ tự đầy đủ: e2e/43).
  *   - `/shifts?viec=<slug>` chọn sẵn "Loại công việc"; slug lạ → không lọc.
  *
  * Đồng hồ ghim ở ANCHOR_ISO (2027-06-02 12:00 ICT) cho phần đếm ca gấp.
@@ -149,7 +149,7 @@ test.describe('Trang chủ: Vì sao CaLẻ ra đời?', () => {
     await gotoApp('/');
 
     const why = page.locator('main section[aria-labelledby="home-why"]');
-    await expect(why).toHaveAttribute('data-tone', 'apricot');
+    await expect(why).toHaveAttribute('data-tone', 'cream');
     await expect(why.getByRole('heading', { level: 2, name: 'Vì sao CaLẻ ra đời?', exact: true })).toBeVisible();
 
     // 4 thẻ số liệu, mỗi thẻ một link nguồn ra ngoài (tab mới, không lộ window.opener).
@@ -220,21 +220,24 @@ test.describe('Trang chủ: Vì sao CaLẻ ra đời?', () => {
     await expect(wrap).toHaveAttribute('data-active-tone', 'cream');
     await expect(wrap).toHaveAttribute('style', /background-color:\s*var\(--tone-cream\)/);
 
-    // Tông bám màu thương hiệu (02/10): khối trang chủ chỉ dùng cream / apricot / paper / peach.
+    // Tông bám màu thương hiệu: 03/10 (lần 4) khối trang chủ xen kẽ hai tông cream / paper.
     const declared = await wrap
       .locator('section[data-tone]')
       .evaluateAll((els) => els.map((el) => el.getAttribute('data-tone')));
-    expect([...new Set(declared)].sort()).toEqual(['apricot', 'cream', 'paper', 'peach']);
+    expect([...new Set(declared)].sort()).toEqual(['cream', 'paper']);
     await expect(page.locator('[data-tone="sand"], [data-tone="mint"]')).toHaveCount(0);
 
     // Cuộn để giữa màn hình nằm trong từng khối → vùng bọc lấy đúng tông khối đó.
     // Đi xuôi rồi quay ngược lại, để chắc không chỉ đổi một chiều.
+    // 03/10 (lần 4): "Về CaLẻ" ngay sau màn đầu, rồi xen kẽ paper / cream.
     const tones: Array<[string, string]> = [
-      ['home-why', 'apricot'],
+      ['home-about', 'paper'],
+      ['home-why', 'cream'],
       ['home-work', 'paper'],
-      ['home-explain-title', 'peach'],
+      ['home-how', 'cream'],
+      ['home-explain-title', 'paper'],
       ['home-features', 'cream'],
-      ['home-why', 'apricot'],
+      ['home-about', 'paper'],
     ];
     for (const [id, tone] of tones) {
       const section = page.locator(`section[aria-labelledby="${id}"]`);
@@ -308,9 +311,10 @@ const WHY_MID = {
 } as const;
 
 /** Màu số (giao diện sáng): cam đậm `--color-orange-700` khi 'static' / 'done', mực
- *  `--color-gray-900` khi 'armed' / 'counting' (globals.css `.stat-mark`). */
+ *  `--color-gray-900` khi 'armed' / 'counting' (globals.css `.stat-mark`). Trang công khai
+ *  dùng da `.public-skin` (03/10) khai lại `--color-gray-900: #1e1e22`. */
 const STAT_DONE_COLOR = 'rgb(194, 65, 12)';
-const STAT_COUNTING_COLOR = 'rgb(55, 55, 59)';
+const STAT_COUNTING_COLOR = 'rgb(30, 30, 34)';
 function markColor(mark: Locator) {
   return mark.evaluate((el) => getComputedStyle(el).color);
 }
@@ -414,10 +418,15 @@ test.describe('Trang chủ: số liệu đếm lên (StatValue)', () => {
     await gotoApp('/');
 
     const why = page.locator('main section[aria-labelledby="home-why"]');
-    await scrollStatsIntoView(why);
     // Mốc "đã chạy JS": ToneScroll (client) đổi tông khi khối vào giữa màn hình —
-    // StatValue hydrate cùng lượt nên hiệu ứng của nó cũng đã chạy.
-    await expect(page.locator('main .tone-scroll')).toHaveAttribute('data-active-tone', 'apricot');
+    // StatValue hydrate cùng lượt nên hiệu ứng của nó cũng đã chạy. 03/10 (lần 4):
+    // home-why cùng tông cream với màn đầu → dùng khối home-about (paper) làm mốc.
+    await page
+      .locator('main section[aria-labelledby="home-about"]')
+      .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await expect(page.locator('main .tone-scroll')).toHaveAttribute('data-active-tone', 'paper');
+    await scrollStatsIntoView(why);
+    await expect(page.locator('main .tone-scroll')).toHaveAttribute('data-active-tone', 'cream');
 
     const marks = why.locator('.stat-mark');
     await expect(marks).toHaveCount(4);
@@ -500,17 +509,26 @@ test.describe('Trang chủ: CaLẻ làm được gì?', () => {
 });
 
 test.describe('Trang landing: không hứa khiếu nại / tranh chấp (production chưa bật)', () => {
-  test('trang chủ, /for-workers, /for-employers, /pricing không nhắc khiếu nại hay tranh chấp; trang chủ chỉ tới đội hỗ trợ', async ({
+  // 03/10: /pricing gộp vào /for-employers (#employer-pricing), /about + /how-it-works gộp
+  // vào trang chủ (#home-about, #home-how) — các khối mới nằm trong <main> của hai trang đó.
+  test('trang chủ, /for-workers, /for-employers (kể cả khối giá, "Về CaLẻ", "Bốn bước") không nhắc khiếu nại hay tranh chấp; trang chủ chỉ tới đội hỗ trợ', async ({
     page,
     seedState,
     gotoApp,
   }) => {
     await page.setViewportSize(DESKTOP);
     await seedState(buildSnapshot());
-    for (const path of ['/', '/for-workers', '/for-employers', '/pricing']) {
+    for (const path of ['/', '/for-workers', '/for-employers']) {
       await gotoApp(path);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(page.locator('main'), path).not.toContainText(/khiếu nại|tranh chấp/i);
+    }
+    // Các khối gộp từ trang cũ có mặt (để phép kiểm trên thật sự bao chúng).
+    await gotoApp('/for-employers');
+    await expect(page.locator('section[aria-labelledby="employer-pricing"]')).toHaveCount(1);
+    await gotoApp('/');
+    for (const id of ['home-how', 'home-about']) {
+      await expect(page.locator(`main section[aria-labelledby="${id}"]`), id).toHaveCount(1);
     }
     await gotoApp('/');
     await expect(page.getByText('Có vấn đề sau ca: liên hệ đội hỗ trợ CaLẻ', { exact: true })).toBeVisible();

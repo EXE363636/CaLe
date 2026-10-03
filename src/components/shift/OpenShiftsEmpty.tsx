@@ -59,7 +59,7 @@ export function OpenShiftsEmpty({ headingLevel = 2 }: { headingLevel?: 2 | 3 }) 
             </ButtonLink>
           )}
           <Link
-            href="/how-it-works"
+            href="/#home-how"
             className="inline-flex min-h-[44px] items-center rounded text-sm font-semibold text-orange-700 underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
           >
             {tx('Cách CaLẻ hoạt động')} →

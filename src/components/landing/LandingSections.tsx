@@ -180,6 +180,7 @@ export function LandingSteps({
   steps: Array<{ title: string; body: string }>;
   tone?: string;
 }) {
+  const wide = steps.length > 4;
   return (
     <section aria-labelledby={id} data-tone={tone} className={[sectionBg(tone, 'bg-white'), 'px-4 py-14 sm:px-6 sm:py-20 lg:px-8'].join(' ')}>
       <div className="mx-auto max-w-6xl">
@@ -191,13 +192,26 @@ export function LandingSteps({
         </div>
         {/* Khi cuộn tới: số bước sáng lần lượt, đường nối tự vẽ sang bước sau. */}
         <MotionGroup>
-          <ol className="mt-10 grid gap-8 md:grid-cols-4 md:gap-6">
+          {/* 4 bước: một hàng từ `md`. 5 bước: một hàng 5 cột từ `lg`, dưới đó xếp dọc
+              (lưới 4 cột làm bước 5 rơi xuống một mình, đường nối lệch, 03/10). */}
+          <ol className={['mt-10 grid gap-8', wide ? 'lg:grid-cols-5 lg:gap-6' : 'md:grid-cols-4 md:gap-6'].join(' ')}>
             {steps.map((s, i) => (
-              <li key={s.title} className="relative flex gap-4 md:flex-col md:gap-5" style={{ '--i': i } as CSSProperties}>
+              <li
+                key={s.title}
+                className={['relative flex gap-4', wide ? 'lg:flex-col lg:gap-5' : 'md:flex-col md:gap-5'].join(' ')}
+                style={{ '--i': i } as CSSProperties}
+              >
+                {/* Đường nối chạy từ tâm số này tới tâm số sau, nằm dưới hai vòng tròn
+                    (z-10) nên liền mạch, không hở hai đầu (03/10). */}
                 {i < steps.length - 1 && (
                   <span
                     aria-hidden="true"
-                    className="m-rail absolute left-5 top-12 h-[calc(100%-1rem)] w-0.5 bg-orange-300 md:left-12 md:top-5 md:h-0.5 md:w-[calc(100%-1.5rem)]"
+                    className={[
+                      'm-rail absolute left-[19px] top-5 h-[calc(100%+2rem)] w-0.5 bg-orange-300',
+                      wide
+                        ? 'lg:left-5 lg:top-[19px] lg:h-0.5 lg:w-[calc(100%+1.5rem)]'
+                        : 'md:left-5 md:top-[19px] md:h-0.5 md:w-[calc(100%+1.5rem)]',
+                    ].join(' ')}
                   />
                 )}
                 <span className="m-node relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-900 text-base font-bold text-white tabular-nums">
@@ -226,13 +240,44 @@ export function LandingFeatures({
   lead,
   items,
   tone,
+  aside,
 }: {
   id: string;
   title: string;
   lead?: string;
   items: Array<{ icon: LandingIcon; title: string; body: string }>;
   tone?: string;
+  /** Minh hoạ ở cột phải (vd thẻ quản lý ca, 03/10): tiêu đề + các ý dồn sang trái. */
+  aside?: ReactNode;
 }) {
+  if (aside) {
+    return (
+      <section aria-labelledby={id} data-tone={tone} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] lg:gap-16">
+          <div className="min-w-0">
+            <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {title}
+            </h2>
+            {lead && <p className="mt-3 text-base leading-relaxed text-gray-600">{lead}</p>}
+            <ul className="mt-4 grid gap-x-8 sm:grid-cols-2">
+              {items.map((it) => (
+                <li key={it.title} className="flex gap-4 border-t border-orange-200/70 py-5">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-orange-700 shadow-card ring-1 ring-orange-100">
+                    <LandingIconGlyph name={it.icon} />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold text-gray-900">{it.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-gray-600">{it.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {aside}
+        </div>
+      </section>
+    );
+  }
   return (
     <section aria-labelledby={id} data-tone={tone} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-16">
@@ -495,6 +540,7 @@ export function LandingRules({
   items,
   note,
   tone,
+  aside,
 }: {
   id: string;
   title: string;
@@ -504,11 +550,15 @@ export function LandingRules({
   items: Array<{ value: string; title: string; body: ReactNode; tone?: 'good' | 'warn' | 'bad' | 'neutral' }>;
   note?: ReactNode;
   tone?: string;
+  /** Minh hoạ dưới tiêu đề ở cột trái (vd thanh mốc huỷ ca, 03/10). */
+  aside?: ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} data-tone={tone} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+    <section aria-labelledby={id} data-tone={tone} className="scroll-mt-20 px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
       <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-16">
-        <div className="lg:sticky lg:top-28 lg:self-start">
+        {/* Có minh hoạ (03/10): hai cột cùng đỉnh, cùng đáy — cột phải giãn các thẻ cho bằng
+            cột trái (trừ dòng chú thích dưới minh hoạ); không dính khi cuộn. */}
+        <div className={aside ? 'min-w-0' : 'lg:sticky lg:top-28 lg:self-start'}>
           <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
             {title}
             {badge && (
@@ -518,11 +568,15 @@ export function LandingRules({
             )}
           </h2>
           {lead && <div className="mt-3 text-base leading-relaxed text-gray-600">{lead}</div>}
+          {aside && <div className="mt-8">{aside}</div>}
         </div>
-        <div>
-          <ul className="flex flex-col gap-3">
+        <div className={aside ? 'lg:flex lg:flex-col lg:pb-8' : ''}>
+          <ul className={['flex flex-col gap-3', aside ? 'lg:flex-1' : ''].join(' ')}>
             {items.map((it) => (
-              <li key={it.title} className="flex gap-4 rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 sm:p-5">
+              <li
+                key={it.title}
+                className={['flex gap-4 rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 sm:p-5', aside ? 'lg:flex-1 lg:items-center' : ''].join(' ')}
+              >
                 <span
                   className={[
                     'flex h-11 min-w-[4.5rem] shrink-0 items-center justify-center rounded-xl px-2 text-sm font-bold tabular-nums ring-1',
