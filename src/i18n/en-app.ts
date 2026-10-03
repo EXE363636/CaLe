@@ -28,6 +28,10 @@ export const enApp: Record<string, string> = {
   'feedback.error.applicationNotFound': 'Application not found.',
   'feedback.error.wrongStatus': 'This action is not allowed in the current status.',
   'feedback.error.shiftAlreadyStarted': 'The shift has started; no more applicants can be approved.',
+  'feedback.error.workerScheduleConflict':
+    'This worker is already approved for another shift at the same time, so this shift cannot be approved.',
+  'feedback.error.editWorkerScheduleConflict':
+    'The new time overlaps another shift that a worker on this shift has already accepted. Keep the original time or talk to the worker first.',
   'feedback.error.reasonRequired': 'Please enter a reason.',
   'cancel.confirm.quotaBlocked':
     'You have reached your cancellation limit for this week or month. Please try again later.',

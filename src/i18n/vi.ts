@@ -442,6 +442,10 @@ export const vi: Record<string, string> = {
   'feedback.error.wrongStatus': 'Trạng thái hiện tại không cho phép thao tác này.',
   'feedback.error.shiftAlreadyStarted':
     'Ca đã bắt đầu, không thể duyệt thêm người ứng tuyển.',
+  'feedback.error.workerScheduleConflict':
+    'Người lao động này đã được duyệt vào một ca khác trùng giờ, không thể duyệt thêm ca này.',
+  'feedback.error.editWorkerScheduleConflict':
+    'Giờ mới trùng với ca khác mà người lao động của ca này đã nhận. Vui lòng giữ giờ cũ hoặc trao đổi với người lao động trước.',
   'feedback.error.reasonRequired': 'Vui lòng nhập lý do.',
   'feedback.error.positionsBelowFilled':
     'Số người tuyển không thể nhỏ hơn số người đã được duyệt.',
