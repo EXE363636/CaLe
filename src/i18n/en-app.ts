@@ -302,6 +302,8 @@ export const enApp: Record<string, string> = {
     '{count} withdrawals in the last 24 hours were rejected because the payout account balance was too low. The money went back to the users\' wallets; top up the payout account (Bao Kim wallet) so they can withdraw again.',
   'admin.payoutHealth.lowFunds.last': 'Most recent:',
   'admin.payoutHealth.processing': '{count} withdrawals are waiting for PayOS.',
+  'admin.payoutHealth.stuckDeposits':
+    '{count} shifts still hold a deposit past the automatic settlement time (settlement failed for these shifts). Please check them so wages are paid and deposits refunded.',
 
   // --- Chi tiết ca /shifts/[id] ----------------------------------------------
   'apply.error.CONFLICT.detailed': 'You already have a shift at the same time: "{title}" on {date}, {startTime}–{endTime}.',

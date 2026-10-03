@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * PayoutHealthBanner — cảnh báo admin khi Kênh chi PayOS (ví Bảo Kim) hết tiền.
+ * PayoutHealthBanner — cảnh báo admin khi Kênh chi PayOS (ví Bảo Kim) hết tiền,
+ * và (0033) khi có ca còn cọc kẹt HELD quá hạn tự chốt.
  *
  * Tiền nạp vào TK thu, tiền rút lấy từ TK chi: PayOS không tự chuyển thu → chi,
  * nên quỹ chi phải được nạp tay. Lệnh rút gặp quỹ cạn sẽ FAILED (tiền tự hoàn
@@ -32,13 +33,16 @@ export function PayoutHealthBanner() {
 
   if (!health) return null;
   const lowFunds = health.insufficientFailures24h > 0;
-  if (!lowFunds && health.processingCount === 0) return null;
+  // 0033: ca lượt tự chốt bỏ qua vì lỗi → tiền công / cọc kẹt, cần admin xử.
+  const stuck = health.stuckDeposits > 0;
+  const urgent = lowFunds || stuck;
+  if (!urgent && health.processingCount === 0) return null;
 
   return (
     <div
-      role={lowFunds ? 'alert' : 'status'}
+      role={urgent ? 'alert' : 'status'}
       className={
-        lowFunds
+        urgent
           ? 'mb-6 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900 ring-1 ring-red-200'
           : 'mb-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200'
       }
@@ -58,8 +62,13 @@ export function PayoutHealthBanner() {
           </p>
         </>
       )}
+      {stuck && (
+        <p className={lowFunds ? 'mt-1 font-semibold' : 'font-semibold'}>
+          {t('admin.payoutHealth.stuckDeposits').replace('{count}', String(health.stuckDeposits))}
+        </p>
+      )}
       {health.processingCount > 0 && (
-        <p className={lowFunds ? 'mt-1' : ''}>
+        <p className={urgent ? 'mt-1' : ''}>
           {t('admin.payoutHealth.processing').replace(
             '{count}',
             String(health.processingCount),
