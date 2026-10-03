@@ -67,6 +67,10 @@ export function toastFromStoreError(
     APPLICATION_NOT_FOUND: t('feedback.error.applicationNotFound'),
     WRONG_STATUS: t('feedback.error.wrongStatus'),
     SHIFT_ALREADY_STARTED: t('feedback.error.shiftAlreadyStarted'),
+    // approve (Supabase, migration 0034) — người lao động đã được duyệt ca khác trùng giờ.
+    WORKER_SCHEDULE_CONFLICT: t('feedback.error.workerScheduleConflict'),
+    // edit_shift (0034) — giờ mới trùng ca khác của người lao động đã được duyệt.
+    EDIT_WORKER_SCHEDULE_CONFLICT: t('feedback.error.editWorkerScheduleConflict'),
     REASON_REQUIRED: t('feedback.error.reasonRequired'),
     QUOTA_EXCEEDED: t('cancel.confirm.quotaBlocked'),
     // CORE-STABILITY-7 Part 5 — absent→present reversal blocked by open dispute.
