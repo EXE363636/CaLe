@@ -16,7 +16,6 @@
  * optional `actions` node for page-specific CTAs (e.g. "Đăng ca mới").
  */
 
-import { Button } from '@/components/ui';
 import { useT } from '@/i18n/LocaleProvider';
 
 export type CalendarView = 'day' | 'week' | 'agenda';
@@ -49,70 +48,74 @@ export function CalendarToolbar({
   className = '',
 }: CalendarToolbarProps) {
   const t = useT();
+  // 03/10 — thiết kế lại theo ngôn ngữ landing: thẻ trắng bo 16px, mũi tên + "Hôm
+  // nay" gom một cụm, tiêu đề khoảng ngày cạnh đó; nút chuyển chế độ nền cam nhạt,
+  // chế độ đang chọn là ô trắng nổi. Điện thoại: hai hàng.
   return (
     <div
       className={[
-        'flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm',
+        'flex flex-col gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ring-black/5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4 sm:p-4',
         className,
       ].join(' ')}
     >
-      {/* Left: title */}
-      <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-
-      {/* Middle: day-step controls */}
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" size="sm" onClick={onToday} className="min-h-[44px]">
-          {t('calendar.today')}
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
+      <div className="flex min-w-0 items-center gap-1">
+        <button
+          type="button"
           onClick={onPrev}
           aria-label={t('calendar.prev')}
-          className="min-h-[44px] min-w-[44px]"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-700 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
         >
-          ←
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
+          <Chevron dir="left" />
+        </button>
+        <button
+          type="button"
+          onClick={onToday}
+          className="inline-flex min-h-[44px] shrink-0 items-center rounded-xl border border-gray-200 px-3 text-sm font-semibold text-gray-800 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+        >
+          {t('calendar.today')}
+        </button>
+        <button
+          type="button"
           onClick={onNext}
           aria-label={t('calendar.next')}
-          className="min-h-[44px] min-w-[44px]"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-gray-700 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
         >
-          →
-        </Button>
+          <Chevron dir="right" />
+        </button>
+        <h2 className="ml-2 min-w-0 text-base font-semibold text-gray-900 tabular-nums sm:text-lg">{title}</h2>
       </div>
 
-      {/* Right: segmented view switcher */}
-      <div
-        role="group"
-        className="ml-auto inline-flex items-center gap-1 rounded-lg bg-gray-100 p-1"
-      >
-        {VIEW_OPTIONS.map((opt) => {
-          const active = opt.value === view;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onViewChange(opt.value)}
-              className={[
-                'min-h-[44px] rounded-md px-4 text-sm font-medium transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
-                active
-                  ? 'bg-orange-500 text-gray-900 shadow-sm'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-              ].join(' ')}
-            >
-              {t(opt.labelKey)}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+        <div role="group" className="inline-flex items-center gap-1 rounded-xl bg-orange-50 p-1 ring-1 ring-orange-100">
+          {VIEW_OPTIONS.map((opt) => {
+            const active = opt.value === view;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => onViewChange(opt.value)}
+                className={[
+                  'min-h-[40px] rounded-lg px-3 text-sm font-semibold transition-colors motion-reduce:transition-none sm:px-4',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400',
+                  active ? 'bg-white text-gray-900 shadow-sm ring-1 ring-black/5' : 'text-gray-600 hover:text-gray-900',
+                ].join(' ')}
+              >
+                {t(opt.labelKey)}
+              </button>
+            );
+          })}
+        </div>
+        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </div>
-
-      {/* Far right: optional page-specific actions */}
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </div>
+  );
+}
+
+function Chevron({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={dir === 'left' ? 'm12 5-5 5 5 5' : 'm8 5 5 5-5 5'} />
+    </svg>
   );
 }

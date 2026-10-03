@@ -129,7 +129,7 @@ export function MiniMonthCalendar({
         </button>
 
         <div
-          className="flex-1 text-center text-sm font-semibold text-gray-900"
+          className="min-w-0 flex-1 whitespace-nowrap text-center text-sm font-semibold text-gray-900"
           aria-live="polite"
         >
           {tx('Tháng {month} / {year}').replace('{month}', String(visible.month)).replace('{year}', String(visible.year))}

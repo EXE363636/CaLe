@@ -13,17 +13,30 @@
  *     Vietnamese users always see `HH:mm`, never AM/PM.
  *
  * Owner-only filter and Zustand selector hygiene unchanged.
+ *
+ * 03/10 — thiết kế lại theo ngôn ngữ landing (nhánh feat/schedule-redesign):
+ *   - Đầu trang: tiêu đề lớn + tóm tắt tuần đang xem (số ca, người đã nhận / cần,
+ *     số ca còn thiếu người).
+ *   - 24 giờ chia 4 cụm 6 giờ (Đêm / Sáng / Chiều / Tối, `DAY_QUARTERS`) — bỏ ô
+ *     "Tuỳ chỉnh khung giờ"; lưới luôn đủ cả ngày.
+ *   - Điện thoại: mặc định Danh sách, hiện cả ngày trống kèm "Đăng ca".
+ *   - Bấm một ca → hộp chi tiết (`EventPeek`): giờ, nơi, trạng thái, số người, giờ
+ *     mở check-in + "Mở trang quản lý ca".
+ *   - Cột phải: lịch tháng nhỏ, "Sắp tới", chú giải.
  */
 
-import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
 
-import { Input, PageHelpButton, TimeFieldVN, ButtonLink } from '@/components/ui';
+import { PageHelpButton, ButtonLink } from '@/components/ui';
+import { DAY_QUARTERS } from '@/components/calendar/calendarModel';
+import { EventPeek, ScheduleSummary, UpcomingList } from '@/components/calendar/SchedulePieces';
+import { shiftMilestones } from '@/components/landing/shiftMilestones';
 import { CalendarShell } from '@/components/calendar/CalendarShell';
 import { MiniMonthCalendar } from '@/components/calendar/MiniMonthCalendar';
 import { CalendarLegend } from '@/components/calendar/CalendarLegend';
@@ -43,13 +56,11 @@ import { EscrowStatusBadge } from '@/components/shift/EscrowStatusBadge';
 import {
   startOfWeek,
   todayIso,
-  validateSlotConfig,
   weekDates,
-  type SlotConfig,
 } from '@/domain/week';
 import { formatDateVN } from '@/lib/format';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
-import { useT } from '@/i18n/LocaleProvider';
+import { useT, useTx } from '@/i18n/LocaleProvider';
 import {
   getShiftLifecycleState,
   getShiftStatusBadge,
@@ -60,12 +71,6 @@ import type { Shift } from '@/types';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const DEFAULT_SLOT_CONFIG: SlotConfig = {
-  dayStart: '07:00',
-  dayEnd: '21:00',
-  slotMinutes: 120,
-};
 
 // CORE-STABILITY-10 — calendar event colour keyed by the canonical
 // lifecycle STATE (not the stored status) so the calendar tile colour
@@ -79,7 +84,7 @@ const LIFECYCLE_VARIANT: Record<ShiftLifecycleState, CalendarEventVariant> = {
   AwaitingCheckout: 'awaitingShift',
   AwaitingEmployerConfirmation: 'awaitingShift',
   Completed: 'completedShift',
-  Expired: 'cancelledShift',
+  Expired: 'expiredShift',
   Cancelled: 'cancelledShift',
   Disputed: 'cancelledShift',
 };
@@ -128,7 +133,7 @@ export default function EmployerSchedulePage() {
 
 function SchedulePageContent() {
   const t = useT();
-  const router = useRouter();
+  const tx = useTx();
 
   useLifecycleSync();
 
@@ -140,8 +145,16 @@ function SchedulePageContent() {
   const [selectedDateIso, setSelectedDateIso] = useState<string>(() =>
     todayIso(),
   );
-  const [slotCfg, setSlotCfg] = useState<SlotConfig>(DEFAULT_SLOT_CONFIG);
-  const [slotCfgError, setSlotCfgError] = useState<string | null>(null);
+  // Ca đang mở trong hộp chi tiết.
+  const [peekId, setPeekId] = useState<string | null>(null);
+
+  // Điện thoại: mặc định Danh sách (lưới tuần 7 cột quá chật).
+  useEffect(() => {
+    const r = requestAnimationFrame(() => {
+      if (window.matchMedia('(max-width: 639px)').matches) setView('agenda');
+    });
+    return () => cancelAnimationFrame(r);
+  }, []);
 
   const myShifts = useMemo<Shift[]>(() => {
     if (!currentUserId) return [];
@@ -179,7 +192,42 @@ function SchedulePageContent() {
     });
   }, [myShifts, applications, t]);
 
+  const weekDays = useMemo(() => weekDates(startOfWeek(selectedDateIso)), [selectedDateIso]);
+  // 24 giờ chia 4 cụm 6 giờ (Đêm / Sáng / Chiều / Tối) — chủ dự án chốt 03/10.
+  const slotCfg = DAY_QUARTERS;
+
+  // Tóm tắt tuần đang xem: số ca (trừ huỷ / hết hạn), người đã nhận / cần, ca thiếu người.
+  const summary = useMemo(() => {
+    const inWeek = new Set(weekDays);
+    const nowIso = new Date().toISOString();
+    let count = 0;
+    let filled = 0;
+    let needed = 0;
+    let short = 0;
+    for (const shift of myShifts) {
+      if (!inWeek.has(shift.date)) continue;
+      const state = getShiftLifecycleState(shift, applications, nowIso);
+      if (state === 'Cancelled' || state === 'Expired') continue;
+      count += 1;
+      filled += shift.positionsFilled;
+      needed += shift.positionsTotal;
+      if ((state === 'Published' || state === 'StartingSoon') && shift.positionsFilled < shift.positionsTotal) short += 1;
+    }
+    return { count, filled, needed, short };
+  }, [myShifts, applications, weekDays]);
+
+  const upcoming = useMemo(() => {
+    const today = todayIso();
+    return events
+      .filter((e) => e.date >= today && e.variant !== 'cancelledShift')
+      .sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`))
+      .slice(0, 5);
+  }, [events]);
+
   if (!currentUserId) return null;
+
+  const peekShift = peekId ? myShifts.find((sh) => sh.id === peekId) ?? null : null;
+  const peekEvent = peekId ? events.find((e) => e.id === peekId) ?? null : null;
 
   function handlePrev() {
     setSelectedDateIso((iso) => addDaysIso(iso, stepDays(view, -1)));
@@ -190,37 +238,34 @@ function SchedulePageContent() {
   function handleToday() {
     setSelectedDateIso(todayIso());
   }
+  // Bấm một ca → hộp chi tiết (03/10); "Mở trang quản lý ca" từ đó.
   function handleEventClick(event: CalendarEvent) {
-    router.push(`/employer/shifts/${event.id}`);
-  }
-  function handleSlotCfgChange(patch: Partial<SlotConfig>) {
-    const next = { ...slotCfg, ...patch };
-    const validation = validateSlotConfig(next);
-    setSlotCfg(next);
-    setSlotCfgError(
-      validation.ok ? null : t(`schedule.slotCfg.error.${validation.error}`),
-    );
+    setPeekId(event.id);
   }
 
   const sidebar = (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-orange-100 bg-white/90 p-1 shadow-sm backdrop-blur-sm">
+      <div className="rounded-2xl bg-white p-1 shadow-card ring-1 ring-black/5">
         <MiniMonthCalendar
           selectedDateIso={selectedDateIso}
           onSelectDate={setSelectedDateIso}
           className="border-0 shadow-none"
         />
       </div>
-      {/* One-primary rule (Req 2.4): the toolbar "Đăng ca" is this
-          surface's single page-level primary (matching the worker
-          schedule, where the primary lives in the toolbar). This
-          sidebar shortcut to the SAME action is a secondary (outlined)
-          affordance so only one solid-orange primary shows at rest —
-          which also trims orange fill for the One Orange Rule (Req 2.2). */}
-      <ButtonLink href="/employer/shifts/new" variant="secondary" className="w-full">
-          {t('btn.postShift')}
-        </ButtonLink>
-      <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+      <UpcomingList
+        title={tx('Sắp tới')}
+        empty={
+          <>
+            {tx('Chưa có ca nào sắp tới.')}{' '}
+            <Link href="/employer/shifts/new" className="font-semibold text-orange-700 hover:underline">
+              {t('btn.postShift')} →
+            </Link>
+          </>
+        }
+        items={upcoming.map((e) => ({ id: e.id, title: e.title, date: e.date, startTime: e.startTime, endTime: e.endTime, variant: e.variant, label: e.subtitle }))}
+        onSelect={setPeekId}
+      />
+      <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5">
         <CalendarLegend variant="employer" />
       </div>
     </div>
@@ -244,57 +289,9 @@ function SchedulePageContent() {
 
   const body = (
     <div className="flex flex-col gap-4">
-      {/* Phase 9B: collapsible slot config — same control surface as the
-          worker page so both schedules stay visually consistent. */}
-      <details className="group rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
-          <span>{t('schedule.slotCfg.toggle')}</span>
-          <span
-            className="text-xs text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none"
-            aria-hidden="true"
-          >
-            ▾
-          </span>
-        </summary>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <TimeFieldVN
-            label={t('schedule.slotCfg.dayStart')}
-            value={slotCfg.dayStart}
-            onChange={(v) => handleSlotCfgChange({ dayStart: v })}
-            className="w-32"
-          />
-          <TimeFieldVN
-            label={t('schedule.slotCfg.dayEnd')}
-            value={slotCfg.dayEnd}
-            onChange={(v) => handleSlotCfgChange({ dayEnd: v })}
-            className="w-32"
-          />
-          <Input
-            label={t('schedule.slotCfg.slotMinutes')}
-            type="number"
-            min={15}
-            step={15}
-            value={
-              Number.isFinite(slotCfg.slotMinutes) ? slotCfg.slotMinutes : ''
-            }
-            onChange={(e) => {
-              const raw = e.target.value;
-              handleSlotCfgChange({
-                slotMinutes: raw === '' ? Number.NaN : Number(raw),
-              });
-            }}
-            className="w-32"
-          />
-        </div>
-        {slotCfgError && (
-          <p role="alert" className="mt-2 text-xs text-red-600">
-            {slotCfgError}
-          </p>
-        )}
-      </details>
 
       {/* Calendar body — wrapped in a soft white panel. */}
-      <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-card backdrop-blur-sm">
+      <div className="rounded-2xl bg-white shadow-card ring-1 ring-black/5">
         {view === 'week' && (
           <WeekView
             weekStart={startOfWeek(selectedDateIso)}
@@ -302,6 +299,18 @@ function SchedulePageContent() {
             events={events}
             onEventClick={handleEventClick}
             className="rounded-2xl"
+            emptyState={
+              <>
+                <p className="text-sm font-semibold text-gray-900">{tx('Tuần này chưa có ca nào.')}</p>
+                <p className="mt-1 text-sm text-gray-600">{tx('Ca đăng xong hiện ở đây theo đúng giờ, kèm số người đã nhận.')}</p>
+                <Link
+                  href="/employer/shifts/new"
+                  className="mt-3 inline-flex min-h-[44px] items-center rounded-xl bg-orange-500 px-4 text-sm font-semibold text-gray-900 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                >
+                  {t('btn.postShift')}
+                </Link>
+              </>
+            }
           />
         )}
         {view === 'day' && (
@@ -320,6 +329,14 @@ function SchedulePageContent() {
               events={events}
               onEventClick={handleEventClick}
               emptyMessage={t('calendar.empty.employer')}
+              renderEmptyDay={(day) => day < todayIso() ? <span>{tx('Ngày trống.')}</span> : (
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>{tx('Ngày trống.')}</span>
+                  <Link href="/employer/shifts/new" className="font-semibold text-orange-700 hover:underline">
+                    {t('btn.postShift')}
+                  </Link>
+                </span>
+              )}
             />
           </div>
         )}
@@ -334,50 +351,84 @@ function SchedulePageContent() {
           without conveying anything; the body's calm warm-cream chrome
           is enough surface treatment for the calendar grid. */}
 
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white p-6 shadow-card">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              {t('employerSchedule.page.title')}
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-gray-600">
-              {t('employerSchedule.page.subtitle')}
-            </p>
-          </div>
-          <PageHelpButton
-            title={t('help.employerSchedule.title')}
-            intro={t('help.employerSchedule.intro')}
-            sections={[
-              {
-                heading: t('help.employerSchedule.section.purpose.heading'),
-                items: [t('help.employerSchedule.section.purpose.item1')],
-              },
-              {
-                heading: t('help.employerSchedule.section.numbers.heading'),
-                items: [
-                  t('help.employerSchedule.section.numbers.item1'),
-                  t('help.employerSchedule.section.numbers.item2'),
-                ],
-              },
-              {
-                heading: t('help.employerSchedule.section.actions.heading'),
-                items: [
-                  t('help.employerSchedule.section.actions.item1'),
-                  t('help.employerSchedule.section.actions.item2'),
-                  t('help.employerSchedule.section.actions.item3'),
-                ],
-              },
-              {
-                heading: t('help.employerSchedule.section.mistakes.heading'),
-                items: [t('help.employerSchedule.section.mistakes.item1')],
-              },
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">{t('employerSchedule.page.title')}</h1>
+          <p className="mt-2 max-w-2xl text-base text-gray-600">{t('employerSchedule.page.subtitle')}</p>
+          <ScheduleSummary
+            label={tx('Tóm tắt tuần đang xem')}
+            items={[
+              { value: String(summary.count), label: tx('Ca trong tuần') },
+              { value: `${summary.filled}/${summary.needed}`, label: tx('Người đã nhận / cần') },
+              { value: String(summary.short), label: tx('Ca còn thiếu người'), warn: summary.short > 0 },
             ]}
-            cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
           />
         </div>
+        <PageHelpButton
+          title={t('help.employerSchedule.title')}
+          intro={t('help.employerSchedule.intro')}
+          sections={[
+            {
+              heading: t('help.employerSchedule.section.purpose.heading'),
+              items: [t('help.employerSchedule.section.purpose.item1')],
+            },
+            {
+              heading: t('help.employerSchedule.section.numbers.heading'),
+              items: [
+                t('help.employerSchedule.section.numbers.item1'),
+                t('help.employerSchedule.section.numbers.item2'),
+              ],
+            },
+            {
+              heading: t('help.employerSchedule.section.actions.heading'),
+              items: [
+                t('help.employerSchedule.section.actions.item1'),
+                t('help.employerSchedule.section.actions.item2'),
+                t('help.employerSchedule.section.actions.item3'),
+              ],
+            },
+            {
+              heading: t('help.employerSchedule.section.mistakes.heading'),
+              items: [t('help.employerSchedule.section.mistakes.item1')],
+            },
+          ]}
+          cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
+        />
       </header>
 
       <CalendarShell sidebar={sidebar} toolbar={toolbar} body={body} />
+
+      {/* Hộp chi tiết khi bấm một ca (03/10). */}
+      <EventPeek
+        open={peekShift !== null}
+        onClose={() => setPeekId(null)}
+        title={peekShift?.title ?? ''}
+        badge={peekEvent?.statusChip}
+        rows={
+          peekShift
+            ? [
+                { label: tx('Thời gian'), value: `${formatDateVN(peekShift.date)} · ${peekShift.startTime}–${peekShift.endTime}` },
+                { label: tx('Địa điểm'), value: peekShift.location },
+                { label: tx('Người đã nhận'), value: `${peekShift.positionsFilled}/${peekShift.positionsTotal}` },
+              ]
+            : []
+        }
+        note={
+          peekShift && peekEvent && (peekEvent.variant === 'publishedShift' || peekEvent.variant === 'fullyBookedShift') && peekShift.date >= todayIso()
+            ? tx('Check-in mở từ {time}, 15 phút trước giờ bắt đầu.').replace('{time}', shiftMilestones(peekShift.startTime, peekShift.endTime)?.checkInOpen.time ?? peekShift.startTime)
+            : undefined
+        }
+        actions={
+          peekShift ? (
+            <Link
+              href={`/employer/shifts/${peekShift.id}`}
+              className="inline-flex min-h-[44px] items-center rounded-xl bg-orange-500 px-4 text-sm font-semibold text-gray-900 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              {tx('Mở trang quản lý ca')} →
+            </Link>
+          ) : undefined
+        }
+      />
     </div>
   );
 }

@@ -26,9 +26,16 @@
  * No store reads, no router. All data flows through props.
  *
  * Task 20.5 — Phase 8 calendar UI redesign.
+ *
+ * 03/10 — thiết kế lại theo ngôn ngữ landing: cột giờ chỉ ghi giờ bắt đầu ("07:00"),
+ * đầu cột ngày = thứ + ngày (hôm nay: ngày trong ô cam), vạch "bây giờ" cam trong cột
+ * hôm nay (tính một lần khi mở trang, không chạy đồng hồ — CLAUDE.md §5.6), và
+ * `emptyState` phủ giữa lưới khi cả tuần không có gì. Khung giờ do trang truyền vào
+ * (`DAY_QUARTERS`: 24 giờ chia 4 cụm 6 giờ; cột giờ ghi tên cụm, trong cụm có vạch mờ
+ * từng giờ, bấm ô trống → khung 1 giờ đúng chỗ bấm).
  */
 
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   dayViewLayout,
   generateSlots,
@@ -37,6 +44,8 @@ import {
   type SlotConfig,
 } from '@/domain/week';
 import { useTx } from '@/i18n/LocaleProvider';
+
+import { QUARTER_NAMES, nowOffsetMinutes } from './calendarModel';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import {
   CalendarEventCard,
@@ -77,6 +86,8 @@ interface WeekViewProps {
   onCellClick?: (date: string, startTime: string, endTime: string) => void;
   onEventClick?: (event: CalendarEvent) => void;
   className?: string;
+  /** Phủ giữa lưới khi tuần không có sự kiện nào (vd lời mời tìm ca / đăng ca). */
+  emptyState?: ReactNode;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,8 +106,8 @@ const WEEKDAY_LABELS: readonly string[] = [
 ];
 
 
-/** Width of the leftmost time gutter (in pixels). Wide enough for `HH:mm - HH:mm`. */
-const TIME_GUTTER_WIDTH = 96;
+/** Width of the leftmost time gutter (in pixels) — chỉ ghi giờ bắt đầu "HH:mm". */
+const TIME_GUTTER_WIDTH = 60;
 
 // ---------------------------------------------------------------------------
 // Component
@@ -109,11 +120,23 @@ export function WeekView({
   onCellClick,
   onEventClick,
   className = '',
+  emptyState,
 }: WeekViewProps) {
   const tx = useTx();
   const days = useMemo(() => weekDates(weekStart), [weekStart]);
   const slots = useMemo(() => generateSlots(slotConfig), [slotConfig]);
   const today = todayIso();
+  // Giờ hiện tại cho vạch "bây giờ": đọc một lần sau khi gắn (bản server không có vạch).
+  const [nowHHmm, setNowHHmm] = useState<string | null>(null);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => {
+      const d = new Date();
+      setNowHHmm(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    });
+    return () => cancelAnimationFrame(r);
+  }, []);
+  const nowTop = nowHHmm ? nowOffsetMinutes(nowHHmm, slotConfig) : null;
+  const weekEmpty = !events.some((e) => days.includes(e.date));
 
   // px-per-minute is derived so a slot of `slotMinutes` minutes maps to
   // exactly `SLOT_ROW_HEIGHT` pixels. Guard against an invalid config —
@@ -144,9 +167,9 @@ export function WeekView({
         {/* ----------------------------------------------------------------
             Header row: blank gutter cell + 7 weekday headers
         ----------------------------------------------------------------- */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
+        <div className="flex border-b border-gray-200 bg-white">
           <div
-            className="sticky left-0 z-20 shrink-0 border-r border-gray-200 bg-gray-50"
+            className="sticky left-0 z-20 shrink-0 border-r border-gray-100 bg-white"
             style={{ width: TIME_GUTTER_WIDTH }}
             aria-hidden="true"
           />
@@ -156,15 +179,20 @@ export function WeekView({
               <div
                 key={date}
                 className={[
-                  'flex-1 min-w-[100px] border-l border-gray-100 px-2 py-2 text-center text-xs font-semibold',
-                  isToday
-                    ? 'bg-orange-50 text-orange-700'
-                    : 'text-gray-700',
+                  'flex-1 min-w-[100px] border-l border-gray-100 px-2 py-2.5 text-center',
+                  isToday ? 'bg-orange-50/60' : '',
                 ].join(' ')}
               >
-                <div>{tx(WEEKDAY_LABELS[idx])}</div>
-                <div className="mt-0.5 font-mono text-[11px] font-normal text-gray-500">
-                  {formatDateVN(date)}
+                <div className={['text-xs font-medium', isToday ? 'text-orange-800' : 'text-gray-600'].join(' ')}>
+                  {tx(WEEKDAY_LABELS[idx])}
+                </div>
+                <div
+                  className={[
+                    'mx-auto mt-1 inline-flex min-w-[2.75rem] items-center justify-center rounded-lg px-1.5 py-0.5 text-sm font-semibold tabular-nums',
+                    isToday ? 'bg-orange-500 text-gray-900' : 'text-gray-900',
+                  ].join(' ')}
+                >
+                  {formatDateVN(date).slice(0, 5)}
                 </div>
               </div>
             );
@@ -176,7 +204,7 @@ export function WeekView({
             a `relative` container so absolutely-positioned events anchor
             against it.
         ----------------------------------------------------------------- */}
-        <div className="flex">
+        <div className="relative flex">
           {/* Sticky time gutter — labels stack vertically to mirror the
               60px slot rows in each day column. */}
           <div
@@ -187,9 +215,12 @@ export function WeekView({
               <div
                 key={`${slot.startTime}-${slot.endTime}`}
                 style={{ height: SLOT_ROW_HEIGHT }}
-                className="border-t border-gray-100 px-2 py-1 font-mono text-[11px] font-medium whitespace-nowrap text-gray-600"
+                className={['border-t px-2 pt-1 text-right text-xs font-medium whitespace-nowrap text-gray-500 tabular-nums', slotConfig.slotMinutes > 60 ? 'border-gray-200' : 'border-gray-100'].join(' ')}
               >
-                {formatTimeVN(slot.startTime)} - {formatTimeVN(slot.endTime)}
+                {QUARTER_NAMES[slot.startTime] && slotConfig.slotMinutes > 60 && (
+                  <span className="block text-xs font-semibold text-gray-800">{tx(QUARTER_NAMES[slot.startTime])}</span>
+                )}
+                {formatTimeVN(slot.startTime)}
               </div>
             ))}
           </div>
@@ -203,7 +234,7 @@ export function WeekView({
                 key={date}
                 className={[
                   'relative flex-1 min-w-[100px] border-l border-gray-100',
-                  isToday ? 'bg-orange-50/50' : '',
+                  isToday ? 'bg-orange-50/40' : '',
                 ]
                   .join(' ')
                   .trim()}
@@ -215,20 +246,30 @@ export function WeekView({
                     type="button"
                     onClick={
                       onCellClick
-                        ? () =>
-                            onCellClick(date, slot.startTime, slot.endTime)
+                        ? (e) => {
+                            const [from, to] = clickedRange(slot.startTime, slot.endTime, slotConfig.slotMinutes, e.nativeEvent.offsetY, pxPerMinute);
+                            onCellClick(date, from, to);
+                          }
                         : undefined
                     }
-                    style={{ height: SLOT_ROW_HEIGHT }}
+                    style={{ height: SLOT_ROW_HEIGHT, backgroundImage: hourLines(pxPerMinute, slotConfig.slotMinutes) }}
                     aria-label={`${formatDateVN(date)} ${slot.startTime}-${slot.endTime}`}
                     // P3 focus: empty slot cells are flush in a tight grid,
                     // so an offset ring would overlap neighbours. Use an
                     // INSET ring (plus the existing bg tint) so keyboard
                     // focus is clearly visible without spilling over
                     // adjacent cells.
-                    className="block w-full border-t border-gray-100 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400"
+                    className={['block w-full border-t text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-400', slotConfig.slotMinutes > 60 ? 'border-gray-200' : 'border-gray-100'].join(' ')}
                   />
                 ))}
+
+                {/* Vạch "bây giờ" trong cột hôm nay. */}
+                {isToday && nowTop !== null && (
+                  <div aria-hidden="true" className="pointer-events-none absolute right-0 left-0 z-10" style={{ top: nowTop * pxPerMinute }}>
+                    <span className="absolute -top-[5px] -left-[5px] h-2.5 w-2.5 rounded-full bg-orange-600" />
+                    <span className="block h-0.5 bg-orange-600" />
+                  </div>
+                )}
 
                 {/* Absolute-positioned event chips overlay. */}
                 {dayEvents.map(({ event, topMinutes, heightMinutes }) => (
@@ -257,8 +298,35 @@ export function WeekView({
               </div>
             );
           })}
+
+          {weekEmpty && emptyState && (
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-start justify-center pt-16">
+              <div className="pointer-events-auto max-w-sm rounded-2xl bg-white/95 px-5 py-4 text-center shadow-card ring-1 ring-black/5">
+                {emptyState}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+/** Vạch mờ từng giờ bên trong một cụm dài (lưới 4 cụm 6 giờ). */
+export function hourLines(pxPerMinute: number, slotMinutes: number): string | undefined {
+  if (slotMinutes <= 60 || pxPerMinute <= 0) return undefined;
+  const h = pxPerMinute * 60;
+  return `repeating-linear-gradient(to bottom, transparent 0, transparent ${h - 1}px, var(--hour-line) ${h - 1}px, var(--hour-line) ${h}px)`;
+}
+
+/** Bấm vào ô của một cụm dài → khung 1 giờ tại giờ được bấm (không phải cả cụm 6 giờ). */
+export function clickedRange(start: string, end: string, slotMinutes: number, offsetY: number, pxPerMinute: number): [string, string] {
+  if (slotMinutes <= 60 || pxPerMinute <= 0) return [start, end];
+  const [h, m] = start.split(':').map(Number);
+  const base = h * 60 + m;
+  const hour = Math.max(0, Math.min(Math.floor(slotMinutes / 60) - 1, Math.floor(offsetY / (pxPerMinute * 60))));
+  const from = base + hour * 60;
+  const to = Math.min(from + 60, 23 * 60 + 59);
+  const fmt = (x: number) => `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`;
+  return [fmt(from), fmt(to)];
 }

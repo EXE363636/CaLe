@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+
 import { useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN } from '@/lib/format';
 import { CalendarEventCard } from './CalendarEventCard';
@@ -16,6 +18,8 @@ interface AgendaViewProps {
   /** Localized empty-state message when no events fall in the window. */
   emptyMessage?: string;
   className?: string;
+  /** Có → hiện cả ngày trống, nội dung do trang dựng (vd "Ngày trống · Tìm ca"). */
+  renderEmptyDay?: (dayIso: string) => ReactNode;
 }
 
 /**
@@ -90,6 +94,7 @@ export function AgendaView({
   onEventClick,
   emptyMessage,
   className,
+  renderEmptyDay,
 }: AgendaViewProps) {
   const tx = useTx();
   const days = buildDayList(startDateIso, dayCount);
@@ -106,9 +111,11 @@ export function AgendaView({
     list.sort((a, b) => a.startTime.localeCompare(b.startTime));
   }
 
-  const nonEmptyDays = days.filter(
-    (day) => (eventsByDay.get(day)?.length ?? 0) > 0,
-  );
+  // 03/10 — có `renderEmptyDay` thì hiện ĐỦ các ngày, ngày trống kèm lời mời (tìm ca /
+  // đăng ca); không có thì như cũ (chỉ ngày có sự kiện).
+  const nonEmptyDays = renderEmptyDay
+    ? days
+    : days.filter((day) => (eventsByDay.get(day)?.length ?? 0) > 0);
 
   const wrapperClass = ['flex flex-col gap-6', className ?? ''].join(' ').trim();
 
@@ -138,12 +145,15 @@ export function AgendaView({
                 </span>
               )}
             </h3>
+            {dayEvents.length === 0 && renderEmptyDay ? (
+              <div className="rounded-xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">{renderEmptyDay(day)}</div>
+            ) : (
             <ul className="flex flex-col gap-2">
               {dayEvents.map((ev) => (
                 <li key={ev.id}>
                   <CalendarEventCard
                     title={ev.title}
-                    timeRange={`${ev.startTime} - ${ev.endTime}`}
+                    timeRange={`${ev.startTime}–${ev.endTime}`}
                     subtitle={ev.subtitle}
                     statusChip={ev.statusChip}
                     variant={ev.variant}
@@ -154,6 +164,7 @@ export function AgendaView({
                 </li>
               ))}
             </ul>
+            )}
           </section>
         );
       })}

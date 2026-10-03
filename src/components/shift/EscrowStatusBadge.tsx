@@ -16,5 +16,8 @@ const tonemap: Record<EscrowStatus, BadgeTone> = {
 
 export function EscrowStatusBadge({ status }: { status: EscrowStatus }) {
   const t = useT();
+  // Dữ liệu cũ có thể mang trạng thái ngoài danh sách (vd "Held" trong dữ liệu mẫu) →
+  // không hiện mã thô "escrow.Held" (03/10, thấy khi thử lịch tuyển dụng).
+  if (!(status in tonemap)) return null;
   return <Badge tone={tonemap[status]}>{t(`escrow.${status}`)}</Badge>;
 }

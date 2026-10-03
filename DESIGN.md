@@ -388,6 +388,16 @@ Nguồn: `JobRing.tsx`, `homeJobs.ts`, khối "vòng thẻ loại việc" trong 
 - **Khung chi tiết:** ấn thẻ → vòng dừng, thẻ về giữa, bên dưới hiện khung trắng bo `24px`: tên việc + mô tả, 3 cột (điện thoại: xếp dọc) "1. Việc gồm gì / 2. Một ca thường thế nào / 3. Cần gì để làm" có gạch trên cam nhạt, nút cam "Tìm ca làm" + nút viền "Đăng ca loại này", ghi chú "Mô tả chung…". Nút X hoặc ấn lại thẻ để đóng.
 - **Ảnh:** người châu Á, ưu tiên bối cảnh Việt Nam (yêu cầu 02/10); nguồn ở `docs/IMAGE_CREDITS.md`.
 
+### Lịch cá nhân / lịch tuyển dụng (03/10)
+Nguồn: `src/components/calendar/*` (`CalendarShell`, `CalendarToolbar`, `WeekView`, `DayView`, `AgendaView`, `SchedulePieces`, `calendarModel`), trang `/worker/schedule`, `/employer/schedule`. Chế độ **Operate** nhưng cùng ngôn ngữ với landing.
+- **Đầu trang:** tiêu đề (không thêm dòng nhãn phía trên — trùng ý tiêu đề) `text-3xl`/`sm:text-4xl` đậm, một câu mô tả, tóm tắt tuần đang xem thành các thẻ (`ScheduleSummary`: lưới 2 cột / `sm` 4 cột, thẻ trắng bo `16px`, nhãn `text-xs` + số `text-2xl` đậm; thẻ cần chú ý nền `amber-50`, số `amber-800`). Người lao động: ca đã nhận, giờ làm, tiền công dự kiến, đơn chờ duyệt. Nhà tuyển dụng: số ca, người đã nhận / cần, ca còn thiếu người. Nút "Hướng dẫn sử dụng" bên phải.
+- **Bố cục:** lịch là phần chính (cột trái); cột phải 19.5rem từ `lg` (dính khi cuộn): lịch tháng nhỏ, "Sắp tới" (5 mục gần nhất, chấm màu theo loại), chú giải. Điện thoại: cột phải xuống dưới lịch.
+- **Thanh công cụ:** thẻ trắng bo `16px`; ‹ "Hôm nay" › + khoảng ngày; nút chế độ Ngày / Tuần / Danh sách trên nền `orange-50`, chế độ đang chọn là ô trắng nổi; nút hành động cam ("Thêm lịch trình" / "Đăng ca cần tuyển"). Điện thoại mặc định **Danh sách**.
+- **Lưới giờ:** 24 giờ chia **4 cụm đều nhau** 6 giờ — Đêm 00–06, Sáng 06–12, Chiều 12–18, Tối 18–24 (`DAY_QUARTERS`); mỗi giờ 24px (cụm 144px, cả ngày ~576px), kẻ cụm `gray-200`, vạch mờ từng giờ `--hour-line` (có bản tối). Cột giờ ghi tên cụm + giờ bắt đầu. Đầu cột ngày: thứ + "dd/MM" (hôm nay: ô cam). Vạch "bây giờ" cam (chấm + đường 2px) trong cột hôm nay, đọc giờ một lần khi mở trang. Bấm ô trống → khung 1 giờ đúng chỗ bấm (người lao động: thêm lịch bận / rảnh). Bỏ ô "Tuỳ chỉnh khung giờ".
+- **Tuần trống:** hộp trắng giữa lưới với một câu + hành động ("Tìm ca" / "Thêm lịch trình"; "Đăng ca cần tuyển"). **Danh sách:** hiện đủ 7 ngày, ngày trống là ô viền đứt "Ngày trống." + hành động (ngày đã qua chỉ ghi "Ngày trống."); tiêu đề là khoảng 7 ngày đang xem.
+- **Bấm một mục:** hộp chi tiết (`EventPeek`, dùng `Modal`): nhãn trạng thái đúng tông, Thời gian / Địa điểm / Tiền công cả ca (người lao động) hoặc Người đã nhận (nhà tuyển dụng), ghi chú "Check-in mở từ hh:mm, 15 phút trước giờ bắt đầu", nút "Mở trang ca" / "Mở trang quản lý ca"; lịch bận / rảnh thì nhãn loại (Lịch bận / Lịch rảnh) + Xoá (bấm lần hai mới xoá, nút chuyển đỏ "Bấm lần nữa để xoá") / Chỉnh sửa. Ghi chú check-in chỉ cho ca sắp tới. Ca quá hạn vẽ xám (khớp chú giải "Đã quá hạn"), không đỏ gạch ngang như ca huỷ.
+- Danh sách đầy đủ lịch bận / rảnh của người lao động thu vào mục mở rộng dưới lịch.
+
 ### Signature: Shift Lifecycle Badge
 Thành phần đặc trưng nhất của sản phẩm — MỘT badge trạng thái ca dùng ở MỌI bề
 mặt (worker/employer/admin/list/detail/deeplink). Một hàm thuần

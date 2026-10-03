@@ -1856,7 +1856,7 @@ export const vi: Record<string, string> = {
   // -------------------------------------------------------------------------
   'calendar.view.day': 'Ngày',
   'calendar.view.week': 'Tuần',
-  'calendar.view.agenda': 'Agenda',
+  'calendar.view.agenda': 'Danh sách',
   'calendar.today': 'Hôm nay',
   'calendar.prev': 'Trước',
   'calendar.next': 'Sau',

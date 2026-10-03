@@ -37,26 +37,17 @@ export function CalendarShell({
   body,
   className,
 }: CalendarShellProps) {
+  // 03/10 — lịch là phần chính (cột trái, rộng); cột phụ (lịch tháng nhỏ, "Sắp tới",
+  // chú giải) sang phải từ lg, trên điện thoại nằm dưới lịch.
   return (
-    <div
-      className={[
-        'flex flex-col gap-4 lg:flex-row lg:gap-6',
-        className ?? '',
-      ]
-        .join(' ')
-        .trim()}
-    >
-      <aside
-        aria-label="Calendar sidebar"
-        className="w-full lg:w-72 lg:shrink-0"
-      >
-        {sidebar}
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
+    <div className={['grid gap-4 lg:grid-cols-[minmax(0,1fr)_19.5rem] lg:gap-6', className ?? ''].join(' ').trim()}>
+      <div className="flex min-w-0 flex-col gap-4">
         <div className="w-full">{toolbar}</div>
         <div className="w-full overflow-x-auto">{body}</div>
       </div>
+      <aside aria-label="Calendar sidebar" className="w-full lg:sticky lg:top-24 lg:self-start">
+        {sidebar}
+      </aside>
     </div>
   );
 }

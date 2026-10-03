@@ -471,7 +471,7 @@ export const enRoles: Record<string, string> = {
   'calendar.next': 'Next',
   'calendar.view.day': 'Day',
   'calendar.view.week': 'Week',
-  'calendar.view.agenda': 'Agenda',
+  'calendar.view.agenda': 'List',
   'calendar.miniMonth.aria.prev': 'Previous month',
   'calendar.miniMonth.aria.next': 'Next month',
 

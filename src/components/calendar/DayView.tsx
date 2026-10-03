@@ -10,7 +10,8 @@ import {
 import { useTx } from '@/i18n/LocaleProvider';
 import { formatDateVN, formatTimeVN } from '@/lib/format';
 import { CalendarEventCard, calendarSlotRowHeight } from './CalendarEventCard';
-import type { CalendarEvent } from './WeekView';
+import { QUARTER_NAMES } from './calendarModel';
+import { clickedRange, hourLines, type CalendarEvent } from './WeekView';
 export type { CalendarEvent } from './WeekView';
 
 interface DayViewProps {
@@ -87,12 +88,12 @@ export function DayView({
         {/* Header row: empty time-gutter cell + single date cell */}
         <div className="flex border-b border-gray-100">
           <div
-            className="w-24 shrink-0 border-r border-gray-100 bg-gray-50 px-2 py-2 text-left text-xs font-semibold text-gray-500"
+            className="w-16 shrink-0 border-r border-gray-100 bg-white px-2 py-2 text-left text-xs font-semibold text-gray-500"
             aria-hidden="true"
           />
           <div className={headerCellClasses}>
             <div>{tx(weekdayLabel(dateIso))}</div>
-            <div className="mt-0.5 font-mono text-[11px] font-normal text-gray-500">
+            <div className="mt-0.5 text-xs font-normal text-gray-500 tabular-nums">
               {formatDateVN(dateIso)}
             </div>
           </div>
@@ -101,14 +102,19 @@ export function DayView({
         {/* Body: time gutter (sticky left) + single day column with overlay */}
         <div className="flex">
           {/* Time gutter */}
-          <div className="sticky left-0 z-10 w-24 shrink-0 border-r border-gray-100 bg-gray-50">
+          <div className="sticky left-0 z-10 w-16 shrink-0 border-r border-gray-100 bg-white">
             {slots.map((slot) => (
               <div
                 key={`gutter-${slot.startTime}-${slot.endTime}`}
                 style={{ height: rowHeight }}
-                className="flex items-start whitespace-nowrap border-t border-gray-100 px-2 py-1 font-mono text-[11px] font-medium text-gray-600"
+                className="flex items-start justify-end whitespace-nowrap border-t border-gray-100 px-2 pt-1 text-xs font-medium text-gray-500 tabular-nums"
               >
-                {formatTimeVN(slot.startTime)}–{formatTimeVN(slot.endTime)}
+                <span>
+                  {QUARTER_NAMES[slot.startTime] && slotConfig.slotMinutes > 60 && (
+                    <span className="block text-right text-xs font-semibold text-gray-800">{tx(QUARTER_NAMES[slot.startTime])}</span>
+                  )}
+                  {formatTimeVN(slot.startTime)}
+                </span>
               </div>
             ))}
           </div>
@@ -119,11 +125,12 @@ export function DayView({
               <button
                 key={`cell-${slot.startTime}-${slot.endTime}`}
                 type="button"
-                onClick={() =>
-                  onCellClick?.(dateIso, slot.startTime, slot.endTime)
-                }
+                onClick={(e) => {
+                  const [from, to] = clickedRange(slot.startTime, slot.endTime, slotConfig.slotMinutes, e.nativeEvent.offsetY, pxPerMinute);
+                  onCellClick?.(dateIso, from, to);
+                }}
                 aria-label={`${formatTimeVN(slot.startTime)}–${formatTimeVN(slot.endTime)}`}
-                style={{ height: rowHeight }}
+                style={{ height: rowHeight, backgroundImage: hourLines(pxPerMinute, slotConfig.slotMinutes) }}
                 className="block w-full border-t border-gray-100 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:bg-orange-50"
               />
             ))}

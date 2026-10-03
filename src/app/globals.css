@@ -74,6 +74,8 @@
   /* Brand palette — primary accent + soft neutral + background tint. */
   --brand: #ff9a5f;            /* canonical primary accent (#FF9A5F -> orange-500) */
   --brand-soft: #ffd5ae;       /* canonical soft neutral (#FFD5AE -> orange-200) */
+  /* Vạch mờ từng giờ trong cụm 6 giờ của lưới lịch (03/10). */
+  --hour-line: rgba(17, 24, 39, 0.06);
   --brand-tint: var(--background); /* background tint — references --background so the
                                     * #FFF4E9 cream can never drift from its canonical
                                     * declaration (single source of truth) */
@@ -1156,6 +1158,7 @@ summary::-webkit-details-marker {
   --background: #141416;
   --foreground: #f1f1f4;
   --brand-soft: #4d321d;
+  --hour-line: rgba(255, 255, 255, 0.07);
 
   --color-white: #1d1d21;
   --color-gray-50: #202024;

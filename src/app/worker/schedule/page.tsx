@@ -26,10 +26,22 @@
  *  - The schedule store API and `domain/scheduleConflict.ts.findScheduleConflicts`
  *    apply-time gate are NOT touched here.
  *  - localStorage / mock only — no server, no calendar sync.
+ *
+ * 03/10 — thiết kế lại theo ngôn ngữ landing (nhánh feat/schedule-redesign):
+ *  - Đầu trang: tiêu đề lớn + tóm tắt tuần đang xem (số ca đã nhận, số giờ, tiền
+ *    công, số đơn chờ duyệt).
+ *  - 24 giờ chia 4 cụm 6 giờ (Đêm / Sáng / Chiều / Tối, `DAY_QUARTERS`) — bỏ ô
+ *    "Tuỳ chỉnh khung giờ"; lưới luôn đủ cả ngày.
+ *  - Điện thoại: mặc định chế độ Danh sách, hiện cả ngày trống kèm "Tìm ca" /
+ *    "Thêm lịch bận".
+ *  - Bấm một mục → hộp chi tiết (`EventPeek`): ca thì giờ, nơi, trạng thái, tiền
+ *    công, giờ mở check-in + "Mở trang ca"; lịch bận / rảnh thì Sửa / Xoá.
+ *  - Cột phải: lịch tháng nhỏ, "Sắp tới", chú giải. Danh sách đầy đủ lịch bận /
+ *    rảnh thu vào một mục mở rộng dưới lịch (vẫn sửa / xoá được).
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import { CalendarLegend } from '@/components/calendar/CalendarLegend';
 import { CalendarShell } from '@/components/calendar/CalendarShell';
@@ -43,6 +55,7 @@ import { DayView } from '@/components/calendar/DayView';
 import { AgendaView } from '@/components/calendar/AgendaView';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import {
+  Badge,
   Button,
   Card,
   DateFieldVN,
@@ -54,16 +67,14 @@ import {
   TimeFieldVN,
 } from '@/components/ui';
 import { findShiftOverlap } from '@/domain/scheduleConflict';
-import {
-  shiftWeek,
-  startOfWeek,
-  todayIso,
-  validateSlotConfig,
-  type SlotConfig,
-} from '@/domain/week';
+import { hoursBetween, serverWageTotal } from '@/domain/deposit';
+import { shiftWeek, startOfWeek, todayIso, weekDates } from '@/domain/week';
+import { DAY_QUARTERS } from '@/components/calendar/calendarModel';
+import { EventPeek, ScheduleSummary, UpcomingList } from '@/components/calendar/SchedulePieces';
+import { shiftMilestones } from '@/components/landing/shiftMilestones';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { useT, useTx } from '@/i18n/LocaleProvider';
-import { formatDateVN, formatTimeVN } from '@/lib/format';
+import { formatDateVN, formatTimeVN, formatVND } from '@/lib/format';
 import { showSuccess, showError } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { useApplicationStore } from '@/stores/applicationStore';
@@ -76,12 +87,6 @@ import type { Application, ScheduleBlock, Shift, ShiftStatus } from '@/types';
 // Constants
 // ---------------------------------------------------------------------------
 
-const DEFAULT_SLOT_CONFIG: SlotConfig = {
-  dayStart: '07:00',
-  dayEnd: '21:00',
-  slotMinutes: 120,
-};
-
 /**
  * Shifts in any of these statuses are not surfaced on the worker calendar.
  * `Completed` is NOT here: a finished shift stays on the calendar as history
@@ -91,6 +96,16 @@ const TERMINAL_SHIFT_STATUSES: ReadonlySet<ShiftStatus> = new Set([
   'Cancelled',
   'Expired',
 ]);
+
+/** Màu nhãn trạng thái đơn trong hộp chi tiết — cùng tông với các trang khác. */
+const APP_TONE: Partial<Record<Application['status'], 'success' | 'warning' | 'info' | 'danger' | 'neutral'>> = {
+  Pending: 'warning',
+  Approved: 'success',
+  CheckedIn: 'info',
+  CheckedOut: 'warning',
+  Confirmed: 'success',
+  CancellationRequested: 'danger',
+};
 
 interface ModalSeed {
   /** When provided, edit mode. */
@@ -134,7 +149,6 @@ export default function WorkerSchedulePage() {
 function SchedulePageContent() {
   const t = useT();
   const tx = useTx();
-  const router = useRouter();
   const currentUserId = useAuthStore((s) => s.currentUserId);
 
   // Stable raw selectors. NEVER inline `.filter` / `.map` in a Zustand
@@ -157,8 +171,18 @@ function SchedulePageContent() {
   // -------------------------------------------------------------------------
   const [view, setView] = useState<CalendarView>('week');
   const [selectedDateIso, setSelectedDateIso] = useState<string>(() => todayIso());
-  const [slotCfg, setSlotCfg] = useState<SlotConfig>(DEFAULT_SLOT_CONFIG);
-  const [slotCfgError, setSlotCfgError] = useState<string | null>(null);
+  // Mục đang mở trong hộp chi tiết (id sự kiện lịch: `block-…` / `app-…`).
+  const [peekId, setPeekId] = useState<string | null>(null);
+  // Xoá trong hộp chi tiết cần bấm xác nhận lần hai.
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Điện thoại: mặc định Danh sách (lưới tuần 7 cột quá chật).
+  useEffect(() => {
+    const r = requestAnimationFrame(() => {
+      if (window.matchMedia('(max-width: 639px)').matches) setView('agenda');
+    });
+    return () => cancelAnimationFrame(r);
+  }, []);
 
   const [modalSeed, setModalSeed] = useState<ModalSeed | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -265,6 +289,41 @@ function SchedulePageContent() {
     );
   }, [myBlocks]);
 
+  // 24 giờ chia 4 cụm 6 giờ (Đêm / Sáng / Chiều / Tối) — chủ dự án chốt 03/10.
+  const weekDays = useMemo(() => weekDates(startOfWeek(selectedDateIso)), [selectedDateIso]);
+  const slotCfg = DAY_QUARTERS;
+
+  // Tóm tắt tuần đang xem: ca đã nhận, giờ, tiền công; đơn chờ duyệt.
+  const summary = useMemo(() => {
+    const inWeek = new Set(weekDays);
+    let taken = 0;
+    let minutes = 0;
+    let pay = 0;
+    let pending = 0;
+    for (const app of myCalendarApplications) {
+      const shift = shiftIndex.get(app.shiftId);
+      if (!shift || !inWeek.has(shift.date) || TERMINAL_SHIFT_STATUSES.has(shift.status)) continue;
+      if (app.status === 'Pending') {
+        pending += 1;
+        continue;
+      }
+      const hours = hoursBetween(shift.startTime, shift.endTime);
+      taken += 1;
+      minutes += Math.round(hours * 60);
+      pay += serverWageTotal(shift.hourlyWage, hours, 1);
+    }
+    return { taken, hours: minutes / 60, pay, pending };
+  }, [myCalendarApplications, shiftIndex, weekDays]);
+
+  // "Sắp tới": vài mục gần nhất kể từ hôm nay.
+  const upcoming = useMemo(() => {
+    const today = todayIso();
+    return calendarEvents
+      .filter((e) => e.date >= today && e.variant !== 'cancelledShift')
+      .sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`))
+      .slice(0, 5);
+  }, [calendarEvents]);
+
   // -------------------------------------------------------------------------
   // Toolbar title + nav
   // -------------------------------------------------------------------------
@@ -276,13 +335,9 @@ function SchedulePageContent() {
       const we = stepDate(ws, 6);
       return `${formatDateVN(ws)} – ${formatDateVN(we)}`;
     }
-    const year = Number(selectedDateIso.slice(0, 4));
-    const month = Number(selectedDateIso.slice(5, 7));
-    if (Number.isFinite(year) && Number.isFinite(month)) {
-      return tx('Tháng {month} / {year}').replace('{month}', String(month)).replace('{year}', String(year));
-    }
-    return '';
-  }, [view, selectedDateIso, tx]);
+    // Danh sách: 7 ngày tính từ ngày đang chọn (không phải cả tháng).
+    return `${formatDateVN(selectedDateIso)} – ${formatDateVN(stepDate(selectedDateIso, 6))}`;
+  }, [view, selectedDateIso]);
 
   function handlePrev() {
     setSelectedDateIso((iso) => {
@@ -335,37 +390,11 @@ function SchedulePageContent() {
     }
   }
 
-  // Calendar event click — dispatch by id prefix. Approved-shift events
-  // navigate to `/shifts/[id]` (read-only, no edit dialog) per Phase 9B.
+  // Bấm một mục trên lịch → hộp chi tiết (03/10); sửa / mở trang ca từ đó.
   function handleEventClick(event: CalendarEvent) {
-    if (event.id.startsWith('block-')) {
-      const blockId = event.id.slice('block-'.length);
-      const block = myBlocks.find((b) => b.id === blockId);
-      if (block) openEdit(block);
-      return;
-    }
-    if (event.id.startsWith('app-')) {
-      const appId = event.id.slice('app-'.length);
-      const app = myCalendarApplications.find((a) => a.id === appId);
-      if (!app) return;
-      const shift = shiftIndex.get(app.shiftId);
-      if (!shift) return;
-      router.push(`/shifts/${shift.id}`);
-    }
+    setPeekId(event.id);
   }
 
-  // -------------------------------------------------------------------------
-  // Slot-config form
-  // -------------------------------------------------------------------------
-
-  function handleSlotCfgChange(patch: Partial<SlotConfig>) {
-    const next = { ...slotCfg, ...patch };
-    const validation = validateSlotConfig(next);
-    setSlotCfg(next);
-    setSlotCfgError(
-      validation.ok ? null : t(`schedule.slotCfg.error.${validation.error}`),
-    );
-  }
 
   if (!currentUserId) return null;
 
@@ -373,24 +402,42 @@ function SchedulePageContent() {
   // Render
   // -------------------------------------------------------------------------
 
+  const peekEvent = peekId ? calendarEvents.find((e) => e.id === peekId) ?? null : null;
+  const peekBlock = peekId?.startsWith('block-') ? myBlocks.find((b) => `block-${b.id}` === peekId) ?? null : null;
+  const peekApp = peekId?.startsWith('app-') ? myCalendarApplications.find((a) => `app-${a.id}` === peekId) ?? null : null;
+  const peekShift = peekApp ? shiftIndex.get(peekApp.shiftId) ?? null : null;
+
   const sidebar = (
     <div className="flex flex-col gap-4">
-      <div className="rounded-2xl border border-orange-100 bg-white/90 p-1 shadow-sm backdrop-blur-sm">
+      <div className="rounded-2xl bg-white p-1 shadow-card ring-1 ring-black/5">
         <MiniMonthCalendar
           selectedDateIso={selectedDateIso}
           onSelectDate={setSelectedDateIso}
           className="border-0 shadow-none"
         />
       </div>
-      <div className="rounded-2xl border border-orange-100 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+      <UpcomingList
+        title={tx('Sắp tới')}
+        empty={
+          <>
+            {tx('Chưa có ca hay lịch bận nào sắp tới.')}{' '}
+            <Link href="/shifts" className="font-semibold text-orange-700 hover:underline">
+              {tx('Tìm ca')} →
+            </Link>
+          </>
+        }
+        items={upcoming.map((e) => ({ id: e.id, title: e.title, date: e.date, startTime: e.startTime, endTime: e.endTime, variant: e.variant, label: e.statusLabel }))}
+        onSelect={setPeekId}
+      />
+      <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5">
         <CalendarLegend variant="worker" />
       </div>
-      <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm">
-        <p className="text-xs leading-relaxed text-orange-800">
+      <div className="rounded-2xl bg-orange-50 p-4 ring-1 ring-orange-100">
+        <p className="text-xs leading-relaxed text-orange-900">
           {t('schedule.page.approvedShiftsNote')}
         </p>
         {isSupabaseEnv() && serverSync !== 'on' && (
-          <p className="mt-2 text-xs leading-relaxed text-orange-800">
+          <p className="mt-2 text-xs leading-relaxed text-orange-900">
             {t('schedule.page.deviceOnlyNote')}
           </p>
         )}
@@ -414,59 +461,23 @@ function SchedulePageContent() {
     />
   );
 
-  const slotsValid = slotCfgError === null;
+  const emptyWeek = (
+    <>
+      <p className="text-sm font-semibold text-gray-900">{tx('Tuần này chưa có ca hay lịch bận nào.')}</p>
+      <p className="mt-1 text-sm text-gray-600">{tx('Thêm giờ bận để không nhận nhầm ca trùng, hoặc tìm ca hợp lịch.')}</p>
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <Link href="/shifts" className="inline-flex min-h-[44px] items-center rounded-xl bg-orange-500 px-4 text-sm font-semibold text-gray-900 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+          {tx('Tìm ca')}
+        </Link>
+        <button type="button" onClick={openCreateBlank} className="inline-flex min-h-[44px] items-center rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-900 hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+          {t('schedule.btn.add')}
+        </button>
+      </div>
+    </>
+  );
 
   const body = (
     <div className="flex flex-col gap-4">
-      {/* Phase 9B: slot config tucked inside a collapsible `<details>` so
-          it doesn't dominate the body on mobile. The summary uses a custom
-          chevron because Tailwind's `marker:hidden` doesn't reach Safari's
-          `::-webkit-details-marker` (already handled in globals.css). */}
-      <details className="group rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
-          <span>{t('schedule.slotCfg.toggle')}</span>
-          <span
-            className="text-xs text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none"
-            aria-hidden="true"
-          >
-            ▾
-          </span>
-        </summary>
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <TimeFieldVN
-            label={t('schedule.slotCfg.dayStart')}
-            value={slotCfg.dayStart}
-            onChange={(v) => handleSlotCfgChange({ dayStart: v })}
-            className="w-32"
-          />
-          <TimeFieldVN
-            label={t('schedule.slotCfg.dayEnd')}
-            value={slotCfg.dayEnd}
-            onChange={(v) => handleSlotCfgChange({ dayEnd: v })}
-            className="w-32"
-          />
-          <Input
-            label={t('schedule.slotCfg.slotMinutes')}
-            type="number"
-            min={15}
-            step={15}
-            value={Number.isFinite(slotCfg.slotMinutes) ? slotCfg.slotMinutes : ''}
-            onChange={(e) => {
-              const raw = e.target.value;
-              handleSlotCfgChange({
-                slotMinutes: raw === '' ? Number.NaN : Number(raw),
-              });
-            }}
-            className="w-32"
-          />
-        </div>
-        {slotCfgError && (
-          <p role="alert" className="mt-2 text-xs text-red-600">
-            {slotCfgError}
-          </p>
-        )}
-      </details>
-
       {actionError && (
         <div
           role="alert"
@@ -500,38 +511,27 @@ function SchedulePageContent() {
 
       {/* Calendar body — wrapped in a soft white panel so the whole grid
           reads as a real product surface, not a bare table. */}
-      <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-card backdrop-blur-sm">
+      <div className="rounded-2xl bg-white shadow-card ring-1 ring-black/5">
         {view === 'week' && (
-          slotsValid ? (
-            <WeekView
-              weekStart={startOfWeek(selectedDateIso)}
-              slotConfig={slotCfg}
-              events={calendarEvents}
-              onCellClick={openCreateForSlot}
-              onEventClick={handleEventClick}
-              className="rounded-2xl"
-            />
-          ) : (
-            <p className="py-10 text-center text-sm text-gray-400">
-              {slotCfgError ?? t('schedule.slotCfg.error.INVALID_TIME_RANGE')}
-            </p>
-          )
+          <WeekView
+            weekStart={startOfWeek(selectedDateIso)}
+            slotConfig={slotCfg}
+            events={calendarEvents}
+            onCellClick={openCreateForSlot}
+            onEventClick={handleEventClick}
+            className="rounded-2xl"
+            emptyState={emptyWeek}
+          />
         )}
 
         {view === 'day' && (
-          slotsValid ? (
-            <DayView
-              dateIso={selectedDateIso}
-              slotConfig={slotCfg}
-              events={calendarEvents}
-              onCellClick={openCreateForSlot}
-              onEventClick={handleEventClick}
-            />
-          ) : (
-            <p className="py-10 text-center text-sm text-gray-400">
-              {slotCfgError ?? t('schedule.slotCfg.error.INVALID_TIME_RANGE')}
-            </p>
-          )
+          <DayView
+            dateIso={selectedDateIso}
+            slotConfig={slotCfg}
+            events={calendarEvents}
+            onCellClick={openCreateForSlot}
+            onEventClick={handleEventClick}
+          />
         )}
 
         {view === 'agenda' && (
@@ -542,36 +542,48 @@ function SchedulePageContent() {
               events={calendarEvents}
               onEventClick={handleEventClick}
               emptyMessage={t('calendar.empty.worker')}
+              renderEmptyDay={(day) =>
+                day < todayIso() ? (
+                  <span>{tx('Ngày trống.')}</span>
+                ) : (
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>{tx('Ngày trống.')}</span>
+                  <Link href="/shifts" className="font-semibold text-orange-700 hover:underline">
+                    {tx('Tìm ca')}
+                  </Link>
+                  <button type="button" onClick={() => openCreateForSlot(day, '08:00', '12:00')} className="font-semibold text-orange-700 hover:underline">
+                    {t('schedule.btn.add')}
+                  </button>
+                </span>
+                )
+              }
             />
           </div>
         )}
       </div>
 
-      {/* Flat fallback list — kept so workers can still delete blocks
-          without finding them on the timetable. */}
-      <section className="mt-2">
-        <h2 className="mb-3 text-lg font-semibold text-gray-900">
-          {t('schedule.list.title')}
-        </h2>
-        {flatList.length === 0 ? (
-          <EmptyState
-            tone="warm"
-            title={t('schedule.empty.title')}
-            description={t('schedule.empty.description')}
-          />
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {flatList.map((block) => (
-              <BlockRow
-                key={block.id}
-                block={block}
-                onEdit={() => openEdit(block)}
-                onDelete={() => handleDelete(block.id)}
-              />
-            ))}
-          </ul>
-        )}
-      </section>
+      {/* Danh sách đầy đủ lịch bận / rảnh — thu gọn dưới lịch (vẫn sửa / xoá được). */}
+      <details className="group rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5">
+        <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
+          <span>
+            {t('schedule.list.title')} ({flatList.length})
+          </span>
+          <span className="text-xs text-gray-500 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true">
+            ▾
+          </span>
+        </summary>
+        <div className="mt-3">
+          {flatList.length === 0 ? (
+            <EmptyState tone="warm" title={t('schedule.empty.title')} description={t('schedule.empty.description')} />
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {flatList.map((block) => (
+                <BlockRow key={block.id} block={block} onEdit={() => openEdit(block)} onDelete={() => handleDelete(block.id)} />
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
     </div>
   );
 
@@ -582,50 +594,53 @@ function SchedulePageContent() {
           warm-cream chrome already provides surface treatment for the
           calendar grid; the extra blobs added clutter without value. */}
 
-      <header className="entrance-up mb-6 overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white p-6 shadow-card">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              {t('schedule.page.title')}
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm text-gray-600">
-              {t('schedule.page.subtitle')}
-            </p>
-          </div>
-          <PageHelpButton
-            title={t('help.workerSchedule.title')}
-            intro={t('help.workerSchedule.intro')}
-            sections={[
-              {
-                heading: t('help.workerSchedule.section.purpose.heading'),
-                items: [t('help.workerSchedule.section.purpose.item1')],
-              },
-              {
-                heading: t('help.workerSchedule.section.numbers.heading'),
-                items: [
-                  t('help.workerSchedule.section.numbers.item1'),
-                  t('help.workerSchedule.section.numbers.item2'),
-                ],
-              },
-              {
-                heading: t('help.workerSchedule.section.actions.heading'),
-                items: [
-                  t('help.workerSchedule.section.actions.item1'),
-                  t('help.workerSchedule.section.actions.item2'),
-                  t('help.workerSchedule.section.actions.item3'),
-                ],
-              },
-              {
-                heading: t('help.workerSchedule.section.mistakes.heading'),
-                items: [
-                  t('help.workerSchedule.section.mistakes.item1'),
-                  t('help.workerSchedule.section.mistakes.item2'),
-                ],
-              },
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">{t('schedule.page.title')}</h1>
+          <p className="mt-2 max-w-2xl text-base text-gray-600">{t('schedule.page.subtitle')}</p>
+          <ScheduleSummary
+            label={tx('Tóm tắt tuần đang xem')}
+            items={[
+              { value: String(summary.taken), label: tx('Ca đã nhận trong tuần') },
+              { value: summary.hours.toLocaleString('vi-VN', { maximumFractionDigits: 1 }), label: tx('Giờ làm') },
+              { value: formatVND(summary.pay), label: tx('Tiền công dự kiến') },
+              { value: String(summary.pending), label: tx('Đơn chờ duyệt'), warn: summary.pending > 0 },
             ]}
-            cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
           />
         </div>
+        <PageHelpButton
+          title={t('help.workerSchedule.title')}
+          intro={t('help.workerSchedule.intro')}
+          sections={[
+            {
+              heading: t('help.workerSchedule.section.purpose.heading'),
+              items: [t('help.workerSchedule.section.purpose.item1')],
+            },
+            {
+              heading: t('help.workerSchedule.section.numbers.heading'),
+              items: [
+                t('help.workerSchedule.section.numbers.item1'),
+                t('help.workerSchedule.section.numbers.item2'),
+              ],
+            },
+            {
+              heading: t('help.workerSchedule.section.actions.heading'),
+              items: [
+                t('help.workerSchedule.section.actions.item1'),
+                t('help.workerSchedule.section.actions.item2'),
+                t('help.workerSchedule.section.actions.item3'),
+              ],
+            },
+            {
+              heading: t('help.workerSchedule.section.mistakes.heading'),
+              items: [
+                t('help.workerSchedule.section.mistakes.item1'),
+                t('help.workerSchedule.section.mistakes.item2'),
+              ],
+            },
+          ]}
+          cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
+        />
       </header>
 
       <CalendarShell sidebar={sidebar} toolbar={toolbar} body={body} />
@@ -633,6 +648,88 @@ function SchedulePageContent() {
       {/* Add / edit dialog (preserved from Phase 5B; date/time inputs
           swapped for the Vietnamese-friendly fields in Phase 9B, plus
           shift-overlap guard added). */}
+      {/* Hộp chi tiết khi bấm một mục trên lịch (03/10). */}
+      <EventPeek
+        open={peekEvent !== null}
+        onClose={() => {
+          setPeekId(null);
+          setConfirmDelete(false);
+        }}
+        title={peekEvent?.title ?? ''}
+        badge={
+          peekApp ? (
+            <Badge tone={APP_TONE[peekApp.status] ?? 'neutral'}>{t(`apply.applied.${peekApp.status}`)}</Badge>
+          ) : peekBlock ? (
+            <Badge tone={peekBlock.kind === 'available' ? 'success' : 'neutral'}>
+              {peekBlock.kind === 'available' ? t('calendar.legend.worker.availableSlot') : t('calendar.legend.worker.personalBusy')}
+            </Badge>
+          ) : undefined
+        }
+        rows={
+          peekEvent
+            ? [
+                { label: tx('Thời gian'), value: `${formatDateVN(peekEvent.date)} · ${formatTimeVN(peekEvent.startTime)}–${formatTimeVN(peekEvent.endTime)}` },
+                ...(peekShift
+                  ? [
+                      { label: tx('Địa điểm'), value: peekShift.location },
+                      {
+                        label: tx('Tiền công cả ca'),
+                        value: formatVND(serverWageTotal(peekShift.hourlyWage, hoursBetween(peekShift.startTime, peekShift.endTime), 1)),
+                      },
+                    ]
+                  : []),
+                ...(peekBlock?.note ? [{ label: tx('Ghi chú'), value: peekBlock.note }] : []),
+              ]
+            : []
+        }
+        note={
+          peekApp && peekShift && (peekApp.status === 'Approved' || peekApp.status === 'CancellationRequested') && peekShift.date >= todayIso()
+            ? tx('Check-in mở từ {time}, 15 phút trước giờ bắt đầu.').replace('{time}', shiftMilestones(peekShift.startTime, peekShift.endTime)?.checkInOpen.time ?? peekShift.startTime)
+            : undefined
+        }
+        actions={
+          peekShift ? (
+            <Link
+              href={`/shifts/${peekShift.id}`}
+              className="inline-flex min-h-[44px] items-center rounded-xl bg-orange-500 px-4 text-sm font-semibold text-gray-900 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            >
+              {tx('Mở trang ca')} →
+            </Link>
+          ) : peekBlock ? (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!confirmDelete) {
+                    setConfirmDelete(true);
+                    return;
+                  }
+                  setPeekId(null);
+                  setConfirmDelete(false);
+                  handleDelete(peekBlock.id);
+                }}
+                className={[
+                  'inline-flex min-h-[44px] items-center rounded-xl px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400',
+                  confirmDelete ? 'bg-red-600 text-white hover:bg-red-700' : 'text-red-700 hover:bg-red-50',
+                ].join(' ')}
+              >
+                {confirmDelete ? tx('Bấm lần nữa để xoá') : t('btn.delete')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPeekId(null);
+                  openEdit(peekBlock);
+                }}
+                className="inline-flex min-h-[44px] items-center rounded-xl bg-orange-500 px-4 text-sm font-semibold text-gray-900 hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+              >
+                {t('btn.edit')}
+              </button>
+            </>
+          ) : undefined
+        }
+      />
+
       <ScheduleBlockDialog
         seed={modalSeed}
         userId={currentUserId}

@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react';
 
+import { QUARTER_PX_PER_HOUR } from './calendarModel';
+
 export type CalendarEventVariant =
   | 'personalBusy'
   | 'availableSlot'
@@ -11,7 +13,9 @@ export type CalendarEventVariant =
   | 'fullyBookedShift'
   | 'awaitingShift'
   | 'completedShift'
-  | 'cancelledShift';
+  | 'cancelledShift'
+  /** Ca quá hạn không ai làm — xám, khớp chú giải "Đã quá hạn" (03/10). */
+  | 'expiredShift';
 
 export interface CalendarEventCardProps {
   title: string;
@@ -52,6 +56,7 @@ const variantClasses: Record<CalendarEventVariant, string> = {
   awaitingShift: 'bg-amber-100 border-amber-300 text-amber-900',
   completedShift: 'bg-green-100 border-green-300 text-green-900',
   cancelledShift: 'bg-red-100 border-red-300 text-red-900 line-through',
+  expiredShift: 'bg-gray-100 border-gray-300 text-gray-600',
 };
 
 /**
@@ -67,6 +72,8 @@ const PX_PER_HOUR_MIN = 60;
  */
 export function calendarSlotRowHeight(slotMinutes: number): number {
   if (!(slotMinutes > 0)) return 60;
+  // 03/10 — lưới 4 cụm 6 giờ (`DAY_QUARTERS`): cụm dài thì mỗi giờ 24px để cả ngày gọn.
+  if (slotMinutes >= 240) return Math.round(slotMinutes * (QUARTER_PX_PER_HOUR / 60));
   return Math.max(60, Math.round(slotMinutes * (PX_PER_HOUR_MIN / 60)));
 }
 
