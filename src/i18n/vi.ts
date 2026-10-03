@@ -315,6 +315,8 @@ export const vi: Record<string, string> = {
   'notification.kind.UserTopUp': 'Nạp tiền vào ví',
   'notification.kind.PaymentReviewCredited': 'Giao dịch nạp đã được cộng sau kiểm tra',
   'notification.kind.PaymentReviewDismissed': 'Giao dịch nạp không được cộng',
+  // Chuông thông báo rỗng.
+  'notification.empty': 'Chưa có thông báo nào.',
   // 0031 — thông báo phía server khi admin xử giao dịch nạp cần kiểm tra.
   'notification.paymentReview.credited.title': 'Đã cộng tiền nạp vào ví',
   'notification.paymentReview.credited.body':

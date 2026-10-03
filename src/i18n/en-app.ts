@@ -186,6 +186,7 @@ export const enApp: Record<string, string> = {
   'nav.notifications': 'Notifications',
   'btn.markAllRead': 'Mark all as read',
   'common.noData': 'Nothing here yet.',
+  'notification.empty': 'No notifications yet.',
   'notification.paymentReview.credited.title': 'Top-up credited to your wallet',
   'notification.paymentReview.credited.body':
     'The top-up for order #{code} has been checked: {amount} was added to your wallet. Note: {note}',

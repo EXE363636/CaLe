@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, useCurrentRole } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { handleNotificationClick } from '@/lib/notificationAction';
+import { resolveNotificationTarget } from '@/lib/notificationTarget';
 import { formatNotificationTime } from '@/lib/notificationTime';
 import { useLocale, useT, useTx } from '@/i18n/LocaleProvider';
 import type { Notification } from '@/types';
@@ -38,6 +39,7 @@ export function NotificationBell() {
   const router = useRouter();
 
   const currentUserId = useAuthStore((s) => s.currentUserId);
+  const role = useCurrentRole();
   const allNotifications = useNotificationStore((s) => s.notifications);
   const notifications = useMemo(
     () =>
@@ -145,7 +147,7 @@ export function NotificationBell() {
           <ul className="max-h-80 overflow-y-auto divide-y divide-gray-50">
             {recent.length === 0 ? (
               <li className="px-4 py-6 text-center text-sm text-gray-400">
-                {t('common.noData')}
+                {t('notification.empty')}
               </li>
             ) : (
               recent.map((n: Notification) => (
@@ -154,7 +156,13 @@ export function NotificationBell() {
                     notification={n}
                     nowIso={nowIso}
                     onActivate={() => {
-                      handleNotificationClick(n, {
+                      // Thông báo phía server (0031) không mang link — đích tuỳ vai trò
+                      // người nhận, nên tra lúc bấm theo vai trò hiện tại.
+                      const target =
+                        n.source === 'server' && !n.link
+                          ? { ...n, link: resolveNotificationTarget(n, role ?? undefined) }
+                          : n;
+                      handleNotificationClick(target, {
                         markRead,
                         router,
                         pathname,

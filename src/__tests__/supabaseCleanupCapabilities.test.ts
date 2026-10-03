@@ -46,7 +46,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('capabilities() theo data mode', () => {
-  it('supabase: chỉ bật auth/profile, shifts, applications, adminUsers', () => {
+  it('supabase: chỉ bật phần đã có server thật', () => {
     setMode('supabase');
     const c = capabilities();
     expect(c.authProfiles).toBe(true);
@@ -60,12 +60,14 @@ describe('capabilities() theo data mode', () => {
       'disputes',
       'verifications',
       'ratings',
-      'notifications',
+      'clientNotifications',
       'boost',
-      'schedule',
     ] as const) {
       expect(hasCapability(key), `${key} phải tắt ở supabase`).toBe(false);
     }
+    // Chuông bật, nhưng chỉ có thông báo phía server (0031) — thông báo tạo ở
+    // client (máy người thao tác) bị tắt bằng `clientNotifications`.
+    expect(c.notifications).toBe(true);
   });
 
   it('local: bật mọi tính năng (giữ baseline test cũ)', () => {
@@ -75,7 +77,8 @@ describe('capabilities() theo data mode', () => {
       if (key === 'livePayments') continue;
       expect(c[key], `${key} phải bật ở local`).toBe(true);
     }
-    expect(c.livePayments, 'livePayments phải tắt nếu chưa cấu hình provider thật').toBe(false);
+    // Local/demo không có tiền thật — chỉ mô phỏng.
+    expect(c.livePayments, 'livePayments phải tắt ở local/demo').toBe(false);
   });
 });
 
