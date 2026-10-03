@@ -36,7 +36,7 @@ function seedShift() {
 }
 
 function logoLink(page: import('@playwright/test').Page) {
-  return page.locator('header a:has(img[src="/images/logo.png"])').first();
+  return page.locator('header a:has(img[src="/images/logo-small.png"])').first();
 }
 
 function adminTab(page: import('@playwright/test').Page, name: string) {

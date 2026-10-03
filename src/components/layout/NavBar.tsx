@@ -442,7 +442,9 @@ export function NavBar() {
   return (
     <header
       // Màu header theo da `.public-skin` gắn ở `<body>` (03/10, cả app).
-      className="sticky top-0 z-30 border-b border-orange-100 bg-white/95 shadow-sm backdrop-blur-sm"
+      // 04/10: bỏ `backdrop-blur-sm` + nền 95% — lớp mờ phải vẽ lại mỗi lần cuộn (giật lag);
+      // nền đặc `bg-white` (biến màu da, tự đổi theo giao diện tối).
+      className="sticky top-0 z-30 border-b border-orange-100 bg-white shadow-sm"
     >
       {/* HEADER-NAV-LAYOUT-3 — pure-CSS 3-zone adaptive header.
           Below `xl` (< 1280px): a simple flex row (brand left, right
@@ -473,9 +475,16 @@ export function NavBar() {
           }
           className="flex min-w-0 shrink-0 flex-col leading-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:rounded xl:justify-self-start"
         >
+          {/* 04/10: logo bản nhỏ 194×120 (~2-3× cỡ hiển thị) thay ảnh gốc 3896×2416 —
+              ảnh gốc 192 KB phải giải mã ở mọi trang. width/height giữ đúng tỉ lệ để
+              trình duyệt giữ chỗ trước (không nhảy bố cục); cỡ hiển thị vẫn do class. */}
           <img
-            src="/images/logo.png"
+            src="/images/logo-small.png"
             alt={t('site.name')}
+            width={194}
+            height={120}
+            decoding="async"
+            fetchPriority="high"
             className="h-10 m-2 w-auto object-contain"
           />
           {/* Visual-polish pass — bumped from gray-400 (~2.5:1 on the

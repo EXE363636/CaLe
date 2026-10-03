@@ -2,17 +2,15 @@
  * Phần lặp lại của ba trang pháp lý (03/10): thanh chuyển tài liệu, dòng "áp dụng cho",
  * thẻ "Còn thắc mắc?" và hai thẻ "Đọc tiếp". Dựng bằng `tx` của trang (server).
  *
- * Email / hotline / giờ trực: CÙNG giá trị với `/support` và chân trang
- * (`components/layout/Footer.tsx`). Đổi ở đó thì đổi cả ở đây.
+ * Email / hotline: hằng chung ở `lib/contact.ts` (cùng `/support`, chân trang,
+ * bong bóng hỗ trợ).
  */
 
 import type { ComponentProps } from 'react';
 
 import type { LegalDoc, LegalEnd } from '@/components/landing/LegalArticle';
 import type { TFunction } from '@/i18n/locale';
-
-const SUPPORT_EMAIL = 'nguyenphuonganh98113@gmail.com';
-const SUPPORT_HOTLINE = '0868325698';
+import { SUPPORT_EMAIL, SUPPORT_HOTLINE } from '@/lib/contact';
 
 export function legalChrome(tx: TFunction, current: LegalDoc, live: boolean) {
   const all: Array<{ doc: LegalDoc; href: string; label: string; title: string; body: string }> = [

@@ -128,6 +128,8 @@ test.describe('/for-workers bản 03/10', () => {
       'worker-reputation',
       'worker-reputation-rules',
       'worker-faq',
+      // 04/10: minh hoạ trợ lý theo câu hỏi người lao động (chi tiết: e2e/48).
+      'worker-assistant',
       'worker-help',
     ]);
     // Mọi khối nội dung mang data-tone (ToneScroll đổi nền theo khối).
@@ -345,6 +347,7 @@ test.describe('/for-employers bản 03/10', () => {
       'employer-pricing',
       'employer-reviews',
       'employer-faq',
+      'employer-assistant',
       'employer-help',
     ]) {
       expect(idx(id), `có khối ${id} (thứ tự: ${order.join(', ')})`).toBeGreaterThanOrEqual(0);
@@ -366,6 +369,9 @@ test.describe('/for-employers bản 03/10', () => {
     expect(idx('employer-pricing')).toBe(idx('employer-payments') + 1);
     expect(idx('employer-reviews')).toBe(idx('employer-pricing') + 1);
     expect(idx('employer-faq')).toBeLessThan(idx('employer-help'));
+    // 04/10: minh hoạ trợ lý theo câu hỏi nhà tuyển dụng, giữa FAQ và "An toàn và hỗ trợ".
+    expect(idx('employer-assistant')).toBe(idx('employer-faq') + 1);
+    expect(idx('employer-help')).toBe(idx('employer-assistant') + 1);
 
     await expect(
       main.getByRole('heading', { level: 2, name: 'Một ca tốn bao nhiêu?', exact: true }),

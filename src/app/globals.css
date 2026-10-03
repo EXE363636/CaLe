@@ -273,12 +273,15 @@ body {
  * to 0 over the toast's `duration` (set inline as `animation-duration`).
  * Linear timing so the visual progress is honest. Reduced-motion users
  * see a static full-width bar (overridden in the media query below). */
+/* 04/10: co bằng `transform: scaleX()` (gốc bên trái) thay vì animate `width` — chạy
+ * trên compositor, không bố cục lại mỗi khung hình; nhìn y như cũ. */
 @keyframes toast-progress-shrink {
-  from { width: 100%; }
-  to   { width: 0%; }
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }
 .toast-progress {
   width: 100%;
+  transform-origin: left center;
   animation-name: toast-progress-shrink;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
@@ -317,11 +320,7 @@ body {
   .entrance-up,
   .entrance-up-soft,
   .entrance-right,
-  .float-soft,
-  .float-blob,
-  .pulse-node,
-  .motion-fade-up,
-  .gradient-drift {
+  .motion-fade-up {
     animation: none;
   }
   /* Reduced-motion users see the reveal end-state immediately — no
@@ -510,7 +509,8 @@ summary::-webkit-details-marker {
     opacity 520ms ease-out,
     transform 520ms ease-out;
   transition-delay: var(--reveal-delay, 0ms);
-  will-change: opacity, transform;
+  /* 04/10: bỏ `will-change` thường trực — mỗi phần tử `.reveal` giữ một lớp GPU
+   * riêng suốt đời trang; trình duyệt tự nâng lớp trong lúc transition. */
 }
 .reveal.is-revealed {
   opacity: 1;
@@ -520,16 +520,7 @@ summary::-webkit-details-marker {
 /* Soft floating drift — reserved for hero decorative shapes only.
  * Amplitude is intentionally tiny (4px) and the duration long (≥6s) so
  * the motion reads as ambient warmth, not chrome. */
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
-}
-.float-soft {
-  animation: float-soft 8s ease-in-out infinite;
-}
-.float-soft.float-soft-slow {
-  animation-duration: 11s;
-}
+/* 04/10: `.float-soft` (vòng lặp vô hạn) đã gỡ — không còn nơi dùng. */
 
 /* Subtle dot-grid pattern — used as a behind-hero decoration. CSS-only,
  * no SVG asset, so the bundle stays small. Phase 9G: alpha lowered so
@@ -616,24 +607,7 @@ summary::-webkit-details-marker {
  *     motion-sensitive users see a static blob, never a drifting one.
  * ------------------------------------------------------------------------- */
 
-@keyframes float-blob {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate3d(8px, -12px, 0) rotate(1.5deg);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-}
-.float-blob {
-  animation: float-blob 16s ease-in-out infinite;
-  will-change: transform;
-}
-.float-blob.float-blob-slow {
-  animation-duration: 22s;
-}
+/* 04/10: `.float-blob` (vòng lặp vô hạn) đã gỡ — không còn nơi dùng. */
 
 /* Smaller, lower-alpha cousin of `.bg-dot-grid`. Designed for use as
  * a low-key paper texture on dashboard panels: 16px grid (vs 22px on
@@ -813,25 +787,7 @@ summary::-webkit-details-marker {
  * to the explicit list).
  * ------------------------------------------------------------------------- */
 
-@keyframes pulse-node {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.55;
-  }
-  50% {
-    transform: scale(1.18);
-    opacity: 0.85;
-  }
-}
-.pulse-node {
-  animation: pulse-node 4.4s ease-in-out infinite;
-  transform-box: fill-box;
-  transform-origin: center;
-  will-change: transform, opacity;
-}
-.pulse-node.pulse-node-slow {
-  animation-duration: 6.6s;
-}
+/* 04/10: `.pulse-node` (vòng lặp vô hạn) đã gỡ — không còn nơi dùng. */
 
 .bg-route-soft {
   /* Brand palette alignment — coral (#FF9A5F) wash + faint dot texture.
@@ -1098,19 +1054,7 @@ summary::-webkit-details-marker {
   transform: translateX(4px);
 }
 
-@keyframes gradient-drift {
-  0%, 100% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 6% 4%;
-  }
-}
-.gradient-drift {
-  background-size: 140% 140%;
-  animation: gradient-drift 18s ease-in-out infinite;
-  will-change: background-position;
-}
+/* 04/10: `.gradient-drift` (vòng lặp vô hạn) đã gỡ — không còn nơi dùng. */
 
 .public-section-rhythm {
   padding-block: 56px;
@@ -1828,19 +1772,23 @@ summary::-webkit-details-marker {
 .flow-stub.is-on .flow-fill {
   transform: none;
 }
+/* 04/10: thanh dọc mọc bằng `scaleY` (gốc trên) thay vì transition `height` — không
+ * bố cục lại mỗi khung hình (cùng cách `.flow-fill`). */
 .flow-bus-fill {
-  height: 0;
-  transition: height 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  transform-origin: top;
+  transform: scaleY(0);
+  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .money-flow[data-step='2'] .flow-bus-fill {
-  height: 17.65%; /* 36 / 204 */
+  transform: scaleY(0.1765); /* 36 / 204 */
 }
 .money-flow[data-step='3'] .flow-bus-fill {
-  height: 58.82%; /* 120 / 204 */
+  transform: scaleY(0.5882); /* 120 / 204 */
 }
 .money-flow[data-step='4'] .flow-bus-fill,
 .money-flow[data-step='5'] .flow-bus-fill {
-  height: 100%;
+  transform: none;
 }
 .flow-dot {
   position: absolute;
@@ -1887,10 +1835,10 @@ summary::-webkit-details-marker {
     animation-name: flow-dot-x;
   }
   .money-flow[data-step='2'] .flow-bus-fill {
-    height: 0;
+    transform: scaleY(0);
   }
   .money-flow[data-step='3'] .flow-bus-fill {
-    height: 50%;
+    transform: scaleY(0.5);
   }
 }
 .flow-node {
@@ -1974,5 +1922,105 @@ summary::-webkit-details-marker {
     transform: none;
     stroke-dashoffset: 0;
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Bong bóng hỗ trợ (04/10, `components/support/*`). Chỉ dùng token màu sẵn có
+ * (`--color-orange-*`, `--color-gray-*`) nên giao diện tối tự đổi theo.
+ * Mọi chuyển động tắt khi `prefers-reduced-motion: reduce`.
+ * ------------------------------------------------------------------------- */
+/* Tin mới: hiện dần + trượt nhẹ lên. */
+@keyframes support-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.support-msg-in {
+  animation: support-msg-in 180ms ease-out both;
+}
+/* Ba chấm "đang trả lời": nảy nhẹ lần lượt. */
+@keyframes support-typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+.support-typing-dot {
+  animation: support-typing-dot 1.1s ease-in-out infinite;
+}
+.support-typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.support-typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+/* Nút tròn: vòng sáng lan ra hai lần sau khi tải trang (một lần mỗi phiên). */
+@keyframes support-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-orange-500) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 16px color-mix(in oklab, var(--color-orange-500) 0%, transparent);
+  }
+}
+.support-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: support-pulse 1.4s ease-out 2;
+}
+/* Gợi ý "Cần hỗ trợ? Hỏi ngay" cạnh nút tròn. */
+@keyframes support-tip-in {
+  from {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.support-tip-in {
+  animation: support-tip-in 220ms ease-out both;
+}
+/* Thanh cuộn mảnh, nhạt trong khung hỗ trợ. */
+.support-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gray-300) transparent;
+}
+.support-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.support-scroll::-webkit-scrollbar-button {
+  display: none;
+}
+.support-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.support-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-gray-300);
+  border-radius: 9999px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .support-msg-in,
+  .support-typing-dot,
+  .support-tip-in,
+  .support-pulse::after {
+    animation: none;
   }
 }

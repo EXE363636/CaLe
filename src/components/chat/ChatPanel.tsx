@@ -79,6 +79,10 @@ export function ChatPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const reportRef = useRef<HTMLTextAreaElement>(null);
   const lastIdRef = useRef<string | null>(null);
+  /** Người dùng đang ở (gần) cuối danh sách — cập nhật khi cuộn. */
+  const atBottomRef = useRef(true);
+  /** Tin mới của người kia tới khi đang đọc tin cũ → hiện nút "Tin nhắn mới". */
+  const [newBelow, setNewBelow] = useState(false);
 
   // Mở cuộc trò chuyện khi gắn; ngừng nghe tin mới khi gỡ / đổi đơn.
   useEffect(() => {
@@ -98,15 +102,44 @@ export function ChatPanel({
     if (autoFocus && access === 'open') textareaRef.current?.focus();
   }, [autoFocus, access]);
 
-  // Có tin MỚI ở cuối → cuộn xuống cuối (tức thì, không hiệu ứng). Nạp tin cũ
-  // (thêm ở đầu) thì giữ nguyên chỗ đang đọc.
+  // Có tin MỚI ở cuối (như Messenger): lần đầu mở, tin của chính mình, hoặc đang ở
+  // cuối danh sách → cuộn xuống cuối. Đang kéo lên đọc tin cũ mà người kia nhắn tới →
+  // KHÔNG giật xuống, hiện nút "Tin nhắn mới". Nạp tin cũ (thêm ở đầu) thì giữ nguyên.
   useEffect(() => {
-    const last = messages[messages.length - 1]?.id ?? null;
-    if (last !== lastIdRef.current && listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
+    const lastMsg = messages[messages.length - 1];
+    const last = lastMsg?.id ?? null;
+    const prev = lastIdRef.current;
     lastIdRef.current = last;
+    const el = listRef.current;
+    if (!last || !el || last === prev) return;
+    const first = prev === null;
+    if (first || lastMsg.senderId === userId || atBottomRef.current) {
+      scrollToBottom(!first);
+      return;
+    }
+    setNewBelow(true);
+    // Chỉ chạy khi danh sách tin đổi.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
+
+  function scrollToBottom(smooth: boolean) {
+    const el = listRef.current;
+    if (!el) return;
+    const reduce =
+      typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (smooth && !reduce && typeof el.scrollTo === 'function') el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    else el.scrollTop = el.scrollHeight;
+    atBottomRef.current = true;
+    setNewBelow(false);
+  }
+
+  function handleListScroll() {
+    const el = listRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+    atBottomRef.current = atBottom;
+    if (atBottom && newBelow) setNewBelow(false);
+  }
 
   useEffect(() => {
     if (reportTarget) reportRef.current?.focus();
@@ -172,8 +205,10 @@ export function ChatPanel({
       <p className="text-sm text-gray-600">{intro}</p>
       {!isSupabaseEnv() && <p className="text-xs text-gray-500">{t('chat.demoNote')}</p>}
 
+      <div className="relative">
       <div
         ref={listRef}
+        onScroll={handleListScroll}
         role="log"
         aria-live="polite"
         aria-label={t('chat.list.label')}
@@ -251,6 +286,19 @@ export function ChatPanel({
             })}
           </ul>
         )}
+      </div>
+      {newBelow && (
+        <button
+          type="button"
+          onClick={() => scrollToBottom(true)}
+          className="absolute bottom-3 left-1/2 inline-flex min-h-11 -translate-x-1/2 items-center gap-1.5 rounded-full bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-modal hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2"
+        >
+          {t('chat.newBelow')}
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 4v12m0 0-5-5m5 5 5-5" />
+          </svg>
+        </button>
+      )}
       </div>
 
       {reportTarget && (

@@ -30,6 +30,7 @@ import { getLocale, getT, getTx } from '@/i18n/server';
 import { shareMeta } from '@/lib/shareMeta';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { shiftMilestones } from '@/components/landing/shiftMilestones';
+import { SupportAssistantSection } from '@/components/landing/SupportAssistantSection';
 
 /**
  * Trang cho người lao động. Trước đây (P1 feedback F4) giới hạn 4 khối; từ 02/10
@@ -510,6 +511,22 @@ export default async function WorkerHomePage() {
           },
         ]}
         tone="cream"
+      />
+
+      {/* Hỏi trợ lý (04/10): minh hoạ chat tự chạy với các thắc mắc người lao động hay
+          hỏi khi mới vào (có mất phí, bao lâu có lương, lỡ không được trả tiền…). */}
+      <SupportAssistantSection
+        locale={locale}
+        id="worker-assistant"
+        audience="worker"
+        tone="paper"
+        title={tx('Thắc mắc khi đi làm? Hỏi trợ lý CaLẻ')}
+        body={tx('Người mới hay hỏi: có mất phí không, bao lâu có lương, lỡ không được trả tiền thì sao… Trợ lý trả lời ngay bằng lời dễ hiểu.')}
+          points={[
+            tx('Trả lời ngay, cả ngày lẫn đêm'),
+            tx('Hiểu cả câu không dấu, viết tắt'),
+            tx('Cần người thật: có hotline, Zalo, email'),
+          ]}
       />
 
       {/* An toàn & hỗ trợ — lối tắt tới /support (03/10: /safety gộp vào /support) */}

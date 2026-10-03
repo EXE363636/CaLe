@@ -4,7 +4,8 @@
  * Chân trang (03/10 — làm lại theo da "giấy trắng, cam rõ", `.public-skin`).
  *
  *   - Từ `lg` một hàng: logo + một câu giới thiệu · ba cột liên kết "CaLẻ" / "Người lao
- *     động" / "Nhà tuyển dụng" · "Cần hỗ trợ?" (email, hotline, địa chỉ, lối sang /support).
+ *     động" / "Nhà tuyển dụng" · "Cần hỗ trợ?" (nút "Nhắn với trợ lý" mở bong bóng hỗ trợ,
+ *     email, hotline, địa chỉ, lối sang /support).
  *     `md`: logo | hỗ trợ, ba cột liên kết hàng dưới. Điện thoại: logo, hỗ trợ, liên kết 2
  *     cột. Hai cột vai trò thêm lại 03/10 (chủ dự án), trỏ tới các khối của trang vai trò.
  *   - Dưới cùng: bản quyền + hàng liên kết pháp lý nhỏ (Điều khoản · Bảo mật · Tranh
@@ -19,6 +20,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { t } from '@/i18n/vi';
 import { useTx } from '@/i18n/LocaleProvider';
+import { SUPPORT_EMAIL, SUPPORT_HOTLINE } from '@/lib/contact';
+import { SupportGlyph } from '@/components/support/SupportGlyph';
+import { openSupportBubble } from '@/components/support/supportBubbleEvents';
 
 interface ColumnLink {
   label: string;
@@ -76,8 +80,8 @@ const LEGAL_LINKS: ColumnLink[] = [
   { label: 'Liên hệ hỗ trợ', href: '/support' },
 ];
 
-const EMAIL = 'nguyenphuonganh98113@gmail.com';
-const HOTLINE = '0868325698';
+const EMAIL = SUPPORT_EMAIL;
+const HOTLINE = SUPPORT_HOTLINE;
 
 const LINK =
   'rounded underline-offset-4 decoration-orange-400 decoration-2 hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400';
@@ -96,7 +100,8 @@ export function Footer() {
               href="/"
               className="inline-flex rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
-              <Image src="/images/logo.png" alt={t('site.name')} width={161} height={100} className="h-10 w-auto object-contain" />
+              {/* 04/10: logo bản nhỏ (194×120) thay ảnh gốc 3896×2416 — đỡ giải mã ảnh lớn mỗi trang. */}
+              <Image src="/images/logo-small.png" alt={t('site.name')} width={194} height={120} className="h-10 w-auto object-contain" />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-gray-600">
               {tx('Kết nối ca làm ngắn hạn an toàn, minh bạch và linh hoạt cho người lao động và nhà tuyển dụng tại Việt Nam.')}
@@ -107,6 +112,16 @@ export function Footer() {
             <h2 id="footer-help" className="text-sm font-semibold text-gray-900">
               {tx('Cần hỗ trợ?')}
             </h2>
+            {/* 04/10: mở bong bóng hỗ trợ ở tab trợ lý (cùng nút tròn góc màn hình). */}
+            <button
+              type="button"
+              onClick={() => openSupportBubble({ tab: 'assistant' })}
+              data-footer-assistant=""
+              className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-orange-500 px-4 text-sm font-semibold text-gray-900 shadow-sm transition-colors hover:bg-orange-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-700 focus-visible:ring-offset-2 motion-reduce:transition-none"
+            >
+              <SupportGlyph className="h-5 w-5" />
+              {tx('Nhắn với trợ lý')}
+            </button>
             <dl className="mt-4 flex flex-col gap-3 text-sm">
               <div className="min-w-0">
                 <dt className="text-xs text-gray-600">Email</dt>

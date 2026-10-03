@@ -17,6 +17,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Locale } from '@/i18n/locale';
 
+import { inViewport, watchReplay } from './viewReplay';
+
 const DURATION_MS = 1200;
 
 /** Tách "2,53 triệu" → { prefix: '', num: 2.53, decimals: 2, suffix: ' triệu' }. */
@@ -40,44 +42,57 @@ export function StatValue({ value, locale, className }: { value: string; locale:
   const parts = useMemo(() => parse(value, locale), [value, locale]);
   const [phase, setPhase] = useState<Phase>('static');
   const [shown, setShown] = useState<number | null>(null);
+  // 04/10: tạo bộ định dạng một lần (không tạo lại mỗi khung hình khi đang đếm).
+  const fmt = useMemo(
+    () =>
+      parts
+        ? new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
+            minimumFractionDigits: parts.decimals,
+            maximumFractionDigits: parts.decimals,
+          })
+        : null,
+    [parts, locale],
+  );
 
   useEffect(() => {
     const el = ref.current;
     if (!el || !parts || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let first = true;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (first) {
-          first = false;
-          if (entry.isIntersecting) {
-            // Đã thấy lúc tải: không đếm lại từ 0.
-            io.disconnect();
-            setPhase('done');
-            return;
-          }
-          setShown(0);
-          setPhase('armed');
-          return;
-        }
-        if (entry.isIntersecting) {
-          io.disconnect();
-          setPhase('counting');
-        }
+    // Đã thấy lúc tải: giữ số thật. Khuất hẳn rồi cuộn tới lại → đếm lại từ 0 (04/10).
+    const startInside = inViewport(el);
+    const arm = () => {
+      setShown(0);
+      setPhase('armed');
+    };
+     
+    if (startInside) setPhase('done');
+    else arm();
+    return watchReplay(el, {
+      threshold: 0.6,
+      startInside,
+      onEnter: () => {
+        setShown(0);
+        setPhase('counting');
       },
-      { threshold: 0.6 },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+      onLeave: arm,
+    });
   }, [parts]);
 
   useEffect(() => {
     if (phase !== 'counting' || !parts) return;
     const start = performance.now();
     let raf = 0;
+    // 04/10: làm tròn theo số chữ số thập phân hiển thị; chỉ setState khi con số
+    // NHÌN THẤY đổi (không render lại mỗi khung hình).
+    const unit = Math.pow(10, parts.decimals);
+    let last = -1;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / DURATION_MS);
       const eased = 1 - Math.pow(1 - t, 3);
-      setShown(parts.num * eased);
+      const step = Math.round(parts.num * eased * unit);
+      if (step !== last) {
+        last = step;
+        setShown(step / unit);
+      }
       if (t < 1) raf = requestAnimationFrame(tick);
       else setPhase('done');
     };
@@ -86,12 +101,7 @@ export function StatValue({ value, locale, className }: { value: string; locale:
   }, [phase, parts]);
 
   const counting = parts !== null && shown !== null && (phase === 'armed' || phase === 'counting');
-  const text = counting
-    ? `${parts.prefix}${new Intl.NumberFormat(locale === 'vi' ? 'vi-VN' : 'en-US', {
-        minimumFractionDigits: parts.decimals,
-        maximumFractionDigits: parts.decimals,
-      }).format(shown)}${parts.suffix}`
-    : value;
+  const text = counting && fmt ? `${parts.prefix}${fmt.format(shown)}${parts.suffix}` : value;
 
   // Số thật luôn ở DOM (trình đọc màn hình, tìm trong trang, test đều thấy đúng một
   // bản); lúc đếm nó trong suốt giữ chỗ, số đang đếm vẽ đè bằng ::before (attr).

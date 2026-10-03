@@ -201,7 +201,8 @@ test.describe('/for-workers — khối "Ca đang tuyển" (03/10)', () => {
   });
 
   // 03/10: thẻ lợi ích (có ảnh) lên ngay sau hero ở cả hai trang; tông xen kẽ lại.
-  // FAQ và "An toàn và hỗ trợ" chung một tông (cặp khối cuối trang, như trước).
+  // 04/10: khối "Hỏi trợ lý" (paper) chen giữa FAQ và "An toàn và hỗ trợ" (đều cream)
+  // → tông lại xen kẽ đều tới cuối trang.
   const TONES: Record<string, Record<string, string>> = {
     '/for-workers': {
       'worker-benefits': 'paper',
@@ -216,6 +217,7 @@ test.describe('/for-workers — khối "Ca đang tuyển" (03/10)', () => {
       'worker-reputation': 'cream',
       'worker-reputation-rules': 'paper',
       'worker-faq': 'cream',
+      'worker-assistant': 'paper',
       'worker-help': 'cream',
     },
     '/for-employers': {
@@ -230,6 +232,7 @@ test.describe('/for-workers — khối "Ca đang tuyển" (03/10)', () => {
       'employer-pricing': 'cream',
       'employer-reviews': 'paper',
       'employer-faq': 'cream',
+      'employer-assistant': 'paper',
       'employer-help': 'cream',
     },
   };

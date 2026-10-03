@@ -132,6 +132,8 @@ test.describe('Role homepages', () => {
       'home-how',
       'home-explain-title',
       'home-features',
+      // 04/10: "Thắc mắc? Hỏi trợ lý CaLẻ" — minh hoạ chat tự chạy (chi tiết: e2e/48).
+      'home-assistant',
       'home-close',
     ]);
     await expect(main.locator('section[aria-labelledby="home-faq"], #home-faq')).toHaveCount(0);
@@ -437,7 +439,7 @@ test.describe('Role homepages', () => {
     await seedState(buildSnapshot());
     await loginAs(ACCOUNTS.employer.id);
     await gotoApp('/employer/dashboard');
-    await expect(page.locator('header a:has(img[src="/images/logo.png"])').first()).toHaveAttribute(
+    await expect(page.locator('header a:has(img[src="/images/logo-small.png"])').first()).toHaveAttribute(
       'href',
       '/employer/dashboard',
     );

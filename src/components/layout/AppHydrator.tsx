@@ -84,6 +84,9 @@ function BootErrorBar({
  * (supabase mode). Dùng lúc boot và refetch-on-focus (đồng bộ 2 máy không cần reload).
  * Refetch thay theo scope (public/employer/worker) nên không cần xoá trước → không nháy.
  */
+/** Khoảng tối thiểu giữa hai lần refetch-on-focus (04/10). */
+const FOCUS_REFETCH_MIN_MS = 30_000;
+
 async function refetchPhase2Supabase(): Promise<void> {
   const cur = useAuthStore.getState().currentUser();
   // Tự chốt ca quá hạn (tự xác nhận / vắng mặt / hoàn cọc dư) TRƯỚC khi nạp để
@@ -104,9 +107,12 @@ async function refetchPhase2Supabase(): Promise<void> {
     const ids = useShiftStore.getState().byEmployer(cur.id).map((s) => s.id);
     await useApplicationStore.getState().refetchForShifts(ids);
   } else if (cur?.role === 'worker') {
-    await useApplicationStore.getState().refetchForWorker(cur.id);
     // Lịch cá nhân (0023) — cần cho gợi ý ca + chặn ứng tuyển trùng lịch bận.
-    await useScheduleStore.getState().refetchMine(cur.id);
+    // 04/10: đơn của worker và lịch cá nhân độc lập nhau → nạp song song.
+    await Promise.all([
+      useApplicationStore.getState().refetchForWorker(cur.id),
+      useScheduleStore.getState().refetchMine(cur.id),
+    ]);
     // Nạp các ca worker ĐÃ ứng tuyển nhưng KHÔNG còn trong listing công khai
     // (đã huỷ / đầy chỗ / hết hạn) — chúng không có trong `public_shifts` nên
     // thiếu khỏi shiftStore → dashboard + trang chi tiết sẽ 404/không hiển thị
@@ -120,9 +126,9 @@ async function refetchPhase2Supabase(): Promise<void> {
     const missingShiftIds = appliedShiftIds.filter(
       (id) => !useShiftStore.getState().getById(id),
     );
-    for (const id of missingShiftIds) {
-      await useShiftStore.getState().refetchOne(id);
-    }
+    // 04/10: song song — mỗi `refetchOne` đọc store SAU khi chờ rồi mới ghi (upsert theo
+    // id) nên các lượt không đè nhau.
+    await Promise.all(missingShiftIds.map((id) => useShiftStore.getState().refetchOne(id)));
   }
   const empIds = useShiftStore
     .getState()
@@ -139,18 +145,22 @@ async function refetchPhase2Supabase(): Promise<void> {
       ...useShiftStore.getState().shifts.map((sh) => sh.employerId),
       ...useApplicationStore.getState().applications.map((a) => a.workerId),
     ];
-    await refetchReviews(reviewUserIds);
-    // Thông báo phía server (0031: kết quả kiểm tra giao dịch nạp). Lỗi (vd. DB
-    // chưa có 0031) không chặn boot — chuông chỉ thiếu thông báo server.
-    await useNotificationStore
-      .getState()
-      .refetchServer(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
-      .catch(() => undefined);
-    // 0035 — cuộc trò chuyện + số tin chưa đọc. Lỗi (vd. DB chưa có 0035) không chặn boot.
-    await useChatStore
-      .getState()
-      .loadThreads(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
-      .catch(() => undefined);
+    // 04/10: ba lượt nạp dưới độc lập nhau (đánh giá / thông báo / trò chuyện, mỗi
+    // lượt tự nuốt lỗi) → chạy song song thay vì lần lượt.
+    await Promise.all([
+      refetchReviews(reviewUserIds),
+      // Thông báo phía server (0031: kết quả kiểm tra giao dịch nạp). Lỗi (vd. DB
+      // chưa có 0031) không chặn boot — chuông chỉ thiếu thông báo server.
+      useNotificationStore
+        .getState()
+        .refetchServer(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
+        .catch(() => undefined),
+      // 0035 — cuộc trò chuyện + số tin chưa đọc. Lỗi (vd. DB chưa có 0035) không chặn boot.
+      useChatStore
+        .getState()
+        .loadThreads(cur.id, () => useAuthStore.getState().currentUserId === cur.id)
+        .catch(() => undefined),
+    ]);
   }
 }
 
@@ -296,8 +306,14 @@ export function AppHydrator({ children }: AppHydratorProps): ReactNode {
     }
     if (mode !== 'supabase') return;
     let running = false;
+    // 04/10: cách nhau tối thiểu FOCUS_REFETCH_MIN_MS giữa hai lần nạp lại khi focus —
+    // trước đây mỗi lần chuyển tab / bấm ra ngoài rồi vào lại đều chạy lại cả chuỗi
+    // nạp (nhiều request + render lại). Tính từ lúc mount vì boot vừa nạp xong.
+    let lastRun = Date.now();
     const onFocus = () => {
       if (document.visibilityState !== 'visible' || running) return;
+      if (Date.now() - lastRun < FOCUS_REFETCH_MIN_MS) return;
+      lastRun = Date.now();
       running = true;
       // Đồng bộ nền khi quay lại tab: thất bại (mạng chập chờn, phiên vừa hết
       // hạn / đổi tài khoản giữa chừng → request chạy như anon) KHÔNG được làm

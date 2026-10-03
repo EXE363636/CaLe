@@ -13,7 +13,9 @@
  *   - phần tử nằm trong một phần tử khác đã được chọn (không lồng hai lớp chuyển động);
  *   - phần tử đang nằm trên / trong màn hình lúc tải (không nháy ẩn rồi hiện).
  *
- * Hiện khi đầu phần tử lên tới 90% chiều cao màn hình (hoặc đã bị cuộn qua). Đo bằng
+ * Hiện khi phần tử vào giữa màn hình (đầu lên tới 90%, đáy còn dưới 10%). Phần tử khuất
+ * HẲN khỏi màn hình (trên hoặc dưới) thì được gài lại — người xem không thấy — nên kéo
+ * lên kéo xuống là hiệu ứng chạy lại (04/10, chủ dự án). Đo bằng
  * `getBoundingClientRect` mỗi khung hình khi cuộn / đổi cỡ, KHÔNG dùng IntersectionObserver
  * (rootMargin bị bỏ qua trong iframe khác nguồn → có lúc khối nằm trống mãi). Những phần
  * tử hiện cùng một khung hình nối nhau 70ms (tối đa 6 bậc). Xong chuyển động thì gỡ
@@ -55,60 +57,84 @@ export function useScrollReveal(rootRef: RefObject<HTMLElement | null>) {
       }
     }
 
+    if (picked.length === 0) return;
     const vh = window.innerHeight;
-    const armed = picked.filter((el) => el.getBoundingClientRect().top >= vh);
-    if (armed.length === 0) return;
-    for (const el of armed) el.dataset.reveal = 'armed';
-
-    const timers: number[] = [];
-    let pending = armed.slice();
+    // Trạng thái từng phần tử: gài (ẩn, chờ vào màn hình) / đang hiện / đã hiện xong.
+    // Lúc tải: nằm dưới màn hình → gài; đang thấy hoặc ở trên → coi như đã hiện (không
+    // nháy ẩn rồi hiện), khuất hẳn rồi mới gài.
+    const state = new Map<HTMLElement, 'armed' | 'in' | 'shown'>();
+    const timers = new Map<HTMLElement, number>();
+    for (const el of picked) {
+      if (el.getBoundingClientRect().top >= vh) {
+        el.dataset.reveal = 'armed';
+        state.set(el, 'armed');
+      } else {
+        state.set(el, 'shown');
+      }
+    }
     let raf = 0;
+
+    const clearTimer = (el: HTMLElement) => {
+      const t = timers.get(el);
+      if (t !== undefined) {
+        window.clearTimeout(t);
+        timers.delete(el);
+      }
+    };
 
     const check = () => {
       raf = 0;
-      const line = window.innerHeight * LINE;
+      const h = window.innerHeight;
+      const line = h * LINE;
+      // Đọc hết vị trí trước, rồi mới ghi (không đo xen ghi → không tính lại bố cục).
+      const rects = picked.map((el) => el.getBoundingClientRect());
       const now: HTMLElement[] = [];
-      pending = pending.filter((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.top < line || r.bottom < 0) {
+      picked.forEach((el, i) => {
+        const r = rects[i];
+        const st = state.get(el);
+        if (r.bottom <= 0 || r.top >= h) {
+          // Khuất hẳn → gài lại cho lần cuộn tới sau (không có chuyển tiếp khi gài).
+          if (st !== 'armed') {
+            clearTimer(el);
+            el.style.removeProperty('--ri');
+            el.dataset.reveal = 'armed';
+            state.set(el, 'armed');
+          }
+        } else if (st === 'armed' && r.top < line && r.bottom > h - line) {
           now.push(el);
-          return false;
         }
-        return true;
       });
       now.forEach((el, i) => {
         el.style.setProperty('--ri', String(Math.min(i, MAX_STEPS)));
         el.dataset.reveal = 'in';
-      });
-      if (now.length) {
-        timers.push(
+        state.set(el, 'in');
+        // Xong chuyển động: gỡ thuộc tính, trả transition / transform gốc (hover…).
+        timers.set(
+          el,
           window.setTimeout(() => {
-            for (const el of now) {
-              delete el.dataset.reveal;
-              el.style.removeProperty('--ri');
-            }
+            timers.delete(el);
+            if (state.get(el) !== 'in') return;
+            delete el.dataset.reveal;
+            el.style.removeProperty('--ri');
+            state.set(el, 'shown');
           }, DONE_MS + MAX_STEPS * STEP_MS),
         );
-      }
-      if (pending.length === 0) stop();
+      });
     };
     const schedule = () => {
       if (!raf) raf = requestAnimationFrame(check);
-    };
-    const stop = () => {
-      window.removeEventListener('scroll', schedule);
-      window.removeEventListener('resize', schedule);
     };
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     schedule();
 
     return () => {
-      stop();
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
       cancelAnimationFrame(raf);
-      for (const t of timers) window.clearTimeout(t);
+      for (const t of timers.values()) window.clearTimeout(t);
       // Rời trang giữa chừng: trả mọi phần tử về trạng thái hiện đủ.
-      for (const el of armed) {
+      for (const el of picked) {
         delete el.dataset.reveal;
         el.style.removeProperty('--ri');
       }

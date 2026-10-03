@@ -38,6 +38,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { watchReplay } from '@/components/landing/viewReplay';
+
 interface RevealProps {
   /** Element tag — defaults to a `div`. Useful when the wrapper itself
    *  needs to be a `section` or `article`. */
@@ -79,21 +81,13 @@ export function Reveal({
       return;
     }
 
-    const obs = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setRevealed(true);
-            obs.disconnect();
-            return;
-          }
-        }
-      },
-      { threshold, rootMargin: '0px 0px -40px 0px' },
-    );
-
-    obs.observe(node);
-    return () => obs.disconnect();
+    // 04/10: chạy lại mỗi lần cuộn tới — khuất hẳn thì ẩn lại (người xem không thấy).
+    return watchReplay(node, {
+      threshold,
+      rootMargin: '0px 0px -40px 0px',
+      onEnter: () => setRevealed(true),
+      onLeave: () => setRevealed(false),
+    });
   }, [threshold]);
 
   const style: CSSProperties = delayMs

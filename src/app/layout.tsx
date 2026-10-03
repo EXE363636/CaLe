@@ -7,6 +7,7 @@ import { NavBar } from "@/components/layout/NavBar";
 import { Footer } from "@/components/layout/Footer";
 import { HashLinkHandler } from "@/components/layout/HashLinkHandler";
 import { ToastHost } from "@/components/layout/ToastHost";
+import { SupportBubble } from "@/components/support/SupportBubble";
 import { OAuthOnboardingRedirect } from "@/components/auth/OAuthOnboardingRedirect";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { LocaleProvider } from "@/i18n/LocaleProvider";
@@ -86,6 +87,8 @@ export default async function RootLayout({
             </main>
             <Footer />
             <ToastHost />
+            {/* Bong bóng hỗ trợ góc phải dưới: trợ lý hỏi đáp, hộp thư, liên hệ. */}
+            <SupportBubble />
             <HashLinkHandler />
             <OAuthOnboardingRedirect />
           </AppHydrator>

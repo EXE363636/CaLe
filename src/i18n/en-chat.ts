@@ -38,6 +38,7 @@ export const enChat: Record<string, string> = {
   'chat.empty.readonly': 'This conversation has no messages.',
   'chat.loading': 'Loading messages…',
   'chat.loadOlder': 'Show older messages',
+  'chat.newBelow': 'New messages',
   'chat.sender.me': 'You',
   'chat.sender.worker': 'Worker',
   'chat.sender.employer': 'Employer',

@@ -11,6 +11,7 @@ import { MotionGroup } from '@/components/landing/MotionGroup';
 import { FEATURES_UPDATED, featuresDone, featuresPlanned } from '@/components/landing/featureData';
 import { OpenShiftCount } from '@/components/landing/OpenShiftCount';
 import { StatValue } from '@/components/landing/StatValue';
+import { SupportAssistantSection } from '@/components/landing/SupportAssistantSection';
 import { ToneScroll } from '@/components/landing/ToneScroll';
 import { WHY_SCAM_SOURCE_URL, whyRows, whyStats } from '@/components/landing/whyData';
 import { proofCopy } from '@/components/landing/proofData';
@@ -35,6 +36,7 @@ import { shareMeta } from '@/lib/shareMeta';
  *      (`MoneyFlowDiagram`) + bốn thẻ ①–④ khớp bốn dòng biên nhận; giải thích đầy đủ
  *      trong "Xem chi tiết".
  *   5. "CaLẻ làm được gì?": chức năng đã có / sắp có (`featureData.ts`).
+ *   5b. "Thắc mắc? Hỏi trợ lý CaLẻ": minh hoạ chat tự chạy (`SupportChatDemo`).
  *   6. (Khối ảnh / lời chia sẻ thật — tự ẩn khi chưa có.) Dải kết: hai cửa vai trò.
  * Nền trang đổi màu theo khối đang xem (`ToneScroll` + `data-tone`); dải kết có nền
  * mực riêng.
@@ -503,8 +505,24 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* 5b. Hỏi trợ lý (04/10): minh hoạ tự chạy một cuộc trò chuyện với trợ lý thật
+          (`SupportChatDemo`), nút mở bong bóng hỗ trợ. */}
+      <SupportAssistantSection
+        locale={locale}
+        id="home-assistant"
+        audience="general"
+        tone="paper"
+        title={tx('Thắc mắc? Hỏi trợ lý CaLẻ')}
+        body={tx('Hỏi bằng lời của bạn về ca làm, tiền công, ví hay tài khoản. Trợ lý trả lời ngay; câu nào chưa giúp được thì chỉ bạn cách gặp đội hỗ trợ.')}
+          points={[
+            tx('Trả lời ngay, cả ngày lẫn đêm'),
+            tx('Hiểu cả câu không dấu, viết tắt'),
+            tx('Cần người thật: có hotline, Zalo, email'),
+          ]}
+      />
+
       {/* Ảnh tự chụp + lời chia sẻ thật từ đợt chạy thử — tự ẩn khi chưa có (proofData.ts). */}
-      <LandingProofView id="home-proof" copy={proofCopy(tx)} locale={locale} tone="paper" />
+      <LandingProofView id="home-proof" copy={proofCopy(tx)} locale={locale} tone="cream" />
 
       {/* 6. Dải kết — hai cửa vai trò */}
       <section aria-labelledby="home-close" className="bg-ink px-4 py-16 text-white sm:px-6 sm:py-20 lg:px-8">

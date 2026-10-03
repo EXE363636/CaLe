@@ -26,6 +26,8 @@ import { platformFee, serverWageTotal } from '@/domain/deposit';
 import { useTx } from '@/i18n/LocaleProvider';
 import { formatVND } from '@/lib/format';
 
+import { watchReplay } from './viewReplay';
+
 const WAGE = 45_000;
 const HOURS = 4;
 const PEOPLE = 2;
@@ -61,14 +63,15 @@ export function MoneyFlowDiagram() {
     }
   }, []);
 
-  // Chạy khi lần đầu thấy sơ đồ; giảm chuyển động → trạng thái cuối ngay.
+  // Chạy mỗi lần cuộn tới sơ đồ (khuất hẳn rồi quay lại → chạy lại, 04/10); giảm chuyển
+  // động → trạng thái cuối ngay.
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return;
-        io.disconnect();
+    const pending = timers.current;
+    const stopReplay = watchReplay(el, {
+      threshold: 0.45,
+      onEnter: () => {
         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
           setReduced(true);
           setStep(LAST_STEP);
@@ -76,12 +79,15 @@ export function MoneyFlowDiagram() {
           play();
         }
       },
-      { threshold: 0.45 },
-    );
-    io.observe(el);
-    const pending = timers.current;
+      onLeave: () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        pending.forEach((id) => window.clearTimeout(id));
+        pending.length = 0;
+        setStep(0);
+      },
+    });
     return () => {
-      io.disconnect();
+      stopReplay();
       pending.forEach((id) => window.clearTimeout(id));
     };
   }, [play]);

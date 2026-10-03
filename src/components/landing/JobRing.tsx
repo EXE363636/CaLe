@@ -13,7 +13,7 @@
  * bằng tay; nút ‹ › xoay đúng một thẻ; Tab tới thẻ nào thì thẻ đó về giữa.
  *
  * Vị trí thẻ tính mỗi khung hình bằng requestAnimationFrame và ghi thẳng vào
- * `style.transform` (không render lại React). Thẻ ở xa ngoài khung nhìn bị ẩn, nên
+ * `style.transform` (không render lại React); vòng rAF chỉ chạy khi có chuyển động. Thẻ ở xa ngoài khung nhìn bị ẩn, nên
  * chỗ "nối vòng" (thẻ cuối nhảy về đầu) luôn nằm khuất; vòng hẹp hơn khung nhìn
  * thì nhân bản danh sách (bản sao `aria-hidden` + `inert`).
  *
@@ -129,9 +129,14 @@ export function JobRing({
   const onScreen = useRef(true);
   const drag = useRef<{ x: number; last: number; t: number; moved: boolean } | null>(null);
   const suppressClick = useRef(false);
+  // 04/10: vòng rAF chỉ chạy khi có gì đang chuyển động (kéo, quán tính, đang về
+  // thẻ đích, hoặc tự xoay khi trong màn hình + tab đang mở + không giảm chuyển
+  // động); đứng yên thì tự dừng. `wake` khởi động lại khi có tương tác / đổi điều kiện.
+  const wake = useRef<() => void>(() => {});
   const live = useRef({ selected, userPaused, reduced });
   useEffect(() => {
     live.current = { selected, userPaused, reduced };
+    wake.current();
   }, [selected, userPaused, reduced]);
 
   // Đo khung, tính hình học; đo lại khi đổi cỡ.
@@ -158,6 +163,7 @@ export function JobRing({
     if (!el) return;
     const io = new IntersectionObserver(([entry]) => {
       onScreen.current = entry.isIntersecting;
+      wake.current();
     });
     io.observe(el);
     return () => io.disconnect();
@@ -170,19 +176,35 @@ export function JobRing({
     const total = jobs.length * geo.copies;
     const span = total * step;
 
+    // 04/10: nhớ giá trị đã ghi để bỏ qua khung hình không đổi (không ghi lại style).
+    let painted: number | null = null;
+    const shown: Array<boolean | undefined> = [];
+    const layer: Array<number | undefined> = [];
     const paint = () => {
+      if (painted === offset.current) return;
+      painted = offset.current;
       for (let k = 0; k < total; k += 1) {
         const li = cards.current[k];
         if (!li) continue;
         const phi = wrap(k * step + offset.current, span);
         if (Math.abs(phi) > visible + step / 2) {
-          li.style.visibility = 'hidden';
+          if (shown[k] !== false) {
+            li.style.visibility = 'hidden';
+            shown[k] = false;
+          }
           continue;
         }
         const x = radius * Math.sin(phi);
         const z = radius * (1 - Math.cos(phi));
-        li.style.visibility = 'visible';
-        li.style.zIndex = String(Math.round(z));
+        if (shown[k] !== true) {
+          li.style.visibility = 'visible';
+          shown[k] = true;
+        }
+        const zi = Math.round(z);
+        if (layer[k] !== zi) {
+          li.style.zIndex = String(zi);
+          layer[k] = zi;
+        }
         li.style.transform = `translate(-50%, -50%) translate3d(${x.toFixed(2)}px, 0, ${z.toFixed(2)}px) rotateY(${(-phi).toFixed(4)}rad)`;
       }
     };
@@ -190,9 +212,11 @@ export function JobRing({
     let raf = 0;
     let prev = performance.now();
     const tick = (now: number) => {
-      const dt = Math.min(64, now - prev) / 1000;
+      const dt = Math.max(0, Math.min(64, now - prev)) / 1000;
       prev = now;
       const { selected: sel, userPaused: paused, reduced: still } = live.current;
+      // Còn chuyển động ở khung sau không; không → dừng vòng (chờ `wake`).
+      let keep = true;
       if (drag.current) {
         // Kéo tay: offset đã cập nhật trong pointermove.
       } else if (target.current !== null) {
@@ -212,18 +236,32 @@ export function JobRing({
         const auto = !still && !paused && sel === null && !hover.current && !focusInside.current;
         if (auto && onScreen.current && !document.hidden) {
           offset.current -= (AUTO_PX_PER_S / radius) * dt;
+        } else {
+          keep = false;
         }
       }
       // Giữ offset trong một vòng để số không phình mãi.
       offset.current = wrap(offset.current, span);
       if (target.current !== null) target.current = offset.current + wrap(target.current - offset.current, span);
       paint();
+      raf = keep ? requestAnimationFrame(tick) : 0;
+    };
+    const start = () => {
+      if (raf) return;
+      prev = performance.now();
       raf = requestAnimationFrame(tick);
     };
+    wake.current = start;
+    document.addEventListener('visibilitychange', start);
     paint();
     stage.current?.setAttribute('data-ready', '');
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    start();
+    return () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+      wake.current = () => {};
+      document.removeEventListener('visibilitychange', start);
+    };
   }, [geo, jobs.length]);
 
   /** Xoay để thẻ `k` (chỉ số trong danh sách gốc) về giữa, theo đường gần nhất. */
@@ -233,6 +271,7 @@ export function JobRing({
       const span = jobs.length * geo.copies * geo.step;
       velocity.current = 0;
       target.current = offset.current + wrap(-k * geo.step - offset.current, span);
+      wake.current();
     },
     [geo, jobs.length],
   );
@@ -242,6 +281,7 @@ export function JobRing({
     velocity.current = 0;
     const base = target.current ?? offset.current;
     target.current = Math.round(base / geo.step) * geo.step - dir * geo.step;
+    wake.current();
   };
 
   const choose = (k: number) => {
@@ -261,6 +301,7 @@ export function JobRing({
     suppressClick.current = false;
     target.current = null;
     velocity.current = 0;
+    wake.current();
     const move = (ev: PointerEvent) => {
       const d = drag.current;
       if (!d) return;
@@ -284,6 +325,7 @@ export function JobRing({
         if (performance.now() - (drag.current?.t ?? 0) > 80) velocity.current = 0;
       }
       drag.current = null;
+      wake.current();
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
@@ -308,13 +350,17 @@ export function JobRing({
         }}
         onPointerLeave={() => {
           hover.current = false;
+          wake.current();
         }}
         onFocus={(e: FocusEvent<HTMLDivElement>) => {
           // Chỉ dừng khi focus bằng bàn phím (ấn chuột vào thẻ đã có `selected`).
           if ((e.target as HTMLElement).matches(':focus-visible')) focusInside.current = true;
         }}
         onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) focusInside.current = false;
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+            focusInside.current = false;
+            wake.current();
+          }
         }}
         className="job-ring relative left-1/2 w-screen -translate-x-1/2 touch-pan-y select-none"
         style={{ height: geo ? `${geo.height}px` : '28rem' }}

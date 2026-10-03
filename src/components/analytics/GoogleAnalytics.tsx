@@ -4,8 +4,9 @@
  * Google Analytics 4 — nhúng gtag.js đúng cách cho Next.js App Router.
  *
  * Thay cho việc dán tay đoạn <script> vào <head> (như hướng dẫn của Google),
- * ta dùng `next/script` để tag tự nạp một lần trên MỌI route, sau khi trang
- * tương tác được (`afterInteractive`) nên không chặn render.
+ * ta dùng `next/script` để tag tự nạp một lần trên MỌI route. 04/10: nạp lúc
+ * trình duyệt rảnh sau `load` (`lazyOnload`, trước đây `afterInteractive`) để
+ * gtag không tranh luồng chính với lúc trang vừa tương tác được.
  *
  * Measurement ID (`G-XXXXXXXXXX`) là dữ liệu CÔNG KHAI — nó xuất hiện nguyên
  * văn trong HTML client của trang live — nên không phải secret. Ta đọc từ
@@ -30,9 +31,9 @@ export function GoogleAnalytics() {
     <>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
-      <Script id="ga4-init" strategy="afterInteractive">
+      <Script id="ga4-init" strategy="lazyOnload">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

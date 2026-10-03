@@ -3,24 +3,26 @@ import type { ReactNode } from 'react';
 import { GuideHero } from '@/components/landing/GuideHero';
 import { SafetyPreview } from '@/components/landing/GuidePreviews';
 import { LandingHelp, LandingIconGlyph, LandingSteps, type LandingIcon } from '@/components/landing/LandingSections';
+import { SupportChatDemo } from '@/components/landing/SupportChatDemo';
+import { supportDemoData } from '@/components/landing/supportDemoScript';
 import { ToneScroll } from '@/components/landing/ToneScroll';
 import { isSupabaseEnv } from '@/data/supabaseClient';
-import { getTx } from '@/i18n/server';
+import type { SupportLocale } from '@/domain/supportBot';
+import { getLocale, getTx } from '@/i18n/server';
+import { SUPPORT_EMAIL, SUPPORT_HOTLINE } from '@/lib/contact';
 
 /**
- * Liên hệ hỗ trợ. 03/10 — làm lại theo ngôn ngữ landing: `GuideHero`, ba thẻ liên hệ,
+ * Liên hệ hỗ trợ. 03/10 — làm lại theo ngôn ngữ landing: `GuideHero`, (04/10) khối trợ lý
+ * với minh hoạ chat tự chạy (`SupportChatDemo`), ba thẻ liên hệ,
  * lưu ý an toàn (`#support-safety`, gộp từ /safety), các bước phản ánh khi có vấn đề (theo chế độ dữ liệu), góp ý sản phẩm, lối tắt.
  *
- * Email / hotline / địa chỉ: CÙNG giá trị với chân trang (`components/layout/Footer.tsx`
- * viết cứng). Đổi ở đó thì đổi cả ở đây.
+ * Email / hotline: hằng chung ở `lib/contact.ts` (cùng chân trang, trang pháp lý,
+ * bong bóng hỗ trợ).
  *
  * Cách phản ánh: bản thật chưa có luồng khiếu nại trong app (`capabilities.disputes =
  * false`) → gửi email cho đội hỗ trợ. Bản demo có nút "Khiếu nại" ở chi tiết ca (người
  * lao động sau khi check-out, nhà tuyển dụng ở khung xác nhận hoàn thành).
  */
-
-const SUPPORT_EMAIL = 'nguyenphuonganh98113@gmail.com';
-const SUPPORT_HOTLINE = '0868325698';
 
 export default async function SupportPage() {
   const tx = await getTx();
@@ -34,7 +36,25 @@ export default async function SupportPage() {
         actions={[{ href: '/faq', label: tx('Câu hỏi thường gặp') }]}
       />
 
-      <section aria-labelledby="support-contact" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      {/* Trợ lý (04/10): minh hoạ chat tự chạy với trợ lý thật + nút mở bong bóng hỗ trợ. */}
+      <section aria-labelledby="support-assistant" data-tone="paper" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:gap-16">
+          <div className="max-w-xl">
+            <h2 id="support-assistant" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {tx('Trợ lý CaLẻ trả lời ngay 24/7')}
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-gray-600 sm:text-lg">
+              {tx('Bấm nút chat tròn ở góc dưới màn hình, hoặc nút "Thử hỏi trợ lý ngay", rồi gõ câu hỏi như khi nhắn tin. Có dấu hay không dấu đều được.')}
+            </p>
+            <p className="mt-3 text-base leading-relaxed text-gray-600 sm:text-lg">
+              {tx('Trợ lý chỉ trả lời các câu hỏi về CaLẻ. Câu nào trợ lý không giúp được, bạn liên hệ đội hỗ trợ ngay bên dưới.')}
+            </p>
+          </div>
+          <SupportChatDemo demo={supportDemoData((await getLocale()) as SupportLocale, isSupabaseEnv())} />
+        </div>
+      </section>
+
+      <section aria-labelledby="support-contact" data-tone="cream" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <h2 id="support-contact" className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
             {tx('Liên hệ với chúng tôi')}
@@ -69,7 +89,7 @@ export default async function SupportPage() {
           ở hai trang vai trò; "Ưu tiên an toàn" là bước đầu của khối phản ánh ngay sau. */}
       <SafetyNotes
         id="support-safety"
-        tone="cream"
+        tone="paper"
         title={tx('Lưu ý an toàn')}
         aside={<SafetyPreview />}
         items={[
@@ -98,7 +118,7 @@ export default async function SupportPage() {
 
       <LandingSteps
         id="support-report"
-        tone="paper"
+        tone="cream"
         title={tx('Khi có vấn đề trong ca')}
         lead={
           live
@@ -117,7 +137,7 @@ export default async function SupportPage() {
         ]}
       />
 
-      <section aria-labelledby="support-feedback" data-tone="cream" className="px-4 pt-14 sm:px-6 sm:pt-20 lg:px-8">
+      <section aria-labelledby="support-feedback" data-tone="paper" className="px-4 pt-14 sm:px-6 sm:pt-20 lg:px-8">
         <div className="mx-auto max-w-3xl rounded-r-2xl border-l-4 border-orange-400 bg-orange-50 px-5 py-5 sm:px-6">
           <h2 id="support-feedback" className="text-lg font-bold tracking-tight text-gray-900">
             {tx('Phản ánh hoặc gợi ý sản phẩm')}
@@ -128,7 +148,7 @@ export default async function SupportPage() {
         </div>
       </section>
 
-      <div data-tone="cream" className="pt-10 sm:pt-12">
+      <div data-tone="paper" className="pt-10 sm:pt-12">
         <LandingHelp
           id="support-help"
           title={tx('Tìm câu trả lời')}

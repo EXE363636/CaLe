@@ -12,6 +12,7 @@
 
 import { enApp, enAppText } from './en-app';
 import { enChat } from './en-chat';
+import { enSupport } from './en-support';
 import { enAdmin, enAdminText } from './en-admin';
 import { enDashboard, enDashboardText } from './en-dashboard';
 import { enPages, enPagesText } from './en-pages';
@@ -331,6 +332,7 @@ export const en: Record<string, string> = {
   ...enRoles,
   ...enUi,
   ...enChat,
+  ...enSupport,
 };
 export const enText: Record<string, string> = {
   ...enPublicText,

@@ -20,6 +20,7 @@ import { enPages, enPagesText } from '@/i18n/en-pages';
 import { enRoles, enRolesText } from '@/i18n/en-roles';
 import { enUi, enUiText } from '@/i18n/en-ui';
 import { enChat } from '@/i18n/en-chat';
+import { enSupport } from '@/i18n/en-support';
 import { enLandingText } from '@/i18n/en-landing';
 import { LANDING_SAMPLE_TEXTS } from '@/components/landing/landingSamples';
 import { translate, translateText, unknownEnglishKeys } from '@/i18n/locale';
@@ -165,6 +166,7 @@ const PHASE1_FILES = [
   'src/components/landing/JobWageHint.tsx',
   'src/components/landing/ReviewFlowPreview.tsx',
   'src/components/landing/RoleBand.tsx',
+  'src/components/landing/SupportChatDemo.tsx',
   // 0035 (03/10): chat người lao động ↔ nhà tuyển dụng — bản dịch ở en-chat.ts.
   'src/components/chat/ChatPanel.tsx',
   'src/components/chat/ChatButton.tsx',
@@ -172,6 +174,11 @@ const PHASE1_FILES = [
   'src/components/chat/EmployerShiftChat.tsx',
   'src/stores/chatStore.ts',
   'src/domain/serverNotification.ts',
+  // 04/10: bong bóng hỗ trợ — bản dịch ở en-support.ts.
+  'src/components/support/SupportBubble.tsx',
+  'src/components/support/SupportAssistant.tsx',
+  'src/components/support/SupportInbox.tsx',
+  'src/components/support/SupportContacts.tsx',
 ];
 
 /** Hằng tiếng Việt được hiển thị qua `tx(...)` (nhãn menu / footer). */
@@ -406,6 +413,16 @@ describe('i18n English — chat (0035)', () => {
     expect(Object.keys(enChat).filter((k) => k in earlier && earlier[k] !== enChat[k])).toEqual([]);
     // Chỉ câu ghi chú demo được nói "Demo"; không câu nào gọi chat / thanh toán là mô phỏng.
     expect(Object.values(enChat).filter((v) => /simulat/i.test(v))).toEqual([]);
+  });
+});
+
+describe('i18n English — bong bóng hỗ trợ', () => {
+  it('mọi khoá supportBubble.* có bản tiếng Anh, không ghi đè đợt trước, không khoá lạ', () => {
+    const missing = Object.keys(vi).filter((k) => k.startsWith('supportBubble.') && !(k in en));
+    expect(missing).toEqual([]);
+    expect(Object.keys(enSupport).filter((k) => !(k in vi))).toEqual([]);
+    const earlier = { ...enPublic, ...enApp, ...enDashboard, ...enAdmin, ...enPages, ...enRoles, ...enUi, ...enChat };
+    expect(Object.keys(enSupport).filter((k) => k in earlier && earlier[k] !== enSupport[k])).toEqual([]);
   });
 });
 

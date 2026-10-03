@@ -25,6 +25,7 @@ import {
 } from '@/components/landing/LandingSections';
 import { getLocale, getT, getTx } from '@/i18n/server';
 import { shareMeta } from '@/lib/shareMeta';
+import { SupportAssistantSection } from '@/components/landing/SupportAssistantSection';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 
 /**
@@ -433,6 +434,22 @@ export default async function EmployerHomePage() {
           { q: tx('Có gói trả phí nào khác không?'), a: tx('Chưa. Hiện chỉ có mức phí ở trên.') },
         ]}
         tone="cream"
+      />
+
+      {/* Hỏi trợ lý (04/10): minh hoạ chat tự chạy với các thắc mắc nhà tuyển dụng hay
+          hỏi (đăng ca thế nào, phí, người làm không đến, huỷ ca có được hoàn tiền…). */}
+      <SupportAssistantSection
+        locale={locale}
+        id="employer-assistant"
+        audience="employer"
+        tone="paper"
+        title={tx('Cần tuyển người? Hỏi trợ lý CaLẻ')}
+        body={tx('Đăng ca thế nào, phí tính ra sao, người làm không đến thì sao, huỷ ca có được hoàn tiền… Trợ lý trả lời ngay để bạn quyết nhanh.')}
+          points={[
+            tx('Trả lời ngay, cả ngày lẫn đêm'),
+            tx('Hiểu cả câu không dấu, viết tắt'),
+            tx('Cần người thật: có hotline, Zalo, email'),
+          ]}
       />
 
       {/* An toàn & hỗ trợ — lối tắt tới /support (03/10: /safety gộp vào /support) */}

@@ -41,10 +41,16 @@ function useCountUp(from: number, to: number, run: boolean, ms = 900): number {
     }
     let raf = 0;
     const start = performance.now();
+    // 04/10: chỉ setState khi số (đã làm tròn) đổi — không render lại mỗi khung hình.
+    let last = Number.NaN;
     const frame = (now: number) => {
       const p = Math.min(1, (now - start) / ms);
       const eased = 1 - Math.pow(1 - p, 3);
-      setValue(Math.round(from + (to - from) * eased));
+      const next = Math.round(from + (to - from) * eased);
+      if (next !== last) {
+        last = next;
+        setValue(next);
+      }
       if (p < 1) raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);

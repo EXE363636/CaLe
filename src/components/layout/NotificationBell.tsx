@@ -172,13 +172,16 @@ export function NotificationBell() {
   );
 }
 
-function NotificationItem({
+export function NotificationItem({
   notification,
   onActivate,
   nowIso,
+  clampBody = true,
 }: {
   notification: Notification;
   onActivate: () => void;
+  /** false = hiện đủ nội dung (bong bóng hỗ trợ không cắt chữ). Mặc định cắt 2 dòng. */
+  clampBody?: boolean;
   /** Mốc "bây giờ" đọc một lần khi mở danh sách. */
   nowIso: string;
 }) {
@@ -202,7 +205,7 @@ function NotificationItem({
             {formatNotificationTime(notification.createdAt, nowIso, locale)}
           </time>
         </p>
-        <p className="mt-0.5 line-clamp-2 text-gray-600">{notification.body}</p>
+        <p className={['mt-0.5 text-gray-600', clampBody ? 'line-clamp-2' : '[overflow-wrap:anywhere]'].join(' ')}>{notification.body}</p>
         {/* Tên nút là tiêu đề; mô tả cho trình đọc màn hình: trạng thái chưa đọc (không chỉ
             dựa vào chấm cam / chữ đậm) + giờ + nội dung. */}
         <span id={descId} className="sr-only">

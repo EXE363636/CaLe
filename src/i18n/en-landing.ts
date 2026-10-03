@@ -911,4 +911,36 @@ export const enLandingText: Record<string, string> = {
   "Xem màn hình của": "Show the screen for",
   "Ca của tôi": "My shifts",
   "Quản lý ca": "Manage shifts",
+  // --- Minh hoạ trợ lý (SupportChatDemo, 04/10): trang chủ, /support, chân trang ---------------
+  'Tạm dừng cuộc trò chuyện mẫu': 'Pause the sample conversation',
+  'Tiếp tục cuộc trò chuyện mẫu': 'Resume the sample conversation',
+  'Xem lại cuộc trò chuyện mẫu': 'Replay the sample conversation',
+  'Trợ lý CaLẻ': 'CaLẻ assistant',
+  'Trả lời ngay, 24/7': 'Answers instantly, 24/7',
+  'Trợ lý trả lời:': 'Assistant replies:',
+  'Bạn hỏi:': 'You ask:',
+  'Trợ lý đang trả lời': 'Assistant is typing',
+  'Nhập câu hỏi về CaLẻ…': 'Type a question about CaLẻ…',
+  'Thử hỏi trợ lý ngay': 'Ask the assistant now',
+  'Bản demo: tiền là mô phỏng.': 'Demo: money is simulated.',
+  'Minh hoạ: câu trả lời lấy từ trợ lý thật của CaLẻ, câu dài được rút gọn.':
+    'Illustration: replies come from the real CaLẻ assistant; long ones are shortened.',
+  'Thắc mắc khi đi làm? Hỏi trợ lý CaLẻ': 'Questions about working? Ask the CaLẻ assistant',
+  'Người mới hay hỏi: có mất phí không, bao lâu có lương, lỡ không được trả tiền thì sao… Trợ lý trả lời ngay bằng lời dễ hiểu.':
+    "Newcomers often ask: are there fees, how soon do I get paid, what if I don't get paid… The assistant answers right away in plain words.",
+  'Cần tuyển người? Hỏi trợ lý CaLẻ': 'Need to hire? Ask the CaLẻ assistant',
+  'Đăng ca thế nào, phí tính ra sao, người làm không đến thì sao, huỷ ca có được hoàn tiền… Trợ lý trả lời ngay để bạn quyết nhanh.':
+    "How to post a shift, how fees work, what if a worker doesn't show up, whether a cancelled shift is refunded… The assistant answers right away so you can decide fast.",
+  'Thắc mắc? Hỏi trợ lý CaLẻ': 'Questions? Ask the CaLẻ assistant',
+  'Hỏi bằng lời của bạn về ca làm, tiền công, ví hay tài khoản. Trợ lý trả lời ngay; câu nào chưa giúp được thì chỉ bạn cách gặp đội hỗ trợ.':
+    'Ask in your own words about shifts, pay, the wallet or your account. The assistant answers right away; if it can’t help, it shows you how to reach the support team.',
+  'Trả lời ngay, cả ngày lẫn đêm': 'Instant answers, day and night',
+  'Hiểu cả câu không dấu, viết tắt': 'Understands Vietnamese without accents and abbreviations',
+  'Cần người thật: có hotline, Zalo, email': 'Need a real person? Hotline, Zalo, email',
+  'Trợ lý CaLẻ trả lời ngay 24/7': 'The CaLẻ assistant answers instantly, 24/7',
+  'Bấm nút chat tròn ở góc dưới màn hình, hoặc nút "Thử hỏi trợ lý ngay", rồi gõ câu hỏi như khi nhắn tin. Có dấu hay không dấu đều được.':
+    'Tap the round chat button in the bottom corner of the screen, or "Ask the assistant now", then type your question like a text message.',
+  'Trợ lý chỉ trả lời các câu hỏi về CaLẻ. Câu nào trợ lý không giúp được, bạn liên hệ đội hỗ trợ ngay bên dưới.':
+    'The assistant only answers questions about CaLẻ. If it can’t help, contact the support team below.',
+  'Nhắn với trợ lý': 'Chat with the assistant',
 };

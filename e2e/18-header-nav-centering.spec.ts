@@ -63,7 +63,7 @@ async function measure(page: import('@playwright/test').Page) {
     // Locate the brand link by its logo image, not by href: for admin the
     // logo points to /admin/dashboard (P0 feedback F7), for others to "/".
     const logo = header
-      ? header.querySelector('a:has(img[src="/images/logo.png"])')
+      ? header.querySelector('a:has(img[src="/images/logo-small.png"])')
       : null;
     const userMenu = document.querySelector('[data-user-menu="true"]');
     const bell = header

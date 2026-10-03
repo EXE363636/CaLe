@@ -6,8 +6,8 @@
  *
  * Đếm bằng đúng điều kiện của `/shifts` (`isShiftAvailableForRecruiting`) và
  * khối "Ca gấp" (`isUnfilledUrgent`), nên số khớp danh sách. Chưa nạp dữ liệu
- * hoặc 0 ca → không hiện gì (không "0 ca"). Bản demo ghi "(dữ liệu demo)" vì số
- * đếm từ dữ liệu mẫu trong trình duyệt.
+ * → giữ chỗ một dòng ẩn (tránh xô bố cục); 0 ca → không hiện gì (không "0 ca").
+ * Bản demo ghi "(dữ liệu demo)" vì số đếm từ dữ liệu mẫu trong trình duyệt.
  */
 
 import Link from 'next/link';
@@ -37,7 +37,16 @@ export function OpenShiftCount() {
     };
   }, [shifts, applications]);
 
-  if (!hydrated || open === 0) return null;
+  // 04/10: chưa nạp dữ liệu → giữ chỗ đúng một dòng (ẩn, không đọc) thay vì `null`,
+  // để dòng số ca hiện ra không đẩy phần bên dưới xuống (CLS). 0 ca vẫn không hiện gì.
+  if (!hydrated) {
+    return (
+      <p aria-hidden="true" className="invisible mt-5 text-sm">
+        &nbsp;
+      </p>
+    );
+  }
+  if (open === 0) return null;
 
   return (
     <p className="motion-fade-up mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-700">

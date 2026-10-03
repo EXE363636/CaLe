@@ -21,6 +21,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { inViewport, watchReplay } from './viewReplay';
+
 /** Cả câu gõ trong 0,35–1,5 giây: câu ngắn ~30ms/ký tự, đoạn dài nhanh dần. */
 function typingMs(length: number) {
   return Math.max(350, Math.min(1500, length * 30));
@@ -37,31 +39,26 @@ export function TypeOnView({ text, delay = 0 }: { text: string; delay?: number }
   const [count, setCount] = useState(0);
 
   // Lần đo đầu: đang trong màn hình → giữ nguyên; nằm dưới → ẩn chữ, chờ cuộn tới.
+  // Khuất hẳn rồi cuộn tới lại → gõ lại từ đầu (04/10).
   useEffect(() => {
     const el = ref.current;
     if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let first = true;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (first) {
-          first = false;
-          if (entry.isIntersecting) {
-            io.disconnect();
-            return;
-          }
-          setCount(0);
-          setPhase('armed');
-          return;
-        }
-        if (entry.isIntersecting) {
-          io.disconnect();
-          setPhase('typing');
-        }
+    const startInside = inViewport(el);
+    const arm = () => {
+      setCount(0);
+      setPhase('armed');
+    };
+     
+    if (!startInside) arm();
+    return watchReplay(el, {
+      rootMargin: '0px 0px -10% 0px',
+      startInside,
+      onEnter: () => {
+        setCount(0);
+        setPhase('typing');
       },
-      { rootMargin: '0px 0px -10% 0px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
+      onLeave: arm,
+    });
   }, []);
 
   useEffect(() => {
@@ -70,9 +67,14 @@ export function TypeOnView({ text, delay = 0 }: { text: string; delay?: number }
     const duration = typingMs(total);
     const start = performance.now() + delay;
     let raf = 0;
+    // 04/10: chỉ setState khi số ký tự hiện ra đổi (không render lại mỗi khung hình).
+    let last = -1;
     const tick = (now: number) => {
       const n = Math.max(0, Math.min(total, Math.ceil(((now - start) / duration) * total)));
-      setCount(n);
+      if (n !== last) {
+        last = n;
+        setCount(n);
+      }
       if (n >= total) {
         setPhase('done');
         return;

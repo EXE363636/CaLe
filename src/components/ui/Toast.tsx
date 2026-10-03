@@ -195,7 +195,7 @@ export function Toast({
       </button>
 
       {/* Phase 9P — auto-dismiss progress bar. Sits at the bottom edge,
-          width animates from 100% → 0% over `duration` so users can see
+          shrinks (scaleX 1 → 0, 04/10) over `duration` so users can see
           when the toast will disappear. Hidden under
           `prefers-reduced-motion` via the global CSS rule. Re-keyed on
           `version` so dedupe re-triggers restart the animation cleanly

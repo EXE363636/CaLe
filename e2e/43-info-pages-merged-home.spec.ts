@@ -339,6 +339,8 @@ test.describe('Nội dung trang cũ ở chỗ mới (03/10)', () => {
       ['home-how', 'cream'],
       ['home-explain-title', 'paper'],
       ['home-features', 'cream'],
+      // 04/10: "Thắc mắc? Hỏi trợ lý CaLẻ" (minh hoạ chat).
+      ['home-assistant', 'paper'],
     ]);
   });
 
@@ -407,7 +409,8 @@ test.describe('Nội dung trang cũ ở chỗ mới (03/10)', () => {
     await expect(main.getByRole('heading', { level: 1 })).toHaveText('Liên hệ hỗ trợ');
 
     const order = await sectionOrder(page);
-    expect(order.slice(0, 3), order.join(', ')).toEqual(['support-contact', 'support-safety', 'support-report']);
+    // 04/10: khối "Hỏi trợ lý CaLẻ" (#support-assistant) đứng đầu, trước thẻ liên hệ.
+    expect(order.slice(0, 4), order.join(', ')).toEqual(['support-assistant', 'support-contact', 'support-safety', 'support-report']);
 
     const safety = main.locator('section[aria-labelledby="support-safety"]');
     await expect(safety.getByRole('heading', { level: 2, name: 'Lưu ý an toàn', exact: true })).toBeVisible();

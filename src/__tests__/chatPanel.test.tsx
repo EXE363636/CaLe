@@ -103,6 +103,41 @@ describe('ChatPanel', () => {
     expect((box as HTMLTextAreaElement).value).toBe('');
   });
 
+  it('như Messenger: đang đọc tin cũ thì tin mới của người kia không kéo giật xuống, hiện nút "Tin nhắn mới"', async () => {
+    const m1 = msg('m1', EMPLOYER, 'Em đến lúc 7:45 nhé', '2026-10-03T10:00:00.000Z');
+    seed({}, [m1]);
+    await renderPanel();
+    const log = screen.getByRole('log');
+    Object.defineProperty(log, 'scrollHeight', { configurable: true, value: 1000 });
+    Object.defineProperty(log, 'clientHeight', { configurable: true, value: 300 });
+    log.scrollTop = 100;
+    fireEvent.scroll(log);
+
+    const m2 = msg('m2', EMPLOYER, 'Nhớ mang áo trắng', '2026-10-03T10:05:00.000Z');
+    await act(async () => {
+      // Tin mới tới (như nhận qua Realtime).
+      useChatStore.setState((st) => ({
+        messagesByApplication: { ...st.messagesByApplication, app1: [...(st.messagesByApplication.app1 ?? []), m2] },
+      }));
+    });
+    expect(log.scrollTop).toBe(100);
+    const jump = screen.getByRole('button', { name: /Tin nhắn mới/ });
+    await act(async () => {
+      fireEvent.click(jump);
+    });
+    expect(screen.queryByRole('button', { name: /Tin nhắn mới/ })).toBeNull();
+
+    // Tin của chính mình: luôn cuộn xuống, không hiện nút.
+    log.scrollTop = 100;
+    fireEvent.scroll(log);
+    const box = screen.getByLabelText('Tin nhắn của bạn');
+    fireEvent.change(box, { target: { value: 'Dạ vâng' } });
+    await act(async () => {
+      fireEvent.keyDown(box, { key: 'Enter' });
+    });
+    expect(screen.queryByRole('button', { name: /Tin nhắn mới/ })).toBeNull();
+  });
+
   it('chỉ đọc: không có ô nhập, nói rõ cuộc trò chuyện đã đóng', async () => {
     seed({ status: 'Cancelled' }, [msg('m1', EMPLOYER, 'Ca huỷ rồi em', '2026-10-03T10:00:00.000Z')]);
     await renderPanel('readonly');
