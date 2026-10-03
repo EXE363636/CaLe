@@ -408,7 +408,7 @@ function SchedulePageContent() {
   const peekShift = peekApp ? shiftIndex.get(peekApp.shiftId) ?? null : null;
 
   const sidebar = (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:flex-1">
       <div className="rounded-2xl bg-white p-1 shadow-card ring-1 ring-black/5">
         <MiniMonthCalendar
           selectedDateIso={selectedDateIso}
@@ -429,7 +429,7 @@ function SchedulePageContent() {
         items={upcoming.map((e) => ({ id: e.id, title: e.title, date: e.date, startTime: e.startTime, endTime: e.endTime, variant: e.variant, label: e.statusLabel }))}
         onSelect={setPeekId}
       />
-      <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5">
+      <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 lg:flex-1">
         <CalendarLegend variant="worker" />
       </div>
       <div className="rounded-2xl bg-orange-50 p-4 ring-1 ring-orange-100">
@@ -477,7 +477,7 @@ function SchedulePageContent() {
   );
 
   const body = (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:flex-1">
       {actionError && (
         <div
           role="alert"
@@ -563,7 +563,7 @@ function SchedulePageContent() {
       </div>
 
       {/* Danh sách đầy đủ lịch bận / rảnh — thu gọn dưới lịch (vẫn sửa / xoá được). */}
-      <details className="group rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5">
+      <details className="group rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 lg:flex-1">
         <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold text-gray-900">
           <span>
             {t('schedule.list.title')} ({flatList.length})
@@ -594,19 +594,11 @@ function SchedulePageContent() {
           warm-cream chrome already provides surface treatment for the
           calendar grid; the extra blobs added clutter without value. */}
 
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <header className="mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">{t('schedule.page.title')}</h1>
           <p className="mt-2 max-w-2xl text-base text-gray-600">{t('schedule.page.subtitle')}</p>
-          <ScheduleSummary
-            label={tx('Tóm tắt tuần đang xem')}
-            items={[
-              { value: String(summary.taken), label: tx('Ca đã nhận trong tuần') },
-              { value: summary.hours.toLocaleString('vi-VN', { maximumFractionDigits: 1 }), label: tx('Giờ làm') },
-              { value: formatVND(summary.pay), label: tx('Tiền công dự kiến') },
-              { value: String(summary.pending), label: tx('Đơn chờ duyệt'), warn: summary.pending > 0 },
-            ]}
-          />
         </div>
         <PageHelpButton
           title={t('help.workerSchedule.title')}
@@ -640,6 +632,16 @@ function SchedulePageContent() {
             },
           ]}
           cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
+        />
+        </div>
+        <ScheduleSummary
+          label={tx('Tóm tắt tuần đang xem')}
+          items={[
+            { value: String(summary.taken), label: tx('Ca đã nhận trong tuần') },
+            { value: summary.hours.toLocaleString('vi-VN', { maximumFractionDigits: 1 }), label: tx('Giờ làm') },
+            { value: formatVND(summary.pay), label: tx('Tiền công dự kiến') },
+            { value: String(summary.pending), label: tx('Đơn chờ duyệt'), warn: summary.pending > 0 },
+          ]}
         />
       </header>
 

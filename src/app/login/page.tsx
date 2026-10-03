@@ -5,13 +5,20 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore, useCurrentUser } from '@/stores/authStore';
 import { Input, Button } from '@/components/ui';
-import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
+import { AuthShell, AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { useT, useTx } from '@/i18n/LocaleProvider';
 import { isValidEmail, isRequired } from '@/lib/validate';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AuthDivider, GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+
+/** Tài khoản seed của bản demo (mật khẩu `demo`) — không bao giờ hiện ở production. */
+const DEMO_ACCOUNTS = [
+  { label: 'Người lao động', email: 'an.nguyen@gmail.com' },
+  { label: 'Nhà tuyển dụng', email: 'lien@quanphoha.vn' },
+  { label: 'Quản trị viên', email: 'admin@cale.vn' },
+] as const;
 
 const DASHBOARD: Record<string, string> = {
   worker: '/worker/dashboard',
@@ -82,34 +89,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
-      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_minmax(0,28rem)] lg:items-center">
-        {/* Side trust panel — desktop only */}
-        <AuthSidePanel mode="login" />
-
-        {/* Form card */}
-        <div className="w-full">
-          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
-            <div className="mb-6 text-center">
-              <h1 className="text-2xl font-bold text-gray-900">{t('auth.login.title')}</h1>
-              <p className="mt-1 text-sm text-gray-600">{t('auth.login.subtitle')}</p>
+    <AuthShell panel={<AuthSidePanel mode="login" />}>
+            <div className="mb-8">
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">{t('auth.login.title')}</h1>
+              <p className="mt-2 text-base text-gray-600">{t('auth.login.subtitle')}</p>
             </div>
-
-            {/* Demo hint — CHỈ hiện ở local/demo mode. Ở supabase/production tuyệt đối
-                không lộ email seed / mật khẩu `demo` (B1). */}
-            {!isSupabaseEnv() && (
-            <details className="group mb-5 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
-              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between font-semibold text-gray-700 marker:hidden">
-                <span>{tx('Tài khoản demo')}</span>
-                <span className="transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true">▾</span>
-              </summary>
-              <div className="mt-2 flex flex-col gap-1">
-                <p>{tx('Người lao động')}: <span className="font-mono">an.nguyen@gmail.com</span> / <span className="font-mono">demo</span></p>
-                <p>{tx('Nhà tuyển dụng')}: <span className="font-mono">lien@quanphoha.vn</span> / <span className="font-mono">demo</span></p>
-                <p>Admin: <span className="font-mono">admin@cale.vn</span> / <span className="font-mono">demo</span></p>
-              </div>
-            </details>
-            )}
 
             {isSupabaseEnv() && (
               <>
@@ -157,18 +141,43 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <p className="mt-5 text-center text-sm text-gray-500">
+            <p className="mt-6 text-center text-sm text-gray-600">
               {t('auth.login.noAccount')}{' '}
               <Link
                 href="/register"
-                className="rounded font-medium text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+                className="rounded font-semibold text-orange-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
               >
                 {t('btn.register')}
               </Link>
             </p>
-          </div>
-        </div>
-      </div>
-    </div>
+
+            {/* Tài khoản demo — CHỈ hiện ở local/demo mode. Ở supabase/production tuyệt đối
+                không lộ email seed / mật khẩu `demo` (B1). 03/10: bấm một tài khoản là điền
+                sẵn email + mật khẩu (thay hộp xổ chữ đơn cách). */}
+            {!isSupabaseEnv() && (
+              <div className="mt-8 border-t border-gray-100 pt-6">
+                <p className="text-sm font-semibold text-gray-900">{tx('Tài khoản demo')}</p>
+                <p className="mt-0.5 text-xs text-gray-500">{tx('Bấm để điền sẵn, mật khẩu đều là "demo".')}</p>
+                <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+                  {DEMO_ACCOUNTS.map((acc) => (
+                    <li key={acc.email}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmail(acc.email);
+                          setPassword('demo');
+                          setErrors({});
+                        }}
+                        className="flex w-full flex-col items-start rounded-2xl bg-orange-50 px-3 py-2.5 text-left ring-1 ring-orange-100 transition-colors hover:bg-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                      >
+                        <span className="text-sm font-semibold text-gray-900">{tx(acc.label)}</span>
+                        <span className="mt-0.5 max-w-full truncate text-xs text-gray-600">{acc.email}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+    </AuthShell>
   );
 }

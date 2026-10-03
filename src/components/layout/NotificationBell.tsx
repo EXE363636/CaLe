@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useId } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { handleNotificationClick } from '@/lib/notificationAction';
-import { formatLogDateTime } from '@/lib/format';
-import { useT } from '@/i18n/LocaleProvider';
+import { formatNotificationTime } from '@/lib/notificationTime';
+import { useLocale, useT, useTx } from '@/i18n/LocaleProvider';
 import type { Notification } from '@/types';
 
 function BellIcon({ className = '' }: { className?: string }) {
@@ -30,6 +30,8 @@ function BellIcon({ className = '' }: { className?: string }) {
 export function NotificationBell() {
   const t = useT();
   const [open, setOpen] = useState(false);
+  // Mốc giờ cho "25 phút trước" — đọc lại mỗi lần mở danh sách (không chạy đồng hồ).
+  const [nowIso, setNowIso] = useState(() => new Date().toISOString());
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -99,7 +101,10 @@ export function NotificationBell() {
     <div className="relative">
       <button
         ref={buttonRef}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!open) setNowIso(new Date().toISOString());
+          setOpen((v) => !v);
+        }}
         aria-label={t('nav.notifications')}
         aria-expanded={open}
         className="relative flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
@@ -147,6 +152,7 @@ export function NotificationBell() {
                 <li key={n.id}>
                   <NotificationItem
                     notification={n}
+                    nowIso={nowIso}
                     onActivate={() => {
                       handleNotificationClick(n, {
                         markRead,
@@ -169,27 +175,41 @@ export function NotificationBell() {
 function NotificationItem({
   notification,
   onActivate,
+  nowIso,
 }: {
   notification: Notification;
   onActivate: () => void;
+  /** Mốc "bây giờ" đọc một lần khi mở danh sách. */
+  nowIso: string;
 }) {
+  const locale = useLocale();
+  const tx = useTx();
+  const descId = useId();
+  // 03/10 — chưa đọc: chấm cam + tiêu đề đậm (không tô nền cả dòng); giờ tương đối
+  // ("25 phút trước", "Hôm qua 16:05", "10/07") thay giờ đầy đủ chữ đơn cách.
+  const unread = !notification.read;
   const content = (
-    <div
-      className={[
-        'flex gap-3 px-4 py-3 text-sm transition-colors hover:bg-gray-50',
-        !notification.read ? 'bg-orange-50' : '',
-      ].join(' ')}
-    >
-      {!notification.read && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-orange-500" aria-hidden="true" />
-      )}
-      <div className={['flex-1', notification.read ? 'pl-5' : ''].join(' ')}>
-        <p className="font-medium text-gray-900">{notification.title}</p>
-        <p className="mt-0.5 text-gray-600">{notification.body}</p>
-        {/* CORE-STABILITY-6 Part 2 — show when the notification fired. */}
-        <p className="mt-1 font-mono text-xs text-gray-400">
-          {formatLogDateTime(notification.createdAt)}
+    <div className="flex gap-3 px-4 py-3 text-sm transition-colors hover:bg-orange-50">
+      <span
+        className={['mt-1.5 h-2 w-2 shrink-0 rounded-full', unread ? 'bg-orange-500' : 'bg-transparent'].join(' ')}
+        aria-hidden="true"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-baseline justify-between gap-3">
+          <span className={['min-w-0 text-gray-900', unread ? 'font-semibold' : 'font-medium'].join(' ')}>{notification.title}</span>
+          {/* CORE-STABILITY-6 Part 2 — show when the notification fired. */}
+          <time dateTime={notification.createdAt} className="shrink-0 text-xs text-gray-500 tabular-nums">
+            {formatNotificationTime(notification.createdAt, nowIso, locale)}
+          </time>
         </p>
+        <p className="mt-0.5 line-clamp-2 text-gray-600">{notification.body}</p>
+        {/* Tên nút là tiêu đề; mô tả cho trình đọc màn hình: trạng thái chưa đọc (không chỉ
+            dựa vào chấm cam / chữ đậm) + giờ + nội dung. */}
+        <span id={descId} className="sr-only">
+          {[unread ? tx('Chưa đọc') : '', formatNotificationTime(notification.createdAt, nowIso, locale), notification.body]
+            .filter(Boolean)
+            .join('. ')}
+        </span>
       </div>
     </div>
   );
@@ -205,6 +225,7 @@ function NotificationItem({
       onClick={onActivate}
       className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-inset"
       aria-label={notification.title}
+      aria-describedby={descId}
     >
       {content}
     </button>

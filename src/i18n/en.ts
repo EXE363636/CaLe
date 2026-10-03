@@ -188,24 +188,6 @@ export const enPublic: Record<string, string> = {
   'auth.reset.invalidLink.title': 'This link is invalid or has expired',
   'auth.reset.invalidLink.body': 'Reset links work once and for a limited time. Please request a new one.',
   'auth.reset.requestAgain': 'Send a new link',
-  'auth.side.welcome': 'Welcome back',
-  'auth.side.welcome.desc': 'Log in to keep managing your shifts, applications and schedule.',
-  'auth.side.join': 'Join CaLẻ',
-  'auth.side.join.desc':
-    'Create a free account in a few minutes. Made for people who want flexible work and for venues and events that need flexible staff.',
-  'auth.side.benefit1': 'Transparent payments',
-  'auth.side.benefit1.desc': 'Employers pay up front; money is released only when the work is done.',
-  'auth.side.benefit1.supabase': 'Clear shifts – clear pay',
-  'auth.side.benefit1.desc.supabase':
-    'Every shift lists its hours and wages. Wages are held up front and go to your wallet when the shift is done.',
-  'auth.side.benefit2': 'No hidden fees',
-  'auth.side.benefit2.desc': 'Workers never pay up front. Signing up is free.',
-  'auth.side.benefit3': 'Two-way reputation',
-  'auth.side.benefit3.desc': 'Reviews in both directions help build a trusted community.',
-  'auth.side.disclaimer':
-    'MVP version - all payments and verifications are simulated, no real transactions.',
-  'auth.side.disclaimer.supabase':
-    'Beta. Top-ups and withdrawals go through PayOS; wages are held until the shift is done.',
   'form.fullName': 'Full name',
   'form.email': 'Email',
   'form.phone': 'Phone number',
@@ -300,8 +282,6 @@ export const enPublicText: Record<string, string> = {
 
   // Bảng giá
   'Chi phí': 'Costs',
-  'Bảng giá giai đoạn thử nghiệm (Beta)': 'Beta pricing',
-  'Giai đoạn thử nghiệm — 0đ': 'Trial period — 0đ',
   'Người lao động không mất phí. Nhà tuyển dụng chỉ trả phí cho phần ca có người làm.':
     'Workers pay nothing. Employers only pay a fee for the part of a shift that was worked.',
   'Giao dịch và số dư đều là mô phỏng. CaLẻ chưa thu, giữ hoặc chuyển tiền thật.':
@@ -313,15 +293,11 @@ export const enPublicText: Record<string, string> = {
   'Tiền công vào ví mô phỏng sau ca.': 'Wages go to a simulated wallet after the shift.',
   'Rút tiền về tài khoản ngân hàng của bạn.': 'Withdraw to your own bank account.',
   'Chưa rút được tiền thật.': 'Real withdrawals are not available yet.',
-  'trên tiền công': 'of wages',
-  'dự kiến 10% tiền công — chưa thu phí': 'planned 10% of wages — not charged yet',
   'Đăng ca, duyệt người ứng tuyển miễn phí.': 'Posting shifts and reviewing applicants is free.',
   'Tiền công + phí được giữ khi đăng ca.': 'Wages + fee are held when you post a shift.',
   'Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí phần đó.':
     'Empty spots, no-shows, cancelled shifts: both wages and fees for that part are refunded.',
   'Tiền công được giữ (mô phỏng) khi đăng ca.': 'Wages are held (simulated) when you post a shift.',
-  'Huỷ ca sau khi đã duyệt người có thể bị trừ 5–15% tiền giữ (mô phỏng).':
-    'Cancelling after approving someone may cost 5–15% of the held amount (simulated).',
   'Ví dụ: tiền công 200.000đ → giữ 220.000đ. Ca xong, người lao động nhận 200.000đ, phí CaLẻ 20.000đ.':
     'Example: 200.000đ in wages → 220.000đ held. After the shift the worker receives 200.000đ and the CaLẻ fee is 20.000đ.',
   'Ví dụ mô phỏng: tiền công 200.000đ → giữ 200.000đ (chưa cộng phí). Ca xong, người lao động nhận 200.000đ.':

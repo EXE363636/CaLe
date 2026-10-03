@@ -1,5 +1,9 @@
 import { HandbookArticleSection } from '@/data/mock/handbookArticles';
 
+/**
+ * Thân bài cẩm nang. 03/10: chữ căn trái (bỏ căn đều hai bên, khó đọc với tiếng Việt),
+ * cột đọc do trang giới hạn; ghi chú là khối nhấn viền cam bên trái.
+ */
 export function ArticleContent({
   content,
   fallbackAlt,
@@ -15,26 +19,26 @@ export function ArticleContent({
     const parts = text.split(/(\*\*.*?\*\*)/g);
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index} className="font-semibold">{part.slice(2, -2)}</strong>;
+        return <strong key={index} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>;
       }
       return part;
     });
   };
 
   return (
-    <div className="prose prose-orange lg:prose-lg mx-auto max-w-none text-justify">
+    <div className="text-base leading-relaxed text-gray-700 sm:text-[1.0625rem]">
       {content.map((section, idx) => (
-        <div key={idx} className="mb-8">
+        <div key={idx} className="mb-10 last:mb-0">
           {section.heading && (
-            <h2 className="mb-4 text-2xl font-bold text-gray-900">{section.heading}</h2>
+            <h2 className="mb-4 text-balance text-2xl font-bold tracking-tight text-gray-900">{section.heading}</h2>
           )}
           {section.paragraphs && section.paragraphs.map((p, i) => (
-            <p key={i} className="mb-4 leading-relaxed text-gray-700">
+            <p key={i} className="mb-4">
               {renderText(p)}
             </p>
           ))}
           {section.bullets && section.bullets.length > 0 && (
-            <ul className="mb-4 list-disc pl-5 text-gray-700 space-y-2">
+            <ul className="mb-4 list-disc space-y-2 pl-5 marker:text-orange-500">
               {section.bullets.map((b, i) => (
                 <li key={i}>{renderText(b)}</li>
               ))}
@@ -42,18 +46,21 @@ export function ArticleContent({
           )}
           {section.imageUrl && (
             <figure className="my-8">
-              <img src={section.imageUrl} alt={section.imageCaption || section.heading || fallbackAlt} className="w-full rounded-xl object-cover shadow-sm h-auto max-h-[500px]" />
+              {/* eslint-disable-next-line @next/next/no-img-element -- ảnh minh hoạ trong bài, cỡ tự nhiên */}
+              <img
+                src={section.imageUrl}
+                alt={section.imageCaption || section.heading || fallbackAlt}
+                className="h-auto max-h-[500px] w-full rounded-2xl object-cover ring-1 ring-black/5"
+              />
               {section.imageCaption && (
-                <figcaption className="mt-3 text-center text-sm text-gray-500 italic">
-                  {section.imageCaption}
-                </figcaption>
+                <figcaption className="mt-3 text-center text-sm text-gray-500">{section.imageCaption}</figcaption>
               )}
             </figure>
           )}
           {section.note && (
-            <div className="my-6 rounded-lg border border-orange-200 bg-orange-50 p-4">
-              <p className="text-sm font-medium text-orange-900">{section.note}</p>
-            </div>
+            <p className="my-6 rounded-r-2xl border-l-4 border-orange-400 bg-orange-50 px-5 py-4 text-sm font-medium leading-relaxed text-gray-800">
+              {renderText(section.note)}
+            </p>
           )}
         </div>
       ))}

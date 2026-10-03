@@ -474,3 +474,73 @@ export function LandingHelp({
     </section>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Luật / mốc — trang hướng dẫn (03/10): tiêu đề trái, danh sách thẻ phải; mỗi
+// dòng có một "giá trị" nổi bật (điểm cộng / trừ, mốc giờ) tô theo tông.
+// ---------------------------------------------------------------------------
+
+const RULE_TONE: Record<'good' | 'warn' | 'bad' | 'neutral', string> = {
+  good: 'bg-green-50 text-green-800 ring-green-200',
+  warn: 'bg-amber-50 text-amber-900 ring-amber-200',
+  bad: 'bg-red-50 text-red-800 ring-red-200',
+  neutral: 'bg-gray-50 text-gray-800 ring-gray-200',
+};
+
+export function LandingRules({
+  id,
+  title,
+  lead,
+  badge,
+  items,
+  note,
+  tone,
+}: {
+  id: string;
+  title: string;
+  lead?: ReactNode;
+  /** Chip nhỏ cạnh tiêu đề, vd "Sắp có". */
+  badge?: string;
+  items: Array<{ value: string; title: string; body: ReactNode; tone?: 'good' | 'warn' | 'bad' | 'neutral' }>;
+  note?: ReactNode;
+  tone?: string;
+}) {
+  return (
+    <section aria-labelledby={id} data-tone={tone} className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+      <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-16">
+        <div className="lg:sticky lg:top-28 lg:self-start">
+          <h2 id={id} className="text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            {title}
+            {badge && (
+              <span className="ml-3 inline-flex translate-y-[-3px] items-center rounded-full bg-gray-900 px-2.5 py-0.5 align-middle text-xs font-semibold text-white">
+                {badge}
+              </span>
+            )}
+          </h2>
+          {lead && <div className="mt-3 text-base leading-relaxed text-gray-600">{lead}</div>}
+        </div>
+        <div>
+          <ul className="flex flex-col gap-3">
+            {items.map((it) => (
+              <li key={it.title} className="flex gap-4 rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 sm:p-5">
+                <span
+                  className={[
+                    'flex h-11 min-w-[4.5rem] shrink-0 items-center justify-center rounded-xl px-2 text-sm font-bold tabular-nums ring-1',
+                    RULE_TONE[it.tone ?? 'neutral'],
+                  ].join(' ')}
+                >
+                  {it.value}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-gray-900">{it.title}</h3>
+                  <div className="mt-1 text-sm leading-relaxed text-gray-600">{it.body}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {note && <div className="mt-4 rounded-xl bg-orange-50 px-4 py-3 text-sm text-orange-900 ring-1 ring-orange-100">{note}</div>}
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -22,8 +22,8 @@ export function ArticleGrid({
 
   return (
     <section className="mt-12 lg:mt-16">
-      <h2 className="mb-6 text-xl font-bold text-gray-900">{title}</h2>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <h2 className="mb-6 text-2xl font-bold tracking-tight text-gray-900">{title}</h2>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {articles.map((article) => (
           <ArticleCard key={article.id} article={article} meta={meta} />
         ))}

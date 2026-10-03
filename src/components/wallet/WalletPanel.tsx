@@ -11,7 +11,7 @@
  * accommodates either sign without distinction.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, Card, Modal } from '@/components/ui';
 import { PayosTopUpQr } from '@/components/payment/PayosTopUpQr';
 import { PaymentReviewNotice } from '@/components/wallet/PaymentReviewNotice';
@@ -78,11 +78,24 @@ interface WalletPanelProps {
    */
   openLedgerSignal?: number;
   className?: string;
+  /**
+   * 03/10 — `tile`: ô gọn trên hàng thẻ số của dashboard (số dư + 3 nút chữ), không có
+   * danh sách giao dịch gần đây (vẫn xem trong hộp "Lịch sử giao dịch"). Mặc định `panel`.
+   */
+  variant?: 'panel' | 'tile';
+}
+
+/** Khung của biến thể `tile` (lớp do dashboard truyền vào qua `className`). */
+function TileShell({ className, children }: { className?: string; children: ReactNode }) {
+  return <section className={['flex h-full flex-col', className ?? ''].join(' ')}>{children}</section>;
 }
 
 /** QA-Fix-2 Phase 4 — demo top-up cap so a fat-finger entry can't
  *  create an absurd balance. */
 const TOP_UP_MAX = 50_000_000;
+/** Nút chữ của biến thể `tile` (đủ 44px chạm). */
+const TILE_ACTION =
+  'inline-flex min-h-[44px] items-center rounded-lg px-2 text-sm font-semibold text-gray-700 hover:bg-orange-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:hover:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400';
 /** Optional quick presets shown above the custom-amount input. */
 const TOP_UP_PRESETS = [200_000, 500_000, 1_000_000];
 
@@ -168,6 +181,7 @@ export function WalletPanel({
   role = 'worker',
   openLedgerSignal = 0,
   className = '',
+  variant = 'panel',
 }: WalletPanelProps) {
   const t = useT();
   const tx = useTx();
@@ -277,6 +291,18 @@ export function WalletPanel({
   // Rút tối thiểu: PayOS (production) không chi dưới 2.000 đ; demo cho mọi số > 0.
   const withdrawMin = supabase ? PAYOS_MIN_AMOUNT : 1;
   const withdrawHintId = `wallet-withdraw-hint-${userId}`;
+
+  function openTopUp() {
+    setTopUpText('');
+    setTopUpError(null);
+    setTopUpStep('amount');
+    setTopUpOpen(true);
+    if (supabase && role === 'employer') {
+      getTopUpBonus()
+        .then(setBonusInfo)
+        .catch(() => setBonusInfo(null));
+    }
+  }
 
   function openWithdraw() {
     setWithdrawText('');
@@ -491,8 +517,52 @@ export function WalletPanel({
     setWithdrawOpen(false);
   }
 
+  const tile = variant === 'tile';
+  const Shell = tile ? TileShell : Card;
   return (
-    <Card className={className}>
+    <Shell className={className}>
+      {tile && (
+        <>
+          <p className="text-sm font-medium text-gray-600">{title ?? t('wallet.title')}</p>
+          <p className="mt-1 text-3xl font-extrabold leading-tight tabular-nums text-gray-900 [overflow-wrap:anywhere]">{formatVND(balance)}</p>
+          {promoBalance > 0 && (
+            <p className="mt-1 text-xs font-semibold text-orange-800 tabular-nums">
+              {t('wallet.promo.balance').replace('{amount}', formatVND(promoBalance))}
+            </p>
+          )}
+          {allowWithdraw && balance < withdrawMin && (
+            <p id={withdrawHintId} className="sr-only">
+              {balance > 0
+                ? t('wallet.withdraw.belowMin').replace('{min}', formatVND(withdrawMin))
+                : supabase
+                  ? t('wallet.withdraw.emptyMin').replace('{min}', formatVND(withdrawMin))
+                  : t('wallet.withdraw.empty')}
+            </p>
+          )}
+          <div className="mt-auto flex flex-wrap items-center gap-x-1 pt-2">
+            {allowTopUp && (
+              <button type="button" onClick={openTopUp} className={TILE_ACTION + ' text-orange-700'}>
+                {t('wallet.topUp.button')}
+              </button>
+            )}
+            {allowWithdraw && (
+              <button
+                type="button"
+                onClick={openWithdraw}
+                disabled={balance < withdrawMin}
+                aria-describedby={balance < withdrawMin ? withdrawHintId : undefined}
+                className={TILE_ACTION}
+              >
+                {t('wallet.withdraw.button')}
+              </button>
+            )}
+            <button type="button" onClick={() => setModalOpen(true)} disabled={userLedger.length === 0} className={TILE_ACTION}>
+              {t('wallet.ledger.openButton')}
+            </button>
+          </div>
+        </>
+      )}
+      {!tile && (
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-gray-700">
@@ -533,17 +603,7 @@ export function WalletPanel({
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => {
-                setTopUpText('');
-                setTopUpError(null);
-                setTopUpStep('amount');
-                setTopUpOpen(true);
-                if (supabase && role === 'employer') {
-                  getTopUpBonus()
-                    .then(setBonusInfo)
-                    .catch(() => setBonusInfo(null));
-                }
-              }}
+              onClick={openTopUp}
             >
               {t('wallet.topUp.button')}
             </Button>
@@ -571,6 +631,7 @@ export function WalletPanel({
           </Button>
         </div>
       </div>
+      )}
 
       {/* Supabase: lệnh rút tiền thật gần đây + nút tra lại lệnh đang xử lý. */}
       {supabase && openWithdrawals.length > 0 && (
@@ -638,7 +699,7 @@ export function WalletPanel({
       {/* 0029: giao dịch nạp đang chờ admin kiểm tra / vừa được xử lý. */}
       {supabase && <PaymentReviewNotice reloadSignal={reviewSignal} />}
 
-      {userLedger.length === 0 ? (
+      {tile ? null : userLedger.length === 0 ? (
         <p className="mt-3 text-sm text-gray-600">
           {t('wallet.balance.empty')}
         </p>
@@ -943,6 +1004,6 @@ export function WalletPanel({
           </div>
         </div>
       </Modal>
-    </Card>
+    </Shell>
   );
 }

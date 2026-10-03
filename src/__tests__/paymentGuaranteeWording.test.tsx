@@ -101,7 +101,7 @@ const lc = (s: string | null | undefined): string => nfc(s).toLowerCase();
  * period so a punctuation nuance (period rendered in a sibling node) never
  * masks the real signal. Absent from every surface today → assertions FAIL.
  */
-const DEMO_NOTE = nfc('Trong MVP/demo không có giao dịch thật');
+const DEMO_NOTE = nfc('không có giao dịch thật');
 
 /**
  * The confusing payment-guarantee label the fix must replace. Lower-cased so a

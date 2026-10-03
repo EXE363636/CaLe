@@ -1,96 +1,107 @@
-import { getTx } from '@/i18n/server';
-import { InfoPage, InfoSection, InfoList } from '@/components/layout/InfoPage';
+import { GuideHero } from '@/components/landing/GuideHero';
+import { LandingHelp, LandingRules } from '@/components/landing/LandingSections';
+import { MoneyFlowDiagram } from '@/components/landing/MoneyFlowDiagram';
+import { RoleBand } from '@/components/landing/RoleBand';
+import { shiftMilestones } from '@/components/landing/shiftMilestones';
+import { ToneScroll } from '@/components/landing/ToneScroll';
+import { TypeOnView } from '@/components/landing/TypeOnView';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { getTx } from '@/i18n/server';
 
-export default async function EmployerPaymentsPage() {
+/**
+ * Thanh toán / giữ tiền ca làm (nhà tuyển dụng). 03/10 — làm lại theo ngôn ngữ landing:
+ * sơ đồ dòng tiền của trang chủ (`MoneyFlowDiagram`), luật trả / hoàn, quy định huỷ ca
+ * theo một ca ví dụ 17:00 (`shiftMilestones`).
+ *   - Bản thật: tiền thật qua PayOS (nạp, giữ tiền công + 10% phí khi đăng ca, trả khi
+ *     xác nhận hoặc tự chốt sau 24 giờ, hoàn phần không dùng kể cả phí, rút về ngân hàng).
+ *     Menu đã ẩn mục này ở bản thật nhưng trang vẫn mở được bằng đường dẫn → câu chữ đúng.
+ *   - Bản demo: mọi khoản là mô phỏng; tranh chấp do quản trị viên quyết; lượt boost.
+ */
+const START = '17:00';
+
+export default async function EmployerPaymentsGuidePage() {
   const tx = await getTx();
-  // Supabase/production: giữ cọc + trả công + hoàn cọc là tiền THẬT (0016–0019).
-  // Mô tả đúng luồng server; quy định huỷ ca do server enforce.
-  if (isSupabaseEnv()) {
-    return (
-      <InfoPage
-        eyebrow={tx('Dành cho nhà tuyển dụng')}
-        title={tx('Thanh toán')}
-        intro={tx('Nạp tiền vào ví bằng chuyển khoản (PayOS). Khi đăng ca, hệ thống giữ cọc tiền công cùng phí dịch vụ 10% từ ví của bạn; tiền công chỉ được trả cho người lao động khi ca hoàn thành.')}
-        ctas={[
-          { label: tx('Đăng ca tuyển'), href: '/employer/shifts/new' },
-          { label: tx('Quản lý người ứng tuyển'), href: '/employer/dashboard', variant: 'secondary' },
-        ]}
-      >
-        <InfoSection title={tx('Khi nào tiền được trả hoặc hoàn')}>
-          <InfoList
-            items={[
-              tx('Bạn bấm "Xác nhận hoàn thành" cho từng người: tiền công vào ví người đó ngay.'),
-              tx('Nếu bạn không xác nhận, hệ thống tự xác nhận sau 24 giờ kể từ khi ca kết thúc.'),
-              tx('Vị trí không có người làm, người lao động bị đánh dấu vắng mặt, hoặc ca bị huỷ: phần cọc tương ứng (kể cả phí) được hoàn về ví của bạn.'),
-              tx('Số dư ví rút về tài khoản ngân hàng bất cứ lúc nào.'),
-            ]}
-          />
-        </InfoSection>
-
-        <InfoSection title={tx('Quy định huỷ ca cho nhà tuyển dụng')}>
-          <InfoList
-            items={[
-              tx('Trước 6 giờ: được huỷ.'),
-              tx('Trong vòng 6 giờ trước giờ bắt đầu và đã có người ứng tuyển chờ duyệt/đã duyệt: chặn huỷ để bảo vệ người lao động.'),
-              tx('Trong vòng 6 giờ và chưa có người ứng tuyển nào: vẫn được huỷ.'),
-              tx('Sau giờ bắt đầu: không được huỷ.'),
-            ]}
-          />
-        </InfoSection>
-      </InfoPage>
-    );
-  }
+  const live = isSupabaseEnv();
+  const cancelBy = shiftMilestones(START, '22:00')?.employerCancelBy.time ?? '11:00';
 
   return (
-    <InfoPage
-      eyebrow={tx('Dành cho nhà tuyển dụng')}
-      title={tx('Giữ tiền ca làm (mô phỏng)')}
-      intro={tx('Nhà tuyển dụng giữ cọc tiền công trước; tiền chỉ trả cho người lao động khi ca hoàn thành. Trong MVP/demo không có giao dịch thật.')}
-      ctas={[
-        { label: tx('Đăng ca tuyển'), href: '/employer/shifts/new' },
-        { label: tx('Quản lý người ứng tuyển'), href: '/employer/dashboard', variant: 'secondary' },
-      ]}
-    >
-      <InfoSection title={tx('Cấp độ tin cậy và tỷ lệ giữ tiền ca làm')}>
-        <InfoList
+    <ToneScroll initial="cream" className="flex min-w-0 flex-col">
+      <GuideHero
+        eyebrow={tx('Dành cho nhà tuyển dụng')}
+        title={live ? tx('Thanh toán') : tx('Giữ tiền ca làm (mô phỏng)')}
+        lead={
+          live
+            ? tx('Nạp tiền vào ví bằng chuyển khoản qua PayOS. Khi đăng ca, hệ thống giữ tiền công cùng phí dịch vụ 10% từ ví; tiền công chỉ trả cho người đã làm.')
+            : tx('Khi đăng ca, tiền công được giữ từ ví; tiền chỉ trả cho người lao động khi ca hoàn thành. Trong bản demo mọi khoản tiền là mô phỏng, không có giao dịch thật.')
+        }
+        actions={[
+          { href: '/employer/shifts/new', label: tx('Đăng ca tuyển'), primary: true },
+          { href: '/pricing', label: tx('Bảng phí') },
+        ]}
+      />
+
+      <section aria-labelledby="pay-flow" data-tone="peach" className="px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <h2 id="pay-flow" className="max-w-2xl text-balance text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            <TypeOnView text={tx('Tiền của một ca đi về đâu?')} />
+          </h2>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-gray-600">
+            {tx('Mọi đồng giữ lúc đăng ca đi về đúng một trong ba nơi: người đã làm, phí CaLẻ, hoặc hoàn về ví nhà tuyển dụng.')}
+          </p>
+          <MoneyFlowDiagram />
+        </div>
+      </section>
+
+      <LandingRules
+        id="pay-when"
+        tone="paper"
+        title={tx('Khi nào tiền được trả hoặc hoàn?')}
+        items={
+          live
+            ? [
+                { value: tx('Xác nhận'), tone: 'good', title: tx('Trả công'), body: tx('Bạn bấm "Xác nhận hoàn thành" cho từng người: tiền công vào ví người đó ngay.') },
+                { value: '24h', tone: 'neutral', title: tx('Tự chốt'), body: tx('Không ai bấm thì hệ thống tự xác nhận 24 giờ sau khi ca kết thúc.') },
+                { value: tx('Hoàn'), tone: 'good', title: tx('Phần không dùng'), body: tx('Vị trí trống, người vắng mặt, ca huỷ: phần tiền tương ứng, kể cả phí, hoàn về ví của bạn.') },
+                { value: tx('Rút'), tone: 'neutral', title: tx('Về ngân hàng'), body: tx('Số dư ví rút về tài khoản ngân hàng khi bạn cần.') },
+              ]
+            : [
+                { value: tx('Xác nhận'), tone: 'good', title: tx('Trả công (mô phỏng)'), body: tx('Bạn xác nhận hoàn thành ca: khoản tiền giữ chuyển thành tiền công cho người lao động.') },
+                { value: tx('Hoàn'), tone: 'good', title: tx('Huỷ đúng quy định'), body: tx('Huỷ ca đúng mốc thì khoản tiền giữ được hoàn về ví.') },
+                { value: '!', tone: 'warn', title: tx('Tranh chấp'), body: tx('Quản trị viên xem bằng chứng rồi quyết định trả hay hoàn khoản tiền giữ.') },
+                { value: 'Boost', tone: 'neutral', title: tx('Lượt boost'), body: tx('Người lao động vắng mặt không báo: bạn được tặng 1 lượt boost cho ca sau, giúp ca hiện ưu tiên.') },
+              ]
+        }
+      />
+
+      <LandingRules
+        id="pay-cancel"
+        tone="apricot"
+        title={tx('Quy định huỷ ca')}
+        lead={tx('Ví dụ một ca bắt đầu lúc {start}.').replace('{start}', START)}
+        items={[
+          { value: tx('Trước {time}').replace('{time}', cancelBy), tone: 'good', title: tx('Huỷ được'), body: tx('Còn hơn 6 giờ nữa mới bắt đầu: bạn huỷ, khoản tiền giữ hoàn về ví.') },
+          {
+            value: `${cancelBy}–${START}`,
+            tone: 'warn',
+            title: tx('Tuỳ có người ứng tuyển chưa'),
+            body: tx('Trong 6 giờ trước ca: đã có người ứng tuyển thì không huỷ được, để bảo vệ người lao động; chưa có ai thì vẫn huỷ được.'),
+          },
+          { value: tx('Sau {time}').replace('{time}', START), tone: 'bad', title: tx('Không huỷ được'), body: tx('Ca đã bắt đầu.') },
+        ]}
+        note={live ? tx('Nạp tiền vào ví bằng chuyển khoản qua PayOS. Trong đợt miễn phí dịch vụ, phí là 0 đ.') : undefined}
+      />
+
+      <div data-tone="paper" className="pt-14 sm:pt-20">
+        <LandingHelp
+          id="pay-help"
+          title={tx('An toàn và hỗ trợ')}
           items={[
-            tx('Trong giai đoạn dùng thử, mọi nhà tuyển dụng đều giữ trước 100% tiền công của ca, không phụ thuộc cấp độ tin cậy.'),
-            tx('Cấp độ tin cậy (Mới / Đã xác minh / Tin cậy cao) sẽ ảnh hưởng đến hiển thị, ưu tiên và phí dịch vụ trong tương lai, nhưng không làm giảm tỷ lệ cọc.'),
-            tx('Mục tiêu là bảo vệ tiền công cho người lao động ngay cả khi nhà tuyển dụng không liên hệ được.'),
+            { href: '/pricing', icon: 'money', title: tx('Bảng phí'), body: tx('Phí dịch vụ và ví dụ cho một ca.') },
+            { href: '/support', icon: 'help', title: tx('Cần hỗ trợ?'), body: tx('Email, hotline và cách phản ánh khi có vấn đề trong ca.') },
           ]}
         />
-        {tx('Tổng khoản tiền ca được giữ = mức theo giờ × số giờ × số vị trí. Toàn bộ khoản này được giữ trong ví cho đến khi ca hoàn thành hoặc được hoàn theo quy định huỷ.')}
-      </InfoSection>
-
-      <InfoSection title={tx('Khi nào tiền được trả')}>
-        <InfoList
-          items={[
-            tx('Khi bạn xác nhận hoàn thành ca, hệ thống chuyển khoản tiền ca được giữ thành tiền công cho người lao động.'),
-            tx('Khi bạn huỷ ca đúng quy định (trước 6 giờ và chưa có người ứng tuyển), tiền được hoàn về ví.'),
-            tx('Khi xảy ra tranh chấp, quản trị viên quyết định trả hoặc hoàn khoản tiền ca được giữ dựa trên bằng chứng.'),
-          ]}
-        />
-      </InfoSection>
-
-      <InfoSection title={tx('Quy định huỷ ca cho nhà tuyển dụng')}>
-        <InfoList
-          items={[
-            tx('Trước 6 giờ: huỷ tự do, hoàn 100% khoản tiền ca được giữ.'),
-            tx('Trong vòng 6 giờ trước giờ bắt đầu, có người ứng tuyển đang chờ duyệt hoặc đã được duyệt: chặn huỷ để bảo vệ người lao động.'),
-            tx('Trong vòng 6 giờ và chưa có người ứng tuyển nào: vẫn được phép huỷ.'),
-            tx('Sau giờ bắt đầu: không được phép huỷ.'),
-          ]}
-        />
-      </InfoSection>
-
-      <InfoSection title={tx('Lượt boost')}>
-        {tx('Khi người lao động vắng mặt không báo trước, bạn được tặng 1 lượt boost để dùng cho ca tiếp theo, giúp ca hiển thị ưu tiên trong danh sách tìm việc.')}
-      </InfoSection>
-
-      <InfoSection title={tx('Lưu ý phiên bản dùng thử')}>
-        {tx('Mọi giao dịch tiền tệ trên CaLẻ hiện tại là mô phỏng. Khi phiên bản chính thức ra mắt, chúng tôi sẽ thông báo rõ về cổng thanh toán hỗ trợ và các điều khoản tài chính áp dụng.')}
-      </InfoSection>
-    </InfoPage>
+      </div>
+      <RoleBand audience="employer" />
+    </ToneScroll>
   );
 }

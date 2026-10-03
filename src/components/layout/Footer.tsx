@@ -58,7 +58,7 @@ const WORKER_COLUMN: Column = {
   links: [
     { label: 'Tìm ca làm', href: '/shifts' },
     { label: 'Hồ sơ & điểm uy tín', href: '/user-guide#worker-reputation' },
-    { label: 'Lịch cá nhân', href: '/user-guide#worker-schedule' },
+    { label: 'Lịch cá nhân', href: '/worker/schedule-guide' },
     { label: 'Quy định huỷ ca', href: '/user-guide#worker-cancellation-quota' },
   ],
 };
@@ -66,8 +66,8 @@ const WORKER_COLUMN: Column = {
 const EMPLOYER_COLUMN: Column = {
   heading: 'Dành cho nhà tuyển dụng',
   links: [
-    { label: 'Đăng ca tuyển', href: '/user-guide#employer-post-shift' },
-    { label: 'Quản lý người ứng tuyển', href: '/user-guide#employer-applicants' },
+    { label: 'Đăng ca tuyển', href: '/employer/post-shift-guide' },
+    { label: 'Quản lý người ứng tuyển', href: '/employer/applicants-guide' },
     { label: 'Giữ tiền ca làm', href: '/user-guide#employer-payments' },
     { label: 'Đánh giá sau ca', href: '/employer/reviews' },
   ],

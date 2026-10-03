@@ -12,7 +12,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
+import { AuthShell, AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { Button, Input } from '@/components/ui';
 import { getSupabaseClient, isSupabaseEnv } from '@/data/supabaseClient';
 import { toastFromStoreError } from '@/lib/errorMap';
@@ -38,11 +38,7 @@ function ForgotPasswordContent() {
   const resetMode = searchParams.get('mode') === 'reset';
 
   return (
-    <div className="px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
-      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_minmax(0,28rem)] lg:items-center">
-        <AuthSidePanel mode="login" />
-        <div className="w-full">
-          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
+    <AuthShell panel={<AuthSidePanel mode="login" />}>
             {!isSupabaseEnv() ? (
               <p className="text-sm text-gray-600">
                 {tx('Bản demo không hỗ trợ đặt lại mật khẩu. Dùng tài khoản demo ở trang đăng nhập.')}
@@ -57,10 +53,7 @@ function ForgotPasswordContent() {
                 {t('auth.forgot.backToLogin')}
               </Link>
             </p>
-          </div>
-        </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 }
 

@@ -19,22 +19,29 @@ export function HandbookAudienceSwitch({
     { audience: 'employer', label: labels.employer },
   ];
   return (
-    <nav aria-label={labels.nav} className="mt-6 inline-flex rounded-xl bg-white p-1 shadow-sm ring-1 ring-gray-200">
-      {items.map((item) => {
-        const active = item.audience === current;
-        return (
-          <Link
-            key={item.audience}
-            href={handbookListHref(item.audience)}
-            aria-current={active ? 'page' : undefined}
-            className={`inline-flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold transition-colors ${
-              active ? 'bg-orange-600 text-white shadow-sm' : 'text-gray-700 hover:bg-orange-50 hover:text-gray-900'
-            }`}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
+    // 03/10 — cùng kiểu với công tắc vai trò ở đầu trang /for-workers, /for-employers
+    // (`RoleSwitch`): viên thuốc tròn, ô đang chọn nền mực, căn giữa.
+    <nav aria-label={labels.nav} className="flex justify-center">
+      <ul className="inline-flex rounded-full bg-white p-1 shadow-sm ring-1 ring-orange-100">
+        {items.map((item) => {
+          const active = item.audience === current;
+          return (
+            <li key={item.audience}>
+              <Link
+                href={handbookListHref(item.audience)}
+                aria-current={active ? 'page' : undefined}
+                className={[
+                  'inline-flex min-h-[44px] items-center rounded-full px-5 text-sm font-semibold transition-colors',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2',
+                  active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-orange-50 hover:text-gray-900',
+                ].join(' ')}
+              >
+                {item.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }

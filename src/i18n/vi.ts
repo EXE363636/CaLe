@@ -996,28 +996,6 @@ export const vi: Record<string, string> = {
   'auth.register.asWorker': 'Tôi muốn tìm ca làm',
   'auth.register.asEmployer': 'Tôi cần tuyển người lao động',
 
-  // Auth side panel (Phase 9 visual polish)
-  'auth.side.welcome': 'Chào mừng quay lại',
-  'auth.side.welcome.desc':
-    'Đăng nhập để tiếp tục quản lý ca làm, đơn ứng tuyển và lịch cá nhân của bạn.',
-  'auth.side.join': 'Tham gia CaLẻ',
-  'auth.side.join.desc':
-    'Tạo tài khoản miễn phí trong vài phút. Phù hợp cho cả người tìm việc linh hoạt lẫn quán/sự kiện cần người lao động linh hoạt.',
-  'auth.side.benefit1': 'Thanh toán minh bạch',
-  'auth.side.benefit1.desc': 'Nhà tuyển dụng thanh toán trước, tiền chỉ trả khi hoàn thành.',
-  // Supabase/production: tiền công giữ cọc THẬT → mô tả trung thực.
-  'auth.side.benefit1.supabase': 'Rõ ca – rõ tiền',
-  'auth.side.benefit1.desc.supabase':
-    'Mỗi ca ghi rõ giờ làm và tiền công. Tiền công được giữ cọc trước và vào ví của bạn khi ca hoàn thành.',
-  'auth.side.benefit2': 'Không phí ẩn',
-  'auth.side.benefit2.desc': 'Người lao động không phải trả trước. Đăng ký miễn phí.',
-  'auth.side.benefit3': 'Điểm uy tín hai chiều',
-  'auth.side.benefit3.desc': 'Đánh giá hai chiều giúp xây dựng cộng đồng tin cậy.',
-  'auth.side.disclaimer':
-    'Phiên bản MVP - toàn bộ thanh toán & xác minh đều giả lập, không có giao dịch thật.',
-  'auth.side.disclaimer.supabase':
-    'Giai đoạn thử nghiệm (Beta). Nạp, rút tiền qua PayOS; tiền công được giữ cọc tới khi ca hoàn thành.',
-
   // -------------------------------------------------------------------------
   // Worker dashboard
   // -------------------------------------------------------------------------
@@ -1123,8 +1101,8 @@ export const vi: Record<string, string> = {
   'employer.dashboard.stats.postedShifts': 'Ca đã đăng',
   'employer.dashboard.stats.activeShifts': 'Ca đang hoạt động',
   'employer.dashboard.stats.completedShifts': 'Ca đã hoàn thành',
-  'employer.dashboard.stats.totalDeposited': 'TỔNG TIỀN CÔNG CHỜ THANH TOÁN',
-  'employer.dashboard.stats.totalPaidOut': 'TỔNG TIỀN CÔNG ĐÃ THANH TOÁN',
+  'employer.dashboard.stats.totalDeposited': 'Tiền công chờ thanh toán',
+  'employer.dashboard.stats.totalPaidOut': 'Tiền công đã trả',
   'employer.dashboard.stats.avgRating': 'Đánh giá trung bình đã cho',
   'employer.dashboard.stats.boostCredits': 'Lượt boost còn lại',
   'employer.dashboard.upcomingShifts': 'Ca làm sắp tới',
@@ -1435,11 +1413,11 @@ export const vi: Record<string, string> = {
   'help.workerDashboard.section.actions.item1':
     'Bấm ô "Điểm uy tín" để xem dòng thời gian cộng/trừ điểm và lịch sử quản trị viên điều chỉnh (nếu có).',
   'help.workerDashboard.section.actions.item2':
-    'Bấm ô "Hạn mức huỷ tuần" để xem mức sử dụng trong 7 ngày và 30 ngày kèm điểm uy tín hiện tại.',
+    'Trong thẻ "Kỹ năng & giữ uy tín", bấm dòng "Hạn mức huỷ tuần" để xem mức sử dụng trong 7 ngày và 30 ngày kèm điểm uy tín hiện tại.',
   'help.workerDashboard.section.actions.item3':
     'Trong "Ca làm sắp tới", đến giờ ca thì bấm "Check-in", kết thúc ca bấm "Check-out".',
   'help.workerDashboard.section.actions.item4':
-    'Đơn bị từ chối gần đây hiện kèm lý do - đọc kỹ trước khi ứng tuyển ca mới.',
+    'Trong "Đơn ứng tuyển", tab "Đơn không thành" có đơn bị từ chối (kèm lý do), ca bị huỷ và đơn hết hạn - đọc kỹ trước khi ứng tuyển ca mới.',
   'help.workerDashboard.section.mistakes.heading': 'Lỗi thường gặp',
   'help.workerDashboard.section.mistakes.item1':
     'Không thể ứng tuyển nếu chưa xác minh số điện thoại - vào Hồ sơ để bật xác minh.',
@@ -1480,18 +1458,18 @@ export const vi: Record<string, string> = {
   'help.employerDashboard.section.numbers.item2':
     'Đơn chờ duyệt: số đơn ứng tuyển ở trạng thái "Chờ duyệt" trên các ca của bạn.',
   'help.employerDashboard.section.numbers.item3':
-    'Tổng đã giữ cọc / đã thanh toán: tổng tiền cọc đã giữ và tổng tiền công đã trả cho người lao động.',
+    'Ca đã đăng, ca đã hoàn thành, tiền công đã trả: bấm từng ô để xem danh sách tương ứng.',
   'help.employerDashboard.section.numbers.item4':
     'Lượt boost: 1 lượt được tặng mỗi khi đánh dấu vắng mặt; dùng để đẩy ca lên đầu danh sách.',
   'help.employerDashboard.section.actions.heading': 'Thao tác chính',
   'help.employerDashboard.section.actions.item1':
-    'Bấm "Đăng ca mới" để tạo ca và giữ cọc tiền công.',
+    'Bấm "Đăng ca" trên thanh điều hướng để tạo ca và giữ tiền công.',
   'help.employerDashboard.section.actions.item2':
-    'Bấm vào ô số liệu để xem danh sách chi tiết tương ứng (ca đã đăng / đơn chờ duyệt / thanh toán).',
+    'Bấm vào ô số liệu để xem danh sách chi tiết tương ứng (ca đã đăng / ca đã hoàn thành / tiền công đã trả).',
   'help.employerDashboard.section.actions.item3':
-    'Trong "Đơn chờ duyệt", bấm vào người lao động để xem hồ sơ trước khi duyệt.',
+    'Trong "Đơn chờ duyệt", mỗi ca một dòng; bấm "Xem & duyệt" để mở ca và xem hồ sơ từng người trước khi duyệt.',
   'help.employerDashboard.section.actions.item4':
-    'Bấm "Xem lịch tuyển dụng" để xem các ca theo tuần.',
+    'Bấm "Lịch tuyển dụng" để xem các ca theo tuần.',
   'help.employerDashboard.section.mistakes.heading': 'Lỗi thường gặp',
   'help.employerDashboard.section.mistakes.item1':
     'Ca chỉ công khai sau khi bấm "Xác nhận đã thanh toán" (giữ cọc trước) - trước đó ca ở trạng thái "Bản nháp".',

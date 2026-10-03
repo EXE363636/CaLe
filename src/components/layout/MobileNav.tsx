@@ -107,7 +107,7 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       // protected, so logged-out users get the user-guide instead.
       // Phase 9Z-Fix-4: deep-link to the feature anchor so the user
       // lands directly on the Lịch cá nhân explanation.
-      { href: '/user-guide#worker-schedule', label: 'Lịch cá nhân' },
+      { href: '/worker/schedule-guide', label: 'Lịch cá nhân' },
       { href: '/worker/cancellation-policy', label: 'Quy định huỷ ca' },
     ],
   },
@@ -120,8 +120,8 @@ const PUBLIC_SECTIONS: DrawerSection[] = [
       // Phase 9Z-Fix-4: deep-link to specific anchors so the user
       // lands on the right feature explanation.
       { href: '/for-employers', label: 'Dành cho nhà tuyển dụng' },
-      { href: '/user-guide#employer-post-shift', label: 'Đăng ca tuyển' },
-      { href: '/user-guide#employer-applicants', label: 'Quản lý người ứng tuyển' },
+      { href: '/employer/post-shift-guide', label: 'Đăng ca tuyển' },
+      { href: '/employer/applicants-guide', label: 'Quản lý người ứng tuyển' },
       { href: '/employer/payments', label: 'Giữ tiền ca làm (mô phỏng)' },
       { href: '/employer/reviews', label: 'Đánh giá sau ca' },
     ],

@@ -95,7 +95,8 @@ export function CalendarLegend({ variant, className }: CalendarLegendProps) {
       <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {t('calendar.legend.title')}
       </h3>
-      <ul className="flex flex-col gap-1.5">
+      {/* Nhà tuyển dụng có 6 nhãn ngắn → 2 cột cho cột phụ gọn, cao vừa lịch. */}
+      <ul className={variant === 'employer' ? 'grid grid-cols-2 gap-x-3 gap-y-1.5' : 'flex flex-col gap-1.5'}>
         {entries.map((entry, idx) => (
           <li
             key={`${entry.labelKey}-${idx}`}

@@ -36,9 +36,9 @@ export function RelatedArticles({
   if (picked.length === 0) return null;
 
   return (
-    <section className="mt-16 border-t border-gray-100 pt-16">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900">{title}</h2>
-      <div className="grid gap-6 sm:grid-cols-3">
+    <section className="mt-16 border-t border-black/5 pt-12 sm:mt-20 sm:pt-16">
+      <h2 className="mb-6 text-2xl font-bold tracking-tight text-gray-900">{title}</h2>
+      <div className="grid gap-5 sm:grid-cols-3">
         {picked.map((a) => (
           <ArticleCard key={a.id} article={localizeArticle(a, locale)} meta={meta} />
         ))}

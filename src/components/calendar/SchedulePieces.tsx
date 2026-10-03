@@ -20,7 +20,8 @@ import type { CalendarEventVariant } from './CalendarEventCard';
 
 export function ScheduleSummary({ label, items }: { label: string; items: Array<{ value: string; label: string; warn?: boolean }> }) {
   return (
-    <dl aria-label={label} className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    // Trải hết bề ngang trang (thẳng mép trái lịch và mép phải cột bên), mỗi ô bằng nhau.
+    <dl aria-label={label} className={['mt-5 grid gap-3', items.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'].join(' ')}>
       {items.map((it) => (
         <div
           key={it.label}

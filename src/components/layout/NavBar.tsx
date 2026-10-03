@@ -100,7 +100,7 @@ const WORKER_GROUP: MenuGroup = {
     {
       href: '/worker/reputation-guide',
       label: 'Hồ sơ & điểm uy tín',
-      description: 'Hiểu cách hệ thống đánh giá độ tin cậy',
+      description: 'Nhà tuyển dụng thấy gì khi duyệt bạn',
     },
     {
       href: '/worker/schedule',
@@ -110,7 +110,7 @@ const WORKER_GROUP: MenuGroup = {
     {
       href: '/worker/cancellation-policy',
       label: 'Quy định huỷ ca',
-      description: 'Các mốc thời gian và hạn mức huỷ ca',
+      description: 'Các mốc giờ khi cần huỷ ca đã nhận',
     },
   ],
 };
@@ -133,12 +133,12 @@ const EMPLOYER_GROUP: MenuGroup = {
       href: '/employer/payments',
       label: 'Giữ tiền ca làm (mô phỏng)',
       description:
-        'Mô phỏng giữ tiền ca để đảm bảo trả công. Trong MVP/demo không có giao dịch thật.',
+        'Tiền ca được giữ, trả và hoàn thế nào. Bản demo không có giao dịch thật.',
     },
     {
       href: '/employer/reviews',
       label: 'Đánh giá sau ca',
-      description: 'Hướng dẫn chấm điểm người lao động',
+      description: 'Chấm sao và nhận xét sau mỗi ca',
     },
   ],
 };
@@ -208,7 +208,7 @@ const WORKER_GROUP_PUBLIC: MenuGroup = {
       // P1 feedback F4 — trang giới thiệu riêng cho người lao động.
       href: '/for-workers',
       label: 'Dành cho người lao động',
-      description: 'Lợi ích và các ca mới đăng',
+      description: 'Lợi ích, cách nhận ca và nhận tiền',
     },
     {
       href: '/shifts',
@@ -218,20 +218,20 @@ const WORKER_GROUP_PUBLIC: MenuGroup = {
     {
       href: '/worker/reputation-guide',
       label: 'Hồ sơ & điểm uy tín',
-      description: 'Hiểu cách hệ thống đánh giá độ tin cậy',
+      description: 'Nhà tuyển dụng thấy gì khi duyệt bạn',
     },
     {
       // Phase 9Z-Fix-4: deep-link to the Lịch cá nhân anchor on
       // /user-guide so logged-out visitors land directly on the
       // feature explanation, not the top of a long generic guide.
-      href: '/user-guide#worker-schedule',
+      href: '/worker/schedule-guide',
       label: 'Lịch cá nhân',
-      description: 'Cách tránh trùng lịch khi ứng tuyển',
+      description: 'Xem ca đã nhận và giờ bận của bạn',
     },
     {
       href: '/worker/cancellation-policy',
       label: 'Quy định huỷ ca',
-      description: 'Các mốc thời gian và hạn mức huỷ ca',
+      description: 'Các mốc giờ khi cần huỷ ca đã nhận',
     },
   ],
 };
@@ -250,25 +250,25 @@ const EMPLOYER_GROUP_PUBLIC: MenuGroup = {
       // Phase 9Z-Fix-4: deep-link to the Đăng ca tuyển anchor on
       // /user-guide so logged-out visitors land directly on the
       // posting-flow explanation.
-      href: '/user-guide#employer-post-shift',
+      href: '/employer/post-shift-guide',
       label: 'Đăng ca tuyển',
-      description: 'Quy trình tạo ca và giữ tiền ca làm (mô phỏng)',
+      description: 'Điền ca, giữ tiền công rồi đăng',
     },
     {
-      href: '/user-guide#employer-applicants',
+      href: '/employer/applicants-guide',
       label: 'Quản lý người ứng tuyển',
-      description: 'Cách duyệt và xác nhận ca làm',
+      description: 'Duyệt người, xác nhận có mặt và hoàn thành',
     },
     {
       href: '/employer/payments',
       label: 'Giữ tiền ca làm (mô phỏng)',
       description:
-        'Mô phỏng giữ tiền ca để đảm bảo trả công. Trong MVP/demo không có giao dịch thật.',
+        'Tiền ca được giữ, trả và hoàn thế nào. Bản demo không có giao dịch thật.',
     },
     {
       href: '/employer/reviews',
       label: 'Đánh giá sau ca',
-      description: 'Hướng dẫn chấm điểm người lao động',
+      description: 'Chấm sao và nhận xét sau mỗi ca',
     },
   ],
 };

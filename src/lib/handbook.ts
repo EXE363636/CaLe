@@ -33,6 +33,19 @@ export function localizeArticle(article: HandbookArticle, locale: Locale): Handb
   };
 }
 
+/**
+ * Chữ theo chế độ dữ liệu (03/10). Mặc định là câu của bản thật; bản demo
+ * (`live = false`) thay các trường có trong `section.demo`. Không mục nào đổi → trả
+ * nguyên bài.
+ */
+export function applyDataMode(article: HandbookArticle, live: boolean): HandbookArticle {
+  if (live || !article.content.some((s) => s.demo)) return article;
+  return {
+    ...article,
+    content: article.content.map((s) => (s.demo ? { ...s, ...s.demo } : s)),
+  };
+}
+
 /** Đường dẫn danh sách cẩm nang của một vai trò (có thể kèm danh mục). */
 export function handbookListHref(audience: HandbookAudience, categoryId?: string): string {
   const q = new URLSearchParams({ for: audience });

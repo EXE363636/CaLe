@@ -7,28 +7,37 @@ import { useAuthStore } from '@/stores/authStore';
 import { useUserStore, asEmployer, getWorkerReputation } from '@/stores/userStore';
 import { useShiftStore } from '@/stores/shiftStore';
 import { useApplicationStore } from '@/stores/applicationStore';
-import { useNotificationStore } from '@/stores/notificationStore';
 import { useWalletStore } from '@/stores/walletStore';
 import {
   getWorkerVerificationSummary,
   useVerificationStore,
 } from '@/stores';
 import { deriveEmployerPaidOut, deriveHeldEscrow } from '@/domain/finance';
-import { Card, Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink, PageShell } from '@/components/ui';
+import { Badge, Button, EmptyState, HelpPopover, Modal, PageHelpButton, ButtonLink, PageShell } from '@/components/ui';
 import { ShiftLifecycleBadge } from '@/components/shift/ShiftLifecycleBadge';
 import { isActiveDashboardShift, getShiftLifecycleState } from '@/domain/shiftLifecycleState';
+import { startsIn } from '@/domain/shiftJourney';
 import { showSuccess } from '@/lib/toast';
 import { ShiftCard } from '@/components/shift/ShiftCard';
 import { WalletPanel } from '@/components/wallet/WalletPanel';
 import { NoPaymentNotice } from '@/components/wallet/NoPaymentNotice';
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { hasCapability } from '@/data/capabilities';
-import { DashboardNotificationCard } from '@/components/layout/DashboardNotificationCard';
+import {
+  DASH_CARD,
+  DashboardEmpty,
+  DashboardHeader,
+  DashboardNote,
+  DashboardSection,
+  DashboardTiles,
+  DASH_TILE,
+} from '@/components/dashboard/DashboardFrame';
+import { useEmployerFeedbackStore } from '@/stores/employerFeedbackStore';
+import { useReviewBackendStore } from '@/lib/reviewSync';
 import { useLifecycleSync } from '@/lib/useLifecycleSync';
 import { useModalFromQuery } from '@/lib/useModalFromQuery';
 import { useDashboardModalEvents } from '@/lib/notificationAction';
 import { formatVND, formatDateVN, formatTimeVN } from '@/lib/format';
-import { getUserInitials } from '@/lib/initials';
 import { useT, useTx } from '@/i18n/LocaleProvider';
 import { tCurrent } from '@/i18n/locale';
 import type { Application, Shift } from '@/types';
@@ -54,16 +63,9 @@ function EmployerDashboardContent() {
   // money source (see `totalPaidOut` below).
   const ledger = useWalletStore((s) => s.ledger);
   const refundForShiftAsync = useWalletStore((s) => s.refundForShiftAsync);
-  const allNotifications = useNotificationStore((s) => s.notifications);
-  const notifications = useMemo(
-    () =>
-      currentUserId
-        ? allNotifications.filter((n) => n.userId === currentUserId)
-        : [],
-    [allNotifications, currentUserId],
-  );
-  const markAllRead = useNotificationStore((s) => s.markAllRead);
-  const markRead = useNotificationStore((s) => s.markRead);
+  // 03/10 — thẻ "Đánh giá về bạn" (đánh giá người lao động gửi sau ca).
+  const allFeedback = useEmployerFeedbackStore((s) => s.feedback);
+  const reviewBackend = useReviewBackendStore((s) => s.available);
   // Phase 10A-Fix-4 — read the live verification doc slice so the
   // pending-applications detail modal always shows current admin
   // approval state, not a frozen snapshot from when the application
@@ -226,36 +228,79 @@ function EmployerDashboardContent() {
       </div>
     );
   }
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  // 2 ô tiền chỉ có ở local; số ô quyết định số cột để không có ô lẻ loi
-  // một mình một hàng (4 ô → 4 cột, 6 ô → 3 cột).
+  // 03/10 — dashboard làm lại cùng khung với dashboard người lao động
+  // (components/dashboard/DashboardFrame): đầu trang + dòng trạng thái, thẻ 3 ô số kết quả,
+  // cột chính "Ca làm sắp tới" + "Đơn chờ duyệt" (gom theo ca), cột phụ Ví / Thông báo /
+  // Đánh giá về bạn. Ô "Ca đang hoạt động" / "Đơn chờ duyệt" cũ thành số đếm ở tiêu đề khối;
+  // các hộp chi tiết (?modal=active|pending|deposits…) vẫn mở được từ thông báo / menu.
+  // 2 ô tiền chỉ có ở local (ở supabase tiền nằm trong Ví).
   const showMoneyTiles = hasCapability('wallet') && !isSupabaseEnv();
+  // Ca chưa tới giờ bắt đầu — cùng cách đọc giờ ca như mọi nơi (`startsIn`, giờ địa phương).
+  const nextActive = [...activeShifts]
+    .filter((s) => startsIn(s, nowIso) !== null)
+    .sort((a, b) => `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`))[0];
+  // Đơn chờ duyệt là việc cần làm ngay → ưu tiên hơn giờ ca tiếp theo.
+  const statusLine =
+    pendingApps.length > 0
+      ? tx('{n} đơn đang chờ bạn duyệt.').replace('{n}', String(pendingApps.length))
+      : nextActive
+        ? tx('Ca tiếp theo bắt đầu {date} lúc {time}.')
+            .replace('{date}', formatDateVN(nextActive.date))
+            .replace('{time}', formatTimeVN(nextActive.startTime))
+        : activeShifts.length > 0
+        ? t('employer.dashboard.welcome.active').replace('{count}', String(activeShifts.length))
+        : t('employer.dashboard.welcome.idle');
+  const stats = [
+    {
+      key: 'posted',
+      label: t('employer.dashboard.stats.postedShifts'),
+      value: String(myShifts.length),
+      onClick: () => setStatDetail('posted'),
+    },
+    {
+      key: 'completed',
+      label: t('employer.dashboard.stats.completedShifts'),
+      value: String(completedShifts.length),
+      onClick: () => setStatDetail('completed'),
+    },
+    ...(showMoneyTiles
+      ? [
+          {
+            key: 'paid',
+            label: t('employer.dashboard.stats.totalPaidOut'),
+            value: formatVND(totalPaidOut),
+            onClick: () => setStatDetail('payments'),
+          },
+        ]
+      : []),
+  ];
+  // Đơn chờ duyệt gom theo ca: mỗi ca một dòng, tên người ứng tuyển + nút duyệt.
+  const pendingByShift = (() => {
+    const map = new Map<string, Application[]>();
+    for (const a of pendingApps) map.set(a.shiftId, [...(map.get(a.shiftId) ?? []), a]);
+    return [...map.entries()]
+      .map(([shiftId, apps]) => ({ shift: shifts.find((s) => s.id === shiftId), apps }))
+      .sort((x, y) => `${x.shift?.date ?? ''}T${x.shift?.startTime ?? ''}`.localeCompare(`${y.shift?.date ?? ''}T${y.shift?.startTime ?? ''}`));
+  })();
+  const workerName = (id: string) => {
+    const w = users.find((u) => u.id === id);
+    return w?.role === 'worker' ? w.fullName : t('employer.dashboard.workerFallback');
+  };
+  // Đánh giá người lao động gửi cho bạn (bản thật: chỉ khi server có bảng đánh giá).
+  const receivedFeedback = allFeedback.filter((f) => f.toEmployerId === employer.id);
+  const showReviewsCard = hasCapability('reviews') && (!isSupabaseEnv() || reviewBackend === 'yes');
+  const latestFeedback = [...receivedFeedback].sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 2);
+  const avgStars = receivedFeedback.length
+    ? receivedFeedback.reduce((sum, f) => sum + f.stars, 0) / receivedFeedback.length
+    : null;
 
   return (
     <PageShell width="wide" className="flex flex-col">
-      {/* Quieter — compact white "command center" header matching the
-          worker dashboard: white surface, soft border, ink text, one
-          orange primary CTA. Warmth comes from the page bg + white card
-          (DESIGN.md: One Orange Rule / Warmth-From-Background). */}
-      <header className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-card sm:p-6">
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-xl font-bold text-orange-700 ring-1 ring-orange-100">
-            {getUserInitials(employer.companyName)}
-          </div>
-          <div className="min-w-[14rem] flex-1">
-            <h1 className="truncate text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              {employer.companyName}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {activeShifts.length > 0
-                ? t('employer.dashboard.welcome.active').replace(
-                    '{count}',
-                    String(activeShifts.length),
-                  )
-                : t('employer.dashboard.welcome.idle')}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+      <DashboardHeader
+        title={employer.companyName}
+        status={statusLine}
+        actions={
+          <>
             <PageHelpButton
               title={t('help.employerDashboard.title')}
               intro={t('help.employerDashboard.intro')}
@@ -293,241 +338,153 @@ function EmployerDashboardContent() {
               ]}
               cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
             />
+            {/* Không lặp nút cam "Đăng ca": thanh điều hướng đã có (một nút cam mỗi màn). */}
             <Link
               href="/employer/schedule"
-              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 active:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+              className="motion-press inline-flex min-h-[44px] items-center justify-center rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 transition-colors hover:bg-orange-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
             >
-              {t('employer.dashboard.viewSchedule')}
+              {t('employerSchedule.page.title')}
             </Link>
-            <ButtonLink href="/employer/shifts/new" variant="primary">
-              {t('btn.postShift')}
-            </ButtonLink>
-          </div>
+          </>
+        }
+      />
+
+      <DashboardTiles
+        label={tx('Tóm tắt của bạn')}
+        items={stats}
+        viewDetail={t('btn.viewDetail')}
+        extra={
+          currentUserId && hasCapability('wallet') ? (
+            // Ví (server): employer nạp tiền + giữ tiền ca từ số dư.
+            <div id="wallet" className="h-full scroll-mt-24">
+              <WalletPanel
+                variant="tile"
+                className={DASH_TILE}
+                userId={currentUserId}
+                role="employer"
+                openLedgerSignal={walletLedgerSignal}
+              />
+            </div>
+          ) : undefined
+        }
+      />
+      {!hasCapability('wallet') && (
+        <div className="-mt-6 mb-10">
+          <NoPaymentNotice />
         </div>
-      </header>
-
-      {/* Stats — Phase 9H: each tile opens a dedicated detail modal
-          (no more scroll-to-section, which was misleading when the
-          target section wasn't actually on the dashboard). */}
-      <section
-        className={[
-          'order-2 mb-8 mt-8 grid grid-cols-2 gap-4 lg:order-none lg:mt-0',
-          showMoneyTiles ? 'sm:grid-cols-3' : 'lg:grid-cols-4',
-        ].join(' ')}
-      >
-        <StatTile
-          label={t('employer.dashboard.stats.activeShifts')}
-          value={String(activeShifts.length)}
-          tone="brand"
-          icon="briefcase"
-          onClick={() => setStatDetail('active')}
-          ariaLabel={t('employer.dashboard.stats.activeAria')}
-        />
-        <StatTile
-          label={t('employer.dashboard.applicants')}
-          value={String(pendingApps.length)}
-          tone={pendingApps.length > 0 ? 'warn' : 'neutral'}
-          icon="users"
-          onClick={() => setStatDetail('pending')}
-          ariaLabel={t('employer.dashboard.stats.pendingAria')}
-        />
-        <StatTile
-          label={t('employer.dashboard.stats.postedShifts')}
-          value={String(myShifts.length)}
-          tone="neutral"
-          icon="check"
-          onClick={() => setStatDetail('posted')}
-          ariaLabel={t('employer.dashboard.stats.postedAria')}
-        />
-        <StatTile
-          label={t('employer.dashboard.stats.completedShifts')}
-          value={String(completedShifts.length)}
-          tone="good"
-          icon="check"
-          onClick={() => setStatDetail('completed')}
-          ariaLabel={t('employer.dashboard.stats.completedAria')}
-        />
-        {/* Tổng đã đảm bảo/đã chi (tính từ escrow local) — ở supabase tiền nằm
-            trong Ví (WalletPanel) nên ẩn 2 tile này để tránh số liệu lệch. */}
-        {showMoneyTiles && (
-          <StatTile
-            label={t('employer.dashboard.stats.totalDeposited')}
-            value={formatVND(totalDeposited)}
-            tone="neutral"
-            icon="wallet"
-            onClick={() => setStatDetail('deposits')}
-            ariaLabel={t('employer.dashboard.stats.depositedAria')}
-          />
-        )}
-        {showMoneyTiles && (
-          <StatTile
-            label={t('employer.dashboard.stats.totalPaidOut')}
-            value={formatVND(totalPaidOut)}
-            tone="brand"
-            icon="wallet"
-            onClick={() => setStatDetail('payments')}
-            ariaLabel={t('employer.dashboard.stats.paidOutAria')}
-          />
-        )}
-      </section>
-
-      {/* Phase 10C-Stab-1 Batch 4B — wallet balance + ledger. On mobile
-          this follows the work area + stats (order-3); desktop unchanged. */}
-      {currentUserId && (
-        <section className="order-3 mb-8 lg:order-none">
-          {hasCapability('wallet') ? (
-            // Ví mô phỏng (server): employer nạp tiền + trả cọc đăng ca từ số dư.
-            <WalletPanel
-              userId={currentUserId}
-              role="employer"
-              openLedgerSignal={walletLedgerSignal}
-            />
-          ) : (
-            <NoPaymentNotice />
-          )}
-        </section>
       )}
 
-      {/* Mobile-first ordering — the work area (active shifts + pending
-          applicants + notifications) leads on small screens (order-1),
-          above the stats + wallet. */}
-      <div
-        className={[
-          'order-1 grid gap-6 lg:order-none',
-          // Không có cột phụ (thông báo ẩn ở supabase) → cột chính trải hết
-          // chiều rộng, thẳng mép với hàng thống kê + ví phía trên.
-          hasCapability('notifications') ? 'lg:grid-cols-3' : '',
-        ].join(' ')}
-      >
-        {/* Main */}
-        <div
-          className={[
-            'flex flex-col gap-6',
-            hasCapability('notifications') ? 'lg:col-span-2' : '',
-          ].join(' ')}
-        >
-          {/* Active shifts */}
-          <section id="employer-active-shifts">
-            <div className="mb-4 flex items-baseline justify-between">
-              <h2 className="text-xl font-semibold tracking-tight text-gray-900">
-                {t('employer.dashboard.upcomingShifts')}
-              </h2>
-              {activeShifts.length > 0 && (
-                <Link
-                  href="/employer/schedule"
-                  className="text-xs font-medium text-orange-700 hover:underline"
-                >
-                  {t('employer.dashboard.viewSchedule')} →
-                </Link>
-              )}
-            </div>
-            {activeShifts.length === 0 ? (
-              <EmptyState
-                tone="warm"
-                title={t(
-                  myShifts.length === 0
-                    ? 'employer.dashboard.noShifts'
-                    : 'employer.dashboard.noUpcoming',
-                )}
-                description={t(
-                  myShifts.length === 0
-                    ? 'employer.dashboard.empty.upcoming.descriptionRich'
-                    : 'employer.dashboard.noUpcoming.description',
-                )}
-                action={
-                  <ButtonLink href="/employer/shifts/new" size="sm" variant="primary">
-                      {t('btn.postShift')}
-                    </ButtonLink>
-                }
-              />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {activeShifts.map((shift) => (
-                  <div key={shift.id} className="relative group flex flex-col gap-2">
-                    {/* No-show được đánh dấu thật ở trang chi tiết ca (employer/shifts/[id]). */}
+      {/* Các khối trải hết bề ngang, một cột — không cột phụ lệch chiều cao. */}
+      <div className="flex flex-col gap-10">
+            <DashboardSection
+              id="employer-active-shifts"
+              title={t('employer.dashboard.upcomingShifts')}
+              count={activeShifts.length}
+              link={activeShifts.length > 0 ? { href: '/employer/schedule', label: t('employer.dashboard.viewSchedule') } : undefined}
+            >
+              {activeShifts.length === 0 ? (
+                <DashboardEmpty
+                  title={t(myShifts.length === 0 ? 'employer.dashboard.noShifts' : 'employer.dashboard.noUpcoming')}
+                  body={t(
+                    myShifts.length === 0
+                      ? 'employer.dashboard.empty.upcoming.descriptionRich'
+                      : 'employer.dashboard.noUpcoming.description',
+                  )}
+                  action={{ href: '/employer/shifts/new', label: t('btn.postShift') }}
+                />
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {activeShifts.map((shift) => (
+                    // No-show được đánh dấu thật ở trang chi tiết ca (employer/shifts/[id]).
                     <Link
+                      key={shift.id}
                       href={`/employer/shifts/${shift.id}`}
                       className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
                     >
-                      <ShiftCard shift={shift} applications={applications} showEscrow={hasCapability('wallet') && !isSupabaseEnv()} />
+                      <ShiftCard shift={shift} applications={applications} showEscrow={showMoneyTiles} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </DashboardSection>
+
+            <DashboardSection id="employer-pending-apps" title={tx('Đơn chờ duyệt')} count={pendingApps.length}>
+              {pendingByShift.length === 0 ? (
+                <DashboardNote>{tx('Chưa có đơn nào chờ duyệt. Đơn mới sẽ hiện ở đây.')}</DashboardNote>
+              ) : (
+                <ul className={['divide-y divide-gray-100 overflow-hidden', DASH_CARD].join(' ')}>
+                  {pendingByShift.map(({ shift, apps }) => (
+                    <li key={apps[0].shiftId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-gray-900">{shift?.title ?? ''}</p>
+                        {shift && (
+                          <p className="mt-0.5 text-sm text-gray-500 tabular-nums">
+                            {formatDateVN(shift.date)} · {formatTimeVN(shift.startTime)}–{formatTimeVN(shift.endTime)}
+                          </p>
+                        )}
+                        <p className="mt-1 truncate text-sm text-gray-700">
+                          <span className="font-semibold tabular-nums">{tx('{n} người:').replace('{n}', String(apps.length))}</span>{' '}
+                          {apps.map((a) => workerName(a.workerId)).join(', ')}
+                        </p>
+                      </div>
+                      {/* Hành động thật (đi tới trang duyệt) → nút. */}
+                      <ButtonLink href={`/employer/shifts/${apps[0].shiftId}`} size="sm" variant="secondary" className="shrink-0">
+                        {t('employer.dashboard.reviewApplicant')}
+                      </ButtonLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </DashboardSection>
+            {/* Đánh giá về bạn — từ người lao động sau ca (cùng vị trí với "Kỹ năng & giữ uy tín"
+                ở dashboard người lao động). */}
+            {showReviewsCard && (
+              <DashboardSection
+                id="employer-received-reviews"
+                title={tx('Đánh giá về bạn')}
+                count={receivedFeedback.length}
+                link={{ href: '/employer/profile', label: t('btn.viewDetail') }}
+              >
+                <div className={['grid gap-6 p-5 sm:p-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-center', DASH_CARD].join(' ')}>
+                  <div>
+                    {avgStars === null ? (
+                      <p className="text-sm text-gray-600">
+                        {tx('Chưa có đánh giá. Sau mỗi ca, người lao động chấm sao cho bạn trong 14 ngày.')}
+                      </p>
+                    ) : (
+                      <p className="flex items-baseline gap-2">
+                        <span className="text-4xl font-extrabold text-gray-900 tabular-nums">
+                          {avgStars.toLocaleString('vi-VN', { maximumFractionDigits: 1, minimumFractionDigits: 1 })}
+                        </span>
+                        <span aria-hidden="true" className="text-xl text-amber-500">★</span>
+                        <span className="text-sm text-gray-600">
+                          {tx('trung bình từ {n} đánh giá').replace('{n}', String(receivedFeedback.length))}
+                        </span>
+                      </p>
+                    )}
+                    <Link
+                      href="/employer/reviews"
+                      className="mt-2 inline-flex min-h-[44px] items-center text-sm font-semibold text-orange-700 hover:underline"
+                    >
+                      {tx('Cách đánh giá sau ca')} →
                     </Link>
                   </div>
-                ))}
-              </div>
+                  {latestFeedback.length > 0 && (
+                    <ul className="grid gap-3 sm:grid-cols-2">
+                      {latestFeedback.map((f) => (
+                        <li key={f.id} className="rounded-2xl bg-orange-50 px-4 py-3">
+                          <p role="img" className="text-sm font-semibold text-amber-600" aria-label={tx('{n} sao').replace('{n}', String(f.stars))}>
+                            {'★'.repeat(f.stars)}
+                            <span className="text-gray-300">{'★'.repeat(5 - f.stars)}</span>
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-sm text-gray-700">{f.comment || tx('Không có nhận xét.')}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </DashboardSection>
             )}
-          </section>
-
-          {/* Pending applications */}
-          {pendingApps.length > 0 && (
-            <section id="employer-pending-apps">
-              <h2 className="mb-4 text-xl font-semibold tracking-tight text-gray-900">
-                {t('employer.dashboard.pendingApps').replace('{count}', String(pendingApps.length))}
-              </h2>
-              <div className="flex flex-col gap-2">
-                {pendingApps.slice(0, 5).map((a) => {
-                  const shift = shifts.find((s) => s.id === a.shiftId);
-                  const w = users.find((u) => u.id === a.workerId);
-                  const wName =
-                    w?.role === 'worker' ? w.fullName : t('employer.dashboard.workerFallback');
-                  return (
-                    <Card key={a.id}>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900">{wName}</p>
-                          <p className="truncate text-xs text-gray-500">{shift?.title ?? ''}</p>
-                        </div>
-                        {/* Hành động thật (đi tới trang duyệt) → nút, không phải
-                            badge trạng thái có thể bấm. */}
-                        <ButtonLink
-                          href={`/employer/shifts/${a.shiftId}`}
-                          size="sm"
-                          variant="secondary"
-                          className="shrink-0"
-                        >
-                          {t('employer.dashboard.reviewApplicant')}
-                        </ButtonLink>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Side: notifications — chưa có backend ở supabase → ẩn. */}
-        {hasCapability('notifications') && (
-        <aside>
-          <Card className="p-0">
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-              <h2 className="font-semibold text-gray-900">{t('nav.notifications')}</h2>
-              {unreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => markAllRead(employer.id)}
-                  className="-my-2 inline-flex min-h-[44px] items-center rounded px-2 text-xs font-medium text-orange-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-                >
-                  {t('btn.markAllRead')}
-                </button>
-              )}
-            </div>
-            <ul className="max-h-96 divide-y divide-gray-50 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <li className="px-4 py-6 text-center text-sm text-gray-500">{t('common.noData')}</li>
-              ) : (
-                notifications.slice(0, 10).map((n) => (
-                  <li key={n.id}>
-                    <DashboardNotificationCard
-                      notification={n}
-                      onRead={markRead}
-                    />
-                  </li>
-                ))
-              )}
-            </ul>
-          </Card>
-        </aside>
-        )}
       </div>
 
       {/* Phase 9H — payments summary modal. Lists the actual shifts
@@ -993,163 +950,6 @@ function ShiftListModal({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Helpers — kept in sync with the worker dashboard StatTile.
-// Phase 9Y-Fix-3: simplified back to a `<button>`-as-card when
-// interactive. The Phase 9Y-Fix overlay-anchor pattern (introduced to
-// allow a HelpPopover next to the label without nesting `<button>`s)
-// is no longer needed because help has moved into the corresponding
-// detail modal's title slot.
-// ---------------------------------------------------------------------------
-
-type Tone = 'brand' | 'neutral' | 'good' | 'warn' | 'bad';
-type IconName = 'star' | 'check' | 'wallet' | 'calendar' | 'briefcase' | 'users' | 'shield';
-
-function StatTile({
-  label,
-  value,
-  suffix,
-  tone = 'neutral',
-  icon,
-  onClick,
-  ariaLabel,
-}: {
-  label: string;
-  value: string;
-  suffix?: string;
-  tone?: Tone;
-  icon?: IconName;
-  onClick?: () => void;
-  ariaLabel?: string;
-}) {
-  const t = useT();
-  // Quieter — stat tiles are calm: white surface, soft border, no tinted
-  // wash and no saturated gradient chips. Colour is a small accent on the
-  // icon glyph + the value only (DESIGN.md: One Orange / status-as-accent).
-  const toneChip: Record<Tone, string> = {
-    brand: 'bg-orange-50 text-orange-600 ring-1 ring-orange-100',
-    neutral: 'bg-gray-100 text-gray-500 ring-1 ring-gray-200',
-    good: 'bg-green-50 text-green-600 ring-1 ring-green-100',
-    warn: 'bg-amber-50 text-amber-600 ring-1 ring-amber-100',
-    bad: 'bg-red-50 text-red-600 ring-1 ring-red-100',
-  };
-  const toneText: Record<Tone, string> = {
-    brand: 'text-orange-600',
-    neutral: 'text-gray-900',
-    good: 'text-green-600',
-    warn: 'text-amber-600',
-    bad: 'text-red-600',
-  };
-
-  const baseClasses =
-    'group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 text-left w-full shadow-card';
-
-  const interactiveClasses = onClick
-    ? 'motion-lift cursor-pointer hover:shadow-card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2'
-    : '';
-
-  const body = (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-gray-600">
-          {label}
-        </p>
-        {icon && (
-          <span
-            className={['flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', toneChip[tone]].join(' ')}
-            aria-hidden="true"
-          >
-            <TileIcon name={icon} />
-          </span>
-        )}
-      </div>
-      <p className={['mt-3 text-2xl font-extrabold leading-none', toneText[tone]].join(' ')}>
-        {value}
-        {suffix && (
-          <span className="ml-1 text-xs font-medium text-gray-500">{suffix}</span>
-        )}
-      </p>
-      {onClick && (
-        // Persistent affordance (not hover-only) so touch users see the
-        // tile is tappable; calm gray by default, orange on hover/focus.
-        <span
-          aria-hidden="true"
-          className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 transition-colors group-hover:text-orange-700 group-focus-visible:text-orange-700"
-        >
-          {t('btn.viewDetail')} →
-        </span>
-      )}
-    </>
-  );
-
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={ariaLabel ?? label}
-        className={[baseClasses, interactiveClasses].join(' ')}
-      >
-        {body}
-      </button>
-    );
-  }
-
-  return <div className={baseClasses}>{body}</div>;
-}
-
-function TileIcon({ name }: { name: IconName }) {
-  const cls = 'h-5 w-5';
-  switch (name) {
-    case 'star':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="m12 2 3 7 7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z" />
-        </svg>
-      );
-    case 'check':
-      return (
-        <svg className={cls} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-      );
-    case 'wallet':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
-        </svg>
-      );
-    case 'calendar':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <rect x="3" y="5" width="18" height="16" rx="3" />
-          <path strokeLinecap="round" d="M3 10h18M8 3v4M16 3v4" />
-        </svg>
-      );
-    case 'briefcase':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <rect x="3" y="7" width="18" height="13" rx="2" />
-          <path strokeLinecap="round" d="M9 7V5h6v2" />
-        </svg>
-      );
-    case 'users':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden="true">
-          <circle cx="9" cy="8" r="3" />
-          <path strokeLinecap="round" d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 1 0 0-6M21 20c0-2.5-2-4.5-5-5" />
-        </svg>
-      );
-    case 'shield':
-      return (
-        <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Phase 10A-Fix-4 — live verification chips

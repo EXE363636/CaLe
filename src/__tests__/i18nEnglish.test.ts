@@ -68,7 +68,6 @@ const PHASE1_FILES = [
   'src/components/forms/CancelApplicationDialog.tsx',
   'src/components/forms/CheckoutDialog.tsx',
   'src/components/forms/EmployerFeedbackForm.tsx',
-  'src/components/layout/DashboardNotificationCard.tsx',
   'src/components/workerDeposit/WorkerNoShowDepositAlert.tsx',
   'src/components/ui/DateFieldVN.tsx',
   'src/components/ui/TimeFieldVN.tsx',
@@ -97,6 +96,10 @@ const PHASE1_FILES = [
   'src/app/user-guide/page.tsx',
   'src/app/worker/cancellation-policy/page.tsx',
   'src/app/worker/reputation-guide/page.tsx',
+  'src/app/worker/schedule-guide/page.tsx',
+  'src/app/employer/post-shift-guide/page.tsx',
+  'src/app/employer/applicants-guide/page.tsx',
+  'src/components/landing/GuideHero.tsx',
   // Đợt 2d (02/10): màn nhà tuyển dụng / người lao động — bản dịch ở en-roles.ts.
   'src/app/employer/payments/page.tsx',
   'src/app/employer/profile/page.tsx',

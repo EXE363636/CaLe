@@ -10,6 +10,10 @@ import { HandbookAudienceSwitch } from '@/components/handbook/HandbookAudienceSw
 import { HandbookCategoryMenu } from '@/components/handbook/HandbookCategoryMenu';
 import { FeaturedArticleList } from '@/components/handbook/FeaturedArticleList';
 import { ArticleGrid } from '@/components/handbook/ArticleGrid';
+import { GuideHero } from '@/components/landing/GuideHero';
+import { LandingIconGlyph } from '@/components/landing/LandingSections';
+import { RoleBand } from '@/components/landing/RoleBand';
+import { ToneScroll } from '@/components/landing/ToneScroll';
 import { getLocale, getTx } from '@/i18n/server';
 import { categoryLabel, handbookListHref, localizeArticle } from '@/lib/handbook';
 
@@ -20,6 +24,10 @@ export const dynamic = 'force-dynamic';
  *   - `/handbook`                    → chọn cẩm nang (người lao động / nhà tuyển dụng);
  *   - `/handbook?for=worker|employer` → danh mục + bài của đúng vai trò đó;
  *   - `&category=<id>`               → lọc trong vai trò (danh mục vai trò kia → bỏ qua).
+ *
+ * 03/10 — làm lại theo ngôn ngữ landing: phần đầu `GuideHero` trên nền kem, danh mục
+ * thành hàng chip phía trên bài (thay cột trái), bài nổi bật dạng thẻ sáng hai cột,
+ * dải cuối trang theo vai trò (`RoleBand`).
  */
 export default async function HandbookPage({
   searchParams,
@@ -49,20 +57,11 @@ export default async function HandbookPage({
   const isWorker = audience === 'worker';
 
   return (
-    <div className="bg-white">
-      <div className="bg-orange-50/30 pb-12 pt-16 lg:pt-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-orange-700">
-            {tx('Cẩm nang làm việc')}
-          </p>
-          <h1 className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">
-            {isWorker ? tx('Cẩm nang người lao động') : tx('Cẩm nang nhà tuyển dụng')}
-          </h1>
-          <p className="mt-4 max-w-3xl text-lg text-gray-600">
-            {isWorker
-              ? tx('Chuẩn bị cho ca đầu tiên, giữ điểm uy tín, hiểu cách nhận tiền công và đi làm an toàn.')
-              : tx('Viết tin đăng, chọn người phù hợp, hiểu tiền giữ - phí - hoàn tiền và xử lý khi người lao động vắng mặt.')}
-          </p>
+    <ToneScroll initial="cream" className="flex min-w-0 flex-col">
+      {/* Không dòng nhãn "Cẩm nang làm việc": trùng ý tiêu đề "Cẩm nang người lao động / nhà tuyển dụng". */}
+      <GuideHero
+        title={isWorker ? tx('Cẩm nang người lao động') : tx('Cẩm nang nhà tuyển dụng')}
+        top={
           <HandbookAudienceSwitch
             current={audience}
             labels={{
@@ -71,26 +70,28 @@ export default async function HandbookPage({
               employer: tx('Nhà tuyển dụng'),
             }}
           />
-        </div>
-      </div>
+        }
+        lead={
+          isWorker
+            ? tx('Chuẩn bị cho ca đầu tiên, giữ đánh giá tốt, hiểu cách nhận tiền công và đi làm an toàn.')
+            : tx('Viết tin đăng, chọn người phù hợp, hiểu tiền giữ, phí, hoàn tiền và xử lý khi người lao động vắng mặt.')
+        }
+      />
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row lg:gap-10">
-          <aside className="mb-8 w-full shrink-0 lg:mb-0 lg:w-64">
-            <HandbookCategoryMenu
-              audience={audience}
-              categories={categories}
-              currentCategory={currentCategory}
-              locale={locale}
-              labels={{
-                heading: tx('Danh mục'),
-                all: tx('Tất cả bài viết'),
-                nav: isWorker ? tx('Danh mục cẩm nang người lao động') : tx('Danh mục cẩm nang nhà tuyển dụng'),
-              }}
-            />
-          </aside>
-
-          <main className="min-w-0 flex-1">
+      <section data-tone="paper" className="px-4 pb-16 pt-2 sm:px-6 sm:pb-24 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <HandbookCategoryMenu
+            audience={audience}
+            categories={categories}
+            currentCategory={currentCategory}
+            locale={locale}
+            labels={{
+              heading: tx('Danh mục'),
+              all: tx('Tất cả bài viết'),
+              nav: isWorker ? tx('Danh mục cẩm nang người lao động') : tx('Danh mục cẩm nang nhà tuyển dụng'),
+            }}
+          />
+          <div className="mt-8">
             <FeaturedArticleList articles={featured} meta={meta} />
             <ArticleGrid
               articles={gridArticles}
@@ -102,60 +103,60 @@ export default async function HandbookPage({
                   : tx('Bài viết khác')
               }
             />
-          </main>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+      <RoleBand audience={audience} />
+    </ToneScroll>
   );
 }
 
 /** `/handbook` chưa chọn vai trò: hai cẩm nang riêng, mỗi thẻ dẫn vào một bên. */
 function HandbookChooser({ locale, tx }: { locale: 'vi' | 'en'; tx: (s: string) => string }) {
-  const cards: { audience: HandbookAudience; title: string; lead: string; cta: string }[] = [
+  const cards: { audience: HandbookAudience; icon: 'calendar' | 'status'; title: string; lead: string; cta: string }[] = [
     {
       audience: 'worker',
+      icon: 'calendar',
       title: tx('Cẩm nang người lao động'),
-      lead: tx('Chuẩn bị cho ca đầu tiên, giữ điểm uy tín, hiểu cách nhận tiền công và đi làm an toàn.'),
+      lead: tx('Chuẩn bị cho ca đầu tiên, giữ đánh giá tốt, hiểu cách nhận tiền công và đi làm an toàn.'),
       cta: tx('Đọc cẩm nang người lao động'),
     },
     {
       audience: 'employer',
+      icon: 'status',
       title: tx('Cẩm nang nhà tuyển dụng'),
-      lead: tx('Viết tin đăng, chọn người phù hợp, hiểu tiền giữ - phí - hoàn tiền và xử lý khi người lao động vắng mặt.'),
+      lead: tx('Viết tin đăng, chọn người phù hợp, hiểu tiền giữ, phí, hoàn tiền và xử lý khi người lao động vắng mặt.'),
       cta: tx('Đọc cẩm nang nhà tuyển dụng'),
     },
   ];
   return (
-    <div className="bg-white">
-      <div className="bg-orange-50/30 pb-12 pt-16 lg:pt-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl lg:text-5xl">{tx('Cẩm nang làm việc')}</h1>
-          <p className="mt-4 max-w-3xl text-lg text-gray-600">
-            {tx('Hai cẩm nang riêng cho hai vai trò. Chọn cẩm nang dành cho bạn.')}
-          </p>
-        </div>
-      </div>
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <ul className="grid gap-6 md:grid-cols-2">
+    <ToneScroll initial="cream" className="flex min-w-0 flex-col">
+      <GuideHero
+        eyebrow={tx('Hướng dẫn theo vai trò')}
+        title={tx('Cẩm nang làm việc')}
+        lead={tx('Hai cẩm nang riêng cho hai vai trò. Chọn cẩm nang dành cho bạn.')}
+      />
+      <section data-tone="paper" className="px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-14 lg:px-8">
+        <ul className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2">
           {cards.map((card) => {
             const count = handbookArticlesFor(card.audience).length;
             return (
               <li key={card.audience}>
                 <Link
                   href={handbookListHref(card.audience)}
-                  className="group flex h-full flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:ring-1 hover:ring-orange-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+                  className="group flex h-full flex-col rounded-3xl bg-white p-6 shadow-card ring-1 ring-black/5 transition-shadow hover:shadow-lg hover:ring-orange-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 sm:p-8"
                 >
-                  <h2 className="text-2xl font-bold text-gray-900 group-hover:text-orange-700">{card.title}</h2>
-                  <p className="mt-2 text-gray-600">{card.lead}</p>
-                  <p className="mt-4 text-sm text-gray-500">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
+                    <LandingIconGlyph name={card.icon} />
+                  </span>
+                  <h2 className="mt-5 text-2xl font-bold tracking-tight text-gray-900 group-hover:text-orange-700">{card.title}</h2>
+                  <p className="mt-2 leading-relaxed text-gray-600">{card.lead}</p>
+                  <p className="mt-5 text-sm font-semibold text-gray-900">
                     {tx('{n} bài viết').replace('{n}', String(count))}
                   </p>
                   <ul className="mt-3 flex flex-wrap gap-2">
                     {handbookCategoriesFor(card.audience).map((c) => (
-                      <li
-                        key={c.id}
-                        className="rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10"
-                      >
+                      <li key={c.id} className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-800">
                         {categoryLabel(c, locale)}
                       </li>
                     ))}
@@ -168,7 +169,7 @@ function HandbookChooser({ locale, tx }: { locale: 'vi' | 'en'; tx: (s: string) 
             );
           })}
         </ul>
-      </div>
-    </div>
+      </section>
+    </ToneScroll>
   );
 }

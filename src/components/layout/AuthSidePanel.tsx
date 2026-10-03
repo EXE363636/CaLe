@@ -1,102 +1,153 @@
+'use client';
+
 /**
- * AuthSidePanel — Phase 9 visual polish.
+ * Khung trang đăng nhập / đăng ký / quên mật khẩu.
  *
- * Side trust/benefit panel rendered next to the login or register form on
- * `lg+` screens. Below `lg` it collapses to a thin brand banner so mobile
- * users still get a hint of identity without cramming the auth card.
+ * 03/10 (lần 2) — một thẻ lớn giữa trang thay cho hai cột rời: form bên trái, nửa phải
+ * nền đào (`hero-decor`) chứa phần giới thiệu. Trên điện thoại:
+ *   - đăng nhập / quên mật khẩu: chỉ có form (minh hoạ là phụ);
+ *   - đăng ký: phần giới thiệu xuống dưới form (lợi ích theo vai trò đáng đọc).
  *
- * Pure presentational. No store reads, no router. Imports `t()` only.
+ * `AuthSidePanel`:
+ *   - Đăng nhập: một câu + minh hoạ ca tự diễn của trang người lao động (`WorkerPreview`).
+ *   - Đăng ký: đổi theo vai trò đang chọn trong form (`role`) — lợi ích + ba bước sau
+ *     khi đăng ký.
+ *
+ * Câu chữ đúng theo chế độ dữ liệu:
+ *   - Production: tiền công giữ cọc thật (PayOS), phí 10% chỉ trên phần ca có người làm,
+ *     không ghi "mô phỏng" cho tiền. Không hứa điểm uy tín / huy hiệu xác minh (bản thật
+ *     nhà tuyển dụng chỉ thấy điểm sao + số ca, số lần vắng với họ).
+ *   - Demo: tiền và xác minh giấy tờ là mô phỏng, dữ liệu lưu trong trình duyệt.
  */
 
-import Link from 'next/link';
-import { useT } from '@/i18n/LocaleProvider';
+import type { ReactNode } from 'react';
+
+import { LandingIconGlyph, type LandingIcon } from '@/components/landing/LandingSections';
+import { WorkerPreview } from '@/components/landing/LandingPreview';
 import { isSupabaseEnv } from '@/data/supabaseClient';
+import { useTx } from '@/i18n/LocaleProvider';
+
+export function AuthShell({
+  panel,
+  panelOnMobile = false,
+  children,
+}: {
+  panel: ReactNode;
+  /** Hiện phần giới thiệu dưới form trên điện thoại (đăng ký). */
+  panelOnMobile?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section data-tone="cream" className="px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+      <div className="mx-auto grid max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-modal ring-1 ring-black/5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="min-w-0 p-6 sm:p-10">{children}</div>
+        <div
+          className={[
+            'hero-decor relative min-w-0 border-t border-black/5 bg-orange-50 p-6 sm:p-10 lg:border-l lg:border-t-0',
+            panelOnMobile ? '' : 'hidden lg:block',
+          ].join(' ')}
+        >
+          {panel}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 interface AuthSidePanelProps {
   mode: 'login' | 'register';
+  /** Vai trò đang chọn ở form đăng ký. */
+  role?: 'worker' | 'employer';
 }
 
-export function AuthSidePanel({ mode }: AuthSidePanelProps) {
-  const t = useT();
-  // B4 — supabase/production: CaLẻ chưa thu/giữ tiền, nên benefit tài chính +
-  // disclaimer phải trung thực thay vì hứa ký quỹ/trả (vốn chỉ có ở demo).
-  const supabase = isSupabaseEnv();
-  const items = [
-    {
-      title: supabase ? t('auth.side.benefit1.supabase') : t('auth.side.benefit1'),
-      desc: supabase
-        ? t('auth.side.benefit1.desc.supabase')
-        : t('auth.side.benefit1.desc'),
-      icon: (
-        <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 3 4 6v6c0 4.5 3.2 8.5 8 9 4.8-.5 8-4.5 8-9V6l-8-3z" />
-          <path d="m9 12 2 2 4-4" />
-        </svg>
-      ),
-    },
-    {
-      title: t('auth.side.benefit2'),
-      desc: t('auth.side.benefit2.desc'),
-      icon: (
-        <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M3 7c0-1.1.9-2 2-2h12l4 4v8c0 1.1-.9 2-2 2H5a2 2 0 0 1-2-2V7Z" />
-          <path d="M16 11h4M16 14h4" />
-        </svg>
-      ),
-    },
-    {
-      title: t('auth.side.benefit3'),
-      desc: t('auth.side.benefit3.desc'),
-      icon: (
-        <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="m12 2 3 7 7 .5-5.5 4.5L18 21l-6-3.5L6 21l1.5-7L2 9.5 9 9z" />
-        </svg>
-      ),
-    },
-  ];
+export function AuthSidePanel({ mode, role = 'worker' }: AuthSidePanelProps) {
+  const tx = useTx();
+  const live = isSupabaseEnv();
+
+  const note = live
+    ? tx('Nạp và rút tiền qua PayOS. Tiền công được giữ cọc tới khi ca hoàn thành.')
+    : tx('Bản demo: dữ liệu lưu trong trình duyệt này. Nạp, giữ, trả tiền và xác minh giấy tờ đều là mô phỏng.');
+
+  if (mode === 'login') {
+    return (
+      <div className="flex h-full flex-col justify-center">
+        <p className="text-balance text-2xl font-extrabold leading-tight tracking-tight text-gray-900 sm:text-3xl">
+          {tx('Ca làm của bạn vẫn ở đây.')}
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+          {tx('Ca đã nhận, check-in, ví tiền công và người ứng tuyển của từng ca: đăng nhập là thấy ngay.')}
+        </p>
+        <div className="mt-6">
+          <WorkerPreview />
+        </div>
+        <Note text={note} />
+      </div>
+    );
+  }
+
+  const worker = role === 'worker';
+  const benefits: Array<{ icon: LandingIcon; title: string; body: string }> = worker
+    ? [
+        { icon: 'calendar', title: tx('Ứng tuyển miễn phí'), body: tx('Tìm ca theo khu vực, ngày và loại việc. Không mất phí khi ứng tuyển.') },
+        live
+          ? { icon: 'wallet', title: tx('Tiền công được giữ trước'), body: tx('Ca chỉ hiện khi nhà tuyển dụng đã giữ đủ tiền công; ca xong, tiền vào ví của bạn.') }
+          : { icon: 'wallet', title: tx('Tiền công được giữ trước (mô phỏng)'), body: tx('Ca chỉ hiện khi đã giữ đủ tiền công; ca xong, tiền vào ví mô phỏng.') },
+        { icon: 'star', title: tx('Đánh giá hai chiều'), body: tx('Sau ca, hai bên chấm sao cho nhau trong 14 ngày.') },
+      ]
+    : [
+        { icon: 'status', title: tx('Đăng ca trong vài phút'), body: tx('Điền giờ, lương và số người; ca hiện cho người lao động ngay khi tiền đã được giữ.') },
+        live
+          ? { icon: 'money', title: tx('Phí chỉ trên phần ca có người làm'), body: tx('10% tiền công. Vị trí trống, người vắng mặt, ca huỷ: hoàn cả tiền công lẫn phí.') }
+          : { icon: 'money', title: tx('Bản demo chưa thu phí'), body: tx('Tiền giữ và tiền hoàn đều là mô phỏng.') },
+        { icon: 'profile', title: tx('Duyệt từng người'), body: tx('Xem điểm sao và số ca người đó đã làm với bạn trước khi duyệt.') },
+      ];
+  const steps = worker
+    ? [tx('Điền họ tên và số điện thoại'), tx('Tìm một ca và ứng tuyển'), tx('Được duyệt thì check-in đúng giờ')]
+    : [
+        tx('Chọn loại hình và tên cơ sở'),
+        live ? tx('Nạp tiền và đăng ca đầu tiên') : tx('Đăng ca đầu tiên'),
+        tx('Duyệt người, xác nhận hoàn thành'),
+      ];
 
   return (
-    <aside className="hidden lg:block">
-      {/* Brand palette — the entry panel uses the brand DARK ink
-          (gray-900, remapped to #37373B in globals) as a solid surface so
-          its white/light text stays high-contrast (white on the light
-          #FF9A5F primary would fail). Warmth is carried by the coral/peach
-          decorative blobs below, kept on-palette (no off-palette amber). */}
-      <div className="relative overflow-hidden rounded-3xl bg-gray-900 p-8 text-white shadow-xl">
-        {/* Decorative blobs */}
-        <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-        <div className="absolute -bottom-16 -left-12 h-48 w-48 rounded-full bg-orange-200/20 blur-3xl" aria-hidden="true" />
+    <div className="lg:sticky lg:top-24">
+      <p className="text-sm font-semibold text-orange-700">{worker ? tx('Dành cho người lao động') : tx('Dành cho nhà tuyển dụng')}</p>
+      <p className="mt-2 text-balance text-2xl font-extrabold leading-tight tracking-tight text-gray-900 sm:text-3xl">
+        {worker ? tx('Làm ca theo giờ rảnh của bạn.') : tx('Thiếu người cho ca, tuyển trong vài phút.')}
+      </p>
 
-        <div className="relative">
-          <Link href="/" className="inline-flex text-2xl font-extrabold tracking-tight">
-            {t('site.name')}
-          </Link>
-          <p className="mt-3 text-base font-medium text-orange-50">
-            {mode === 'login' ? t('auth.side.welcome') : t('auth.side.join')}
-          </p>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-orange-100">
-            {mode === 'login' ? t('auth.side.welcome.desc') : t('auth.side.join.desc')}
-          </p>
+      <ul className="mt-6 flex flex-col gap-4">
+        {benefits.map((b) => (
+          <li key={b.title} className="flex gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-orange-700 shadow-sm ring-1 ring-orange-100">
+              <LandingIconGlyph name={b.icon} className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-gray-900">{b.title}</span>
+              <span className="mt-0.5 block text-sm leading-relaxed text-gray-600">{b.body}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
 
-          <ul className="mt-8 flex flex-col gap-5">
-            {items.map((item) => (
-              <li key={item.title} className="flex gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
-                  {item.icon}
-                </span>
-                <div>
-                  <p className="font-semibold">{item.title}</p>
-                  <p className="mt-0.5 text-xs text-orange-100">{item.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-8 text-xs text-orange-100">
-            {supabase ? t('auth.side.disclaimer.supabase') : t('auth.side.disclaimer')}
-          </p>
-        </div>
+      <div className="mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <p className="text-sm font-semibold text-gray-900">{tx('Sau khi đăng ký')}</p>
+        <ol className="mt-3 flex flex-col gap-2.5">
+          {steps.map((s, i) => (
+            <li key={s} className="flex items-center gap-3 text-sm text-gray-700">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-900 text-xs font-bold text-white tabular-nums">
+                {i + 1}
+              </span>
+              {s}
+            </li>
+          ))}
+        </ol>
       </div>
-    </aside>
+      <Note text={note} />
+    </div>
   );
+}
+
+function Note({ text }: { text: string }) {
+  return <p className="mt-6 text-xs leading-relaxed text-gray-500">{text}</p>;
 }

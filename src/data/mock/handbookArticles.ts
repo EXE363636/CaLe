@@ -6,6 +6,11 @@ export interface HandbookArticleSection {
   note?: string;
   imageUrl?: string;
   imageCaption?: string;
+  /**
+   * 03/10 — chữ mặc định là của bản thật (production). Bản demo (localStorage) khác ở
+   * chỗ nào thì ghi vào đây: trường có mặt thay hẳn trường cùng tên (`applyDataMode`).
+   */
+  demo?: Pick<HandbookArticleSection, 'paragraphs' | 'bullets' | 'note'>;
 }
 export interface HandbookArticle {
   id: string;
@@ -26,6 +31,8 @@ export interface HandbookArticle {
   featuredOrder?: number;
   content: HandbookArticleSection[];
   relatedSlugs: string[];
+  /** 03/10 — bài nói về tiền: bản demo hiện ghi chú "mô phỏng" ở đầu bài. */
+  demoNotice?: boolean;
 }
 
 /**
@@ -68,6 +75,7 @@ export const handbookArticles: HandbookArticle[] = [
     imageAlt: "Bằng chứng bàn giao khi kết thúc ca",
     featured: true,
     featuredOrder: 0,
+    demoNotice: true,
     content: [
       {
         paragraphs: [
@@ -103,7 +111,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         heading: "5. Bắt buộc checklist + ghi chú bàn giao",
         paragraphs: [
-          "Mức chặt nhất, dùng cho việc rủi ro cao như thu ngân, bảo vệ. Bạn phải tích đủ checklist và viết ghi chú bàn giao (tối đa 1.000 ký tự): đã bàn giao gì, cho ai, còn việc gì dở dang."
+          "Mức yêu cầu bàn giao chi tiết nhất, dùng cho việc rủi ro cao như thu ngân, bảo vệ. Bạn phải tích đủ checklist và viết ghi chú bàn giao (tối đa 1.000 ký tự): đã bàn giao gì, cho ai, còn việc gì dở dang."
         ]
       },
       {
@@ -113,6 +121,13 @@ export const handbookArticles: HandbookArticle[] = [
           "Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận và trả tiền công sau 24 giờ kể từ giờ kết thúc ca.",
           "Nếu có vấn đề về ca, liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ và gửi kèm bằng chứng (ảnh bàn giao, giờ check-in)."
         ],
+        demo: {
+          bullets: [
+            "Nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví mô phỏng của bạn.",
+            "Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận 12 giờ sau khi bạn check-out (mô phỏng).",
+            "Nếu có vấn đề về ca, liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ và gửi kèm bằng chứng (ảnh bàn giao, giờ check-in)."
+          ]
+        },
         note: "Không chụp mặt khách hàng khi chưa được phép. Không chụp giấy tờ cá nhân, hoá đơn có thông tin nhạy cảm hay khu vực riêng tư của cửa hàng."
       }
     ],
@@ -140,8 +155,8 @@ export const handbookArticles: HandbookArticle[] = [
     "content": [
       {
         "paragraphs": [
-          "Bạn vừa lướt ứng dụng CaLẻ, ấn ứng tuyển và nhận được thông báo \"Đã được duyệt\" từ phía cửa hàng! Cảm giác lúc này chắc hẳn là sự pha trộn giữa niềm vui vì có thêm một nguồn thu nhập, và chút hồi hộp vì không biết môi trường làm việc ngày mai sẽ ra sao.",
-          "Đối với mô hình công việc ngắn hạn tính theo giờ, các cơ sở kinh doanh kỳ vọng bạn có thể nhanh chóng bắt nhịp và hỗ trợ họ ngay lập tức, đặc biệt là trong các khung giờ cao điểm. Việc tỏ ra bối rối hay thiếu chuẩn bị không chỉ làm giảm năng suất chung mà còn ảnh hưởng trực tiếp đến điểm đánh giá uy tín của bạn trên hệ thống. Vậy làm thế nào để biến ca làm đầu tiên trở thành một khởi đầu hoàn hảo?"
+          "Bạn vừa lướt ứng dụng CaLẻ, ấn ứng tuyển và thấy đơn của mình chuyển sang \"Đã duyệt\"! Cảm giác lúc này chắc hẳn là sự pha trộn giữa niềm vui vì có thêm một nguồn thu nhập, và chút hồi hộp vì không biết môi trường làm việc ngày mai sẽ ra sao.",
+          "Đối với mô hình công việc ngắn hạn tính theo giờ, các cơ sở kinh doanh kỳ vọng bạn có thể nhanh chóng bắt nhịp và hỗ trợ họ ngay lập tức, đặc biệt là trong các khung giờ cao điểm. Việc tỏ ra bối rối hay thiếu chuẩn bị không chỉ làm giảm năng suất chung mà còn ảnh hưởng trực tiếp đến đánh giá sao nhà tuyển dụng để lại cho bạn sau ca. Vậy làm thế nào để biến ca làm đầu tiên trở thành một khởi đầu hoàn hảo?"
         ]
       },
       {
@@ -242,7 +257,7 @@ export const handbookArticles: HandbookArticle[] = [
       },
       {
         "heading": "Lời khuyên cho người mới",
-        "note": "Đừng ngại bắt đầu bằng những công việc lao động tay chân đơn giản. Giá trị cốt lõi bạn thu được trong giai đoạn đầu không chỉ là tiền công, mà là các chỉ số đánh giá 5 sao từ nhà tuyển dụng. Một lịch sử hoàn thành xuất sắc 10 ca phụ kho sẽ giúp bạn ghi điểm tuyệt đối khi ứng tuyển vào các vị trí bán hàng hay phục vụ cao cấp hơn sau này.",
+        "note": "Đừng ngại bắt đầu bằng những công việc lao động tay chân đơn giản. Giá trị cốt lõi bạn thu được trong giai đoạn đầu không chỉ là tiền công, mà là các chỉ số đánh giá 5 sao từ nhà tuyển dụng. Mười ca phụ kho được đánh giá 5 sao sẽ nâng điểm sao trung bình mà mọi nhà tuyển dụng thấy khi bạn ứng tuyển vào các vị trí bán hàng hay phục vụ sau này.",
         "paragraphs": []
       }
     ],
@@ -271,15 +286,15 @@ export const handbookArticles: HandbookArticle[] = [
     "content": [
       {
         "paragraphs": [
-          "Bạn ứng tuyển liên tục nhưng các ca làm đều hiển thị trạng thái \"Bị từ chối\" hoặc \"Đang chờ duyệt\" mòn mỏi? Vấn đề có thể không nằm ở kinh nghiệm của bạn, mà nằm ở cách bạn thể hiện bản thân qua Hồ sơ cá nhân.",
+          "Bạn ứng tuyển liên tục nhưng các ca làm đều hiển thị trạng thái \"Bị từ chối\" hoặc \"Chờ duyệt\" mòn mỏi? Vấn đề có thể không nằm ở kinh nghiệm của bạn, mà nằm ở cách bạn thể hiện bản thân qua Hồ sơ cá nhân.",
           "Trong thế giới tuyển dụng nhân sự ngắn hạn, tốc độ là yếu tố then chốt. Một quản lý đang cần gấp người thay thế cho buổi tối sẽ không có thời gian để đọc những bản CV PDF dài 3 trang. Họ sẽ nhìn lướt qua hồ sơ của bạn trên ứng dụng trong đúng 5 giây để đưa ra quyết định. Làm thế nào để chinh phục nhà tuyển dụng trong 5 giây ngắn ngủi đó?"
         ]
       },
       {
-        "heading": "1. Ảnh đại diện: Trực quan, thân thiện và chuyên nghiệp",
+        "heading": "1. Tên thật và ấn tượng đầu tiên",
         "paragraphs": [
-          "Ảnh đại diện là thứ đầu tiên nhà tuyển dụng nhìn thấy. Bạn không cần thiết phải mặc áo vest hay ra studio để chụp một tấm ảnh thẻ cứng nhắc. Tuy nhiên, việc sử dụng ảnh phong cảnh, ảnh động vật, hay những bức ảnh tự sướng với góc máy tối tăm, che khuất nửa khuôn mặt là một điểm trừ rất lớn.",
-          "Tiêu chuẩn cho một bức ảnh tốt: Hãy mặc một chiếc áo thun có cổ hoặc áo sơ mi sáng màu. Chọn một không gian có ánh sáng tự nhiên tốt, phông nền đơn giản. Hãy nhìn thẳng vào camera và mỉm cười nhẹ nhàng. Một khuôn mặt sáng sủa, đáng tin cậy sẽ là tấm vé thông hành tuyệt vời trong ngành dịch vụ."
+          "Dùng họ tên thật, viết đủ dấu. Hiện trang Hồ sơ chưa có chỗ tải ảnh đại diện, nên tên và phần giới thiệu là thứ nhà tuyển dụng đọc đầu tiên.",
+          "Tránh biệt danh hay tên viết tắt khó đoán. Nhà tuyển dụng cần biết chắc ai sẽ đến làm, và tên trên hồ sơ nên khớp với tên bạn xưng khi có mặt ở chỗ làm."
         ],
         "imageUrl": "/images/handbook/unique/new_inline_art3.png",
         "imageCaption": "Một hồ sơ trực tuyến chỉn chu, rõ ràng sẽ ngay lập tức thu hút nhà tuyển dụng."
@@ -294,15 +309,18 @@ export const handbookArticles: HandbookArticle[] = [
         ]
       },
       {
-        "heading": "3. Bảo vệ \"Điểm Uy Tín\" và Lịch sử hoàn thành",
+        "heading": "3. Bảo vệ đánh giá và lịch sử hoàn thành",
         "paragraphs": [
-          "Thuật toán của các nền tảng việc làm luôn ưu tiên hiển thị những người ứng tuyển có độ tin cậy cao lên đầu danh sách. Độ tin cậy này được xây dựng hoàn toàn dựa trên Lịch sử làm việc của bạn.",
+          "Khi duyệt đơn, nhà tuyển dụng xem điểm sao trung bình, nhận xét từ các ca trước và lịch sử ca của bạn với họ. Những thứ này được xây dựng hoàn toàn từ các ca bạn đã làm.",
           "Mỗi đánh giá 5 sao kèm theo những lời khen ngợi từ quản lý cũ như \"Nhân viên ngoan, nhanh nhẹn, dọn dẹp sạch sẽ\" có sức nặng gấp trăm lần những gì bạn tự viết về bản thân. Hãy trân trọng từng cơ hội làm việc để tích lũy những viên gạch uy tín này."
         ]
       },
       {
-        "heading": "Cảnh báo: Lịch sử Hủy ca",
-        "note": "Hành vi hủy ca sát giờ, hoặc nghiêm trọng hơn là không đến làm (No-show) mà không có bất kỳ thông báo nào, là điều tối kỵ. Hệ thống sẽ ghi nhận những vi phạm này vào hồ sơ hiển thị công khai. Một tài khoản có tỷ lệ hủy ca cao sẽ gần như không thể được duyệt nhận việc ở các cửa hàng khác.",
+        "heading": "Cảnh báo: huỷ sát giờ và vắng mặt",
+        "note": "Huỷ ca sát giờ, hoặc nghiêm trọng hơn là không đến làm (No-show) mà không báo gì, là điều tối kỵ. Vắng mặt không báo được ghi vào lịch sử đơn của bạn, và nhà tuyển dụng thấy số lần bạn vắng ở ca của họ khi bạn ứng tuyển lại. Huỷ sát giờ hay vắng mặt khiến bạn khó được duyệt lại.",
+        "demo": {
+          "note": "Huỷ ca sát giờ, hoặc nghiêm trọng hơn là không đến làm (No-show) mà không báo gì, là điều tối kỵ. Trong bản demo, vắng mặt không báo bị trừ 20 điểm uy tín, huỷ trong 24 giờ trước ca bị trừ 10 điểm, và nhà tuyển dụng thấy điểm uy tín cùng số lần vắng mặt của bạn khi duyệt đơn. Huỷ sát giờ hay vắng mặt khiến bạn khó được duyệt lại."
+        },
         "paragraphs": []
       }
     ],
@@ -349,17 +367,17 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "2. Các tín hiệu cảnh báo đỏ (Red Flags)",
         "paragraphs": [
-          "Nếu bạn bắt gặp một trong những yêu cầu sau, hãy lập tức ngừng giao dịch và báo cáo tin đăng:",
-          "- **Yêu cầu nộp phí:** Bất kể dưới danh nghĩa là phí giữ chỗ, phí đăng ký, tiền cọc đồng phục hay phí mở tài khoản. Theo luật lao động, người sử dụng lao động không được phép thu tiền của người xin việc dưới bất kỳ hình thức nào.",
+          "Nếu bạn bắt gặp một trong những yêu cầu sau, hãy ngừng trao đổi và báo cho đội hỗ trợ CaLẻ qua trang Hỗ trợ:",
+          "- **Yêu cầu nộp phí:** Bất kể dưới danh nghĩa là phí giữ chỗ, phí đăng ký, tiền cọc đồng phục hay phí mở tài khoản. Bộ luật Lao động cấm người sử dụng lao động buộc người lao động nộp tiền hay tài sản để bảo đảm việc làm. Khoản cọc ứng tuyển do CaLẻ giữ trong ví của bạn (nếu đang áp dụng) không thuộc trường hợp này: số tiền hiện rõ trước khi bạn đồng ý và được hoàn khi bạn hoàn thành ca, bị từ chối hoặc huỷ.",
           "- **Định giá thù lao vô lý:** Mức lương được chào mời cao gấp 2, gấp 3 lần mặt bằng chung của thị trường cho những công việc phổ thông giản đơn. Không có bữa trưa nào là miễn phí.",
-          "- **Từ chối giao dịch qua hệ thống:** Nhà tuyển dụng yêu cầu bạn nhắn tin riêng qua Zalo/Telegram và đề nghị thanh toán qua chuyển khoản cá nhân thay vì thông qua hệ thống của nền tảng. Khi rời khỏi nền tảng, bạn sẽ hoàn toàn mất đi sự bảo vệ pháp lý nếu xảy ra tình trạng quỵt lương."
+          "- **Từ chối giao dịch qua hệ thống:** Nhà tuyển dụng yêu cầu bạn nhắn tin riêng qua Zalo/Telegram và đề nghị thanh toán qua chuyển khoản cá nhân thay vì thông qua hệ thống của nền tảng. Khoản trả ngoài ứng dụng thì CaLẻ không theo dõi được và không hỗ trợ được nếu bị quỵt lương."
         ]
       },
       {
         "heading": "3. Bảo vệ bản thân bằng hệ thống đánh giá",
         "paragraphs": [
           "Trên các nền tảng việc làm chuyên nghiệp, không chỉ người lao động mới bị đánh giá. Bạn hoàn toàn có thể xem được uy tín của cửa hàng thông qua số lượng ca làm họ đã hoàn thành và điểm số mà các nhân sự trước đây chấm cho họ.",
-          "Hãy ưu tiên nhận việc từ những nhà tuyển dụng đã có lịch sử hoạt động tốt trên hệ thống, điều này giúp giảm thiểu 99% rủi ro so với việc tự tìm việc trôi nổi trên mạng xã hội."
+          "Hãy ưu tiên nhận việc từ những nhà tuyển dụng đã có lịch sử hoạt động tốt trên hệ thống, điều này giúp giảm đáng kể rủi ro so với việc tự tìm việc trôi nổi trên mạng xã hội."
         ]
       }
     ],
@@ -406,7 +424,7 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "2. Tối ưu hóa khoảng cách di chuyển",
         "paragraphs": [
           "Đừng để những con số thù lao cao hơn 5.000đ/giờ làm mờ mắt bạn nếu công việc đó cách nhà bạn tới 15km. Thời gian di chuyển trong môi trường giao thông đô thị, cộng với sự kẹt xe và khói bụi, sẽ bòn rút thể lực của bạn một cách nhanh chóng.",
-          "Hãy thiết lập bán kính tìm kiếm việc làm tối đa 5km xung quanh khu vực bạn sống hoặc học tập. 30 phút tiết kiệm được từ việc không phải di chuyển xa mỗi ngày có thể dùng để nghỉ ngơi hoặc ôn lại bài vở."
+          "Khi tìm ca, hãy lọc theo khu vực và ưu tiên nơi cách chỗ ở hoặc trường khoảng 5km trở lại. 30 phút tiết kiệm được từ việc không phải di chuyển xa mỗi ngày có thể dùng để nghỉ ngơi hoặc ôn lại bài vở."
         ]
       },
       {
@@ -446,6 +464,7 @@ export const handbookArticles: HandbookArticle[] = [
     "imageUrl": "/images/handbook/unique/inline_art6.png",
     "imageAlt": "Chi tiết bảng tổng hợp tiền công và phụ cấp trên ứng dụng",
     "featured": false,
+    "demoNotice": true,
     "content": [
       {
         "paragraphs": [
@@ -455,7 +474,7 @@ export const handbookArticles: HandbookArticle[] = [
       {
         "heading": "1. Tiền công cơ bản định mức",
         "paragraphs": [
-          "Hầu hết các ca làm việc bán thời gian đều tính lương dựa trên số giờ lao động. Công thức cốt lõi là: **[Mức lương 1 giờ] × [Số giờ làm việc thực tế]**.",
+          "Hầu hết các ca làm việc bán thời gian đều tính lương dựa trên số giờ lao động. Công thức cốt lõi là: **[Mức lương 1 giờ] × [Số giờ của ca đã đăng]**.",
           "Ví dụ: Bạn nhận một ca từ 18:00 đến 22:00 (4 tiếng) với mức giá 30.000đ/giờ. Tổng tiền lương cơ bản của bạn sẽ là 120.000đ. Mức giá theo giờ này phải được ghi nhận rõ ràng trên tin tuyển dụng và trên hệ thống, không được phép thay đổi sau khi bạn đã chấp nhận công việc."
         ],
         "imageUrl": "/images/handbook/unique/new_inline_art6.png",
@@ -475,7 +494,13 @@ export const handbookArticles: HandbookArticle[] = [
         "paragraphs": [
           "Tiền công của ca đã được nhà tuyển dụng giữ trên CaLẻ ngay từ lúc đăng ca, nên bạn không phải đòi tiền mặt hay chờ chuyển khoản riêng. Sau khi bạn check-out, nhà tuyển dụng xác nhận hoàn thành thì tiền công vào ví CaLẻ của bạn; nếu họ không thao tác, hệ thống tự xác nhận và trả sau 24 giờ kể từ giờ kết thúc ca.",
           "Từ ví, bạn rút về tài khoản ngân hàng qua PayOS (tối thiểu 2.000đ). Đừng nhận trả công \"ngoài app\" thay cho tiền đã giữ trên CaLẻ: khi có vấn đề, CaLẻ chỉ hỗ trợ được khoản tiền đi qua hệ thống."
-        ]
+        ],
+        "demo": {
+          "paragraphs": [
+            "Trong bản demo, tiền công được giữ và trả trong sổ cái mô phỏng, không phải tiền thật. Nhà tuyển dụng giữ tiền công từ lúc đăng ca; sau khi bạn check-out, họ xác nhận hoàn thành thì tiền công vào ví CaLẻ của bạn. Nếu nhà tuyển dụng không thao tác, hệ thống tự xác nhận 12 giờ sau khi bạn check-out.",
+            "Rút tiền trong bản demo là mô phỏng, không chuyển tiền thật. Đừng nhận trả công \"ngoài app\" thay cho tiền đã giữ trên CaLẻ: khi có vấn đề, CaLẻ chỉ hỗ trợ được khoản tiền đi qua hệ thống."
+          ]
+        }
       },
       {
         "heading": "Lưu ý khi đối soát",
@@ -577,19 +602,25 @@ export const handbookArticles: HandbookArticle[] = [
         ]
       },
       {
-        "heading": "1. Phân tích \"Điểm Uy Tín\" và Lịch sử hoàn thành",
+        "heading": "1. Xem đánh giá sao và lịch sử ca",
         "paragraphs": [
-          "Đây là màng lọc quan trọng nhất. Một người ứng tuyển có đánh giá 4.8/5 sao với lịch sử hoàn thành 20 ca làm việc tại các nhà hàng khác nhau là bảo chứng vàng cho thái độ của họ. Bạn có thể lướt đọc nhanh các nhận xét từ những người chủ trước.",
-          "Hãy đặc biệt chú ý đến tỷ lệ vắng mặt (No-show). Nếu một hồ sơ có lịch sử nhận việc nhưng không đến làm mà không báo trước, bạn nên cân nhắc từ chối ngay lập tức để tránh rủi ro vỡ trận nhân sự."
+          "Đây là màng lọc quan trọng nhất. Điểm sao trung bình cao cùng nhận xét tốt từ các nhà tuyển dụng trước là dấu hiệu đáng tin về thái độ làm việc. Bạn có thể lướt đọc nhanh các nhận xét từ những người chủ trước.",
+          "Hãy chú ý số lần vắng mặt trên thẻ người ứng tuyển. Nếu người này từng nhận ca của bạn rồi không đến mà không báo, hãy cân nhắc từ chối để tránh rủi ro vỡ trận nhân sự."
         ],
+        "demo": {
+          "paragraphs": [
+            "Đây là màng lọc quan trọng nhất. Điểm uy tín, điểm sao trung bình và số ca đã hoàn thành trên thẻ người ứng tuyển là dấu hiệu đáng tin về thái độ làm việc. Bạn có thể lướt đọc nhanh các nhận xét từ những người chủ trước.",
+            "Hãy chú ý số lần vắng mặt trên thẻ người ứng tuyển. Nếu người này có lịch sử nhận ca rồi không đến mà không báo, hãy cân nhắc từ chối để tránh rủi ro vỡ trận nhân sự."
+          ]
+        },
         "imageUrl": "/images/handbook/unique/new_inline_art8.png",
-        "imageCaption": "Đánh giá nhanh dựa trên điểm uy tín và kinh nghiệm giúp chủ quán tiết kiệm thời gian."
+        "imageCaption": "Đánh giá nhanh dựa trên số sao và lịch sử ca giúp chủ quán tiết kiệm thời gian."
       },
       {
         "heading": "2. Đánh giá tính chuyên nghiệp qua sự chuẩn bị",
         "paragraphs": [
-          "Bạn không cần tìm một người có bằng cấp, nhưng bạn cần một người có thái độ nghiêm túc. Điều này thể hiện qua việc họ chăm chút hồ sơ như thế nào. Ảnh đại diện rõ ràng, trang phục lịch sự, phần giới thiệu bản thân đi thẳng vào trọng tâm là những tín hiệu tích cực.",
-          "Hồ sơ ghi rõ khu vực sinh sống, khung giờ rảnh và đã xác thực số điện thoại cho thấy một người chủ động, dễ liên lạc. Với ca gấp, người ở gần quán và rảnh đúng khung giờ thường là lựa chọn an toàn hơn."
+          "Bạn không cần tìm một người có bằng cấp, nhưng bạn cần một người có thái độ nghiêm túc. Điều này thể hiện qua việc họ chăm chút hồ sơ như thế nào. Phần giới thiệu đi thẳng vào trọng tâm, có loại việc và khu vực muốn làm là tín hiệu tích cực.",
+          "Hồ sơ ghi rõ khu vực muốn làm và khung giờ rảnh cho thấy một người chủ động. Với ca gấp, người ở gần quán và rảnh đúng khung giờ thường là lựa chọn an toàn hơn."
         ]
       },
       {
@@ -678,6 +709,7 @@ export const handbookArticles: HandbookArticle[] = [
     "imageUrl": "/images/handbook/unique/frustrated_cafe_manager.png",
     "imageAlt": "Quản lý tìm giải pháp thay thế khi nhân viên hủy ca",
     "featured": false,
+    "demoNotice": true,
     "content": [
       {
         "paragraphs": [
@@ -698,8 +730,14 @@ export const handbookArticles: HandbookArticle[] = [
         "heading": "2. Xử lý triệt để vi phạm của nhân sự",
         "paragraphs": [
           "Chỉ sau khi mọi thứ đã ổn thỏa và qua giờ cao điểm, bạn mới xử lý trường hợp vi phạm. Nếu người đã được duyệt không đến mà không báo, hãy đánh dấu \"Vắng mặt\" trên trang quản lý ca (được phép từ 15 phút sau giờ bắt đầu ca).",
-          "Vắng mặt không báo trừ 20 điểm uy tín của người đó, và nhà tuyển dụng khác thấy điểm này khi duyệt. Phần tiền công của vị trí vắng mặt được hoàn về ví của bạn. Người lao động có thể liên hệ đội hỗ trợ CaLẻ nếu cho rằng bị đánh dấu sai, nên hãy đánh dấu trung thực."
-        ]
+          "Lần vắng mặt được ghi vào lịch sử đơn của người đó và hiện trên thẻ ứng tuyển khi họ ứng tuyển lại ca của bạn. Tiền công và phí dịch vụ của vị trí đó được hoàn về ví của bạn; nếu người đó có cọc ứng tuyển, khoản cọc chuyển cho bạn sau 72 giờ nếu họ không khiếu nại. Người lao động có thể liên hệ đội hỗ trợ CaLẻ nếu cho rằng bị đánh dấu sai, nên hãy đánh dấu trung thực."
+        ],
+        "demo": {
+          "paragraphs": [
+            "Chỉ sau khi mọi thứ đã ổn thỏa và qua giờ cao điểm, bạn mới xử lý trường hợp vi phạm. Nếu người đã được duyệt không đến mà không báo, hãy đánh dấu \"Vắng mặt\" trên trang quản lý ca (được phép từ 15 phút sau giờ bắt đầu ca).",
+            "Trong bản demo, vắng mặt không báo trừ 20 điểm uy tín của người đó, và nhà tuyển dụng khác thấy điểm này khi duyệt. Phần tiền công của vị trí vắng mặt được hoàn về ví của bạn (mô phỏng). Người lao động có thể liên hệ đội hỗ trợ CaLẻ nếu cho rằng bị đánh dấu sai, nên hãy đánh dấu trung thực."
+          ]
+        }
       },
       {
         "heading": "3. Phương pháp phòng ngừa chủ động",
@@ -729,6 +767,7 @@ export const handbookArticles: HandbookArticle[] = [
     imageUrl: "/images/handbook/unique/dieu_can_kiem_tra.png",
     imageAlt: "Nhà tuyển dụng chọn mức bằng chứng khi đăng ca",
     featured: false,
+    demoNotice: true,
     content: [
       {
         paragraphs: [
@@ -765,7 +804,12 @@ export const handbookArticles: HandbookArticle[] = [
         heading: "Sau khi người lao động check-out",
         paragraphs: [
           "Bạn xác nhận hoàn thành để trả công. Nếu bạn không thao tác, hệ thống tự xác nhận và trả công sau 24 giờ kể từ giờ kết thúc ca. Có vấn đề thì liên hệ đội hỗ trợ CaLẻ càng sớm càng tốt."
-        ]
+        ],
+        demo: {
+          paragraphs: [
+            "Bạn xác nhận hoàn thành để trả công trong sổ cái mô phỏng. Nếu bạn không thao tác, hệ thống tự xác nhận 12 giờ sau khi người lao động check-out (mô phỏng). Có vấn đề thì liên hệ đội hỗ trợ CaLẻ càng sớm càng tốt."
+          ]
+        }
       }
     ],
     relatedSlugs: ["giu-coc-phi-dich-vu-va-hoan-tien", "cach-dang-tin-tuyen-nguoi-ngan-han"]
@@ -786,13 +830,19 @@ export const handbookArticles: HandbookArticle[] = [
     imageAlt: "Tiền giữ, phí dịch vụ và hoàn tiền cho nhà tuyển dụng",
     featured: true,
     featuredOrder: 1,
+    demoNotice: true,
     content: [
       {
         heading: "1. Nạp ví",
         paragraphs: [
           "Bạn nạp tiền vào ví bằng mã QR PayOS, quét bằng app ngân hàng. Tiền vào ví ngay khi PayOS báo đã nhận.",
           "Hãy chuyển đúng số tiền của mã QR. Nếu chuyển lệch số tiền, chuyển vào mã đã hết hạn hoặc chuyển hai lần, giao dịch sẽ chuyển sang \"cần kiểm tra\". Quản trị viên đối chiếu rồi cộng ví hoặc liên hệ hoàn tiền; kết quả hiện trong ví và trên chuông thông báo."
-        ]
+        ],
+        demo: {
+          paragraphs: [
+            "Trong bản demo, bạn nạp ví bằng cách nhập số tiền trong ví. Số dư được cộng ngay vào sổ cái mô phỏng, không có mã QR PayOS và không chuyển tiền thật."
+          ]
+        }
       },
       {
         heading: "2. Đăng ca: giữ tiền công + phí dịch vụ",
@@ -803,21 +853,42 @@ export const handbookArticles: HandbookArticle[] = [
         bullets: [
           "Trong đợt miễn phí dịch vụ (nếu CaLẻ đang có), ca đủ điều kiện không tính phí.",
           "Tiền thưởng nạp ví (nếu có chương trình) chỉ dùng để trả phí dịch vụ, không rút được."
-        ]
+        ],
+        demo: {
+          paragraphs: [
+            "Khi bấm Đăng, hệ thống giữ từ ví mô phỏng tổng tiền công của ca (lương theo giờ × số giờ × số người cần tuyển). Bản demo không tính phí dịch vụ. Ví dụ: tiền công 200.000đ thì giữ 200.000đ.",
+            "Ca chỉ hiện cho người lao động sau khi đã giữ đủ tiền. Ví thiếu thì nạp thêm trước khi đăng."
+          ],
+          bullets: [
+            "Phí dịch vụ 10%, đợt miễn phí dịch vụ và tiền thưởng nạp ví chỉ có ở bản chính thức."
+          ]
+        }
       },
       {
         heading: "3. Sau ca: trả công cho người lao động",
         bullets: [
           "Bạn xác nhận hoàn thành thì tiền công vào ví người lao động, phí dịch vụ được tính cho phần ca đó.",
-          "Nếu bạn không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in được trả công, người không check-in bị tính vắng mặt.",
+          "Nếu bạn không xác nhận, hệ thống tự chốt khoảng 24 giờ sau giờ kết thúc ca: người đã check-in hoặc được bạn xác nhận có mặt được trả công; người được duyệt mà chưa ai ghi nhận có mặt bị tính vắng mặt.",
           "Có vấn đề với ca thì liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ trước khi hệ thống tự chốt."
-        ]
+        ],
+        demo: {
+          bullets: [
+            "Bạn xác nhận hoàn thành thì tiền công vào ví người lao động (sổ cái mô phỏng).",
+            "Nếu bạn không xác nhận, hệ thống tự xác nhận 12 giờ sau khi người lao động check-out.",
+            "Có vấn đề với ca thì liên hệ đội hỗ trợ CaLẻ qua trang Hỗ trợ trước khi hệ thống tự xác nhận."
+          ]
+        }
       },
       {
         heading: "4. Khi nào tiền được hoàn về ví",
         paragraphs: [
           "Vị trí không có người, người lao động vắng mặt, ca bị huỷ hoặc hết hạn: phần tiền công và phí dịch vụ của phần đó được hoàn về ví của bạn. Phí 10% chỉ tính trên phần ca có người làm."
-        ]
+        ],
+        demo: {
+          paragraphs: [
+            "Vị trí không có người, người lao động vắng mặt, ca bị huỷ hoặc hết hạn: phần tiền công của phần đó được hoàn về ví của bạn (mô phỏng)."
+          ]
+        }
       },
       {
         heading: "5. Sửa và huỷ ca",
@@ -832,7 +903,13 @@ export const handbookArticles: HandbookArticle[] = [
         paragraphs: [
           "Bạn rút số dư về tài khoản ngân hàng qua PayOS, tối thiểu 2.000đ. Tiền thưởng nạp ví không rút được. Kiểm kỹ ngân hàng và số tài khoản: chuyển nhầm không lấy lại được."
         ],
-        note: "Giao dịch nạp, giữ tiền, trả công và rút tiền trên CaLẻ là tiền thật qua PayOS. Khi cần hỏi hỗ trợ, hãy gửi kèm mã đơn nạp (#…) trong lịch sử ví."
+        note: "Giao dịch nạp, giữ tiền, trả công và rút tiền trên CaLẻ là tiền thật qua PayOS. Khi cần hỏi hỗ trợ, hãy gửi kèm mã đơn nạp (#…) trong lịch sử ví.",
+        demo: {
+          paragraphs: [
+            "Trong bản demo, rút tiền là mô phỏng: số dư được trừ trong sổ cái mô phỏng, không chuyển tiền thật về ngân hàng."
+          ],
+          note: "Trong bản demo, mọi khoản nạp, giữ tiền, trả công, hoàn tiền và rút tiền đều ghi trong sổ cái mô phỏng, không qua PayOS và không có tiền thật."
+        }
       }
     ],
     relatedSlugs: ["chon-muc-bang-chung-khi-dang-ca", "xu-ly-khi-nguoi-lao-dong-huy-ca"]

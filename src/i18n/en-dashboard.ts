@@ -52,11 +52,11 @@ export const enDashboard: Record<string, string> = {
   'help.workerDashboard.section.actions.item1':
     'Tap the "Reputation score" tile to see the timeline of points gained / lost and any administrator adjustments.',
   'help.workerDashboard.section.actions.item2':
-    'Tap the "Weekly cancellation limit" tile to see usage over 7 and 30 days with your current reputation score.',
+    'In the "Skills & reputation" card, tap the "Weekly cancellation limit" row to see usage over 7 and 30 days with your current reputation score.',
   'help.workerDashboard.section.actions.item3':
     'In "Upcoming shifts", tap "Check in" when the shift starts and "Check out" when it ends.',
   'help.workerDashboard.section.actions.item4':
-    'Recently rejected applications show the reason; read it before applying for new shifts.',
+    'Under "Applications", the "Unsuccessful applications" tab lists rejected applications (with the reason), cancelled shifts and expired applications; read them before applying for new shifts.',
   'help.workerDashboard.section.mistakes.heading': 'Common mistakes',
   'help.workerDashboard.section.mistakes.item1':
     'You cannot apply until your phone number is verified; go to Profile to verify it.',
@@ -177,16 +177,16 @@ export const enDashboard: Record<string, string> = {
     'Active shifts: shifts that are "Hiring", "Full", "In progress" or "Awaiting confirmation".',
   'help.employerDashboard.section.numbers.item2': 'Pending applications: applications marked "Pending" on your shifts.',
   'help.employerDashboard.section.numbers.item3':
-    'Total held / paid: the total deposit held and the total pay already paid to workers.',
+    'Posted shifts, completed shifts, wages paid: tap each tile to see the matching list.',
   'help.employerDashboard.section.numbers.item4':
     'Boosts: you get 1 each time you mark a no-show; use it to push a shift to the top of the list.',
   'help.employerDashboard.section.actions.heading': 'Main actions',
-  'help.employerDashboard.section.actions.item1': 'Tap "Post a new shift" to create a shift and hold the pay deposit.',
+  'help.employerDashboard.section.actions.item1': 'Tap "Post a shift" in the navigation bar to create a shift and hold the wages.',
   'help.employerDashboard.section.actions.item2':
-    'Tap a number tile to see the matching list (posted shifts / pending applications / payments).',
+    'Tap a number tile to see the matching list (posted shifts / completed shifts / wages paid).',
   'help.employerDashboard.section.actions.item3':
-    'In "Pending applications", tap a worker to see their profile before approving.',
-  'help.employerDashboard.section.actions.item4': 'Tap "View hiring schedule" to see shifts by week.',
+    'In "Pending applications", each shift is one row; tap "View & review" to open the shift and see each profile before approving.',
+  'help.employerDashboard.section.actions.item4': 'Tap "Hiring calendar" to see shifts by week.',
   'help.employerDashboard.section.mistakes.heading': 'Common mistakes',
   'help.employerDashboard.section.mistakes.item1':
     'A shift only goes public after you tap "Confirm payment" (deposit held first); until then it is a "Draft".',
@@ -204,9 +204,9 @@ export const enDashboard: Record<string, string> = {
   'employer.dashboard.stats.postedAria': 'View posted shift details',
   'employer.dashboard.stats.completedShifts': 'Completed shifts',
   'employer.dashboard.stats.completedAria': 'View completed shift details',
-  'employer.dashboard.stats.totalDeposited': 'TOTAL PAY AWAITING PAYMENT',
+  'employer.dashboard.stats.totalDeposited': 'Wages awaiting payment',
   'employer.dashboard.stats.depositedAria': 'View pay awaiting payment',
-  'employer.dashboard.stats.totalPaidOut': 'TOTAL PAY PAID',
+  'employer.dashboard.stats.totalPaidOut': 'Wages paid',
   'employer.dashboard.stats.paidOutAria': 'View payment summary',
   'employer.dashboard.upcomingShifts': 'Upcoming shifts',
   'employer.dashboard.noShifts': 'You have not posted any shift yet.',
@@ -358,4 +358,22 @@ export const enDashboardText: Record<string, string> = {
   'Chiều': 'Afternoon',
   'Tối': 'Evening',
   'Bấm lần nữa để xoá': 'Tap again to delete',
+  // 03/10 — dashboard người lao động làm lại.
+  "Ca tiếp theo bắt đầu {date} lúc {time}.": "Your next shift starts {date} at {time}.",
+  "{n} đơn đang chờ nhà tuyển dụng duyệt.": "{n} applications are waiting for the employer to review.",
+  "Tóm tắt của bạn": "Your summary",
+  "Ca được duyệt sẽ hiện ở đây, kèm nút check-in khi tới giờ.": "Approved shifts show up here, with a check-in button when it is time.",
+  "Đơn ứng tuyển": "Applications",
+  "Lọc đơn ứng tuyển": "Filter applications",
+  "Chờ duyệt": "Pending",
+  // 03/10 — dashboard nhà tuyển dụng làm lại.
+  "{n} sao": "{n} stars",
+  "Không có nhận xét.": "No comment.",
+  "{n} đơn đang chờ bạn duyệt.": "{n} applications are waiting for your review.",
+  "Chưa có đơn nào chờ duyệt. Đơn mới sẽ hiện ở đây.": "No applications to review. New ones will show up here.",
+  "{n} người:": "{n} people:",
+  "Đánh giá về bạn": "Reviews of you",
+  "Chưa có đánh giá. Sau mỗi ca, người lao động chấm sao cho bạn trong 14 ngày.": "No reviews yet. After each shift, workers rate you within 14 days.",
+  "trung bình từ {n} đánh giá": "average from {n} reviews",
+  "Cách đánh giá sau ca": "How post-shift reviews work",
 };

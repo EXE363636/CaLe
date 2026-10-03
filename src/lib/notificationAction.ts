@@ -5,7 +5,7 @@
  *
  * Used by both:
  *   - `NotificationBell` (global nav dropdown)
- *   - `DashboardNotificationCard` (in-dashboard side rail)
+ *   - (03/10: bảng thông báo trong dashboard đã bỏ — chỉ còn chuông)
  *
  * so a notification triggers the same behavior regardless of where the
  * user clicked it. Click flow:

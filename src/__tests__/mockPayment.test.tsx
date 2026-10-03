@@ -77,7 +77,7 @@ describe('PricingPage — trung thực, không nút mua', () => {
     const { container } = render(await PricingPage());
     const text = nfc(container.textContent);
     expect(text).toContain('Giai đoạn thử nghiệm');
-    expect(text).toContain('0đ');
+    expect(text).toMatch(/0\s?đ/);
     expect(text).toContain('chưa thu phí');
     expect(text.toLowerCase()).not.toContain('mua ngay');
     expect(text.toLowerCase()).not.toContain('thanh toán ngay');

@@ -113,7 +113,7 @@ describe('B4 — /employer/payments content by data mode', () => {
     setMode('supabase');
     const { container } = render(await EmployerPaymentsPage());
     const text = lc(container.textContent);
-    expect(text).toContain('giữ cọc tiền công');
+    expect(text).toContain('giữ tiền công');
     expect(text).toContain('xác nhận hoàn thành');
     expect(text).not.toContain('mô phỏng');
     expect(text).not.toContain('ký quỹ');
@@ -151,9 +151,20 @@ describe('B — AuthSidePanel honesty by data mode', () => {
     expect(text).not.toContain('mô phỏng');
   });
 
-  it('local: giữ nguyên nội dung dùng thử (MVP)', () => {
+  it('local: ghi rõ tiền và xác minh là mô phỏng', () => {
     setMode('local');
     const { container } = render(<AuthSidePanel mode="register" />);
-    expect(lc(container.textContent)).toContain('mvp');
+    expect(lc(container.textContent)).toContain('mô phỏng');
+  });
+
+  it('supabase: không hứa điểm uy tín hay huy hiệu xác minh', () => {
+    setMode('supabase');
+    for (const role of ['worker', 'employer'] as const) {
+      const { container, unmount } = render(<AuthSidePanel mode="register" role={role} />);
+      const text = lc(container.textContent);
+      expect(text).not.toContain('uy tín');
+      expect(text).not.toContain('xác minh');
+      unmount();
+    }
   });
 });

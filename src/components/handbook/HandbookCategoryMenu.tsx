@@ -6,7 +6,8 @@ import { categoryLabel, handbookListHref } from '@/lib/handbook';
 
 /**
  * Danh mục cẩm nang của MỘT vai trò (người lao động HOẶC nhà tuyển dụng) —
- * không bao giờ hiện danh mục của vai trò kia.
+ * không bao giờ hiện danh mục của vai trò kia. 03/10: hàng chip phía trên bài
+ * (cuộn ngang trên điện thoại).
  */
 export function HandbookCategoryMenu({
   audience,
@@ -30,11 +31,9 @@ export function HandbookCategoryMenu({
     })),
   ];
   return (
-    <nav aria-label={labels.nav} className="flex flex-col gap-2">
-      <h2 className="mb-2 px-3 text-sm font-bold uppercase tracking-wider text-gray-500 lg:px-0">
-        {labels.heading}
-      </h2>
-      <ul className="hide-scrollbar flex gap-2 overflow-x-auto px-3 pb-2 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+    <nav aria-label={labels.nav}>
+      <h2 className="sr-only">{labels.heading}</h2>
+      <ul className="-mx-4 flex [scrollbar-width:none] [&::-webkit-scrollbar]:hidden gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         {items.map((item) => {
           const isActive = item.id === 'all' ? currentCategory === 'all' : currentCategory === item.id;
           return (
@@ -42,10 +41,10 @@ export function HandbookCategoryMenu({
               <Link
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+                className={`inline-flex min-h-[44px] items-center rounded-full px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
                   isActive
-                    ? 'bg-orange-50 text-orange-700 shadow-sm ring-1 ring-orange-200'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-700 ring-1 ring-black/10 hover:bg-orange-50 hover:text-gray-900'
                 }`}
               >
                 {item.label}

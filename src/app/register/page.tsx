@@ -7,7 +7,7 @@ import { OAUTH_ROLE_KEY, useAuthStore, useCurrentUser } from '@/stores/authStore
 import { isSupabaseEnv } from '@/data/supabaseClient';
 import { AuthDivider, GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { Input, Button } from '@/components/ui';
-import { AuthSidePanel } from '@/components/layout/AuthSidePanel';
+import { AuthShell, AuthSidePanel } from '@/components/layout/AuthSidePanel';
 import { showSuccess, showError, clearToastsByScope } from '@/lib/toast';
 import { toastFromStoreError } from '@/lib/errorMap';
 import { useT, useTx } from '@/i18n/LocaleProvider';
@@ -229,17 +229,12 @@ function RegisterForm() {
   }
 
   return (
-    <div className="px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
-      <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_minmax(0,28rem)] lg:items-center">
-        <AuthSidePanel mode="register" />
-
-        <div className="w-full">
-          <div className="rounded-2xl border border-gray-200 bg-white p-7 shadow-card sm:p-8">
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
+    <AuthShell panel={<AuthSidePanel mode="register" role={values.role} />} panelOnMobile>
+          <div className="mb-6">
+            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
               {oauth ? t('auth.oauth.complete.title') : t('auth.register.title')}
             </h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-2 text-base text-gray-600">
               {oauth ? t('auth.oauth.complete.subtitle') : t('auth.register.subtitle')}
             </p>
             {oauth && oauth.email && (
@@ -431,10 +426,7 @@ function RegisterForm() {
             </Link>
           </p>
           )}
-        </div>
-      </div>
-      </div>
-    </div>
+    </AuthShell>
   );
 }
 

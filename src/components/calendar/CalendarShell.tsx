@@ -38,14 +38,16 @@ export function CalendarShell({
   className,
 }: CalendarShellProps) {
   // 03/10 — lịch là phần chính (cột trái, rộng); cột phụ (lịch tháng nhỏ, "Sắp tới",
-  // chú giải) sang phải từ lg, trên điện thoại nằm dưới lịch.
+  // chú giải) sang phải từ lg, trên điện thoại nằm dưới lịch. Thanh công cụ trải hết bề
+  // ngang phía trên cả hai cột: lưới lịch và cột phụ bắt đầu cùng một đường, thanh công
+  // cụ không phải xuống dòng (nút "Đăng ca cần tuyển" dài) làm lịch dài hơn cột phụ.
   return (
-    <div className={['grid gap-4 lg:grid-cols-[minmax(0,1fr)_19.5rem] lg:gap-6', className ?? ''].join(' ').trim()}>
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="w-full">{toolbar}</div>
-        <div className="w-full overflow-x-auto">{body}</div>
-      </div>
-      <aside aria-label="Calendar sidebar" className="w-full lg:sticky lg:top-24 lg:self-start">
+    <div className={['grid gap-4 lg:grid-cols-[minmax(0,1fr)_19.5rem] lg:gap-x-6', className ?? ''].join(' ').trim()}>
+      <div className="w-full min-w-0 lg:col-span-2">{toolbar}</div>
+      <div className="w-full min-w-0 overflow-x-auto lg:flex lg:flex-col">{body}</div>
+      {/* Cột phụ cao bằng hàng lịch (khối cuối của cột phụ giãn ra, `lg:flex-1`) để hai
+          cột kết thúc cùng một đường, không thừa một khúc lịch bên dưới. */}
+      <aside aria-label="Calendar sidebar" className="w-full lg:flex lg:flex-col">
         {sidebar}
       </aside>
     </div>

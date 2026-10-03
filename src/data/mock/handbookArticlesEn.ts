@@ -56,7 +56,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
       {
         heading: '5. Checklist + handover note required',
         paragraphs: [
-          'The strictest level, used for higher-risk jobs such as cashier or security. You must tick the whole checklist and write a handover note (up to 1,000 characters): what you handed over, to whom, and anything left unfinished.',
+          'The most detailed handover level, used for higher-risk jobs such as cashier or security. You must tick the whole checklist and write a handover note (up to 1,000 characters): what you handed over, to whom, and anything left unfinished.',
         ],
       },
       {
@@ -66,6 +66,13 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
           'If the employer does nothing, the system confirms automatically and pays you 24 hours after the shift ends.',
           'If there is a problem with the shift, contact the CaLẻ support team via the Support page and include evidence (handover photo, check-in time).',
         ],
+        demo: {
+          bullets: [
+            'When the employer confirms completion, your pay goes into your simulated wallet.',
+            'If the employer does nothing, the system confirms automatically 12 hours after you check out (simulated).',
+            'If there is a problem with the shift, contact the CaLẻ support team via the Support page and include evidence (handover photo, check-in time).',
+          ],
+        },
         note: 'Do not photograph customers’ faces without permission. Do not photograph personal documents, invoices with sensitive details or private areas of the shop.',
       },
     ],
@@ -79,8 +86,8 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
     content: [
       {
         paragraphs: [
-          'You scrolled through CaLẻ, tapped apply and got the "Approved" notice from the shop! You are probably feeling a mix of joy at the extra income and nerves about what tomorrow will be like.',
-          'With short hourly jobs, businesses expect you to catch on fast and help right away, especially at peak times. Looking lost or unprepared slows everyone down and directly affects your reputation score in the system. So how do you make your first shift a great start?',
+          'You scrolled through CaLẻ, tapped apply and saw your application change to "Approved"! You are probably feeling a mix of joy at the extra income and nerves about what tomorrow will be like.',
+          'With short hourly jobs, businesses expect you to catch on fast and help right away, especially at peak times. Looking lost or unprepared slows everyone down and directly affects the star rating the employer leaves you after the shift. So how do you make your first shift a great start?',
         ],
       },
       {
@@ -162,7 +169,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
       },
       {
         heading: 'Advice for newcomers',
-        note: 'Do not be shy about starting with simple manual work. What you gain early on is not just pay but 5-star ratings from employers. A record of 10 excellent warehouse shifts will count heavily when you later apply for sales or higher-level service roles.',
+        note: 'Do not be shy about starting with simple manual work. What you gain early on is not just pay but 5-star ratings from employers. Ten 5-star warehouse shifts raise the average rating every employer sees when you later apply for sales or service roles.',
       },
     ],
   },
@@ -175,15 +182,15 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
     content: [
       {
         paragraphs: [
-          'You keep applying but your shifts say "Rejected" or sit at "Awaiting review"? The problem may not be your experience but how you present yourself in your Profile.',
+          'You keep applying but your shifts say "Rejected" or sit at "Pending"? The problem may not be your experience but how you present yourself in your Profile.',
           'In short-term hiring, speed is everything. A manager who urgently needs someone for tonight has no time to read a 3-page PDF CV. They glance at your profile in the app for about 5 seconds before deciding. How do you win them over in those 5 seconds?',
         ],
       },
       {
-        heading: '1. Profile photo: clear, friendly and professional',
+        heading: '1. Your real name and first impression',
         paragraphs: [
-          'Your photo is the first thing an employer sees. You do not need a suit or a studio portrait. But landscape photos, pet photos or dark selfies that hide half your face count against you.',
-          'A good photo: wear a collared T-shirt or a light shirt. Choose a spot with good natural light and a plain background. Look straight at the camera and smile slightly. A bright, trustworthy face is a great ticket into service jobs.',
+          'Use your real full name, spelled correctly. The Profile page has no photo upload yet, so your name and introduction are what employers read first.',
+          'Avoid nicknames or hard-to-guess initials. Employers need to know for sure who is coming, and the name on your profile should match the name you give when you arrive at work.',
         ],
         imageCaption: 'A tidy, clear profile catches an employer’s eye straight away.',
       },
@@ -197,15 +204,18 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         ],
       },
       {
-        heading: '3. Protect your reputation score and completion history',
+        heading: '3. Protect your ratings and completion history',
         paragraphs: [
-          'Job platforms always show the most reliable applicants first. That reliability is built entirely on your work history.',
+          'When reviewing applications, employers see your average star rating, past comments and your shift history with them. All of this is built entirely from the shifts you have worked.',
           'Each 5-star review with praise from a previous manager, such as "Polite, quick, kept everything clean", weighs a hundred times more than anything you write about yourself. Treat every job as a chance to add these bricks of trust.',
         ],
       },
       {
-        heading: 'Warning: cancellation history',
-        note: 'Cancelling at the last minute, or worse, not showing up at all without a word, is the biggest mistake. The system records these on your public profile. An account with a high cancellation rate will find it very hard to be approved anywhere else.',
+        heading: 'Warning: last-minute cancellations and no-shows',
+        note: 'Cancelling at the last minute, or worse, not showing up at all without a word, is the biggest mistake. No-shows are recorded on your applications, and an employer sees how many times you missed their shifts when you apply again. Last-minute cancellations and no-shows make it much harder to be approved again.',
+        demo: {
+          note: 'Cancelling at the last minute, or worse, not showing up at all without a word, is the biggest mistake. In the demo, a no-show without notice costs 20 reputation points, cancelling within 24 hours of the start costs 10 points, and employers see your reputation score and no-show count when reviewing your application. Last-minute cancellations and no-shows make it much harder to be approved again.',
+        },
       },
     ],
   },
@@ -235,17 +245,17 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
       {
         heading: '2. Red flags',
         paragraphs: [
-          'If you see any of the following, stop immediately and report the post:',
-          '- **Asking you to pay:** whether it is called a booking fee, registration fee, uniform deposit or account fee. Under labour law, employers may not take money from job seekers in any form.',
+          'If you see any of the following, stop and tell the CaLẻ support team via the Support page:',
+          '- **Asking you to pay:** whether it is called a booking fee, registration fee, uniform deposit or account fee. The Vietnamese Labour Code forbids employers from making workers pay money or hand over property as security for a job. A CaLẻ application deposit held in your own wallet (when it applies) is different: you see the amount before you agree, and it is refunded when you complete the shift, are rejected or cancel.',
           '- **Unrealistic pay:** two or three times the usual rate for simple general work. There is no such thing as a free lunch.',
-          '- **Refusing to use the platform:** the employer asks you to chat privately on Zalo/Telegram and pay you by personal bank transfer instead of through the platform. Once you leave the platform, you lose all protection if you are not paid.',
+          '- **Refusing to use the platform:** the employer asks you to chat privately on Zalo/Telegram and pay you by personal bank transfer instead of through the platform. CaLẻ cannot track or help with money paid outside the app if you end up unpaid.',
         ],
       },
       {
         heading: '3. Protect yourself with ratings',
         paragraphs: [
           'On professional job platforms, workers are not the only ones being rated. You can check a shop’s reputation through the number of shifts it has completed and the scores previous staff gave it.',
-          'Prefer employers with a good track record in the system; this cuts the risk far below looking for random jobs on social media.',
+          'Prefer employers with a good track record in the system; this is considerably less risky than looking for random jobs on social media.',
         ],
       },
     ],
@@ -275,7 +285,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         heading: '2. Keep travel short',
         paragraphs: [
           'Do not let an extra 5.000đ per hour blind you if the job is 15 km from home. City traffic, jams and pollution will drain your energy fast.',
-          'Set a search radius of at most 5 km around where you live or study. The 30 minutes you save each day can go to rest or revision.',
+          'When searching, filter by area and prefer places within about 5 km of where you live or study. The 30 minutes you save each day can go to rest or revision.',
         ],
       },
       {
@@ -308,7 +318,7 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
       {
         heading: '1. Base pay',
         paragraphs: [
-          'Most part-time shifts are paid by the hour. The core formula is: **[Hourly rate] × [Hours worked]**.',
+          'Most part-time shifts are paid by the hour. The core formula is: **[Hourly rate] × [Hours of the posted shift]**.',
           'Example: you take a shift from 18:00 to 22:00 (4 hours) at 30.000đ per hour. Your base pay is 120.000đ. The hourly rate must be shown clearly on the post and in the system, and must not change after you have accepted the job.',
         ],
         imageCaption: 'Knowing how hourly pay and allowances work helps you protect your rights.',
@@ -328,6 +338,12 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
           'The employer has already held the pay for the shift on CaLẻ when posting it, so you do not need to chase cash or wait for a private transfer. After you check out, the employer confirms completion and the pay goes into your CaLẻ wallet; if they do nothing, the system confirms and pays you 24 hours after the shift ends.',
           'From your wallet, you withdraw to your bank account via PayOS (minimum 2.000đ). Do not accept "off-app" payment instead of the money held on CaLẻ: if something goes wrong, CaLẻ can only help with money that went through the system.',
         ],
+        demo: {
+          paragraphs: [
+            'In the demo, pay is held and released in a simulated ledger, not real money. The employer holds the pay when posting the shift; after you check out, they confirm completion and the pay goes into your CaLẻ wallet. If the employer does nothing, the system confirms 12 hours after you check out.',
+            'Withdrawals in the demo are simulated too and do not transfer real money. Do not accept "off-app" payment instead of the money held on CaLẻ: if something goes wrong, CaLẻ can only help with money that went through the system.',
+          ],
+        },
       },
       {
         heading: 'When checking your pay',
@@ -395,18 +411,24 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         ],
       },
       {
-        heading: '1. Look at the reputation score and completion history',
+        heading: '1. Check star ratings and shift history',
         paragraphs: [
-          'This is the most important filter. An applicant rated 4.8/5 with 20 completed shifts at different restaurants is a solid guarantee of their attitude. Skim the comments from previous employers.',
-          'Pay special attention to no-shows. If a profile has taken jobs and then not turned up without notice, consider rejecting it straight away to avoid being left short-staffed.',
+          'This is the most important filter. A high average rating with good comments from previous employers is a reliable sign of attitude. Skim the comments from previous employers.',
+          'Check the no-show count on the applicant card. If they took one of your shifts and did not come without notice, consider rejecting them to avoid being left short-staffed.',
         ],
-        imageCaption: 'A quick look at reputation and experience saves owners time.',
+        demo: {
+          paragraphs: [
+            'This is the most important filter. The reputation score, average rating and completed shift count on the applicant card are a reliable sign of attitude. Skim the comments from previous employers.',
+            'Check the no-show count on the applicant card. If they have taken shifts before and not come without notice, consider rejecting them to avoid being left short-staffed.',
+          ],
+        },
+        imageCaption: 'A quick look at star ratings and shift history saves owners time.',
       },
       {
         heading: '2. Judge professionalism by how they prepare',
         paragraphs: [
-          'You do not need someone with qualifications, but you do need someone serious. It shows in how they look after their profile. A clear photo, neat clothes and a to-the-point introduction are good signs.',
-          'A profile that clearly states the area they live in, their free hours and a verified phone number shows someone proactive and easy to reach. For an urgent shift, a person who lives nearby and is free at exactly that time is usually the safer choice.',
+          'You do not need someone with qualifications, but you do need someone serious. It shows in how they look after their profile. A to-the-point introduction listing the job types and areas they want is a good sign.',
+          'A profile that clearly states the area they want to work in and their free hours shows someone proactive. For an urgent shift, a person who lives nearby and is free at exactly that time is usually the safer choice.',
         ],
       },
       {
@@ -479,8 +501,14 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         heading: '2. Deal with the no-show properly',
         paragraphs: [
           'Only once everything is sorted and the rush is over should you deal with the problem. If an approved worker did not come and did not tell you, mark them "Absent" on the shift management page (allowed from 15 minutes after the shift starts).',
-          'A no-show without notice costs the worker 20 reputation points, and other employers see that score when reviewing applicants. The pay for the absent spot is refunded to your wallet. Workers can contact the CaLẻ support team if they think the mark is wrong, so mark honestly.',
+          'The no-show is recorded on that worker’s applications and shows on their applicant card if they apply to your shifts again. The pay and service fee for that spot are refunded to your wallet; if the worker paid an application deposit, it goes to you after 72 hours unless they contest. Workers can contact the CaLẻ support team if they think the mark is wrong, so mark honestly.',
         ],
+        demo: {
+          paragraphs: [
+            'Only once everything is sorted and the rush is over should you deal with the problem. If an approved worker did not come and did not tell you, mark them "Absent" on the shift management page (allowed from 15 minutes after the shift starts).',
+            'In the demo, a no-show without notice costs the worker 20 reputation points, and other employers see that score when reviewing applicants. The pay for the absent spot is refunded to your wallet (simulated). Workers can contact the CaLẻ support team if they think the mark is wrong, so mark honestly.',
+          ],
+        },
       },
       {
         heading: '3. Prevent it in the first place',
@@ -534,6 +562,11 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
         paragraphs: [
           'Confirm completion to pay the worker. If you do nothing, the system confirms automatically and pays 24 hours after the shift ends. If something is wrong, contact the CaLẻ support team as soon as possible.',
         ],
+        demo: {
+          paragraphs: [
+            'Confirm completion to pay the worker in the simulated ledger. If you do nothing, the system confirms automatically 12 hours after the worker checks out (simulated). If something is wrong, contact the CaLẻ support team as soon as possible.',
+          ],
+        },
       },
     ],
   },
@@ -550,6 +583,11 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
           'You top up your wallet with a PayOS QR code, scanned with your banking app. The money arrives as soon as PayOS confirms it was received.',
           'Transfer the exact amount on the QR code. If you send a different amount, pay an expired code or pay twice, the transfer is marked "needs review". An administrator checks it, then credits your wallet or arranges a refund; the result appears in your wallet and in your notifications.',
         ],
+        demo: {
+          paragraphs: [
+            'In the demo, you top up by entering an amount in your wallet. The balance is added straight to the simulated ledger: there is no PayOS QR code and no real money is transferred.',
+          ],
+        },
       },
       {
         heading: '2. Posting: pay + service fee are held',
@@ -561,20 +599,39 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
           'During a fee-free period (if CaLẻ is running one), eligible shifts have no fee.',
           'Top-up bonus money (if there is a promotion) can only pay service fees and cannot be withdrawn.',
         ],
+        demo: {
+          paragraphs: [
+            'When you tap Post, the system holds from your simulated wallet the total pay for the shift (hourly rate × hours × people needed). The demo charges no service fee. Example: 200.000đ of pay holds 200.000đ.',
+            'The shift only becomes visible to workers once the full amount is held. If your wallet is short, top up before posting.',
+          ],
+          bullets: ['The 10% service fee, fee-free periods and top-up bonuses exist only in the live version.'],
+        },
       },
       {
         heading: '3. After the shift: paying the workers',
         bullets: [
           'When you confirm completion, the pay goes into the worker’s wallet and the service fee is charged for that part of the shift.',
-          'If you do not confirm, the system settles about 24 hours after the shift ends: workers who checked in are paid, those who did not check in are marked absent.',
+          'If you do not confirm, the system settles about 24 hours after the shift ends: workers who checked in or whom you marked present are paid; approved workers with no recorded attendance are marked absent.',
           'If something is wrong with the shift, contact the CaLẻ support team via the Support page before the system settles it.',
         ],
+        demo: {
+          bullets: [
+            'When you confirm completion, the pay goes into the worker’s wallet (simulated ledger).',
+            'If you do not confirm, the system confirms automatically 12 hours after the worker checks out.',
+            'If something is wrong with the shift, contact the CaLẻ support team via the Support page before the system confirms it.',
+          ],
+        },
       },
       {
         heading: '4. When money comes back to your wallet',
         paragraphs: [
           'Unfilled spots, absent workers, cancelled or expired shifts: the pay and service fee for that part are refunded to your wallet. The 10% fee is only charged on the part of the shift that was actually worked.',
         ],
+        demo: {
+          paragraphs: [
+            'Unfilled spots, absent workers, cancelled or expired shifts: the pay for that part is refunded to your wallet (simulated).',
+          ],
+        },
       },
       {
         heading: '5. Editing and cancelling shifts',
@@ -590,6 +647,12 @@ export const handbookArticlesEn: Record<string, HandbookArticleEn> = {
           'You withdraw your balance to a bank account via PayOS, minimum 2.000đ. Top-up bonus money cannot be withdrawn. Double-check the bank and account number: money sent to the wrong account cannot be recovered.',
         ],
         note: 'Top-ups, money held, pay and withdrawals on CaLẻ are real money through PayOS. When contacting support, include the top-up order code (#…) from your wallet history.',
+        demo: {
+          paragraphs: [
+            'In the demo, withdrawals are simulated: the balance is deducted in the simulated ledger and no real money is sent to a bank.',
+          ],
+          note: 'In the demo, all top-ups, money held, pay, refunds and withdrawals are recorded in a simulated ledger, with no PayOS and no real money.',
+        },
       },
     ],
   },

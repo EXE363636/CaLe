@@ -244,7 +244,7 @@ function SchedulePageContent() {
   }
 
   const sidebar = (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:flex-1">
       <div className="rounded-2xl bg-white p-1 shadow-card ring-1 ring-black/5">
         <MiniMonthCalendar
           selectedDateIso={selectedDateIso}
@@ -265,7 +265,7 @@ function SchedulePageContent() {
         items={upcoming.map((e) => ({ id: e.id, title: e.title, date: e.date, startTime: e.startTime, endTime: e.endTime, variant: e.variant, label: e.subtitle }))}
         onSelect={setPeekId}
       />
-      <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5">
+      <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-black/5 lg:flex-1">
         <CalendarLegend variant="employer" />
       </div>
     </div>
@@ -351,18 +351,11 @@ function SchedulePageContent() {
           without conveying anything; the body's calm warm-cream chrome
           is enough surface treatment for the calendar grid. */}
 
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <header className="mb-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">{t('employerSchedule.page.title')}</h1>
           <p className="mt-2 max-w-2xl text-base text-gray-600">{t('employerSchedule.page.subtitle')}</p>
-          <ScheduleSummary
-            label={tx('Tóm tắt tuần đang xem')}
-            items={[
-              { value: String(summary.count), label: tx('Ca trong tuần') },
-              { value: `${summary.filled}/${summary.needed}`, label: tx('Người đã nhận / cần') },
-              { value: String(summary.short), label: tx('Ca còn thiếu người'), warn: summary.short > 0 },
-            ]}
-          />
         </div>
         <PageHelpButton
           title={t('help.employerSchedule.title')}
@@ -393,6 +386,15 @@ function SchedulePageContent() {
             },
           ]}
           cta={{ label: t('help.viewFullGuide'), href: '/user-guide' }}
+        />
+        </div>
+        <ScheduleSummary
+          label={tx('Tóm tắt tuần đang xem')}
+          items={[
+            { value: String(summary.count), label: tx('Ca trong tuần') },
+            { value: `${summary.filled}/${summary.needed}`, label: tx('Người đã nhận / cần') },
+            { value: String(summary.short), label: tx('Ca còn thiếu người'), warn: summary.short > 0 },
+          ]}
         />
       </header>
 
