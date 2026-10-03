@@ -47,9 +47,10 @@ export function OpenShiftsSection({ tone = 'cream' }: { tone?: string }) {
     return m;
   }, [users]);
 
-  function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const q = query.trim();
+    // Đọc thẳng từ form (không dựa vào state có thể chưa kịp cập nhật).
+    const q = String(new FormData(e.currentTarget).get('q') ?? '').trim();
     router.push(q ? `/shifts?q=${encodeURIComponent(q)}` : '/shifts');
   }
 
@@ -65,12 +66,14 @@ export function OpenShiftsSection({ tone = 'cream' }: { tone?: string }) {
               {tx('Ca nào hiện ở đây cũng đã được giữ trước tiền công. Bấm vào ca để xem chi tiết và ứng tuyển.')}
             </p>
           </div>
-          <form role="search" onSubmit={onSubmit} className="flex w-full max-w-md gap-2">
+          {/* action/method + name="q": trước khi hydrate, gửi form gốc vẫn tới /shifts?q=… */}
+          <form role="search" action="/shifts" method="get" onSubmit={onSubmit} className="flex w-full max-w-md gap-2">
             <label htmlFor="worker-shift-search" className="sr-only">
               {tx('Tìm ca')}
             </label>
             <input
               id="worker-shift-search"
+              name="q"
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}

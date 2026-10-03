@@ -90,7 +90,7 @@ export function Footer() {
   const tx = useTx();
   const live = process.env.NEXT_PUBLIC_DATA_MODE === 'supabase';
   return (
-    <footer className="public-skin mt-auto border-t border-black/5" style={{ backgroundColor: 'var(--tone-paper)' }}>
+    <footer data-testid="site-footer" className="public-skin mt-auto border-t border-black/5" style={{ backgroundColor: 'var(--tone-paper)' }}>
       <div className="mx-auto max-w-6xl px-4 pb-8 pt-12 sm:px-6 sm:pt-16 lg:px-8">
         {/* lg: logo · 3 cột liên kết · hỗ trợ (một hàng). md: logo | hỗ trợ, liên kết hàng
             dưới. Điện thoại: logo, hỗ trợ, liên kết 2 cột (03/10, lần 4). */}

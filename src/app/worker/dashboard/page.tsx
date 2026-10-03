@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { RoleGuard } from '@/components/layout/RoleGuard';
 import { useAuthStore } from '@/stores/authStore';
@@ -108,6 +108,8 @@ function WorkerDashboardContent() {
   // scroll the applied-jobs section into view and flash a ring so the
   // result is VISIBLE, not just a URL change. Works on repeat clicks.
   const [applicationsHighlight, setApplicationsHighlight] = useState(false);
+  // Hẹn giờ tắt vòng sáng của lần bấm trước — huỷ khi bấm lại để nó không tắt sớm vòng mới.
+  const highlightTimerRef = useRef<number | undefined>(undefined);
   const focusApplications = useCallback(() => {
     if (typeof document === 'undefined') return;
     const el = document.getElementById('worker-applications-section');
@@ -117,7 +119,8 @@ function WorkerDashboardContent() {
     setAppTab('pending');
     setApplicationsHighlight(false);
     requestAnimationFrame(() => setApplicationsHighlight(true));
-    window.setTimeout(() => setApplicationsHighlight(false), 1600);
+    window.clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = window.setTimeout(() => setApplicationsHighlight(false), 1600);
   }, []);
 
   // CORE-STABILITY-7 Part 1 — wallet-history deeplink. Incrementing

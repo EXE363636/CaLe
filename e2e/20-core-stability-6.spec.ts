@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures/test';
 import { buildFunds, buildSnapshot, buildShift, buildApplication } from './fixtures/seed';
-import { ACCOUNTS } from './fixtures/constants';
+import { ACCOUNTS, ANCHOR_ISO } from './fixtures/constants';
 
 /**
  * CORE-STABILITY-6 — E2E for:
@@ -42,26 +42,34 @@ test.describe('Part 1: worker applied-jobs section intent (same-route)', () => {
     });
     await seedState(buildSnapshot({ shifts: [shift], applications: [application] }));
     await loginAs(ACCOUNTS.worker.id);
+    // Vòng sáng bật bằng requestAnimationFrame và tự tắt sau 1600 ms (setTimeout):
+    // điều khiển bằng đồng hồ giả để không lỡ cửa sổ khi máy chậm.
+    await page.clock.install({ time: new Date(ANCHOR_ISO) });
     await gotoApp('/worker/dashboard');
 
     const section = page.locator('#worker-applications-section');
     await expect(section).toBeVisible();
+    // Dừng đồng hồ sau khi trang đã tải: từ đây chỉ runFor mới cho thời gian trôi.
+    const now = await page.evaluate(() => Date.now());
+    await page.clock.pauseAt(new Date(now + 1_000));
 
     // Click the shortcut while already on the dashboard.
     await openUserMenu(page);
     await page.getByRole('menuitem', { name: 'Việc đã ứng tuyển' }).click();
 
     // The section gets a temporary highlight ring (visible result, not
-    // just a URL change).
-    await expect(section).toHaveClass(/ring-2/, { timeout: 4000 });
+    // just a URL change) — on the next animation frame.
+    await page.clock.runFor(20);
+    await expect(section).toHaveClass(/ring-2/);
     expect(page.url()).toContain('/worker/dashboard');
 
-    // Wait for the highlight to auto-clear, then re-click — it must
-    // highlight again.
-    await expect(section).not.toHaveClass(/ring-2/, { timeout: 4000 });
+    // Let the highlight auto-clear, then re-click — it must highlight again.
+    await page.clock.runFor(1_600);
+    await expect(section).not.toHaveClass(/ring-2/);
     await openUserMenu(page);
     await page.getByRole('menuitem', { name: 'Việc đã ứng tuyển' }).click();
-    await expect(section).toHaveClass(/ring-2/, { timeout: 4000 });
+    await page.clock.runFor(20);
+    await expect(section).toHaveClass(/ring-2/);
   });
 });
 

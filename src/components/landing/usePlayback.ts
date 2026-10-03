@@ -32,7 +32,10 @@ export function usePlayback(
     let timer: number | undefined;
     const run = () => {
       window.clearTimeout(timer);
-      if (!visible || document.hidden) return;
+      if (!visible || document.hidden) {
+        el.dataset.playback = 'paused';
+        return;
+      }
       const list = typeof durations === 'function' ? durations(roundRef.current) : durations;
       timer = window.setTimeout(() => {
         stepRef.current += 1;
@@ -43,9 +46,14 @@ export function usePlayback(
         setPos({ step: stepRef.current, round: roundRef.current });
         run();
       }, list[stepRef.current]);
+      // Mốc cho e2e: hẹn giờ của bước hiện tại đã đặt (đã hydrate + đang trong khung nhìn).
+      el.dataset.playback = 'running';
     };
     const io = new IntersectionObserver(
       ([entry]) => {
+        // Chỉ đặt lại hẹn giờ khi đổi hiện ↔ ẩn: callback lặp lại (vd đổi tỉ lệ giao)
+        // không được làm bước hiện tại chạy lại từ đầu.
+        if (entry.isIntersecting === visible) return;
         visible = entry.isIntersecting;
         run();
       },
@@ -57,6 +65,7 @@ export function usePlayback(
       window.clearTimeout(timer);
       io.disconnect();
       document.removeEventListener('visibilitychange', run);
+      delete el.dataset.playback;
     };
     // durations là hằng số của từng minh hoạ.
     // eslint-disable-next-line react-hooks/exhaustive-deps

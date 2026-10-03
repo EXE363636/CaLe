@@ -75,7 +75,7 @@ test.describe('Hiện dần khi cuộn — giảm chuyển động', () => {
       await page.evaluate((top) => window.scrollTo(0, top), y);
       await expect(page.locator('[data-reveal]')).toHaveCount(0);
     }
-    await page.getByRole('contentinfo').scrollIntoViewIfNeeded();
+    await page.getByTestId('site-footer').scrollIntoViewIfNeeded();
     await expect(page.locator('[data-reveal]')).toHaveCount(0);
     expect(await revealSeen(page)).toBe(0);
   });

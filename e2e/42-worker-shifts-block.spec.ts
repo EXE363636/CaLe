@@ -268,6 +268,8 @@ test.describe('Ô tìm "Ca đang tuyển" → /shifts?q=… (03/10)', () => {
     const form = block(page).getByRole('search');
     const input = form.locator('#worker-shift-search');
     await expect(form.getByLabel('Tìm ca', { exact: true })).toHaveAttribute('id', 'worker-shift-search');
+    // Chờ hydrate (khung giữ chỗ biến mất) để onSubmit của React xử lý, không phải gửi form gốc.
+    await expect(block(page).locator('[aria-busy="true"]')).toHaveCount(0);
     await input.fill('  pha chế ');
     await form.getByRole('button', { name: 'Tìm ca', exact: true }).click();
     await page.waitForURL(/\/shifts\?q=/);
@@ -286,6 +288,7 @@ test.describe('Ô tìm "Ca đang tuyển" → /shifts?q=… (03/10)', () => {
     await seedState(buildSnapshot({ shifts: seedShifts() }));
     await gotoApp('/for-workers');
     const input = block(page).locator('#worker-shift-search');
+    await expect(block(page).locator('[aria-busy="true"]')).toHaveCount(0);
     await input.fill('   ');
     await input.press('Enter');
     await page.waitForURL(/\/shifts$/);
@@ -729,7 +732,7 @@ test.describe('375px — "Ca đang tuyển", /shifts, khối luật uy tín / qu
         await expect(cardLinks(page.locator('main'))).toHaveCount(8);
         await expect(page.locator('main .public-skin header').getByRole('link', { name: /Trang người lao động/ })).toBeVisible();
       }
-      await page.locator('footer').scrollIntoViewIfNeeded();
+      await page.getByTestId('site-footer').scrollIntoViewIfNeeded();
       const widths = await page.evaluate(() => ({
         doc: document.documentElement.scrollWidth,
         body: document.body.scrollWidth,

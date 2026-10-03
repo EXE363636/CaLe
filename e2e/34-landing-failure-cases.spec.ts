@@ -14,16 +14,22 @@ import type { Locator, Page } from '@playwright/test';
  * Bản demo (local): giữ = tiền công, không phí (`sampleLedger(shift, false)`).
  *
  * Hẹn giờ: `usePlayback` dùng setTimeout theo bước, chỉ chạy khi khối trong khung nhìn
- * (IntersectionObserver chạy theo khung hình thật). Đồng hồ được DỪNG trước khi vào trang,
- * rồi nhích từng 50 ms tới chuyển bước đầu tiên (mốc đồng bộ S, sai số < ~100 ms); từ S
- * mọi bước sau tính bằng tổng thời lượng các bước + 300 ms đệm (bước ngắn nhất 1100 ms).
- * Số dư ví đếm lên bằng requestAnimationFrame (cũng theo đồng hồ giả) → chạy thêm 1000 ms
- * (> 900 ms đếm) trước khi đọc số cuối.
+ * (IntersectionObserver chạy theo khung hình thật). Đồng hồ được DỪNG trước khi vào trang;
+ * hẹn giờ của bước đầu đặt xong (sau hydrate + IntersectionObserver) thì khối có
+ * `data-playback="running"` — chờ mốc đó rồi chạy đúng thời lượng bước đầu tới chuyển bước
+ * đầu tiên (mốc đồng bộ S, chính xác vì đồng hồ đứng yên tới lúc đó); từ S mọi bước sau
+ * tính bằng tổng thời lượng các bước + 300 ms đệm (bước ngắn nhất 1100 ms).
+ * Cho đồng hồ trôi bằng `advance` (fastForward từng 100 ms), không `runFor`: `runFor` chạy
+ * từng khung hình 16 ms của mọi vòng requestAnimationFrame trên trang (vd vòng xoay việc
+ * làm trang chủ), ~1 giây thật cho mỗi giây giả khi máy bận → vượt 30 giây của test.
+ * Số dư ví đếm lên bằng requestAnimationFrame (cũng theo đồng hồ giả) → `runFor` thêm
+ * 1000 ms (> 900 ms đếm) trước khi đọc số cuối.
  */
 
 const DESKTOP = { width: 1440, height: 900 };
 const MARGIN = 300;
-const TICK = 50;
+/** Bước nhảy của `advance`: mọi thời lượng bước và đệm đều là bội của số này. */
+const CHUNK = 100;
 
 async function openPaused(
   page: Page,
@@ -40,13 +46,24 @@ async function openPaused(
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 }
 
-/** Nhích đồng hồ từng 50 ms tới khi `ready()` đúng — mốc đồng bộ ngay sau một chuyển bước. */
-async function tickUntil(page: Page, ready: () => Promise<boolean>, what: string, maxMs = 15_000) {
-  for (let elapsed = 0; elapsed <= maxMs; elapsed += TICK) {
-    if (await ready()) return;
-    await page.clock.runFor(TICK);
-  }
-  throw new Error(`không thấy "${what}" sau ${maxMs} ms đồng hồ giả`);
+/**
+ * Chờ hẹn giờ bước đầu của minh hoạ được đặt (đồng hồ đang dừng nên chưa trôi ms nào),
+ * rồi chạy đúng `firstStepMs` → mốc đồng bộ S ngay sau chuyển bước đầu tiên.
+ */
+async function syncToFirstStep(page: Page, fig: Locator, firstStepMs: number) {
+  await expect(fig.locator('[data-playback="running"]')).toBeAttached();
+  await advance(page, firstStepMs);
+}
+
+/**
+ * Cho đồng hồ giả trôi `ms` bằng các lần fastForward 100 ms. fastForward chỉ gọi mỗi hẹn
+ * giờ đến hạn một lần ở cuối bước nhảy; vì mốc đồng bộ và mọi thời lượng bước đều là bội
+ * 100 ms nên hẹn giờ của minh hoạ luôn đến hạn ĐÚNG cuối một bước nhảy — không trễ, lịch
+ * các bước sau không lệch.
+ */
+async function advance(page: Page, ms: number) {
+  expect(ms % CHUNK, `${ms} ms phải là bội ${CHUNK} ms`).toBe(0);
+  for (let done = 0; done < ms; done += CHUNK) await page.clock.fastForward(CHUNK);
 }
 
 /** Badge trạng thái ở đầu thẻ (Badge đầu tiên trong DOM, trước thanh bước ShiftJourney). */
@@ -78,11 +95,12 @@ test.describe('Biên nhận trang chủ — vòng huỷ và vòng có người v
     await expect(title).toHaveText('Phụ bếp quán lẩu');
     await expect(badge).toHaveText('Đã hoàn thành');
 
-    // S = đầu vòng 1 (Phục vụ tiệc cưới).
-    await tickUntil(page, async () => (await title.textContent()) === 'Phục vụ tiệc cưới', 'vòng 1');
+    // S = đầu vòng 1 (Phục vụ tiệc cưới), 3800 ms sau bước "hoàn thành" của vòng 0.
+    await syncToFirstStep(page, receipt, 3800);
+    await expect(title).toHaveText('Phục vụ tiệc cưới');
 
     // Vòng 3 "Kiểm hàng kho" (2 người × 4 giờ × 38.000 đ = 304.000 đ giữ) — bước đăng ca.
-    await page.clock.runFor(RECEIPT_ROUND * 2 + MARGIN);
+    await advance(page, RECEIPT_ROUND * 2 + MARGIN);
     await expect(title).toHaveText('Kiểm hàng kho');
     await expect(badge).toHaveText('Đang tuyển');
     await expect(line('home-hold')).toContainText('304.000 đ');
@@ -92,7 +110,7 @@ test.describe('Biên nhận trang chủ — vòng huỷ và vòng có người v
     await expect(receipt.getByText(/^Lý do huỷ:/)).toHaveCount(0);
 
     // 1700 ms sau → "Đã hủy" (tông danger), lý do huỷ, hoàn đủ.
-    await page.clock.runFor(1700);
+    await advance(page, 1700);
     await expect(badge).toHaveText('Đã hủy');
     await expect(badge).toHaveClass(/bg-red-100/);
     await expect(receipt.getByText('Lý do huỷ: Lô hàng về trễ, kho dời lịch kiểm sang tuần sau.', { exact: true })).toBeVisible();
@@ -110,7 +128,7 @@ test.describe('Biên nhận trang chủ — vòng huỷ và vòng có người v
     // Vòng 4 "Hỗ trợ sự kiện ra mắt" (4 người × 5 giờ × 50.000 đ = 1.000.000 đ, 1 người vắng).
     // Đang ở 300 ms vào bước huỷ (bắt đầu 1700 ms vào vòng 3) → 5500 − 1700 ms nữa là
     // đầu vòng 4 + 300 ms.
-    await page.clock.runFor(RECEIPT_CANCELLED_ROUND - 1700);
+    await advance(page, RECEIPT_CANCELLED_ROUND - 1700);
     await expect(title).toHaveText('Hỗ trợ sự kiện ra mắt');
     await expect(badge).toHaveText('Đang tuyển');
     await expect(receipt.getByText(/^Lý do huỷ:/)).toHaveCount(0);
@@ -120,7 +138,7 @@ test.describe('Biên nhận trang chủ — vòng huỷ và vòng có người v
     await expect(line('home-refund')).toContainText('Ca đủ người, không ai vắng');
 
     // Bước "hoàn thành" (sau 1700 + 1500 × 3 ms): chỉ trả người đã làm, hoàn phần người vắng.
-    await page.clock.runFor(1700 + 1500 * 3);
+    await advance(page, 1700 + 1500 * 3);
     await expect(badge).toHaveText('Đã hoàn thành');
     await expect(badge).toHaveClass(/bg-green-100/);
     await expect(line('home-hold')).toContainText('1.000.000 đ');
@@ -153,11 +171,12 @@ test.describe('Minh hoạ nhà tuyển dụng — ca có người vắng mặt',
     await expect(title).toHaveText('Phục vụ tiệc cưới');
     await expect(wallet).toContainText('−1.200.000 đ');
     // S = bước duyệt người đầu tiên (chip trừ ví biến mất), 1900 ms sau đầu vòng 0.
-    await tickUntil(page, async () => !(await wallet.textContent())?.includes('−'), 'bước duyệt đầu');
+    await syncToFirstStep(page, fig, 1900);
+    await expect(wallet).not.toContainText('−');
 
     // Từ S: hết vòng 0 (11800 − 1900) + vòng 1 pha chế 1 người (9600) + vòng 2 huỷ (5100)
     // = 24600 → đầu vòng 3; tới "chờ xác nhận": 1900 + 3 × 1100 + 1700 = 6900.
-    await page.clock.runFor(24_600 + 6_900 + MARGIN);
+    await advance(page, 24_600 + 6_900 + MARGIN);
     await expect(title).toHaveText('Hỗ trợ sự kiện ra mắt');
     await expect(badge).toHaveText('Chờ xác nhận');
     await expect(rows).toHaveCount(3);
@@ -177,7 +196,7 @@ test.describe('Minh hoạ nhà tuyển dụng — ca có người vắng mặt',
     await expect(wallet).not.toContainText('+');
 
     // 1700 ms sau → hoàn thành; thêm 1000 ms cho số dư đếm lên xong.
-    await page.clock.runFor(1_700);
+    await advance(page, 1_700);
     await expect(badge).toHaveText('Đã hoàn thành');
     await page.clock.runFor(1_000);
     await expect(fig.getByText('Đã trả cho 3 người', { exact: true })).toBeVisible();
@@ -212,17 +231,18 @@ test.describe('Minh hoạ người lao động — ca bị huỷ và không đư
     // Vòng 0: Pha chế quán cà phê (07:00–11:00). S = bước check-in (1900 ms sau đầu vòng).
     await expect(title).toHaveText('Pha chế quán cà phê');
     const working = fig.getByText('Đang làm · kết thúc lúc 11:00', { exact: true });
-    await tickUntil(page, () => working.isVisible(), 'đang làm');
+    await syncToFirstStep(page, fig, 1900);
+    await expect(working).toBeVisible();
 
     // Vòng 1 "Kiểm hàng kho": đầu vòng = S + (8500 − 1900).
-    await page.clock.runFor(6_600 + MARGIN);
+    await advance(page, 6_600 + MARGIN);
     await expect(title).toHaveText('Kiểm hàng kho');
     await expect(badge).toHaveText('Đã duyệt');
     await expect(fig.getByText('Check-in', { exact: true })).toBeVisible();
     await expectWalletUnchanged('735.000 đ');
 
     // 1900 ms sau → nhà tuyển dụng huỷ.
-    await page.clock.runFor(1_900);
+    await advance(page, 1_900);
     await expect(badge).toHaveText('Đã hủy bởi nhà tuyển dụng');
     await expect(badge).toHaveClass(/bg-red-100/);
     await expect(fig.getByText('Lý do huỷ: Lô hàng về trễ, kho dời lịch kiểm sang tuần sau.', { exact: true })).toBeVisible();
@@ -232,14 +252,14 @@ test.describe('Minh hoạ người lao động — ca bị huỷ và không đư
 
     // Vòng 3 "Thu ngân siêu thị mini": đang ở 300 ms vào bước huỷ (bắt đầu 1900 ms vào vòng 1)
     // → còn 5100 − 1900 − 300 của vòng 1, rồi vòng 2 thường 8500, rồi 300 ms đệm.
-    await page.clock.runFor(5_100 - 1_900 + 8_500);
+    await advance(page, 5_100 - 1_900 + 8_500);
     await expect(title).toHaveText('Thu ngân siêu thị mini');
     await expect(badge).toHaveText('Chờ duyệt');
     await expect(badge).toHaveClass(/bg-amber-100/);
     await expect(fig.getByText('Đã ứng tuyển · chờ nhà tuyển dụng duyệt', { exact: true })).toBeVisible();
     await expectWalletUnchanged('318.000 đ');
 
-    await page.clock.runFor(1_900);
+    await advance(page, 1_900);
     await expect(badge).toHaveText('Bị từ chối');
     await expect(fig.getByText('Nhà tuyển dụng đã chọn đủ người · xem ca khác', { exact: true })).toBeVisible();
     await expect(fig.getByText('Đã ứng tuyển · chờ nhà tuyển dụng duyệt', { exact: true })).toHaveCount(0);
@@ -247,10 +267,10 @@ test.describe('Minh hoạ người lao động — ca bị huỷ và không đư
     await expectWalletUnchanged('318.000 đ');
 
     // Vòng 4 "Phát tờ rơi khai trương" (huỷ vì mưa): đầu vòng + 300 ms sau 5100 − 1900 ms.
-    await page.clock.runFor(5_100 - 1_900);
+    await advance(page, 5_100 - 1_900);
     await expect(title).toHaveText('Phát tờ rơi khai trương');
     await expect(badge).toHaveText('Đã duyệt');
-    await page.clock.runFor(1_900);
+    await advance(page, 1_900);
     await expect(badge).toHaveText('Đã hủy bởi nhà tuyển dụng');
     await expect(fig.getByText('Lý do huỷ: Mưa lớn, cửa hàng lùi ngày khai trương.', { exact: true })).toBeVisible();
     await expectWalletUnchanged('890.000 đ');
